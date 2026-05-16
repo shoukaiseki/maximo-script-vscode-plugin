@@ -1,0 +1,121 @@
+{
+  "name": "maximo-script-helper",
+  "displayName": "Maximo Script Helper",
+  "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
+  "version": "1.0.0",
+  "publisher": "shoukaiseki",
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/shoukaiseki/maximo-script-vscode-plugin"
+  },
+  "bugs": {
+    "url": "https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/issues"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onCommand:maximoScript.showConfig"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "maximoScript.showConfig",
+        "title": "Maximo Script: 打开配置"
+      }
+    ],
+    "configuration": {
+      "title": "Maximo Script Helper",
+      "properties": {
+        "maximoScript.serverUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Maximo服务器地址"
+        },
+        "maximoScript.maxauth": {
+          "type": "string",
+          "default": "",
+          "description": "Maximo认证信息（Base64编码的用户名:密码）"
+        },
+        "maximoScript.version": {
+          "type": "string",
+          "enum": [
+            "7.6",
+            "9.1"
+          ],
+          "default": "7.6",
+          "description": "Maximo版本"
+        },
+        "maximoScript.enableCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用代码补全功能"
+        },
+        "maximoScript.localApiPath": {
+          "type": "string",
+          "default": "",
+          "description": "本地API反射数据目录路径（JSON文件所在目录）"
+        },
+        "maximoScript.enableJSDocParsing": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用 JSDoc 类型注释解析"
+        },
+        "maximoScript.enableTypeInference": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用返回值类型推断（支持链式调用）"
+        },
+        "maximoScript.jarDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Maximo JAR 文件目录列表（用于实时反射获取 API 数据）"
+        },
+        "maximoScript.additionalJars": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "额外的 JAR 文件完整路径列表"
+        },
+        "maximoScript.jdkPath": {
+          "type": "string",
+          "default": "",
+          "description": "JDK 安装路径（用于调用 Java 反射 API，例如：C:\\Program Files\\Java\\jdk-11）"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile-java": "compile-java.bat",
+    "compile": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^2.19.0",
+    "copy-webpack-plugin": "^14.0.0",
+    "ts-loader": "^9.4.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}

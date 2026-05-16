@@ -1,0 +1,13 @@
+.vscode/
+.git/
+.github/
+.gitignore
+node_modules/
+src/
+temp/
+TASK/
+*.bat
+tsconfig.json
+webpack.config.js
+.vscode-test/
+.DS_Store
