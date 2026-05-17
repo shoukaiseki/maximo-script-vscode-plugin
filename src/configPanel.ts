@@ -134,7 +134,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('apiKey', data.apiKey, vscode.ConfigurationTarget.Global);
       await config.update('apiType', data.apiType, vscode.ConfigurationTarget.Global);
       await config.update('version', data.version, vscode.ConfigurationTarget.Global);
-      await config.update('enableCompletion', data.enableCompletion, vscode.ConfigurationTarget.Global);
+      await config.update('completionMode', data.completionMode || 'vscode', vscode.ConfigurationTarget.Global);
       await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
@@ -407,7 +407,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       apiKey: config.get('apiKey', ''),
       apiType: config.get('apiType', 'oslc'),
       version: config.get('version', '7.6'),
-      enableCompletion: config.get('enableCompletion', false),
+      completionMode: config.get('completionMode', 'vscode'),
       localApiPath: config.get('localApiPath', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),

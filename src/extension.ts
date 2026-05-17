@@ -169,15 +169,18 @@ class CompletionModeSwitcher implements vscode.Disposable {
    */
   public updateDisplay() {
     const config = vscode.workspace.getConfiguration('maximoScript');
-    const jarDirectories = config.get('jarDirectories', []) as string[];
+    const completionMode = config.get('completionMode', 'vscode') as string;
     
-    // 根据是否配置了 JAR 目录显示不同内容
-    if (jarDirectories && jarDirectories.length > 0) {
+    // 根据补全模式显示不同内容
+    if (completionMode === 'vscode') {
+      this.statusBarItem.text = '$(circle-slash) VSCode 模式';
+      this.statusBarItem.tooltip = '当前使用 VSCode 内置补全（插件补全已禁用）\n点击切换为其他模式';
+    } else if (completionMode === 'reflection') {
       this.statusBarItem.text = '$(zap) 反射模式';
-      this.statusBarItem.tooltip = '当前使用反射模式（通过 JAR 文件实时获取 API）\n点击切换为默认模式';
+      this.statusBarItem.tooltip = '当前使用反射模式（通过 JAR 文件实时获取 API）\n点击切换为其他模式';
     } else {
       this.statusBarItem.text = '$(info) 默认模式';
-      this.statusBarItem.tooltip = '当前使用默认模式（本地缓存 + 常用 API）\n点击切换为反射模式';
+      this.statusBarItem.tooltip = '当前使用默认模式（本地缓存 + 常用 API）\n点击切换为其他模式';
     }
   }
 
@@ -186,72 +189,54 @@ class CompletionModeSwitcher implements vscode.Disposable {
    */
   private async toggleMode() {
     const config = vscode.workspace.getConfiguration('maximoScript');
-    const jarDirectories = config.get('jarDirectories', []) as string[];
+    const currentMode = config.get('completionMode', 'vscode') as string;
     
-    if (jarDirectories && jarDirectories.length > 0) {
-      // 当前是反射模式，询问是否切换为默认模式
-      const choice = await vscode.window.showQuickPick(
-        [
-          {
-            label: '$(info) 默认模式',
-            description: '使用本地缓存 + 常用 API 列表',
-            detail: '适合离线使用或快速开发'
-          },
-          {
-            label: '$(zap) 反射模式（当前）',
-            description: '通过 JAR 文件实时反射获取 API',
-            detail: '提供最精确的 API 补全',
-            picked: true
-          }
-        ],
+    // 显示所有可用的模式供选择
+    const choice = await vscode.window.showQuickPick(
+      [
         {
-          placeHolder: '选择补全模式',
-          title: 'Maximo 补全模式切换'
-        }
-      );
-      
-      if (choice && choice.label.includes('默认模式')) {
-        // 清除 JAR 目录配置，切换到默认模式
-        await config.update('jarDirectories', [], vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage('已切换为默认模式');
-      }
-    } else {
-      // 当前是默认模式，询问是否切换为反射模式
-      const choice = await vscode.window.showQuickPick(
-        [
-          {
-            label: '$(info) 默认模式（当前）',
-            description: '使用本地缓存 + 常用 API 列表',
-            detail: '适合离线使用或快速开发',
-            picked: true
-          },
-          {
-            label: '$(zap) 反射模式',
-            description: '通过 JAR 文件实时反射获取 API',
-            detail: '提供最精确的 API 补全'
-          }
-        ],
+          label: '$(circle-slash) VSCode 模式',
+          description: '使用 VSCode 内置补全（插件补全已禁用）',
+          detail: '完全依赖 VSCode 原生智能感知',
+          picked: currentMode === 'vscode'
+        },
         {
-          placeHolder: '选择补全模式',
-          title: 'Maximo 补全模式切换'
+          label: '$(info) 默认模式',
+          description: '使用本地缓存 + 常用 API 列表',
+          detail: '适合离线使用或快速开发',
+          picked: currentMode === 'default'
+        },
+        {
+          label: '$(zap) 反射模式',
+          description: '通过 JAR 文件实时反射获取 API',
+          detail: '提供最精确的 API 补全',
+          picked: currentMode === 'reflection'
         }
-      );
-      
-      if (choice && choice.label.includes('反射模式')) {
-        // 提示用户配置 JAR 目录
-        const action = await vscode.window.showInformationMessage(
-          '反射模式需要配置 JAR 目录，是否现在配置？',
-          '打开配置',
-          '取消'
-        );
-        
-        if (action === '打开配置') {
-          vscode.commands.executeCommand('maximoScript.showConfig');
-        }
+      ],
+      {
+        placeHolder: '选择补全模式',
+        title: 'Maximo 补全模式切换'
       }
+    );
+    
+    if (!choice) {
+      return; // 用户取消
     }
     
-    // 更新显示
-    this.updateDisplay();
+    // 根据选择更新配置
+    let newMode = '';
+    if (choice.label.includes('VSCode')) {
+      newMode = 'vscode';
+    } else if (choice.label.includes('默认')) {
+      newMode = 'default';
+    } else if (choice.label.includes('反射')) {
+      newMode = 'reflection';
+    }
+    
+    if (newMode && newMode !== currentMode) {
+      await config.update('completionMode', newMode, vscode.ConfigurationTarget.Global);
+      this.updateDisplay();
+      vscode.window.showInformationMessage(`已切换为${choice.label.split(' ')[1]}`);
+    }
   }
 }

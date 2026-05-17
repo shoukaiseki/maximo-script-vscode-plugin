@@ -14,7 +14,7 @@ interface ConfigData {
   apiKey: string;
   apiType: string;
   version: string;
-  enableCompletion: boolean;
+  completionMode: string;
   localApiPath: string;
   enableJSDocParsing: boolean;
   enableTypeInference: boolean;
@@ -34,7 +34,7 @@ const App: React.FC = () => {
     apiKey: '',
     apiType: 'oslc',
     version: '7.6',
-    enableCompletion: false,
+    completionMode: 'vscode',
     localApiPath: '',
     enableJSDocParsing: true,
     enableTypeInference: true,
@@ -98,6 +98,21 @@ const App: React.FC = () => {
       }
     });
   }, []);
+
+  // 即时保存配置
+  const saveConfig = (newConfig: ConfigData) => {
+    getVsCodeApi().postMessage({
+      command: 'saveConfig',
+      data: newConfig
+    });
+  };
+
+  // 更新配置并自动保存
+  const updateConfig = (updates: Partial<ConfigData>) => {
+    const newConfig = { ...config, ...updates };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+  };
 
   const handleSave = () => {
     getVsCodeApi().postMessage({
@@ -199,7 +214,7 @@ const App: React.FC = () => {
               <input
                 type="text"
                 value={config.serverUrl}
-                onChange={(e) => setConfig({ ...config, serverUrl: e.target.value })}
+                onChange={(e) => updateConfig({ serverUrl: e.target.value })}
                 placeholder="http://localhost:9080/maximo"
               />
             </div>
@@ -208,7 +223,7 @@ const App: React.FC = () => {
               <label>登录方式</label>
               <select
                 value={config.authType}
-                onChange={(e) => setConfig({ ...config, authType: e.target.value })}
+                onChange={(e) => updateConfig({ authType: e.target.value })}
               >
                 <option value="maxauth">MAXAUTH (Base64认证)</option>
                 <option value="apikey">API Key</option>
@@ -221,7 +236,7 @@ const App: React.FC = () => {
                 <input
                   type="password"
                   value={config.maxauth}
-                  onChange={(e) => setConfig({ ...config, maxauth: e.target.value })}
+                  onChange={(e) => updateConfig({ maxauth: e.target.value })}
                   placeholder="Base64编码的用户名:密码"
                 />
               </div>
@@ -233,7 +248,7 @@ const App: React.FC = () => {
                 <input
                   type="password"
                   value={config.apiKey}
-                  onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                  onChange={(e) => updateConfig({ apiKey: e.target.value })}
                   placeholder="输入您的 API Key"
                 />
               </div>
@@ -243,7 +258,7 @@ const App: React.FC = () => {
               <label>Maximo版本</label>
               <select
                 value={config.version}
-                onChange={(e) => setConfig({ ...config, version: e.target.value })}
+                onChange={(e) => updateConfig({ version: e.target.value })}
               >
                 <option value="7.6">7.6</option>
                 <option value="9.1">9.1</option>
@@ -254,7 +269,7 @@ const App: React.FC = () => {
               <label>接口方式</label>
               <select
                 value={config.apiType}
-                onChange={(e) => setConfig({ ...config, apiType: e.target.value })}
+                onChange={(e) => updateConfig({ apiType: e.target.value })}
               >
                 <option value="oslc">OSLC API (/oslc)</option>
                 <option value="rest">REST API (/api)</option>
@@ -275,7 +290,6 @@ const App: React.FC = () => {
             )}
 
             <button onClick={handleTestConnection}>测试连接</button>
-            <button onClick={handleSave} style={{ marginLeft: '10px' }}>保存配置</button>
           </div>
         )}
 
@@ -284,17 +298,19 @@ const App: React.FC = () => {
             <h2>补全设置</h2>
             
             <div className="form-group">
-              <div className="checkbox-group">
-                <input
-                  type="checkbox"
-                  id="enableCompletion"
-                  checked={config.enableCompletion}
-                  onChange={(e) => setConfig({ ...config, enableCompletion: e.target.checked })}
-                />
-                <label htmlFor="enableCompletion" style={{ margin: 0 }}>启用代码补全功能</label>
-              </div>
-              <div className="help-text">
-                在编辑 Maximo 脚本时提供智能代码补全
+              <div style={{ 
+                padding: '15px', 
+                background: 'var(--vscode-textBlockQuote-background)',
+                borderLeft: '4px solid var(--vscode-textLink-foreground)',
+                borderRadius: '4px'
+              }}>
+                <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>💡 如何关闭插件补全？</p>
+                <p style={{ margin: '0 0 10px 0' }}>
+                  如果您想使用 VSCode 内置的智能感知而不是插件提供的补全，请点击编辑器右下角的<strong>"补全模式"</strong>状态栏项，将其切换为<strong>"VSCode 模式"</strong>。
+                </p>
+                <p style={{ margin: 0, fontSize: '0.9em', opacity: 0.8 }}>
+                  切换后，插件将不再提供代码补全建议，您可以完全依赖 VSCode 的原生补全功能。
+                </p>
               </div>
             </div>
 
@@ -304,7 +320,7 @@ const App: React.FC = () => {
                   type="checkbox"
                   id="enableJSDocParsing"
                   checked={config.enableJSDocParsing}
-                  onChange={(e) => setConfig({ ...config, enableJSDocParsing: e.target.checked })}
+                  onChange={(e) => updateConfig({ enableJSDocParsing: e.target.checked })}
                 />
                 <label htmlFor="enableJSDocParsing" style={{ margin: 0 }}>启用 JSDoc 解析</label>
               </div>
@@ -319,7 +335,7 @@ const App: React.FC = () => {
                   type="checkbox"
                   id="enableTypeInference"
                   checked={config.enableTypeInference}
-                  onChange={(e) => setConfig({ ...config, enableTypeInference: e.target.checked })}
+                  onChange={(e) => updateConfig({ enableTypeInference: e.target.checked })}
                 />
                 <label htmlFor="enableTypeInference" style={{ margin: 0 }}>启用类型推断</label>
               </div>
@@ -334,7 +350,7 @@ const App: React.FC = () => {
                 <input
                   type="text"
                   value={config.localApiPath}
-                  onChange={(e) => setConfig({ ...config, localApiPath: e.target.value })}
+                  onChange={(e) => updateConfig({ localApiPath: e.target.value })}
                   placeholder="选择包含 API 文档的目录"
                   style={{ flex: 1 }}
                 />
@@ -358,7 +374,7 @@ const App: React.FC = () => {
                 <input
                   type="text"
                   value={config.jdkPath}
-                  onChange={(e) => setConfig({ ...config, jdkPath: e.target.value })}
+                  onChange={(e) => updateConfig({ jdkPath: e.target.value })}
                   placeholder="例如: C:\\Program Files\\Java\\jdk-11"
                   style={{ flex: 1 }}
                 />
@@ -443,7 +459,7 @@ const App: React.FC = () => {
                   type="checkbox"
                   id="enableHttpLog"
                   checked={config.enableHttpLog}
-                  onChange={(e) => setConfig({ ...config, enableHttpLog: e.target.checked })}
+                  onChange={(e) => updateConfig({ enableHttpLog: e.target.checked })}
                 />
                 <label htmlFor="enableHttpLog" style={{ margin: 0 }}>启用 HTTP 请求日志保存</label>
               </div>
@@ -451,8 +467,6 @@ const App: React.FC = () => {
                 自动生成 IntelliJ IDEA HTTP Client 格式的 .http 文件到临时目录（开发调试时使用）
               </div>
             </div>
-
-            <button onClick={handleSave}>保存配置</button>
           </div>
         )}
 

@@ -94,10 +94,15 @@
           "default": "oslc",
           "description": "接口类型：OSLC API 或 REST API"
         },
-        "maximoScript.enableCompletion": {
-          "type": "boolean",
-          "default": true,
-          "description": "启用代码补全功能"
+        "maximoScript.completionMode": {
+          "type": "string",
+          "enum": [
+            "vscode",
+            "default",
+            "reflection"
+          ],
+          "default": "vscode",
+          "description": "补全模式：VSCode模式（使用VSCode内置补全）、默认模式（插件补全）、反射模式（Java反射补全）"
         },
         "maximoScript.localApiPath": {
           "type": "string",
@@ -139,18 +144,6 @@
           "type": "boolean",
           "default": false,
           "description": "启用 HTTP 请求日志保存（生成 IntelliJ IDEA HTTP Client 格式的 .http 文件）"
-        },
-        "maximoScript.logLevel": {
-          "type": "string",
-          "enum": [
-            "trace",
-            "debug",
-            "info",
-            "warning",
-            "error"
-          ],
-          "default": "info",
-          "description": "日志级别：trace（最详细）、debug、info、warning、error（仅错误）"
         }
       }
     }
