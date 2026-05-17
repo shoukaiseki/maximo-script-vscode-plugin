@@ -29,6 +29,14 @@
       {
         "command": "maximoScript.showConfig",
         "title": "Maximo Script: 打开配置"
+      },
+      {
+        "command": "maximoScript.showLogs",
+        "title": "Maximo Script: 查看日志"
+      },
+      {
+        "command": "maximoScript.setLogLevel",
+        "title": "Maximo Script: 设置日志级别"
       }
     ],
     "configuration": {
@@ -121,6 +129,18 @@
           "type": "boolean",
           "default": false,
           "description": "启用 HTTP 请求日志保存（生成 IntelliJ IDEA HTTP Client 格式的 .http 文件）"
+        },
+        "maximoScript.logLevel": {
+          "type": "string",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "error"
+          ],
+          "default": "info",
+          "description": "日志级别：trace（最详细）、debug、info、warning、error（仅错误）"
         }
       }
     }

@@ -5,9 +5,9 @@ let globalJSESSIONID: string | null = null;
 
 /**
  * 初始化 Axios 全局拦截器
- * @param outputChannel VSCode 输出通道，用于记录日志
+ * @param logger VSCode 日志通道，用于记录日志
  */
-export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel) {
+export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
   try {
     const axios = require('axios');
     
@@ -17,8 +17,11 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
         (config: any) => {
           // 在发送请求之前做些什么
           const logMessage = `[Axios Request] ${config.method?.toUpperCase()} ${config.url}`;
-          console.log(logMessage);
-          outputChannel.appendLine(logMessage);
+          if(logger.logLevel!==vscode.LogLevel.Debug&&logger.logLevel!==vscode.LogLevel.Trace){
+              console.info(logMessage);
+              logger.info(logMessage);
+          }
+
           
           // 生成 IntelliJ IDEA HTTP Client 格式的请求
           try {
@@ -48,7 +51,7 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
 
 
           console.log(httpContent);
-          outputChannel.appendLine(httpContent);
+          logger.debug(httpContent);
 
 
             if (!enableHttpLog) {
@@ -85,7 +88,7 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
             fs.writeFileSync(filePath, httpContent, 'utf-8');
             
             console.log(`[HTTP Client File] 已保存: ${filePath}`);
-            outputChannel.appendLine(`[HTTP Client File] 已保存: ${filePath}`);
+            logger.info(`[HTTP Client File] 已保存: ${filePath}`);
             
             // 可选：在 VSCode 中打开文件（取消注释以启用）
             // vscode.workspace.openTextDocument(filePath).then(doc => {
@@ -102,7 +105,7 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
           // 对请求错误做些什么
           const errorMessage = `[Axios Request Error] ${error.message}`;
           console.error(errorMessage);
-          outputChannel.appendLine(errorMessage);
+          logger.error(errorMessage);
           return Promise.reject(error);
         }
       );
@@ -112,7 +115,7 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
       
       const initLog = '[Axios] 全局请求拦截器已配置';
       console.log(initLog);
-      outputChannel.appendLine(initLog);
+      logger.info(initLog);
     }
     
     // 配置响应拦截器
@@ -122,7 +125,7 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
           // 对响应数据做点什么
           const logMessage = `[Axios Response] ${response.status} ${response.config.url}`;
           console.log(logMessage);
-          outputChannel.appendLine(logMessage);
+          logger.debug(logMessage);
           return response;
         },
         (error: any) => {
@@ -132,19 +135,19 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
           if (error.response) {
             errorMessage += `${error.response.status}: ${error.response.statusText}`;
             console.error(errorMessage);
-            outputChannel.appendLine(errorMessage);
+            logger.error(errorMessage);
             if (error.response.data && error.response.data.errorMsg) {
               const detailMsg = `  详情: ${error.response.data.errorMsg}`;
-              outputChannel.appendLine(detailMsg);
+              logger.error(detailMsg);
             }
           } else if (error.request) {
             errorMessage += 'No response received';
             console.error(errorMessage);
-            outputChannel.appendLine(errorMessage);
+            logger.error(errorMessage);
           } else {
             errorMessage += error.message;
             console.error(errorMessage);
-            outputChannel.appendLine(errorMessage);
+            logger.error(errorMessage);
           }
           
           return Promise.reject(error);
@@ -156,12 +159,12 @@ export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel)
       
       const initLog = '[Axios] 全局响应拦截器已配置';
       console.log(initLog);
-      outputChannel.appendLine(initLog);
+      logger.info(initLog);
     }
   } catch (error: any) {
     const errorMsg = `[Axios Init] 初始化拦截器失败: ${error.message}`;
     console.error(errorMsg);
-    outputChannel.appendLine(errorMsg);
+    logger.error(errorMsg);
   }
 }
 

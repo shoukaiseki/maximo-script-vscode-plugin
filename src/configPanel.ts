@@ -353,6 +353,18 @@ export class ConfigPanel {
           </div>
           <div class="help-text">自动生成 IntelliJ IDEA HTTP Client 格式的 .http 文件到临时目录（开发调试时使用）</div>
         </div>
+        
+        <div class="form-group">
+          <label for="logLevel">日志级别</label>
+          <select id="logLevel">
+            <option value="trace" ${(config.get('logLevel', 'info') as string) === 'trace' ? 'selected' : ''}>Trace（最详细）</option>
+            <option value="debug" ${(config.get('logLevel') as string) === 'debug' ? 'selected' : ''}>Debug</option>
+            <option value="info" ${(config.get('logLevel', 'info') as string) === 'info' ? 'selected' : ''}>Info（默认）</option>
+            <option value="warning" ${(config.get('logLevel') as string) === 'warning' ? 'selected' : ''}>Warning</option>
+            <option value="error" ${(config.get('logLevel') as string) === 'error' ? 'selected' : ''}>Error（仅错误）</option>
+          </select>
+          <div class="help-text">设置插件日志的详细程度，开发调试时建议使用 Debug 或 Trace</div>
+        </div>
       </div>
       
       <div class="section" id="about">
@@ -572,6 +584,7 @@ export class ConfigPanel {
         enableJSDocParsing: document.getElementById('enableJSDocParsing').checked,
         enableTypeInference: document.getElementById('enableTypeInference').checked,
         enableHttpLog: document.getElementById('enableHttpLog').checked,
+        logLevel: document.getElementById('logLevel').value,
         jdkPath: document.getElementById('jdkPath').value
       };
       
@@ -603,6 +616,7 @@ export class ConfigPanel {
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
+      await config.update('logLevel', data.logLevel, vscode.ConfigurationTarget.Global);
       await config.update('jdkPath', data.jdkPath, vscode.ConfigurationTarget.Global);
       
       // 验证保存结果

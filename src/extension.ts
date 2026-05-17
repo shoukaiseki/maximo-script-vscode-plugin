@@ -10,19 +10,50 @@ export type { HttpRequestOptions, HttpResponse };
 export function activate(context: vscode.ExtensionContext) {
   console.log('Maximo Script Helper 已激活');
 
-  // 创建输出通道用于显示日志
-  const outputChannel = vscode.window.createOutputChannel('Maximo Script Helper');
-  outputChannel.appendLine('Maximo Script Helper 插件已启动');
-  context.subscriptions.push(outputChannel);
+  // 创建带日志功能的输出通道
+  const logger = vscode.window.createOutputChannel('Maximo Script Helper', { log: true });
+  
+  logger.info('Maximo Script Helper 插件已启动');
+  logger.info('💡 提示：日志级别会在重启后重置为 Info');
+  logger.info('如需持久化设置，请使用命令：Developer: Set Log Level...');
+  context.subscriptions.push(logger);
 
   // 初始化 Axios 全局拦截器
-  initializeAxiosInterceptors(outputChannel);
+  initializeAxiosInterceptors(logger);
 
   // 注册查看日志命令
   const showLogsCommand = vscode.commands.registerCommand('maximoScript.showLogs', () => {
-    outputChannel.show();
+    logger.show();
   });
   context.subscriptions.push(showLogsCommand);
+
+  // 注册设置日志级别命令
+  const setLogLevelCommand = vscode.commands.registerCommand('maximoScript.setLogLevel', async () => {
+    const levels = [
+      { label: 'Trace (最详细)', value: vscode.LogLevel.Trace },
+      { label: 'Debug', value: vscode.LogLevel.Debug },
+      { label: 'Info (默认)', value: vscode.LogLevel.Info },
+      { label: 'Warning', value: vscode.LogLevel.Warning },
+      { label: 'Error (仅错误)', value: vscode.LogLevel.Error }
+    ];
+    
+    const selected = await vscode.window.showQuickPick(
+      levels.map(l => ({ label: l.label, description: '', value: l.value })),
+      { placeHolder: '选择日志级别' }
+    );
+    
+    if (selected) {
+      // 注意：LogOutputChannel 的 logLevel 是只读的，这里只是提示用户
+      vscode.window.showInformationMessage(
+        `当前选择的日志级别: ${selected.label}\n\n` +
+        `请在输出面板中手动设置：\n` +
+        `1. 打开输出面板 (Ctrl+Shift+U)\n` +
+        `2. 选择 "Maximo Script Helper"\n` +
+        `3. 点击右下角的日志级别图标`
+      );
+    }
+  });
+  context.subscriptions.push(setLogLevelCommand);
 
   // 注册配置命令
   const configCommand = vscode.commands.registerCommand('maximoScript.showConfig', () => {
@@ -58,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(modeSwitcher);
 
   // 注册代码补全提供者（仅支持 JavaScript）
-  const completionProvider = new CompletionProvider(outputChannel);
+  const completionProvider = new CompletionProvider(logger);
   
   // JavaScript 语言选择器
   const jsSelector: vscode.DocumentSelector = { 
