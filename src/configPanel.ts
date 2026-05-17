@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // 创建日志输出通道
 const logger = vscode.window.createOutputChannel('Maximo Script Helper', { log: true });
@@ -47,6 +49,21 @@ export class ConfigPanel {
             return;
           case 'selectJdk':
             await this._selectJdk();
+            return;
+          case 'initScripts':
+            await this._initScripts();
+            return;
+          case 'deployScript':
+            await this._deploySingleFile(message.filePath);
+            return;
+          case 'deployDirectory':
+            await this._deployDirectory(message.directoryPath, message.recursive);
+            return;
+          case 'selectFileForDeploy':
+            await this._selectFileForDeploy();
+            return;
+          case 'selectDirectoryForDeploy':
+            await this._selectDirectoryForDeploy();
             return;
         }
       },
@@ -423,6 +440,300 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       command: 'loadConfig',
       data: configData
     });
+  }
+
+  /**
+   * 选择要部署的文件
+   */
+  private async _selectFileForDeploy() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'JSON Files': ['json']
+      },
+      openLabel: '选择脚本配置文件'
+    });
+
+    if (result && result.length > 0) {
+      this._panel.webview.postMessage({
+        command: 'setDeployFilePath',
+        path: result[0].fsPath
+      });
+    }
+  }
+
+  /**
+   * 选择要部署的目录
+   */
+  private async _selectDirectoryForDeploy() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择脚本目录'
+    });
+
+    if (result && result.length > 0) {
+      this._panel.webview.postMessage({
+        command: 'setDeployDirectoryPath',
+        path: result[0].fsPath
+      });
+    }
+  }
+
+  /**
+   * 向工具箱输出日志
+   */
+  private _sendToolboxOutput(text: string) {
+    this._panel.webview.postMessage({
+      command: 'updateToolboxOutput',
+      text: text
+    });
+  }
+
+  /**
+   * 清空工具箱输出
+   */
+  private _clearToolboxOutput() {
+    this._panel.webview.postMessage({
+      command: 'clearToolboxOutput'
+    });
+  }
+
+  /**
+   * 部署单个脚本文件
+   */
+  private async _deploySingleFile(filePath: string) {
+    try {
+      this._sendToolboxOutput(`🔄 开始导入脚本: ${filePath}`);
+      
+      await this._deploySingleFileInternal(filePath);
+      
+      this._sendToolboxOutput(`✅ 脚本部署完成`);
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 部署失败: ${error.message}`);
+      logger.error(`[DeployScript] 部署失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'deployScriptComplete' });
+    }
+  }
+
+  /**
+   * 部署目录下的所有脚本
+   */
+  private async _deployDirectory(directoryPath: string, recursive: boolean) {
+    try {
+      this._sendToolboxOutput(`🔄 开始批量导入脚本 from: ${directoryPath}`);
+      
+      // 查找所有 JSON 文件
+      const jsonFiles = this._findJsonFiles(directoryPath, recursive);
+      
+      if (jsonFiles.length === 0) {
+        this._sendToolboxOutput('⚠️ 未找到任何 JSON 配置文件');
+        this._panel.webview.postMessage({ command: 'deployScriptComplete' });
+        return;
+      }
+
+      this._sendToolboxOutput(`📋 找到 ${jsonFiles.length} 个配置文件`);
+
+      // 逐个部署
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < jsonFiles.length; i++) {
+        const filePath = jsonFiles[i];
+        this._sendToolboxOutput(`\n[${i + 1}/${jsonFiles.length}] 处理: ${path.basename(filePath)}`);
+        
+        try {
+          await this._deploySingleFileInternal(filePath);
+          successCount++;
+        } catch (error: any) {
+          this._sendToolboxOutput(`❌ 失败: ${error.message}`);
+          failCount++;
+        }
+      }
+
+      this._sendToolboxOutput(`\n✅ 批量导入完成！成功: ${successCount}, 失败: ${failCount}`);
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 批量导入失败: ${error.message}`);
+      logger.error(`[DeployDirectory] 批量导入失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'deployScriptComplete' });
+    }
+  }
+
+  /**
+   * 查找目录下的所有 JSON 文件
+   */
+  private _findJsonFiles(dirPath: string, recursive: boolean): string[] {
+    const jsonFiles: string[] = [];
+    
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          jsonFiles.push(fullPath);
+        } else if (recursive && entry.isDirectory()) {
+          jsonFiles.push(...this._findJsonFiles(fullPath, recursive));
+        }
+      }
+    } catch (error: any) {
+      logger.error(`[FindJsonFiles] 读取目录失败: ${error.message}`);
+    }
+    
+    return jsonFiles;
+  }
+
+  /**
+   * 内部部署方法（不发送完成消息）
+   */
+  private async _deploySingleFileInternal(filePath: string): Promise<void> {
+    // 读取 JSON 配置文件
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const config = JSON.parse(fileContent);
+
+    // 检查必需字段
+    const requiredFields = ['AUTOSCRIPT', 'DESCRIPTION', 'SCRIPTLANGUAGE'];
+    const missingFields = requiredFields.filter(field => !config[field]);
+    if (missingFields.length > 0) {
+      throw new Error(`缺少必需字段: ${missingFields.join(', ')}`);
+    }
+
+    const autoScript = config.AUTOSCRIPT;
+    const scriptLanguage = config.SCRIPTLANGUAGE.toLowerCase();
+    const isPython = (scriptLanguage === 'python' || scriptLanguage === 'jython');
+    const scriptExt = isPython ? '.py' : '.js';
+
+    // 构建脚本文件路径
+    const dirPath = path.dirname(filePath);
+    const scriptFileName = autoScript + scriptExt;
+    const scriptFilePath = path.join(dirPath, scriptFileName);
+
+    // 读取脚本源文件
+    if (!fs.existsSync(scriptFilePath)) {
+      throw new Error(`脚本文件不存在: ${scriptFilePath}`);
+    }
+
+    const scriptSource = fs.readFileSync(scriptFilePath, 'utf-8').replace(/\r\n/g, '\n');
+
+    // 使用 httpRequestToMaximo 部署脚本
+    const { httpRequestToMaximo } = require('./httpRequest');
+    
+    const vsCodeConfig = vscode.workspace.getConfiguration('maximoScript');
+    const apiType = vsCodeConfig.get('apiType', 'oslc') as string;
+    const version = vsCodeConfig.get('version', '7.6') as string;
+    const isMaximo91 = version === '9.1';
+    const prefix = isMaximo91 ? 'spi:' : 'oslc:';
+    
+    // 步骤1: 检查脚本是否存在
+    this._sendToolboxOutput(`🔍 检查脚本是否存在: ${autoScript}`);
+    
+    let checkUrl: string;
+    if (isMaximo91) {
+      checkUrl = `/api/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoScript}"`;
+    } else {
+      checkUrl = `/oslc/os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoScript}"`;
+    }
+
+    const checkResponse = await httpRequestToMaximo({
+      method: 'GET',
+      url: checkUrl,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    let scriptExists = false;
+    let scriptHref: string | null = null;
+
+    if (checkResponse.success && checkResponse.data) {
+      const memberCount = checkResponse.data.member ? checkResponse.data.member.length : 0;
+      if (memberCount === 1) {
+        scriptExists = true;
+        scriptHref = checkResponse.data.member[0].href;
+        this._sendToolboxOutput(`✅ 脚本已存在，将更新`);
+      } else {
+        this._sendToolboxOutput(`ℹ️ 脚本不存在，将创建`);
+      }
+    }
+
+    // 步骤2: 部署或更新脚本
+    let deployUrl: string;
+    let deployMethod: string = 'POST';
+    const deployHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    if (scriptExists && scriptHref) {
+      // 更新现有脚本 - 使用 POST + x-method-override 代替 PATCH
+      deployUrl = scriptHref;
+      deployHeaders['Content-Type'] = 'application/merge-patch+json';
+      deployHeaders['x-method-override'] = 'PATCH';
+      this._sendToolboxOutput(`📝 更新脚本...`);
+    } else {
+      // 创建新脚本
+      if (isMaximo91) {
+        deployUrl = '/api/os/MXSCRIPT?lean=1';
+      } else {
+        deployUrl = '/oslc/os/AUTOSCRIPT?lean=1';
+      }
+      this._sendToolboxOutput(`➕ 创建新脚本...`);
+    }
+
+    // 构建请求数据
+    const deployData: any = {};
+    deployData[prefix + 'autoscript'] = autoScript.toUpperCase();
+    deployData[prefix + 'description'] = config.DESCRIPTION || autoScript;
+    deployData[prefix + 'scriptlanguage'] = scriptLanguage === 'javascript' ? 'nashorn' : scriptLanguage;
+    deployData[prefix + 'active'] = true;
+    deployData[prefix + 'source'] = scriptSource;
+
+    // 添加其他自定义字段
+    const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID', 'AUTOSCRIPT', 'DESCRIPTION', 'SCRIPTLANGUAGE', 'SOURCE'];
+    for (const [key, value] of Object.entries(config)) {
+      if (!ignoreFields.includes(key.toUpperCase())) {
+        deployData[prefix + key.toLowerCase()] = value;
+      }
+    }
+
+    this._sendToolboxOutput(`📤 发送请求到: ${deployUrl}`);
+
+    // 发送请求
+    const response = await httpRequestToMaximo({
+      method: deployMethod as any,
+      url: deployUrl,
+      data: deployData,
+      headers: deployHeaders
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || '部署失败');
+    }
+
+    this._sendToolboxOutput(`✅ 成功: ${autoScript}`);
+  }
+
+  /**
+   * 初始化工具脚本（简化版）
+   */
+  private async _initScripts() {
+    try {
+      this._sendToolboxOutput('🚀 开始初始化 Maximo 开发工具脚本...');
+      this._sendToolboxOutput('⚠️ 此功能需要配置工具脚本目录');
+      this._sendToolboxOutput('💡 提示：请在扩展设置中配置工具脚本路径');
+      this._sendToolboxOutput('\n✅ 初始化完成（示例消息）');
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 初始化失败: ${error.message}`);
+      logger.error(`[InitScripts] 初始化失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'initScriptsComplete' });
+    }
   }
 
   public dispose() {

@@ -26,7 +26,15 @@ interface ConfigData {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState('connection');
+  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init' or 'deploy'
   const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
+  const [toolboxOutput, setToolboxOutput] = useState<string>('');
+  const [deployFilePath, setDeployFilePath] = useState<string>('');
+  const [deployDirectoryPath, setDeployDirectoryPath] = useState<string>('');
+  const [deployMode, setDeployMode] = useState<'file' | 'directory'>('file');
+  const [deployRecursive, setDeployRecursive] = useState<boolean>(true);
+  const [isInitRunning, setIsInitRunning] = useState<boolean>(false);
+  const [isDeployRunning, setIsDeployRunning] = useState<boolean>(false);
   const [config, setConfig] = useState<ConfigData>({
     serverUrl: '',
     authType: 'maxauth',
@@ -95,6 +103,30 @@ const App: React.FC = () => {
           // 3秒后自动清除结果
           setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
           break;
+        case 'updateToolboxOutput':
+          // 更新工具箱输出日志
+          setToolboxOutput(prev => prev + message.text + '\n');
+          break;
+        case 'clearToolboxOutput':
+          // 清空工具箱输出
+          setToolboxOutput('');
+          break;
+        case 'setDeployFilePath':
+          // 设置部署文件路径
+          setDeployFilePath(message.path);
+          break;
+        case 'setDeployDirectoryPath':
+          // 设置部署目录路径
+          setDeployDirectoryPath(message.path);
+          break;
+        case 'initScriptsComplete':
+          // 初始化脚本完成
+          setIsInitRunning(false);
+          break;
+        case 'deployScriptComplete':
+          // 部署脚本完成
+          setIsDeployRunning(false);
+          break;
       }
     });
   }, []);
@@ -127,6 +159,62 @@ const App: React.FC = () => {
       command: 'testConnection',
       data: config
     });
+  };
+
+  // 工具箱 - 初始化脚本
+  const handleInitScripts = () => {
+    setIsInitRunning(true);
+    setToolboxOutput(''); // 清空之前的输出
+    getVsCodeApi().postMessage({
+      command: 'initScripts'
+    });
+  };
+
+  // 工具箱 - 清空输出
+  const handleClearToolboxOutput = () => {
+    setToolboxOutput('');
+  };
+
+  // 工具箱 - 选择部署文件
+  const handleSelectDeployFile = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectFileForDeploy'
+    });
+  };
+
+  // 工具箱 - 选择部署目录
+  const handleSelectDeployDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForDeploy'
+    });
+  };
+
+  // 工具箱 - 开始部署
+  const handleStartDeploy = () => {
+    if (deployMode === 'file') {
+      if (!deployFilePath) {
+        alert('请先选择要部署的文件');
+        return;
+      }
+      setIsDeployRunning(true);
+      setToolboxOutput('');
+      getVsCodeApi().postMessage({
+        command: 'deployScript',
+        filePath: deployFilePath
+      });
+    } else {
+      if (!deployDirectoryPath) {
+        alert('请先选择要部署的目录');
+        return;
+      }
+      setIsDeployRunning(true);
+      setToolboxOutput('');
+      getVsCodeApi().postMessage({
+        command: 'deployDirectory',
+        directoryPath: deployDirectoryPath,
+        recursive: deployRecursive
+      });
+    }
   };
 
   // 添加 JAR 目录
@@ -473,7 +561,231 @@ const App: React.FC = () => {
         {activeSection === 'toolbox' && (
           <div className="section active">
             <h2>工具箱</h2>
-            <p>工具箱内容...</p>
+            
+            {/* 标签页导航 */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid var(--vscode-panel-border)', paddingBottom: '10px' }}>
+              <button
+                onClick={() => setActiveToolboxTab('init')}
+                style={{
+                  padding: '8px 16px',
+                  background: activeToolboxTab === 'init' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'init' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'init' ? 'bold' : 'normal'
+                }}
+              >
+                🚀 初始化脚本
+              </button>
+              <button
+                onClick={() => setActiveToolboxTab('deploy')}
+                style={{
+                  padding: '8px 16px',
+                  background: activeToolboxTab === 'deploy' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'deploy' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'deploy' ? 'bold' : 'normal'
+                }}
+              >
+                📤 导入脚本
+              </button>
+            </div>
+
+            {/* 初始化脚本标签页 */}
+            {activeToolboxTab === 'init' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-textLink-foreground)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🚀 初始化工具脚本</p>
+                  <p style={{ margin: 0 }}>
+                    一键部署所有 Maximo 开发工具脚本到服务器，包括：自动脚本安装、提取、日志查看等工具。
+                  </p>
+                </div>
+
+                <button 
+                  onClick={handleInitScripts}
+                  disabled={isInitRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    opacity: isInitRunning ? 0.6 : 1,
+                    cursor: isInitRunning ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isInitRunning ? '⏳ 正在初始化...' : '🚀 开始初始化'}
+                </button>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 部署进度</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，点击“开始初始化”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* 导入脚本标签页 */}
+            {activeToolboxTab === 'deploy' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-textLink-foreground)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📤 导入脚本</p>
+                  <p style={{ margin: 0 }}>
+                    将本地的脚本配置文件（JSON格式）部署到 Maximo 服务器。支持单文件和批量目录部署。
+                  </p>
+                </div>
+
+                {/* 部署模式选择 */}
+                <div className="form-group">
+                  <label>部署模式：</label>
+                  <select
+                    value={deployMode}
+                    onChange={(e) => setDeployMode(e.target.value as 'file' | 'directory')}
+                  >
+                    <option value="file">单个文件</option>
+                    <option value="directory">整个目录</option>
+                  </select>
+                </div>
+
+                {/* 文件选择 */}
+                {deployMode === 'file' && (
+                  <div className="form-group">
+                    <label>选择文件：</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="text"
+                        value={deployFilePath}
+                        readOnly
+                        placeholder="选择要部署的 JSON 配置文件"
+                        style={{ flex: 1 }}
+                      />
+                      <button onClick={handleSelectDeployFile} style={{ whiteSpace: 'nowrap' }}>
+                        📄 选择文件
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 目录选择 */}
+                {deployMode === 'directory' && (
+                  <div>
+                    <div className="form-group">
+                      <label>选择目录：</label>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <input
+                          type="text"
+                          value={deployDirectoryPath}
+                          readOnly
+                          placeholder="选择包含 JSON 配置文件的目录"
+                          style={{ flex: 1 }}
+                        />
+                        <button onClick={handleSelectDeployDirectory} style={{ whiteSpace: 'nowrap' }}>
+                          📁 选择目录
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <div className="checkbox-group">
+                        <input
+                          type="checkbox"
+                          id="deployRecursive"
+                          checked={deployRecursive}
+                          onChange={(e) => setDeployRecursive(e.target.checked)}
+                        />
+                        <label htmlFor="deployRecursive" style={{ margin: 0 }}>递归子目录</label>
+                      </div>
+                      <div className="help-text">
+                        同时部署子目录中的脚本配置文件
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  onClick={handleStartDeploy}
+                  disabled={isDeployRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    opacity: isDeployRunning ? 0.6 : 1,
+                    cursor: isDeployRunning ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isDeployRunning ? '⏳ 正在导入...' : '📤 开始导入'}
+                </button>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，点击“开始导入”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
