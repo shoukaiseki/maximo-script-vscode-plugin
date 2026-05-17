@@ -39,10 +39,24 @@
           "default": "",
           "description": "Maximo服务器地址"
         },
+        "maximoScript.authType": {
+          "type": "string",
+          "enum": [
+            "maxauth",
+            "apikey"
+          ],
+          "default": "maxauth",
+          "description": "认证方式：MAXAUTH 或 API Key"
+        },
         "maximoScript.maxauth": {
           "type": "string",
           "default": "",
           "description": "Maximo认证信息（Base64编码的用户名:密码）"
+        },
+        "maximoScript.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Maximo REST API 的 API Key"
         },
         "maximoScript.version": {
           "type": "string",
@@ -52,6 +66,15 @@
           ],
           "default": "7.6",
           "description": "Maximo版本"
+        },
+        "maximoScript.apiType": {
+          "type": "string",
+          "enum": [
+            "oslc",
+            "rest"
+          ],
+          "default": "oslc",
+          "description": "接口类型：OSLC API 或 REST API"
         },
         "maximoScript.enableCompletion": {
           "type": "boolean",
@@ -92,7 +115,12 @@
         "maximoScript.jdkPath": {
           "type": "string",
           "default": "",
-          "description": "JDK 安装路径（用于调用 Java 反射 API，例如：C:\\Program Files\\Java\\jdk-11）"
+          "description": "JDK 安装路径（用于调用 Java 反射 API，例如：C:/Program Files/Java/jdk-11）"
+        },
+        "maximoScript.enableHttpLog": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用 HTTP 请求日志保存（生成 IntelliJ IDEA HTTP Client 格式的 .http 文件）"
         }
       }
     }

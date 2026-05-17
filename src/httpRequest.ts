@@ -1,0 +1,383 @@
+import * as vscode from 'vscode';
+
+// 全局 JSESSIONID 缓存
+let globalJSESSIONID: string | null = null;
+
+/**
+ * 初始化 Axios 全局拦截器
+ * @param outputChannel VSCode 输出通道，用于记录日志
+ */
+export function initializeAxiosInterceptors(outputChannel: vscode.OutputChannel) {
+  try {
+    const axios = require('axios');
+    
+    // 配置请求拦截器
+    if (!(axios.interceptors.request as any)._maximoScriptHelperConfigured) {
+      axios.interceptors.request.use(
+        (config: any) => {
+          // 在发送请求之前做些什么
+          const logMessage = `[Axios Request] ${config.method?.toUpperCase()} ${config.url}`;
+          console.log(logMessage);
+          outputChannel.appendLine(logMessage);
+          
+          // 生成 IntelliJ IDEA HTTP Client 格式的请求
+          try {
+            // 检查是否启用了 HTTP 请求日志保存
+            const vscodeConfig = vscode.workspace.getConfiguration('maximoScript');
+            const enableHttpLog = vscodeConfig.get('enableHttpLog', false);
+            
+          // 添加通用请求头
+          config.headers['X-Requested-With'] = 'Maximo-Script-Helper';
+
+
+            
+            const method = config.method?.toUpperCase() || 'GET';
+            const url = config.url || config.baseURL || '';
+            
+            let httpContent = `### ${method} ${url}\n`;
+            httpContent += `${method} ${url}\n`;
+            
+            // 添加 headers（过滤掉一些自动添加的头）
+            const skipHeaders = ['user-agent', 'content-length', 'host', 'accept-encoding', 'connection'];
+            Object.entries(config.headers || {}).forEach(([key, value]) => {
+              const lowerKey = key.toLowerCase();
+              if (!skipHeaders.includes(lowerKey)) {
+                httpContent += `${key}: ${value}\n`;
+              }
+            });
+
+
+          console.log(httpContent);
+          outputChannel.appendLine(httpContent);
+
+
+            if (!enableHttpLog) {
+              // 如果未启用，跳过文件生成
+              return config;
+            }
+            
+            // 添加空行和 body
+            httpContent += '\n';
+            if (config.data) {
+              if (typeof config.data === 'string') {
+                httpContent += config.data;
+              } else {
+                httpContent += JSON.stringify(config.data, null, 2);
+              }
+            }
+            
+            // 保存到临时文件
+            const fs = require('fs');
+            const path = require('path');
+            const tmpDir = path.join(require('os').tmpdir(), 'maximo-script-helper');
+            
+            // 确保目录存在
+            if (!fs.existsSync(tmpDir)) {
+              fs.mkdirSync(tmpDir, { recursive: true });
+            }
+            
+            // 生成文件名（使用时间戳避免冲突）
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `request-${timestamp}.http`;
+            const filePath = path.join(tmpDir, fileName);
+            
+            // 写入文件
+            fs.writeFileSync(filePath, httpContent, 'utf-8');
+            
+            console.log(`[HTTP Client File] 已保存: ${filePath}`);
+            outputChannel.appendLine(`[HTTP Client File] 已保存: ${filePath}`);
+            
+            // 可选：在 VSCode 中打开文件（取消注释以启用）
+            // vscode.workspace.openTextDocument(filePath).then(doc => {
+            //   vscode.window.showTextDocument(doc);
+            // });
+          } catch (error: any) {
+            console.error('[HTTP Client File] 生成失败:', error.message);
+          }
+          
+          
+          return config;
+        },
+        (error: any) => {
+          // 对请求错误做些什么
+          const errorMessage = `[Axios Request Error] ${error.message}`;
+          console.error(errorMessage);
+          outputChannel.appendLine(errorMessage);
+          return Promise.reject(error);
+        }
+      );
+      
+      // 标记为已配置，避免重复配置
+      (axios.interceptors.request as any)._maximoScriptHelperConfigured = true;
+      
+      const initLog = '[Axios] 全局请求拦截器已配置';
+      console.log(initLog);
+      outputChannel.appendLine(initLog);
+    }
+    
+    // 配置响应拦截器
+    if (!(axios.interceptors.response as any)._maximoScriptHelperConfigured) {
+      axios.interceptors.response.use(
+        (response: any) => {
+          // 对响应数据做点什么
+          const logMessage = `[Axios Response] ${response.status} ${response.config.url}`;
+          console.log(logMessage);
+          outputChannel.appendLine(logMessage);
+          return response;
+        },
+        (error: any) => {
+          // 对响应错误做点什么
+          let errorMessage = '[Axios Response Error] ';
+          
+          if (error.response) {
+            errorMessage += `${error.response.status}: ${error.response.statusText}`;
+            console.error(errorMessage);
+            outputChannel.appendLine(errorMessage);
+            if (error.response.data && error.response.data.errorMsg) {
+              const detailMsg = `  详情: ${error.response.data.errorMsg}`;
+              outputChannel.appendLine(detailMsg);
+            }
+          } else if (error.request) {
+            errorMessage += 'No response received';
+            console.error(errorMessage);
+            outputChannel.appendLine(errorMessage);
+          } else {
+            errorMessage += error.message;
+            console.error(errorMessage);
+            outputChannel.appendLine(errorMessage);
+          }
+          
+          return Promise.reject(error);
+        }
+      );
+      
+      // 标记为已配置，避免重复配置
+      (axios.interceptors.response as any)._maximoScriptHelperConfigured = true;
+      
+      const initLog = '[Axios] 全局响应拦截器已配置';
+      console.log(initLog);
+      outputChannel.appendLine(initLog);
+    }
+  } catch (error: any) {
+    const errorMsg = `[Axios Init] 初始化拦截器失败: ${error.message}`;
+    console.error(errorMsg);
+    outputChannel.appendLine(errorMsg);
+  }
+}
+
+/**
+ * Maximo HTTP 请求工具
+ * 提供统一的 API 请求方法，自动处理认证和 URL 拼接
+ */
+
+export interface HttpRequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  url: string;
+  headers?: Record<string, string>;
+  data?: any;
+  noAuth?: boolean;
+  timeout?: number;
+  // 可选的配置覆盖（用于测试等场景，避免先保存配置）
+  serverUrl?: string;
+  authType?: string;
+  maxauth?: string;
+  apiKey?: string;
+  apiType?: string;
+}
+
+export interface HttpResponse {
+  status: number;
+  data: any;
+  headers: any;
+}
+
+/**
+ * Maximo HTTP 请求方法（带 JSESSIONID 管理和认证）
+ * @param options 请求配置
+ * @returns Promise<HttpResponse>
+ * 
+ * @example
+ * ```typescript
+ * // 基本用法（自动添加认证）
+ * const response = await httpRequestToMaximo({
+ *   method: 'GET',
+ *   url: 'os/MXAPIPERSON/1'
+ * });
+ * 
+ * // 不带认证的请求
+ * const response = await httpRequestToMaximo({
+ *   method: 'GET',
+ *   url: 'api/common/info',
+ *   noAuth: true
+ * });
+ * 
+ * // POST 请求
+ * const response = await httpRequestToMaximo({
+ *   method: 'POST',
+ *   url: 'os/MXAPIPERSON',
+ *   data: { personid: 'TEST001', displayname: 'Test User' }
+ * });
+ * ```
+ * 
+ * @description URL 拼接规则（假设 serverUrl = 'http://localhost:9080/maximo'）：
+ * 
+ * **1. 完整 URL**（以 http:// 或 https:// 开头）
+ * ```typescript
+ * // 直接使用，不添加任何前缀
+ * await httpGet('https://example.com/api/test');
+ * // → https://example.com/api/test
+ * ```
+ * 
+ * **2. 绝对路径**（以 / 开头）
+ * ```typescript
+ * // 直接拼接到 baseUrl，用户完全控制路径
+ * await httpGet('/oslc/os/MXAPIPERSON/1');
+ * // → http://localhost:9080/maximo/oslc/os/MXAPIPERSON/1
+ * 
+ * await httpGet('/api/os/MXAPIPERSON/1');
+ * // → http://localhost:9080/maximo/api/os/MXAPIPERSON/1
+ * ```
+ * 
+ * **3. 相对路径**（不以 / 开头）
+ * ```typescript
+ * // 根据 apiType 配置自动添加前缀
+ * // 如果 apiType = 'oslc'，自动添加 '/oslc/' 前缀
+ * await httpGet('os/MXAPIPERSON/1');
+ * // → http://localhost:9080/maximo/oslc/os/MXAPIPERSON/1
+ * 
+ * // 如果 apiType = 'rest'，自动添加 '/api/' 前缀
+ * await httpGet('os/MXAPIPERSON/1');
+ * // → http://localhost:9080/maximo/api/os/MXAPIPERSON/1
+ * ```
+ */
+export async function httpRequestToMaximo({
+  method = 'GET',
+  url,
+  headers = {},
+  data,
+  noAuth = false,
+  timeout = 10000,
+}: HttpRequestOptions): Promise<HttpResponse> {
+  try {
+    const axios = require('axios');
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    
+    // 获取服务器配置（优先使用传入的参数，否则从配置中读取）
+    const serverUrl =(config.get('serverUrl', '') as string);
+    const authType = (config.get('authType', 'maxauth') as string);
+    const maxauth = (config.get('maxauth', '') as string);
+    const apiKey = (config.get('apiKey', '') as string);
+    const apiType =  (config.get('apiType', 'oslc') as string);
+    
+    if (!serverUrl) {
+      throw new Error('未配置服务器地址，请先在配置面板中设置');
+    }
+    
+    // 构建完整 URL
+    const baseUrl = serverUrl.replace(/\/$/, ''); // 移除末尾斜杠
+    
+    // 根据 API 类型确定前缀
+    let apiUrl: string;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      // 如果已经是完整 URL，直接使用
+      apiUrl = url;
+    } else if (url.startsWith('/')) {
+      // 如果以 / 开头，直接拼接到 baseUrl
+      apiUrl = `${baseUrl}${url}`;
+    } else {
+      // 相对路径，根据 API 类型添加前缀
+      const prefix = apiType === 'oslc' ? '/oslc/' : '/api/';
+      apiUrl = `${baseUrl}${prefix}${url}`;
+    }
+    
+    // 构建请求头
+    const requestHeaders: Record<string, string> = {
+      ...headers
+    };
+    
+    // 添加 JSESSIONID 到 Cookie（如果存在）
+    if (globalJSESSIONID) {
+      requestHeaders['Cookie'] = `JSESSIONID=${globalJSESSIONID}`;
+      console.log(`[HTTP Request] 使用缓存的 JSESSIONID`);
+    }
+    
+    // 添加认证信息（除非 noAuth=true）
+    if (!noAuth) {
+      if (authType === 'apikey') {
+        if (!apiKey) {
+          throw new Error('未配置 API Key');
+        }
+        requestHeaders['apiKey'] = apiKey;
+      } else {
+        // 默认使用 MAXAUTH
+        if (!maxauth) {
+          throw new Error('未配置 MAXAUTH 认证信息');
+        }
+        requestHeaders['MAXAUTH'] = maxauth;
+      }
+    }
+    if(!requestHeaders['Accept']){
+        requestHeaders['Accept'] = 'application/json';
+    }
+    if(!requestHeaders['Content-Type']){
+      requestHeaders['Content-Type'] = 'application/json';
+    }
+    requestHeaders['Accept-Encoding']= 'gzip, deflate, br';
+    requestHeaders['Connection']= 'keep-alive';
+    requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    requestHeaders['Cache-Control'] = 'no-cache';
+
+    
+    // console.log(`[HTTP Request] ${method} ${apiUrl}`);
+    console.log(`[HTTP Request] Auth Type: ${noAuth ? 'No Auth' : authType}`);
+    
+    // 发送请求
+    const response = await axios({
+      method: method.toLowerCase(),
+      url: apiUrl,
+      headers: requestHeaders,
+      data: data,
+      timeout: timeout
+    });
+    
+    // 检查响应中是否包含 JSESSIONID，如果有则缓存
+    const setCookie = response.headers['set-cookie'];
+    if (setCookie) {
+      const jsessionMatch = Array.isArray(setCookie) 
+        ? setCookie.join('; ').match(/JSESSIONID=([^;]+)/)
+        : setCookie.match(/JSESSIONID=([^;]+)/);
+      
+      if (jsessionMatch && jsessionMatch[1]) {
+        globalJSESSIONID = jsessionMatch[1];
+        console.log(`[HTTP Response] 缓存 JSESSIONID: ${globalJSESSIONID}`);
+      }
+    }
+    
+    return {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    };
+    
+  } catch (error: any) {
+    let errorMessage = '请求失败';
+    
+    if (error.response) {
+      // 服务器返回错误状态码
+      errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+      if (error.response.data && error.response.data.errorMsg) {
+        errorMessage += ` - ${error.response.data.errorMsg}`;
+      }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      errorMessage = '无法连接到服务器，请检查网络和服务器地址';
+    } else {
+      // 其他错误
+      errorMessage = error.message || '未知错误';
+    }
+    
+    console.error('[HTTP Request Error]', errorMessage);
+    throw new Error(errorMessage);
+  }
+}
+

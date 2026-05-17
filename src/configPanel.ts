@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+// Maximo API 路径常量
+
 export class ConfigPanel {
   public static currentPanel: ConfigPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
@@ -70,6 +72,9 @@ export class ConfigPanel {
 
   private _getWebviewContent(extensionUri: vscode.Uri): string {
     const config = vscode.workspace.getConfiguration('maximoScript');
+    
+    // 调试日志：输出当前配置值
+    console.log('[ConfigPanel] 读取配置 enableHttpLog:', config.get('enableHttpLog', false));
     
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -208,6 +213,7 @@ export class ConfigPanel {
     <div class="sidebar">
       <div class="menu-item active" data-section="connection">连接配置</div>
       <div class="menu-item" data-section="completion">补全设置</div>
+      <div class="menu-item" data-section="other">其它配置</div>
       <div class="menu-item" data-section="about">关于</div>
     </div>
     
@@ -222,9 +228,24 @@ export class ConfigPanel {
         </div>
         
         <div class="form-group">
+          <label for="authType">登录方式</label>
+          <select id="authType">
+            <option value="maxauth" ${config.get('authType', 'maxauth') === 'maxauth' ? 'selected' : ''}>MAXAUTH (Base64认证)</option>
+            <option value="apikey" ${config.get('authType') === 'apikey' ? 'selected' : ''}>API Key</option>
+          </select>
+          <div class="help-text">选择认证方式：MAXAUTH 或 API Key</div>
+        </div>
+        
+        <div class="form-group" id="maxauthGroup">
           <label for="maxauth">认证信息 (MAXAUTH)</label>
           <input type="password" id="maxauth" value="${config.get('maxauth', '')}" placeholder="Base64编码的用户名:密码">
           <div class="help-text">格式：Base64(username:password)，例如：bWF4YWRtaW46MTIzNDU2</div>
+        </div>
+        
+        <div class="form-group" id="apiKeyGroup" style="display: ${config.get('authType') === 'apikey' ? 'block' : 'none'};">
+          <label for="apiKey">API Key</label>
+          <input type="password" id="apiKey" value="${config.get('apiKey', '')}" placeholder="输入您的 API Key">
+          <div class="help-text">Maximo REST API 的 API Key</div>
         </div>
         
         <div class="form-group">
@@ -234,6 +255,15 @@ export class ConfigPanel {
             <option value="9.1" ${config.get('version') === '9.1' ? 'selected' : ''}>9.1</option>
           </select>
           <div class="help-text">选择您的Maximo版本</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="apiType">接口方式</label>
+          <select id="apiType">
+            <option value="oslc" ${config.get('apiType', 'oslc') === 'oslc' ? 'selected' : ''}>OSLC API (/oslc)</option>
+            <option value="rest" ${config.get('apiType') === 'rest' ? 'selected' : ''}>REST API (/api)</option>
+          </select>
+          <div class="help-text">选择 Maximo API 接口类型：OSLC 或 REST</div>
         </div>
         
         <div class="form-group">
@@ -272,7 +302,7 @@ export class ConfigPanel {
         <div class="form-group">
           <label for="localApiPath">本地API数据目录</label>
           <div style="display: flex; gap: 10px;">
-            <input type="text" id="localApiPath" value="${config.get('localApiPath', '')}" placeholder="E:\gitwork\maximo-script-manager\reflection-data" style="flex: 1;">
+            <input type="text" id="localApiPath" value="${config.get('localApiPath', '')}" placeholder="E:/gitwork/maximo-script-manager/reflection-data" style="flex: 1;">
             <button id="selectDirBtn" type="button">选择目录</button>
           </div>
           <div class="help-text">选择包含JSON API反射数据的目录（从 Gitee 下载：https://gitee.com/shoukaiseki/maximo-script-editor/tree/master/reflection-data）</div>
@@ -281,7 +311,7 @@ export class ConfigPanel {
         <div class="form-group">
           <label>JAR 目录配置（用于实时反射）</label>
           <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-            <input type="text" id="jarDirectoryInput" placeholder="例如: E:\maximo\lib" style="flex: 1;">
+            <input type="text" id="jarDirectoryInput" placeholder="例如: E:/maximo/lib" style="flex: 1;">
             <button id="addJarDirBtn" type="button">➕ 添加目录</button>
           </div>
           <div id="jarDirectoriesList" style="background: var(--vscode-input-background); padding: 10px; border-radius: 4px; min-height: 50px;">
@@ -293,7 +323,7 @@ export class ConfigPanel {
         <div class="form-group">
           <label>添加单个 JAR 文件</label>
           <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-            <input type="text" id="singleJarInput" placeholder="例如: E:\maximo\lib\businessobject.jar" style="flex: 1;">
+            <input type="text" id="singleJarInput" placeholder="例如: E:/maximo/lib/businessobject.jar" style="flex: 1;">
             <button id="selectSingleJarBtn" type="button">📁 选择文件</button>
             <button id="addSingleJarBtn" type="button"> 添加</button>
           </div>
@@ -310,6 +340,18 @@ export class ConfigPanel {
             <button id="selectJdkBtn" type="button">选择 JDK</button>
           </div>
           <div class="help-text">配置 JDK 安装路径，用于调用 Java 反射 API 获取真实的类方法信息</div>
+        </div>
+      </div>
+      
+      <div class="section" id="other">
+        <h2>其它配置</h2>
+        
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="enableHttpLog" ${config.get('enableHttpLog', false) ? 'checked' : ''}>
+            <label for="enableHttpLog" style="margin: 0;">启用 HTTP 请求日志保存</label>
+          </div>
+          <div class="help-text">自动生成 IntelliJ IDEA HTTP Client 格式的 .http 文件到临时目录（开发调试时使用）</div>
         </div>
       </div>
       
@@ -334,6 +376,21 @@ export class ConfigPanel {
   
   <script>
     const vscode = acquireVsCodeApi();
+    
+    // 登录方式切换
+    document.getElementById('authType').addEventListener('change', () => {
+      const authType = document.getElementById('authType').value;
+      const maxauthGroup = document.getElementById('maxauthGroup');
+      const apiKeyGroup = document.getElementById('apiKeyGroup');
+      
+      if (authType === 'maxauth') {
+        maxauthGroup.style.display = 'block';
+        apiKeyGroup.style.display = 'none';
+      } else if (authType === 'apikey') {
+        maxauthGroup.style.display = 'none';
+        apiKeyGroup.style.display = 'block';
+      }
+    });
     
     // 菜单切换
     document.querySelectorAll('.menu-item').forEach(item => {
@@ -411,15 +468,23 @@ export class ConfigPanel {
     // 测试连接按钮
     document.getElementById('testConnectionBtn').addEventListener('click', () => {
       const serverUrl = document.getElementById('serverUrl').value.trim();
+      const authType = document.getElementById('authType').value;
+      const apiType = document.getElementById('apiType').value;
       const maxauth = document.getElementById('maxauth').value.trim();
+      const apiKey = document.getElementById('apiKey').value.trim();
       
       if (!serverUrl) {
         showConnectionResult('error', '❌ 请输入服务器地址');
         return;
       }
       
-      if (!maxauth) {
+      if (authType === 'maxauth' && !maxauth) {
         showConnectionResult('error', '❌ 请输入 MAXAUTH 认证信息');
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        showConnectionResult('error', '❌ 请输入 API Key');
         return;
       }
       
@@ -431,7 +496,10 @@ export class ConfigPanel {
         command: 'testConnection',
         data: {
           serverUrl: serverUrl,
-          maxauth: maxauth
+          authType: authType,
+          apiType: apiType,
+          maxauth: maxauth,
+          apiKey: apiKey
         }
       });
     });
@@ -494,12 +562,16 @@ export class ConfigPanel {
     document.getElementById('saveBtn').addEventListener('click', () => {
       const config = {
         serverUrl: document.getElementById('serverUrl').value,
+        authType: document.getElementById('authType').value,
         maxauth: document.getElementById('maxauth').value,
+        apiKey: document.getElementById('apiKey').value,
+        apiType: document.getElementById('apiType').value,
         version: document.getElementById('version').value,
         enableCompletion: document.getElementById('enableCompletion').checked,
         localApiPath: document.getElementById('localApiPath').value,
         enableJSDocParsing: document.getElementById('enableJSDocParsing').checked,
         enableTypeInference: document.getElementById('enableTypeInference').checked,
+        enableHttpLog: document.getElementById('enableHttpLog').checked,
         jdkPath: document.getElementById('jdkPath').value
       };
       
@@ -514,18 +586,34 @@ export class ConfigPanel {
   }
 
   private async _saveConfig(data: any) {
-    const config = vscode.workspace.getConfiguration('maximoScript');
-    
-    await config.update('serverUrl', data.serverUrl, vscode.ConfigurationTarget.Global);
-    await config.update('maxauth', data.maxauth, vscode.ConfigurationTarget.Global);
-    await config.update('version', data.version, vscode.ConfigurationTarget.Global);
-    await config.update('enableCompletion', data.enableCompletion, vscode.ConfigurationTarget.Global);
-    await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
-    await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
-    await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
-    await config.update('jdkPath', data.jdkPath, vscode.ConfigurationTarget.Global);
-    
-    vscode.window.showInformationMessage('配置已保存');
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      
+      console.log('[SaveConfig] 开始保存配置...');
+      console.log('[SaveConfig] enableHttpLog:', data.enableHttpLog, '类型:', typeof data.enableHttpLog);
+      
+      await config.update('serverUrl', data.serverUrl, vscode.ConfigurationTarget.Global);
+      await config.update('authType', data.authType, vscode.ConfigurationTarget.Global);
+      await config.update('maxauth', data.maxauth, vscode.ConfigurationTarget.Global);
+      await config.update('apiKey', data.apiKey, vscode.ConfigurationTarget.Global);
+      await config.update('apiType', data.apiType, vscode.ConfigurationTarget.Global);
+      await config.update('version', data.version, vscode.ConfigurationTarget.Global);
+      await config.update('enableCompletion', data.enableCompletion, vscode.ConfigurationTarget.Global);
+      await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
+      await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
+      await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
+      await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
+      await config.update('jdkPath', data.jdkPath, vscode.ConfigurationTarget.Global);
+      
+      // 验证保存结果
+      const savedValue = config.get('enableHttpLog', false);
+      console.log('[SaveConfig] 保存后读取 enableHttpLog:', savedValue);
+      
+      vscode.window.showInformationMessage('配置已保存');
+    } catch (error: any) {
+      console.error('[SaveConfig] 保存配置失败:', error);
+      vscode.window.showErrorMessage(`保存配置失败: ${error.message}`);
+    }
   }
 
   private async _selectDirectory() {
@@ -563,41 +651,53 @@ export class ConfigPanel {
     `).join('');
   }
 
-  private async _testConnection(data: { serverUrl: string; maxauth: string }) {
+  private async _testConnection(data: { serverUrl: string; authType: string; apiType: string; maxauth: string; apiKey: string }) {
     try {
-      const axios = require('axios');
+      // 先保存配置,没点保存按钮的话,测试使用的会是以前的配置信息
+      //先直接保存
+      const config = require('vscode').workspace.getConfiguration('maximoScript');
+      await config.update('serverUrl', data.serverUrl, require('vscode').ConfigurationTarget.Global);
+      await config.update('authType', data.authType, require('vscode').ConfigurationTarget.Global);
+      await config.update('maxauth', data.maxauth, require('vscode').ConfigurationTarget.Global);
+      await config.update('apiKey', data.apiKey, require('vscode').ConfigurationTarget.Global);
+      await config.update('apiType', data.apiType, require('vscode').ConfigurationTarget.Global);
       
-      // 构建 OSLC API URL
-      // 从 serverUrl 中提取基础 URL，例如 http://localhost:9080/maximo
-      const baseUrl = data.serverUrl.replace(/\/$/, ''); // 移除末尾的斜杠
-      const testUrl = `${baseUrl}/oslc/os/MXAPIPERSON/_TUFYQURNSU4=?lean=1`;
+      console.log(`[TestConnection] 开始测试连接...`);
+      console.log(`[TestConnection] 认证类型: ${data.authType}, 接口类型: ${data.apiType}`);
       
-      console.log(`[TestConnection] 测试连接: ${testUrl}`);
+      // 使用全局 httpRequestToMaximo 方法（会从配置中读取）
+      const { httpRequestToMaximo } = require('./extension');
       
-      // 发送 GET 请求
-      const response = await axios.get(testUrl, {
-        headers: {
-          'MAXAUTH': data.maxauth,
-          'Accept': 'application/json'
-        },
-        timeout: 10000 // 10秒超时
+      const response = await httpRequestToMaximo({
+        method: 'GET',
+        url: 'os/MXAPIPERSON/_TUFYQURNSU4=?lean=1'
       });
       
       // 检查响应
       if (response.status === 200 && response.data) {
-        const displayName = response.data.displayname || '未知用户';
-        const personId = response.data.personid || 'N/A';
+        let userInfo = '';
+        
+        // 根据不同接口类型解析用户信息
+        if (data.apiType === 'oslc') {
+          const displayName = response.data.displayname || '未知用户';
+          const personId = response.data.personid || 'N/A';
+          userInfo = `用户: ${displayName} (${personId})`;
+        } else {
+          const displayName = response.data.displayname || response.data.name || '未知用户';
+          const personId = response.data.personid || response.data.id || 'N/A';
+          userInfo = `用户: ${displayName} (${personId})`;
+        }
         
         // 发送成功结果到 webview
         this._panel.webview.postMessage({
           command: 'connectionResult',
           type: 'success',
-          text: `连接成功！<br/>用户: ${displayName} (${personId})`
+          text: `连接成功！<br/>${userInfo}<br/>接口类型: ${data.apiType === 'oslc' ? 'OSLC' : 'REST'}, 认证方式: ${data.authType === 'maxauth' ? 'MAXAUTH' : 'API Key'}`
         });
         
-        console.log(`[TestConnection] ✅ 连接成功: ${displayName}`);
+        console.log(`[TestConnection] ✅ 连接成功: ${userInfo}`);
       } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: 未知错误`);
       }
     } catch (error: any) {
       let errorMessage = '连接失败';
@@ -605,6 +705,9 @@ export class ConfigPanel {
       if (error.response) {
         // 服务器返回错误状态码
         errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+        if (error.response.data && error.response.data.errorMsg) {
+          errorMessage += `<br/>详情: ${error.response.data.errorMsg}`;
+        }
       } else if (error.request) {
         // 请求已发送但没有收到响应
         errorMessage = '无法连接到服务器，请检查网络和服务器地址';

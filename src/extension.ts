@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
+import { httpRequestToMaximo, initializeAxiosInterceptors, HttpRequestOptions, HttpResponse } from './httpRequest';
+
+// 导出 HTTP 请求方法和初始化函数，供其他模块使用
+export { httpRequestToMaximo, initializeAxiosInterceptors };
+export type { HttpRequestOptions, HttpResponse };
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Maximo Script Helper 已激活');
@@ -9,6 +14,9 @@ export function activate(context: vscode.ExtensionContext) {
   const outputChannel = vscode.window.createOutputChannel('Maximo Script Helper');
   outputChannel.appendLine('Maximo Script Helper 插件已启动');
   context.subscriptions.push(outputChannel);
+
+  // 初始化 Axios 全局拦截器
+  initializeAxiosInterceptors(outputChannel);
 
   // 注册查看日志命令
   const showLogsCommand = vscode.commands.registerCommand('maximoScript.showLogs', () => {
