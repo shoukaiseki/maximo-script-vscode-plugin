@@ -18,3 +18,4 @@ webpack.config.js
 .vscode-test/
 .DS_Store
 sks_tooljs/
+demo/
