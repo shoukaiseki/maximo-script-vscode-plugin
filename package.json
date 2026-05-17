@@ -12,6 +12,7 @@
     "url": "https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/issues"
   },
   "scripts": {
+    "install": "npm install&&cd webview-ui && npm install",
     "vscode:prepublish": "npm run compile",
     "compile-java": "compile-java.bat",
     "compile-webview": "cd webview-ui && npm run build",

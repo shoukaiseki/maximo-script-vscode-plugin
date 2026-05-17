@@ -55,12 +55,21 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // 通知扩展主机 React 已准备好
+    getVsCodeApi().postMessage({ command: 'webviewReady' });
+    console.log('[React Webview] 已发送 ready 信号');
+    
     // 监听来自扩展的消息
     window.addEventListener('message', event => {
       const message = event.data;
       console.log('[React Webview] 收到消息:', message);
       
       switch (message.command) {
+        case 'loadConfig':
+          // 加载初始配置
+          console.log('[React Webview] 加载配置:', message.data);
+          setConfig(message.data);
+          break;
         case 'setDirectoryPath':
           setConfig(prev => ({ ...prev, localApiPath: message.path }));
           break;
@@ -290,30 +299,6 @@ const App: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label>本地 API 文档路径</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  value={config.localApiPath}
-                  onChange={(e) => setConfig({ ...config, localApiPath: e.target.value })}
-                  placeholder="选择包含 API 文档的目录"
-                  style={{ flex: 1 }}
-                />
-                <button 
-                  onClick={() => {
-                    getVsCodeApi().postMessage({ command: 'selectDirectory' });
-                  }}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  选择目录
-                </button>
-              </div>
-              <div className="help-text">
-                用于加载本地 Maximo API 文档以提供更准确的补全建议
-              </div>
-            </div>
-
-            <div className="form-group">
               <div className="checkbox-group">
                 <input
                   type="checkbox"
@@ -340,6 +325,30 @@ const App: React.FC = () => {
               </div>
               <div className="help-text">
                 自动推断变量和函数的类型
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>本地 API 文档路径</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={config.localApiPath}
+                  onChange={(e) => setConfig({ ...config, localApiPath: e.target.value })}
+                  placeholder="选择包含 API 文档的目录"
+                  style={{ flex: 1 }}
+                />
+                <button 
+                  onClick={() => {
+                    getVsCodeApi().postMessage({ command: 'selectDirectory' });
+                  }}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  选择目录
+                </button>
+              </div>
+              <div className="help-text">
+                用于加载本地 Maximo API 文档以提供更准确的补全建议
               </div>
             </div>
 
@@ -442,6 +451,8 @@ const App: React.FC = () => {
                 自动生成 IntelliJ IDEA HTTP Client 格式的 .http 文件到临时目录（开发调试时使用）
               </div>
             </div>
+
+            <button onClick={handleSave}>保存配置</button>
           </div>
         )}
 

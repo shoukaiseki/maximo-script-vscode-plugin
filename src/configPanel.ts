@@ -20,6 +20,10 @@ export class ConfigPanel {
       async message => {
         logger.info(`[ConfigPanel] 收到消息: ${message.command}`);
         switch (message.command) {
+          case 'webviewReady':
+            // React 已准备好，发送初始配置
+            this._sendInitialConfig();
+            return;
           case 'saveConfig':
             await this._saveConfig(message.data);
             return;
@@ -291,11 +295,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const newDirs = [...currentDirs, path];
     await config.update('jarDirectories', newDirs, vscode.ConfigurationTarget.Global);
     
-    // 更新 UI 列表
-    this._panel.webview.postMessage({
-      command: 'updateJarDirectoriesList',
-      html: this._renderJarDirectories(newDirs)
-    });
+    logger.info(`[ConfigPanel] 已添加 JAR 目录: ${path}`);
+    
+    // 重新发送完整配置以更新 UI
+    this._sendInitialConfig();
     
     vscode.window.showInformationMessage(`已添加 JAR 目录: ${path}`);
   }
@@ -315,11 +318,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const newDirs = currentDirs.filter((_, i) => i !== index);
     await config.update('jarDirectories', newDirs, vscode.ConfigurationTarget.Global);
     
-    // 更新 UI 列表
-    this._panel.webview.postMessage({
-      command: 'updateJarDirectoriesList',
-      html: this._renderJarDirectories(newDirs)
-    });
+    logger.info(`[ConfigPanel] 已删除 JAR 目录 (索引: ${index})`);
+    
+    // 重新发送完整配置以更新 UI
+    this._sendInitialConfig();
     
     vscode.window.showInformationMessage('已删除 JAR 目录');
   }
@@ -364,11 +366,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const newJars = [...currentJars, jarPath];
     await config.update('additionalJars', newJars, vscode.ConfigurationTarget.Global);
     
-    // 更新 UI 列表
-    this._panel.webview.postMessage({
-      command: 'updateAdditionalJarsList',
-      html: this._renderJarDirectories(newJars)
-    });
+    logger.info(`[ConfigPanel] 已添加 JAR 文件: ${jarPath}`);
+    
+    // 重新发送完整配置以更新 UI
+    this._sendInitialConfig();
     
     vscode.window.showInformationMessage(`已添加 JAR 文件: ${jarPath}`);
   }
@@ -391,6 +392,37 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         path: jdkPath
       });
     }
+  }
+
+  /**
+   * 发送初始配置数据到 Webview
+   */
+  private _sendInitialConfig() {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    
+    const configData = {
+      serverUrl: config.get('serverUrl', ''),
+      authType: config.get('authType', 'maxauth'),
+      maxauth: config.get('maxauth', ''),
+      apiKey: config.get('apiKey', ''),
+      apiType: config.get('apiType', 'oslc'),
+      version: config.get('version', '7.6'),
+      enableCompletion: config.get('enableCompletion', false),
+      localApiPath: config.get('localApiPath', ''),
+      enableJSDocParsing: config.get('enableJSDocParsing', true),
+      enableTypeInference: config.get('enableTypeInference', true),
+      enableHttpLog: config.get('enableHttpLog', false),
+      jdkPath: config.get('jdkPath', ''),
+      jarDirectories: config.get('jarDirectories', []),
+      additionalJars: config.get('additionalJars', [])
+    };
+    
+    logger.info('[ConfigPanel] 发送初始配置到 Webview');
+    
+    this._panel.webview.postMessage({
+      command: 'loadConfig',
+      data: configData
+    });
   }
 
   public dispose() {
