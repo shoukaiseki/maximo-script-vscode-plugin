@@ -81,7 +81,7 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
             
             // 生成文件名（使用时间戳避免冲突）
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const fileName = `request-${timestamp}.http`;
+            const fileName = `request-${config.method?.toUpperCase()}-${timestamp}.http`;
             const filePath = path.join(tmpDir, fileName);
             
             // 写入文件

@@ -1,0 +1,1 @@
+mklink /D "E:\gitwork\maximo-script-vscode-plugin\.lingma\skills\maximo-autoscript-api" "E:\devwork\ideawork\maximo91_soloncode\.lingma\skills\maximo-autoscript-api"

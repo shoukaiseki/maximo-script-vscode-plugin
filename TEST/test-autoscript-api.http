@@ -1,0 +1,97 @@
+### 环境变量
+@baseUrl = http://localhost:9080/maximo
+@maxauth = bWF4YWRtaW46MTIzNDU2
+@scriptId = _VEVTVA==
+
+### ========== MXAPIAUTOSCRIPT 方式（传统） - ✅ 全部通过 ==========
+
+### 测试1: 查询脚本列表 - ✅ 成功 (200)
+GET {{baseUrl}}/api/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript,description,source&oslc.where=autoscript="TEST"&lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 测试2: 查询脚本详情 - ✅ 成功 (200)
+### 注意: scriptId 需要 Base64 编码，例如 TEST -> _VEVTVA--
+GET {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 测试3: 创建新脚本 - ✅ 成功 (201)
+POST {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT
+Content-Type: application/json
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:autoscript": "TEST_SCRIPT",
+  "spi:description": "测试脚本",
+  "spi:scriptlanguage": "nashorn",
+  "spi:source": "service.log(\"Hello World\");",
+  "spi:active": true,
+  "spi:status": "Active"
+}
+
+### 测试4: 更新脚本 - ✅ 成功 (200)
+### 注意: 必须使用 POST + x-method-override: PATCH
+POST {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Content-Type: application/merge-patch+json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "更新后的描述",
+  "spi:source": "service.log(\"Updated\");"
+}
+
+### 测试5: 删除脚本 - ✅ 成功 (204)
+DELETE {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### ========== MXSCRIPT 方式（推荐） - ✅ 全部通过 ==========
+
+### 测试6: 查询脚本列表 - ✅ 成功 (200)
+GET {{baseUrl}}/api/os/MXSCRIPT?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 测试7: 查询脚本详情 - ✅ 成功 (200)
+### 注意: scriptName 需要 Base64 编码，格式: '_' + btoa(scriptName)
+### 例如: TEST -> _VEVTVA==, TEST01 -> _VEVTVDAx
+GET {{baseUrl}}/api/os/MXSCRIPT/_VEVTVDAx?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 测试8: 创建新脚本 - ✅ 成功 (201)
+POST {{baseUrl}}/api/os/MXSCRIPT?lean=1
+Content-Type: application/json
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+{
+  "autoscript": "TEST_SCRIPT_NEW",
+  "description": "测试脚本",
+  "scriptlanguage": "nashorn",
+  "source": "service.log(\"Hello World\");",
+  "active": true,
+  "status": "Active"
+}
+
+### 测试9: 更新脚本（使用标准 PUT 方法） - ✅ 成功 (200)
+### 注意: scriptName 需要 Base64 编码
+PUT {{baseUrl}}/api/os/MXSCRIPT/_VEVTVDAx?lean=1
+Content-Type: application/json
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+{
+  "description": "更新后的描述",
+  "source": "service.log(\"Updated\");"
+}
+
+### 测试10: 删除脚本 - ✅ 成功 (204)
+### 注意: scriptName 需要 Base64 编码
+DELETE {{baseUrl}}/api/os/MXSCRIPT/_VEVTVDAx?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}

@@ -6,6 +6,11 @@ node_modules/
 src/
 temp/
 TASK/
+.lingma/
+TEST/
+AIDOC/
+AISESSION/
+webview-ui/
 *.bat
 tsconfig.json
 webpack.config.js

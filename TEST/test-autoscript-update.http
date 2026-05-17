@@ -1,0 +1,230 @@
+### 环境变量
+@baseUrl = http://localhost:9080/maximo
+@maxauth = bWF4YWRtaW46MTIzNDU2
+@scriptId = _VEVTVA==
+
+### ========== 基准查询：获取 TEST 脚本当前状态 ==========
+
+### 基准查询1: 使用 MXAPIAUTOSCRIPT 查询 TEST 脚本详情
+GET {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 基准查询2: 使用 MXSCRIPT 查询 TEST 脚本详情
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### ========== MXSCRIPT 更新测试（重点测试） ==========
+
+### 测试1: MXSCRIPT 更新 - 加 ?lean=1 + spi:前缀 + 字段小写
+### 预期: 返回 204，但实际数据不更新（错误方式）
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试1-加lean1-spi前缀-小写字段",
+  "spi:source": "service.log(\"TEST1\");"
+}
+
+### 验证测试1: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试2: MXSCRIPT 更新 - 不加 ?lean=1 + spi:前缀 + 字段小写
+### 预期: 返回 204，数据成功更新（正确方式）
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试2-不加lean1-spi前缀-小写字段",
+  "spi:source": "service.log(\"TEST2\");"
+}
+
+### 验证测试2: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试3: MXSCRIPT 更新 - 不加 ?lean=1 + 无前缀 + 字段小写
+### 预期: 可能失败或部分更新
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "description": "测试3-不加lean1-无前缀-小写字段",
+  "source": "service.log(\"TEST3\");"
+}
+
+### 验证测试3: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试4: MXSCRIPT 更新 - 不加 ?lean=1 + spi:前缀 + 字段大写（DESCRIPTION/SOURCE）
+### 预期: 字段不会更新（错误方式）
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:DESCRIPTION": "测试4-不加lean1-spi前缀-大写字段",
+  "spi:SOURCE": "service.log(\"TEST4\");"
+}
+
+### 验证测试4: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试5: MXSCRIPT 更新 - 不加 ?lean=1 + spi:前缀 + 混合大小写（description 小写，SOURCE 大写）
+### 预期: description 更新，SOURCE 不更新
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试5-description小写",
+  "spi:SOURCE": "service.log(\"TEST5-SOURCE大写\");"
+}
+
+### 验证测试5: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试6: MXSCRIPT 更新 - 使用 PUT 方法 + 不加 ?lean=1 + spi:前缀 + 字段小写
+### 预期: 可能不支持 PUT 方法
+PUT {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试6-PUT方法-spi前缀-小写字段",
+  "spi:source": "service.log(\"TEST6\");"
+}
+
+### 验证测试6: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试7: MXSCRIPT 更新 - 使用 PUT 方法 + 加 ?lean=1 + spi:前缀 + 字段小写
+### 预期: 可能不支持或行为异常
+PUT {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Content-Type: application/json
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试7-PUT方法-加lean1-spi前缀-小写字段",
+  "spi:source": "service.log(\"TEST7\");"
+}
+
+### 验证测试7: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试8: MXSCRIPT 更新 - POST + 不加 ?lean=1 + oslc:前缀 + 字段小写
+### 预期: 可能不支持 oslc: 前缀
+POST {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "oslc:description": "测试8-oslc前缀-小写字段",
+  "oslc:source": "service.log(\"TEST8\");"
+}
+
+### 验证测试8: 查询是否真的更新了
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### ========== MXAPIAUTOSCRIPT 更新测试（对比测试） ==========
+
+### 测试9: MXAPIAUTOSCRIPT 更新 - 标准方式（作为对照）
+### 预期: 应该成功更新
+POST {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Content-Type: application/merge-patch+json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试9-MXAPIAUTOSCRIPT标准方式",
+  "spi:source": "service.log(\"TEST9\");"
+}
+
+### 验证测试9: 查询是否真的更新了
+GET {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### 测试10: MXAPIAUTOSCRIPT 更新 - 使用 application/json Content-Type
+### 预期: 可能也能成功
+POST {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Content-Type: application/json
+Accept: application/json
+x-method-override: PATCH
+MAXAUTH: {{maxauth}}
+
+{
+  "spi:description": "测试10-MXAPIAUTOSCRIPT-json类型",
+  "spi:source": "service.log(\"TEST10\");"
+}
+
+### 验证测试10: 查询是否真的更新了
+GET {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+---
+
+### ========== 最终状态查询 ==========
+
+### 最终查询1: 使用 MXAPIAUTOSCRIPT 查看最终状态
+GET {{baseUrl}}/oslc/os/MXAPIAUTOSCRIPT/{{scriptId}}
+Accept: application/json
+MAXAUTH: {{maxauth}}
+
+### 最终查询2: 使用 MXSCRIPT 查看最终状态
+GET {{baseUrl}}/api/os/MXSCRIPT/{{scriptId}}?lean=1
+Accept: application/json
+MAXAUTH: {{maxauth}}
