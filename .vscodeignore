@@ -11,8 +11,10 @@ TEST/
 AIDOC/
 AISESSION/
 webview-ui/
+images/bak/
 *.bat
 tsconfig.json
 webpack.config.js
 .vscode-test/
 .DS_Store
+sks_tooljs/

@@ -267,6 +267,39 @@ MIT License
 - **[快速开始](./QUICK_START.md)** - 5分钟快速上手指南
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
 
+## 版本更新历史
+
+### v1.1.1 (2026-05-17)
+
+**新增功能**：
+- ✨ 完善 Maximo 9.1 MXSCRIPT API 支持
+  - 更新接口使用 `POST + x-method-override: PATCH` 方法
+  - 更新时 URL **不能加** `?lean=1`（避免静默失败）
+  - Body 必须使用 `spi:` 前缀
+  - 字段名必须小写（如 `spi:description`）
+
+**修复问题**：
+- 🐛 修正 SKILL.md 文档中 MXSCRIPT 更新接口的说明
+- 🐛 优化 .vscodeignore 配置，排除不必要的开发文件
+- 🐛 删除 webview-ui 目录下的重复嵌套目录
+
+**改进**：
+- 📝 更新自动化脚本 API 调用技能文档
+- 🔧 优化插件打包流程，减小 VSIX 文件大小
+
+---
+
+### v1.1.0 (之前版本)
+
+**主要功能**：
+- ✨ React Webview UI 重构
+- ✨ 智能代码补全和 JSDoc 类型注释支持
+- ✨ 链式调用类型推断
+- ✨ 本地 API 数据离线补全
+- ✨ Maximo 7.6 和 9.1 多版本支持
+
+---
+
 ## 作者
 
 shoukaiseki
