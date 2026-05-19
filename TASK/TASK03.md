@@ -103,3 +103,14 @@ http://localhost:9080/maximo/api/os/MXSCRIPT/_VEVTVA==?lean=1
 可以参考 E:\gitwork\maximo-script-manager\toolbox.html 中工具箱的初始化脚本功能
 
 另外也加个删除工具脚本的标签,功能按照 E:\gitwork\maximo-script-manager\toolbox.html 工具箱的清除脚本功能来做
+
+
+# 6
+
+现在是初始化把脚本导进去了,但是你这代码真的跟  E:\gitwork\maximo-script-manager\ 中的差太多了,让你照那个项目逻辑抄,你也没搞明白,别以交任务的心态去做事,做事要好好做,你先读懂,仔细看,逻辑要搞清楚,1:1复刻功能,要做笔记就写到AITMP目录中,把导入单个脚本写一个方法,功能都一样的,就是把脚本通过接口新建/更新到maxiom中,方法开头是先查询脚本存在不存在,不存在就新增,存在就更新,简简单单那的事,
+然后其它都调他,多点参数而已
+
+
+# 7
+_deploySingleFileInternal 方法中,读取json文件,然后再读取脚本文件(具体参考 E:\gitwork\maximo-script-manager\toolbox.js deploySingleFile方法)
+调再 _deployScript 接口啊

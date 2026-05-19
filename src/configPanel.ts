@@ -565,6 +565,144 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 通用的脚本部署方法（先查后改）
+   * @param customFields 自定义字段对象，包含 autoscript、description、source 等
+   * @returns 是否成功
+   */
+  private async _deployScript(
+    customFields: any
+  ): Promise<boolean> {
+    try {
+      var autoscript: string = customFields.autoscript;
+      var description: string = customFields.description;
+      var source: string = customFields.source;
+      if (!autoscript || !source) {
+        logger.error('[_deployScript] autoscript, source 缺少必要参数');
+        return false;
+      }
+      if(!description){
+        description=autoscript;
+      }
+      // 从配置中读取服务器信息
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      
+      if (!serverUrl) {
+        logger.error('[_deployScript] 服务器地址未配置');
+        return false;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        logger.error('[_deployScript] MAXAUTH 未配置');
+        return false;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        logger.error('[_deployScript] API Key 未配置');
+        return false;
+      }
+      
+      // 步骤1: 检查脚本是否存在
+      const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
+      
+      const checkResult = await httpRequestToMaximo({
+        url: checkUrl,
+        method: 'GET',
+        headers: {
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+      
+      let scriptExists = false;
+      let scriptHref = null;
+      
+      if (checkResult.status === 200 && checkResult.data) {
+        const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
+        if (memberCount === 1) {
+          scriptExists = true;
+          scriptHref = checkResult.data.member[0].href;
+        }
+      }
+      
+      // 步骤2: 决定使用创建还是更新
+      let deployUrl: string;
+      let deployMethod: 'POST' | 'PATCH' = 'POST';
+      const deployHeaders: any = {
+        'Content-Type': 'application/json',
+        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+      };
+      
+      if (scriptExists && scriptHref) {
+        // 更新现有脚本
+        deployUrl = scriptHref;
+        deployHeaders['Content-Type'] = 'application/merge-patch+json';
+        deployHeaders['x-method-override'] = 'PATCH';
+      } else {
+        // 创建新脚本
+        deployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
+      }
+      
+      // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
+      const deployBody: any = {};
+      
+      // 遍历 customFields 对象的所有属性
+      for (const key in customFields) {
+        if (customFields.hasOwnProperty(key)) {
+          // 跳过 autoscript、description、source 这三个特殊字段（它们会被单独处理）
+          if (key.toLowerCase() === 'autoscript' || key.toLowerCase() === 'description' || key.toLowerCase() === 'source') {
+            continue;
+          }
+          
+          // 其他字段都添加 spi: 前缀
+          const prefixedKey = `spi:${key.toLowerCase()}`;
+          let value = customFields[key];
+          
+          // 如果是 source 字段，需要处理换行符
+          if (key === 'source') {
+            value = String(value).replace(/\r\n/g, '\n');
+          }
+          
+          deployBody[prefixedKey] = value;
+        }
+      }
+      
+      // 确保必要的字段存在
+      if (!deployBody['spi:autoscript']) {
+        deployBody['spi:autoscript'] = autoscript;
+      }
+      if (!deployBody['spi:description']) {
+        deployBody['spi:description'] = description;
+      }
+      if (!deployBody['spi:scriptlanguage']) {
+        deployBody['spi:scriptlanguage'] = 'nashorn';
+      }
+      if (deployBody['spi:active'] === undefined) {
+        deployBody['spi:active'] = true;
+      }
+      if (!deployBody['spi:source']) {
+        deployBody['spi:source'] = source.replace(/\r\n/g, '\n');
+      }
+      
+      // 步骤4: 发送请求
+      const deployResult = await httpRequestToMaximo({
+        url: deployUrl,
+        method: deployMethod,
+        headers: deployHeaders,
+        data: deployBody
+      });
+      
+      return deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204;
+      
+    } catch (error: any) {
+      logger.error(`[_deployScript] 部署失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
    * 清空工具箱输出
    */
   private _clearToolboxOutput() {
@@ -664,124 +802,104 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
    * 内部部署方法（不发送完成消息）
    */
   private async _deploySingleFileInternal(filePath: string): Promise<void> {
-    // 读取 JSON 配置文件
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const config = JSON.parse(fileContent);
+    try {
+      this._sendToolboxOutput(`🔄 开始导入脚本: ${filePath}`);
 
-    // 检查必需字段
-    const requiredFields = ['AUTOSCRIPT', 'DESCRIPTION', 'SCRIPTLANGUAGE'];
-    const missingFields = requiredFields.filter(field => !config[field]);
-    if (missingFields.length > 0) {
-      throw new Error(`缺少必需字段: ${missingFields.join(', ')}`);
-    }
-
-    const autoScript = config.AUTOSCRIPT;
-    const scriptLanguage = config.SCRIPTLANGUAGE.toLowerCase();
-    const isPython = (scriptLanguage === 'python' || scriptLanguage === 'jython');
-    const scriptExt = isPython ? '.py' : '.js';
-
-    // 构建脚本文件路径
-    const dirPath = path.dirname(filePath);
-    const scriptFileName = autoScript + scriptExt;
-    const scriptFilePath = path.join(dirPath, scriptFileName);
-
-    // 读取脚本源文件
-    if (!fs.existsSync(scriptFilePath)) {
-      throw new Error(`脚本文件不存在: ${scriptFilePath}`);
-    }
-
-    const scriptSource = fs.readFileSync(scriptFilePath, 'utf-8').replace(/\r\n/g, '\n');
-
-    // 使用 httpRequestToMaximo 部署脚本
-    const { httpRequestToMaximo } = require('./httpRequest');
-    
-    const vsCodeConfig = vscode.workspace.getConfiguration('maximoScript');
-    const apiType = vsCodeConfig.get('apiType', 'oslc') as string;
-    const version = vsCodeConfig.get('version', '7.6') as string;
-    const isMaximo91 = version === '9.1';
-    const prefix = isMaximo91 ? 'spi:' : 'oslc:';
-    
-    // 步骤1: 检查脚本是否存在
-    this._sendToolboxOutput(`🔍 检查脚本是否存在: ${autoScript}`);
-    
-    let checkUrl: string;
-    if (isMaximo91) {
-      checkUrl = `os/MXSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoScript}"`;
-    } else {
-      checkUrl = `os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoScript}"`;
-    }
-
-    const checkResponse = await httpRequestToMaximo({
-      method: 'GET',
-      url: checkUrl,
-      headers: {
+      // 读取 JSON 配置文件
+      if (!fs.existsSync(filePath)) {
+        this._sendToolboxOutput(`❌ 配置文件不存在: ${filePath}`);
+        return;
       }
-    });
 
-    let scriptExists = false;
-    let scriptHref: string | null = null;
+      const jsonContent = fs.readFileSync(filePath, 'utf-8');
+      
+      let config: any;
+      try {
+        config = JSON.parse(jsonContent);
+      } catch (e: any) {
+        this._sendToolboxOutput(`❌ JSON 解析失败: ${e.message}`);
+        return;
+      }
 
-    console.log('checkResponse', checkResponse)
-    if (checkResponse.status>=200&&checkResponse.status<300) {
-      const memberCount = checkResponse.data.member ? checkResponse.data.member.length : 0;
-      if (memberCount === 1) {
-        scriptExists = true;
-        scriptHref = checkResponse.data.member[0].href;
-        this._sendToolboxOutput(`✅ 脚本已存在，将更新`);
+      // 检查必需字段
+      const requiredFields = ['AUTOSCRIPT', 'DESCRIPTION', 'SCRIPTLANGUAGE'];
+      const missingFields = requiredFields.filter((field: string) => !config[field]);
+      if (missingFields.length > 0) {
+        this._sendToolboxOutput(`❌ 配置文件缺少必需字段: ${missingFields.join(', ')}`);
+        return;
+      }
+
+      // 获取脚本名和语言
+      const autoScript = config.AUTOSCRIPT;
+      const scriptLanguage = config.SCRIPTLANGUAGE.toLowerCase();
+      const isPython = (scriptLanguage === 'python' || scriptLanguage === 'jython');
+      const scriptExt = isPython ? '.py' : '.js';
+
+      // 构建脚本文件路径（与 JSON 文件同目录同名）
+      const dirPath = path.dirname(filePath);
+      const scriptFileName = autoScript + scriptExt;
+      const scriptFilePath = path.join(dirPath, scriptFileName);
+
+      this._sendToolboxOutput(`🔍 查找脚本文件: ${scriptFilePath}`);
+
+      // 检查脚本文件是否存在
+      if (!fs.existsSync(scriptFilePath)) {
+        this._sendToolboxOutput(`❌ 未找到脚本文件: ${scriptFileName}`);
+        return;
+      }
+
+      const scriptContent = fs.readFileSync(scriptFilePath, 'utf-8');
+
+      this._sendToolboxOutput(`📤 正在导入: ${autoScript}`);
+
+      // 定义需要忽略的字段
+      const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID'];
+
+      // 构建自定义字段（从 JSON 配置中读取所有属性）
+      const customFields: any = {};
+
+      // 遍历 JSON 配置中的所有属性
+      for (const [key, value] of Object.entries(config)) {
+        // 如果字段在忽略列表中，则跳过
+        if (ignoreFields.includes(key)) {
+          continue;
+        }
+
+        if (key === 'SOURCE') {
+          // SOURCE 字段使用脚本文件内容，不在这里设置
+          continue;
+        } else {
+          // 将字段名转换为小写，以匹配 Maximo API 的要求
+          customFields[key.toLowerCase()] = value;
+        }
+      }
+
+      // 添加必要字段
+      customFields.autoscript = autoScript;
+      customFields.description = config.DESCRIPTION;
+      customFields.source = scriptContent.replace(/\r\n/g, '\n');
+      customFields.scriptlanguage = config.SCRIPTLANGUAGE;
+      
+      // 处理 ACTIVE 字段
+      if (config.ACTIVE !== undefined) {
+        customFields.active = config.ACTIVE === true || config.ACTIVE === 1 || config.ACTIVE === '1';
       } else {
-        this._sendToolboxOutput(`ℹ️ 脚本不存在，将创建`);
+        customFields.active = true; // 默认为 true
       }
-    }else{
-      throw new Error( '服务器通讯异常'+JSON.stringify(checkResponse.data));
-    }
 
-    // 步骤2: 部署或更新脚本
-    let deployUrl: string;
-    let deployMethod: string = 'POST';
-    const deployHeaders: Record<string, string> = { };
+      // 调用通用部署方法
+      const deployResult = await this._deployScript(customFields);
 
-    if (scriptExists && scriptHref) {
-      // 更新现有脚本 - 使用 POST + x-method-override: PATCH
-      deployUrl = scriptHref;
-      deployHeaders['x-method-override'] = 'PATCH';
-      this._sendToolboxOutput(`📝 更新脚本...`);
-    } else {
-      // 创建新脚本
-      if (isMaximo91) {
-        deployUrl = `os/MXAPIAUTOSCRIPT/_${btoa(autoScript)}?lean=1`;
+      if (deployResult) {
+        this._sendToolboxOutput(`✅ 导入成功: ${autoScript}`);
       } else {
-        deployUrl = `os/AUTOSCRIPT/_${btoa(autoScript)}?lean=1`;
+        this._sendToolboxOutput(`❌ 导入失败: ${autoScript}`);
       }
-      this._sendToolboxOutput(`➕ 创建新脚本...`);
+
+    } catch (error: any) {
+      logger.error(`[_deploySingleFileInternal] 部署失败: ${error.message}`);
+      this._sendToolboxOutput(`❌ 部署出错: ${error.message}`);
     }
-
-    // 构建请求数据
-    const deployData: any = {};
-
-    // 添加其他自定义字段
-    const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID','SOURCE'];
-    for (const [key, value] of Object.entries(config)) {
-      if (!ignoreFields.includes(key.toUpperCase())) {
-        deployData[prefix + key.toLowerCase()] = value;
-      }
-    }
-    deployData[prefix + 'source'] = scriptSource;
-
-    this._sendToolboxOutput(`📤 发送请求到: ${deployUrl}`);
-
-    // 发送请求
-    const response = await httpRequestToMaximo({
-      method: deployMethod as any,
-      url: deployUrl,
-      data: deployData,
-      headers: deployHeaders
-    });
-
-    if (!(response.status>=200&&response.status<300)) {
-      throw new Error(response.error || '部署失败');
-    }
-
-    this._sendToolboxOutput(`✅ 成功: ${autoScript}`);
   }
 
   /**
@@ -800,7 +918,6 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const authType = config.get<string>('authType', 'maxauth');
       const maxauth = config.get<string>('maxauth', '');
       const apiKey = config.get<string>('apiKey', '');
-      const version = config.get<string>('version', '7.6');
       
       if (!serverUrl) {
         this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
@@ -839,76 +956,17 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       const installScriptContent = fs.readFileSync(installFilePath, 'utf-8');
       
-      // 首先检查脚本是否已存在
-      const isMaximo91 = version === '9.1';
-      const checkUrl = isMaximo91 
-        ? `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="SHARPTREE.AUTOSCRIPT.INSTALL"`
-        : `${serverUrl}/oslc/os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="SHARPTREE.AUTOSCRIPT.INSTALL"`;
-      
-      const checkResult = await httpRequestToMaximo({
-        url: checkUrl,
-        method: 'GET',
-        headers: {
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-        }
+      // 使用通用方法部署脚本
+      const deploySuccess = await this._deployScript({
+        autoscript: 'SHARPTREE.AUTOSCRIPT.INSTALL',
+        description: 'Sharptree Automation Script Install Script',
+        source: installScriptContent,
+        scriptlanguage: 'nashorn',
+        active: true
       });
       
-      let scriptExists = false;
-      let scriptHref = null;
-      
-      if (checkResult.status === 200 && checkResult.data) {
-        const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
-        if (memberCount === 1) {
-          scriptExists = true;
-          scriptHref = checkResult.data.member[0].href;
-          this._sendToolboxOutput('✅ sharptree.autoscript.install 已存在');
-        } else {
-          this._sendToolboxOutput('ℹ️ sharptree.autoscript.install 不存在，将创建新脚本');
-        }
-      }
-      
-      // 部署脚本
-      let deployUrl: string;
-      let deployMethod: 'POST' | 'PATCH' = 'POST';
-      const deployHeaders: any = {
-        'Content-Type': 'application/json',
-        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-      };
-      
-      const prefix = isMaximo91 ? 'spi:' : 'oslc:';
-      
-      if (scriptExists && scriptHref) {
-        // 更新现有脚本
-        deployUrl = scriptHref;
-        deployHeaders['Content-Type'] = 'application/merge-patch+json';
-        deployHeaders['x-method-override'] = 'PATCH';
-      } else {
-        // 创建新脚本 - 使用 MXAPIAUTOSCRIPT 端点
-        deployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
-      }
-      
-      // 构建请求体 - 使用 spi: 前缀
-      const deployBody: any = {};
-      deployBody['spi:autoscript'] = 'SHARPTREE.AUTOSCRIPT.INSTALL';
-      deployBody['spi:description'] = 'Sharptree Automation Script Install Script';
-      deployBody['spi:scriptlanguage'] = 'nashorn';
-      deployBody['spi:active'] = true;
-      deployBody['spi:source'] = installScriptContent.replace(/\r\n/g, '\n');
-      
-      const deployResult = await httpRequestToMaximo({
-        url: deployUrl,
-        method: deployMethod,
-        headers: deployHeaders,
-        data: deployBody
-      });
-      
-      if (deployResult.status !== 200 && deployResult.status !== 201 && deployResult.status !== 204) {
-        this._sendToolboxOutput(`❌ Bootstrap 部署失败: HTTP ${deployResult.status}`);
-        this._sendToolboxOutput(`请求 URL: ${deployUrl}`);
-        this._sendToolboxOutput(`请求方法: ${deployMethod}`);
-        this._sendToolboxOutput(`请求头: ${JSON.stringify(deployHeaders, null, 2)}`);
-        this._sendToolboxOutput(`请求体: ${JSON.stringify(deployBody, null, 2)}`);
-        this._sendToolboxOutput(`错误信息: ${JSON.stringify(deployResult.data, null, 2)}`);
+      if (!deploySuccess) {
+        this._sendToolboxOutput('❌ Bootstrap 脚本部署失败');
         return;
       }
       
@@ -916,9 +974,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       // 执行 bootstrap 脚本
       this._sendToolboxOutput('⚙️ 正在执行 bootstrap 脚本...');
-      const execUrl = isMaximo91
-        ? `${serverUrl}/api/script/sharptree.autoscript.install`
-        : `${serverUrl}/oslc/script/sharptree.autoscript.install`;
+      const execUrl = `${serverUrl}/oslc/script/sharptree.autoscript.install`;
       
       const execResult = await httpRequestToMaximo({
         url: execUrl,
@@ -970,69 +1026,21 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           
           const scriptContent = fs.readFileSync(filePath, 'utf-8');
           
-          // 检查脚本是否已存在
-          const scriptCheckUrl = isMaximo91
-            ? `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${script.autoscript}"`
-            : `${serverUrl}/oslc/os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${script.autoscript}"`;
-          
-          const scriptCheckResult = await httpRequestToMaximo({
-            url: scriptCheckUrl,
-            method: 'GET',
-            headers: {
-              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-            }
+          // 使用通用方法部署脚本
+          const deployResult = await this._deployScript({
+            autoscript: script.autoscript,
+            description: script.description,
+            source: scriptContent,
+            scriptlanguage: 'nashorn',
+            active: true
           });
           
-          let scriptExists = false;
-          let scriptHref = null;
-          
-          if (scriptCheckResult.status === 200 && scriptCheckResult.data) {
-            const memberCount = scriptCheckResult.data.member ? scriptCheckResult.data.member.length : 0;
-            if (memberCount === 1) {
-              scriptExists = true;
-              scriptHref = scriptCheckResult.data.member[0].href;
-            }
-          }
-          
-          // 部署脚本
-          let scriptDeployUrl: string;
-          let scriptDeployMethod: 'POST' | 'PATCH' = 'POST';
-          const scriptDeployHeaders: any = {
-            'Content-Type': 'application/json',
-            ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-          };
-          
-          if (scriptExists && scriptHref) {
-            // 更新现有脚本
-            scriptDeployUrl = scriptHref;
-            scriptDeployHeaders['Content-Type'] = 'application/merge-patch+json';
-            scriptDeployHeaders['x-method-override'] = 'PATCH';
-          } else {
-            // 创建新脚本 - 使用 MXAPIAUTOSCRIPT 端点
-            scriptDeployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
-          }
-          
-          // 构建请求体 - 使用 spi: 前缀
-          const scriptDeployBody: any = {};
-          scriptDeployBody['spi:autoscript'] = script.autoscript;
-          scriptDeployBody['spi:description'] = script.description;
-          scriptDeployBody['spi:scriptlanguage'] = 'nashorn';
-          scriptDeployBody['spi:active'] = true;
-          scriptDeployBody['spi:source'] = scriptContent.replace(/\r\n/g, '\n');
-          
-          const deployResult = await httpRequestToMaximo({
-            url: scriptDeployUrl,
-            method: scriptDeployMethod,
-            headers: scriptDeployHeaders,
-            data: scriptDeployBody
-          });
-          
-          if (deployResult.status === 200 || deployResult.status === 204) {
+          if (deployResult) {
             successCount++;
             this._sendToolboxOutput(`  ✅ 部署成功: ${script.fileName}`);
           } else {
             failCount++;
-            this._sendToolboxOutput(`  ❌ 部署失败: ${script.fileName} - HTTP ${deployResult.status}`);
+            this._sendToolboxOutput(`  ❌ 部署失败: ${script.fileName}`);
           }
         } catch (error: any) {
           failCount++;
