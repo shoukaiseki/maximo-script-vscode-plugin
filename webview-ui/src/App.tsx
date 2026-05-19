@@ -136,6 +136,10 @@ const App: React.FC = () => {
           // 清除脚本完成
           setIsClearRunning(false);
           break;
+        case 'executeClearScripts':
+          // 后端确认后，执行清除操作
+          executeClearScripts();
+          break;
         case 'deployScriptComplete':
           // 部署脚本完成
           setIsDeployRunning(false);
@@ -197,14 +201,23 @@ const App: React.FC = () => {
     console.log('[App] isDeployRunning:', isDeployRunning);
     
     if (!deleteJsonPath) {
-      alert('请先选择要删除的脚本列表 JSON 文件');
+      // 使用 VSCode 的通知而不是 alert
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择要删除的脚本列表 JSON 文件'
+      });
       return;
     }
     
-    if (!window.confirm('⚠️ 警告：此操作将删除服务器上指定的 Maximo 脚本！\n\n此操作不可恢复，确定要继续吗？')) {
-      return;
-    }
-    
+    // 请求后端显示确认对话框
+    getVsCodeApi().postMessage({
+      command: 'confirmClearScripts',
+      jsonPath: deleteJsonPath
+    });
+  };
+
+  // 处理确认后的清除操作
+  const executeClearScripts = () => {
     setIsClearRunning(true);
     setToolboxOutput(''); // 清空之前的输出
     getVsCodeApi().postMessage({
@@ -212,6 +225,52 @@ const App: React.FC = () => {
       jsonPath: deleteJsonPath
     });
   };
+
+  // 使用 useEffect 添加原生 DOM 事件监听器
+  React.useEffect(() => {
+    console.log('[App] useEffect 执行，设置按钮事件监听器');
+    
+    const clearButton = document.getElementById('clearScriptsButton');
+    const testButton = document.getElementById('testButton');
+    
+    if (clearButton) {
+      console.log('[App] 找到 clearScriptsButton');
+      clearButton.addEventListener('click', (e) => {
+        console.log('[App] clearScriptsButton 被点击（原生事件）');
+        e.preventDefault();
+        e.stopPropagation();
+        handleClearScripts();
+      });
+    } else {
+      console.log('[App] 未找到 clearScriptsButton');
+    }
+    
+    if (testButton) {
+      console.log('[App] 找到 testButton');
+      testButton.addEventListener('click', (e) => {
+        console.log('[App] testButton 被点击（原生事件）');
+        e.preventDefault();
+        e.stopPropagation();
+        // 使用 VSCode 的通知而不是 alert
+        getVsCodeApi().postMessage({
+          command: 'showInfo',
+          message: '测试按钮被点击了！deleteJsonPath: ' + deleteJsonPath
+        });
+      });
+    } else {
+      console.log('[App] 未找到 testButton');
+    }
+    
+    // 清理函数
+    return () => {
+      if (clearButton) {
+        clearButton.removeEventListener('click', () => {});
+      }
+      if (testButton) {
+        testButton.removeEventListener('click', () => {});
+      }
+    };
+  }, [deleteJsonPath, isInitRunning, isClearRunning, isDeployRunning]);
 
   // 工具箱 - 选择删除脚本 JSON 文件
   const handleSelectDeleteJson = () => {
@@ -756,16 +815,7 @@ const App: React.FC = () => {
                 </div>
 
                 <button 
-                  onMouseDown={(e) => {
-                    console.log('[Clear Button] onMouseDown 触发！');
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Clear Button] onClick 触发！');
-                    console.log('[Clear Button] deleteJsonPath:', deleteJsonPath);
-                    handleClearScripts();
-                  }}
+                  id="clearScriptsButton"
                   disabled={!deleteJsonPath || isInitRunning || isClearRunning || isDeployRunning}
                   style={{
                     width: '100%',
@@ -784,16 +834,7 @@ const App: React.FC = () => {
 
                 {/* 测试按钮 */}
                 <button 
-                  onMouseDown={(e) => {
-                    console.log('[Test Button] onMouseDown 触发！');
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Test Button] onClick 触发！');
-                    console.log('[Test Button] deleteJsonPath:', deleteJsonPath);
-                    alert('测试按钮被点击了！deleteJsonPath: ' + deleteJsonPath);
-                  }}
+                  id="testButton"
                   style={{
                     width: '100%',
                     padding: '12px',

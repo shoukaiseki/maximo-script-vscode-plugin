@@ -74,8 +74,17 @@ export class ConfigPanel {
           case 'selectDeleteJson':
             await this._selectDeleteJson();
             return;
+          case 'confirmClearScripts':
+            await this._confirmClearScripts(message.jsonPath);
+            return;
           case 'clearScripts':
             await this._clearScripts(message.jsonPath);
+            return;
+          case 'showWarning':
+            vscode.window.showWarningMessage(message.message);
+            return;
+          case 'showInfo':
+            vscode.window.showInformationMessage(message.message);
             return;
         }
       },
@@ -527,6 +536,25 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 确认清除脚本
+   */
+  private async _confirmClearScripts(jsonPath: string) {
+    const result = await vscode.window.showWarningMessage(
+      '⚠️ 警告：此操作将删除服务器上指定的 Maximo 脚本！\n\n此操作不可恢复，确定要继续吗？',
+      { modal: true },
+      '确定',
+      '取消'
+    );
+    
+    if (result === '确定') {
+      // 用户点击了确定，通知前端执行清除操作
+      this._panel.webview.postMessage({
+        command: 'executeClearScripts'
+      });
+    }
+  }
+
+  /**
    * 向工具箱输出日志
    */
   private _sendToolboxOutput(text: string) {
@@ -811,20 +839,99 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       const installScriptContent = fs.readFileSync(installFilePath, 'utf-8');
       
-      // 使用 bootstrapScript 部署并执行
-      const bootstrapResult = await httpRequestToMaximo({
-        url: `${serverUrl}/oslc/script/sharptree.autoscript.install`,
-        method: 'POST',
+      // 首先检查脚本是否已存在
+      const isMaximo91 = version === '9.1';
+      const checkUrl = isMaximo91 
+        ? `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="SHARPTREE.AUTOSCRIPT.INSTALL"`
+        : `${serverUrl}/oslc/os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="SHARPTREE.AUTOSCRIPT.INSTALL"`;
+      
+      const checkResult = await httpRequestToMaximo({
+        url: checkUrl,
+        method: 'GET',
         headers: {
-          'Content-Type': 'text/plain',
           ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-        },
-        data: installScriptContent
+        }
       });
       
-      if (bootstrapResult.status !== 200 && bootstrapResult.status !== 204) {
-        this._sendToolboxOutput(`❌ Bootstrap 失败: HTTP ${bootstrapResult.status}`);
-        this._sendToolboxOutput(`错误信息: ${bootstrapResult.data || ''}`);
+      let scriptExists = false;
+      let scriptHref = null;
+      
+      if (checkResult.status === 200 && checkResult.data) {
+        const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
+        if (memberCount === 1) {
+          scriptExists = true;
+          scriptHref = checkResult.data.member[0].href;
+          this._sendToolboxOutput('✅ sharptree.autoscript.install 已存在');
+        } else {
+          this._sendToolboxOutput('ℹ️ sharptree.autoscript.install 不存在，将创建新脚本');
+        }
+      }
+      
+      // 部署脚本
+      let deployUrl: string;
+      let deployMethod: 'POST' | 'PATCH' = 'POST';
+      const deployHeaders: any = {
+        'Content-Type': 'application/json',
+        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+      };
+      
+      const prefix = isMaximo91 ? 'spi:' : 'oslc:';
+      
+      if (scriptExists && scriptHref) {
+        // 更新现有脚本
+        deployUrl = scriptHref;
+        deployHeaders['Content-Type'] = 'application/merge-patch+json';
+        deployHeaders['x-method-override'] = 'PATCH';
+      } else {
+        // 创建新脚本 - 使用 MXAPIAUTOSCRIPT 端点
+        deployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
+      }
+      
+      // 构建请求体 - 使用 spi: 前缀
+      const deployBody: any = {};
+      deployBody['spi:autoscript'] = 'SHARPTREE.AUTOSCRIPT.INSTALL';
+      deployBody['spi:description'] = 'Sharptree Automation Script Install Script';
+      deployBody['spi:scriptlanguage'] = 'nashorn';
+      deployBody['spi:active'] = true;
+      deployBody['spi:source'] = installScriptContent.replace(/\r\n/g, '\n');
+      
+      const deployResult = await httpRequestToMaximo({
+        url: deployUrl,
+        method: deployMethod,
+        headers: deployHeaders,
+        data: deployBody
+      });
+      
+      if (deployResult.status !== 200 && deployResult.status !== 201 && deployResult.status !== 204) {
+        this._sendToolboxOutput(`❌ Bootstrap 部署失败: HTTP ${deployResult.status}`);
+        this._sendToolboxOutput(`请求 URL: ${deployUrl}`);
+        this._sendToolboxOutput(`请求方法: ${deployMethod}`);
+        this._sendToolboxOutput(`请求头: ${JSON.stringify(deployHeaders, null, 2)}`);
+        this._sendToolboxOutput(`请求体: ${JSON.stringify(deployBody, null, 2)}`);
+        this._sendToolboxOutput(`错误信息: ${JSON.stringify(deployResult.data, null, 2)}`);
+        return;
+      }
+      
+      this._sendToolboxOutput('✅ Bootstrap 脚本部署成功');
+      
+      // 执行 bootstrap 脚本
+      this._sendToolboxOutput('⚙️ 正在执行 bootstrap 脚本...');
+      const execUrl = isMaximo91
+        ? `${serverUrl}/api/script/sharptree.autoscript.install`
+        : `${serverUrl}/oslc/script/sharptree.autoscript.install`;
+      
+      const execResult = await httpRequestToMaximo({
+        url: execUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+      
+      if (execResult.status !== 200) {
+        this._sendToolboxOutput(`❌ Bootstrap 执行失败: HTTP ${execResult.status}`);
+        this._sendToolboxOutput(`错误信息: ${JSON.stringify(execResult.data)}`);
         return;
       }
       
@@ -863,15 +970,61 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           
           const scriptContent = fs.readFileSync(filePath, 'utf-8');
           
-          // 使用 bootstrapScript 部署
-          const deployResult = await httpRequestToMaximo({
-            url: `${serverUrl}/oslc/script/${script.autoscript.toLowerCase()}`,
-            method: 'POST',
+          // 检查脚本是否已存在
+          const scriptCheckUrl = isMaximo91
+            ? `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${script.autoscript}"`
+            : `${serverUrl}/oslc/os/AUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${script.autoscript}"`;
+          
+          const scriptCheckResult = await httpRequestToMaximo({
+            url: scriptCheckUrl,
+            method: 'GET',
             headers: {
-              'Content-Type': 'text/plain',
               ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-            },
-            data: scriptContent
+            }
+          });
+          
+          let scriptExists = false;
+          let scriptHref = null;
+          
+          if (scriptCheckResult.status === 200 && scriptCheckResult.data) {
+            const memberCount = scriptCheckResult.data.member ? scriptCheckResult.data.member.length : 0;
+            if (memberCount === 1) {
+              scriptExists = true;
+              scriptHref = scriptCheckResult.data.member[0].href;
+            }
+          }
+          
+          // 部署脚本
+          let scriptDeployUrl: string;
+          let scriptDeployMethod: 'POST' | 'PATCH' = 'POST';
+          const scriptDeployHeaders: any = {
+            'Content-Type': 'application/json',
+            ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+          };
+          
+          if (scriptExists && scriptHref) {
+            // 更新现有脚本
+            scriptDeployUrl = scriptHref;
+            scriptDeployHeaders['Content-Type'] = 'application/merge-patch+json';
+            scriptDeployHeaders['x-method-override'] = 'PATCH';
+          } else {
+            // 创建新脚本 - 使用 MXAPIAUTOSCRIPT 端点
+            scriptDeployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
+          }
+          
+          // 构建请求体 - 使用 spi: 前缀
+          const scriptDeployBody: any = {};
+          scriptDeployBody['spi:autoscript'] = script.autoscript;
+          scriptDeployBody['spi:description'] = script.description;
+          scriptDeployBody['spi:scriptlanguage'] = 'nashorn';
+          scriptDeployBody['spi:active'] = true;
+          scriptDeployBody['spi:source'] = scriptContent.replace(/\r\n/g, '\n');
+          
+          const deployResult = await httpRequestToMaximo({
+            url: scriptDeployUrl,
+            method: scriptDeployMethod,
+            headers: scriptDeployHeaders,
+            data: scriptDeployBody
           });
           
           if (deployResult.status === 200 || deployResult.status === 204) {
