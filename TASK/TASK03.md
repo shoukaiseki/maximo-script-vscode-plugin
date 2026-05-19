@@ -95,3 +95,11 @@ http://localhost:9080/maximo/api/os/MXSCRIPT/_VEVTVA==?lean=1
 更新完之后要重新查询,是否更新成功
 脚本名就用TEST测试,这个可以随便改,
 结果更新到这个文档,这个文档以前只测试返回码成功而已,并没有对数据是否成功验证
+
+
+# 5
+工具箱的初始化脚本功能写下,将 public\maximo-developer-resources 中的全部导入,最后 public\maximo-developer-resources 要打包到插件中
+
+可以参考 E:\gitwork\maximo-script-manager\toolbox.html 中工具箱的初始化脚本功能
+
+另外也加个删除工具脚本的标签,功能按照 E:\gitwork\maximo-script-manager\toolbox.html 工具箱的清除脚本功能来做

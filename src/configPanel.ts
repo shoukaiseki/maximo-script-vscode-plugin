@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { httpRequestToMaximo } from './httpRequest';
 
 // 创建日志输出通道
 const logger = vscode.window.createOutputChannel('Maximo Script Helper', { log: true });
@@ -11,9 +12,11 @@ export class ConfigPanel {
   public static currentPanel: ConfigPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
+  private readonly _extensionUri: vscode.Uri;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
+    this._extensionUri = extensionUri;
     this._panel.webview.html = this._getWebviewContent(extensionUri);
     
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -53,6 +56,9 @@ export class ConfigPanel {
           case 'initScripts':
             await this._initScripts();
             return;
+          case 'clearScripts':
+            await this._clearScripts();
+            return;
           case 'deployScript':
             await this._deploySingleFile(message.filePath);
             return;
@@ -64,6 +70,12 @@ export class ConfigPanel {
             return;
           case 'selectDirectoryForDeploy':
             await this._selectDirectoryForDeploy();
+            return;
+          case 'selectDeleteJson':
+            await this._selectDeleteJson();
+            return;
+          case 'clearScripts':
+            await this._clearScripts(message.jsonPath);
             return;
         }
       },
@@ -484,6 +496,37 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 选择删除脚本的 JSON 文件
+   */
+  private async _selectDeleteJson() {
+    logger.info('[SelectDeleteJson] 开始选择 JSON 文件');
+    
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'JSON Files': ['json']
+      },
+      openLabel: '选择脚本列表 JSON 文件'
+    });
+
+    if (result && result.length > 0) {
+      const selectedPath = result[0].fsPath;
+      logger.info(`[SelectDeleteJson] 已选择文件: ${selectedPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setDeleteJsonPath',
+        path: selectedPath
+      });
+      
+      logger.info('[SelectDeleteJson] 已发送 setDeleteJsonPath 消息到 Webview');
+    } else {
+      logger.info('[SelectDeleteJson] 用户取消了选择');
+    }
+  }
+
+  /**
    * 向工具箱输出日志
    */
   private _sendToolboxOutput(text: string) {
@@ -716,17 +759,271 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 初始化工具脚本（简化版）
    */
+  /**
+   * 初始化 Maximo 开发工具脚本
+   */
   private async _initScripts() {
     try {
       this._sendToolboxOutput('🚀 开始初始化 Maximo 开发工具脚本...');
-      this._sendToolboxOutput('⚠️ 此功能需要配置工具脚本目录');
-      this._sendToolboxOutput('💡 提示：请在扩展设置中配置工具脚本路径');
-      this._sendToolboxOutput('\n✅ 初始化完成（示例消息）');
+      
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      const version = config.get<string>('version', '7.6');
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 MAXAUTH');
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 API Key');
+        return;
+      }
+      
+      // 获取扩展安装路径
+      const scriptsDir = path.join(this._extensionUri.fsPath, 'public', 'maximo-developer-resources');
+      
+      this._sendToolboxOutput(`📂 脚本目录: ${scriptsDir}`);
+      
+      // 检查目录是否存在
+      if (!fs.existsSync(scriptsDir)) {
+        this._sendToolboxOutput(`❌ 脚本目录不存在: ${scriptsDir}`);
+        return;
+      }
+      
+      // 步骤1: 部署并执行 bootstrap 脚本（install）
+      this._sendToolboxOutput('\n📦 步骤 1/2: 部署并执行 bootstrap 脚本...');
+      
+      const installFilePath = path.join(scriptsDir, 'sharptree.autoscript.install.js');
+      if (!fs.existsSync(installFilePath)) {
+        this._sendToolboxOutput(`❌ install 脚本不存在: ${installFilePath}`);
+        return;
+      }
+      
+      const installScriptContent = fs.readFileSync(installFilePath, 'utf-8');
+      
+      // 使用 bootstrapScript 部署并执行
+      const bootstrapResult = await httpRequestToMaximo({
+        url: `${serverUrl}/oslc/script/sharptree.autoscript.install`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        },
+        data: installScriptContent
+      });
+      
+      if (bootstrapResult.status !== 200 && bootstrapResult.status !== 204) {
+        this._sendToolboxOutput(`❌ Bootstrap 失败: HTTP ${bootstrapResult.status}`);
+        this._sendToolboxOutput(`错误信息: ${bootstrapResult.data || ''}`);
+        return;
+      }
+      
+      this._sendToolboxOutput('✅ Bootstrap 脚本执行成功');
+      
+      // 步骤2: 部署其余脚本
+      this._sendToolboxOutput('\n📦 步骤 2/2: 部署其他工具脚本...');
+      
+      const otherScripts = [
+        { fileName: 'sharptree.autoscript.store.js', autoscript: 'SHARPTREE.AUTOSCRIPT.STORE', description: 'Sharptree Automation Script Storage Script' },
+        { fileName: 'sharptree.autoscript.extract.js', autoscript: 'SHARPTREE.AUTOSCRIPT.EXTRACT', description: 'Sharptree Automation Script Extract Script' },
+        { fileName: 'sharptree.autoscript.logging.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LOGGING', description: 'Sharptree Automation Script Log Streaming' },
+        { fileName: 'sharptree.autoscript.deploy.js', autoscript: 'SHARPTREE.AUTOSCRIPT.DEPLOY', description: 'Sharptree Automation Script Deploy Script' },
+        { fileName: 'sharptree.autoscript.screens.js', autoscript: 'SHARPTREE.AUTOSCRIPT.SCREENS', description: 'Sharptree Screens Script' },
+        { fileName: 'sharptree.autoscript.form.js', autoscript: 'SHARPTREE.AUTOSCRIPT.FORM', description: 'Sharptree Forms Script' },
+        { fileName: 'sharptree.autoscript.library.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LIBRARY', description: 'Sharptree Deployment Library Script' },
+        { fileName: 'sharptree.autoscript.admin.js', autoscript: 'SHARPTREE.AUTOSCRIPT.ADMIN', description: 'Sharptree Admin Script' },
+      ];
+      
+      let successCount = 0;
+      let failCount = 0;
+      const totalFiles = otherScripts.length;
+      
+      for (let i = 0; i < otherScripts.length; i++) {
+        const script = otherScripts[i];
+        const filePath = path.join(scriptsDir, script.fileName);
+        
+        try {
+          this._sendToolboxOutput(`  [${i + 1}/${totalFiles}] 正在部署: ${script.fileName}`);
+          
+          if (!fs.existsSync(filePath)) {
+            this._sendToolboxOutput(`  ⚠️ 文件不存在，跳过: ${script.fileName}`);
+            failCount++;
+            continue;
+          }
+          
+          const scriptContent = fs.readFileSync(filePath, 'utf-8');
+          
+          // 使用 bootstrapScript 部署
+          const deployResult = await httpRequestToMaximo({
+            url: `${serverUrl}/oslc/script/${script.autoscript.toLowerCase()}`,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain',
+              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+            },
+            data: scriptContent
+          });
+          
+          if (deployResult.status === 200 || deployResult.status === 204) {
+            successCount++;
+            this._sendToolboxOutput(`  ✅ 部署成功: ${script.fileName}`);
+          } else {
+            failCount++;
+            this._sendToolboxOutput(`  ❌ 部署失败: ${script.fileName} - HTTP ${deployResult.status}`);
+          }
+        } catch (error: any) {
+          failCount++;
+          this._sendToolboxOutput(`  ❌ 处理 ${script.fileName} 时出错: ${error.message}`);
+        }
+      }
+      
+      this._sendToolboxOutput(`\n🎉 初始化工具脚本完成！成功: ${successCount}, 失败: ${failCount}`);
+      
     } catch (error: any) {
-      this._sendToolboxOutput(`❌ 初始化失败: ${error.message}`);
+      this._sendToolboxOutput(`❌ 初始化过程出错: ${error.message}`);
       logger.error(`[InitScripts] 初始化失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'initScriptsComplete' });
+    }
+  }
+
+  /**
+   * 清除 Maximo 开发工具脚本
+   */
+  private async _clearScripts(jsonPath?: string) {
+    try {
+      this._sendToolboxOutput('🗑️ 开始清除 Maximo 脚本...');
+      
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      const version = config.get<string>('version', '7.6');
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 MAXAUTH');
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 API Key');
+        return;
+      }
+      
+      // 从 JSON 文件读取脚本列表
+      let scriptsToDelete: string[] = [];
+      
+      if (jsonPath) {
+        this._sendToolboxOutput(`📂 读取脚本列表文件: ${jsonPath}`);
+        
+        if (!fs.existsSync(jsonPath)) {
+          this._sendToolboxOutput(`❌ JSON 文件不存在: ${jsonPath}`);
+          return;
+        }
+        
+        try {
+          const jsonContent = fs.readFileSync(jsonPath, 'utf-8');
+          scriptsToDelete = JSON.parse(jsonContent);
+          
+          if (!Array.isArray(scriptsToDelete)) {
+            this._sendToolboxOutput('❌ JSON 文件格式错误：必须是数组');
+            return;
+          }
+          
+          this._sendToolboxOutput(`✅ 成功读取 ${scriptsToDelete.length} 个脚本名称`);
+        } catch (error: any) {
+          this._sendToolboxOutput(`❌ 解析 JSON 文件失败: ${error.message}`);
+          return;
+        }
+      } else {
+        this._sendToolboxOutput('⚠️ 未提供 JSON 文件，使用默认脚本列表');
+        // 默认脚本列表（保留作为备选）
+        scriptsToDelete = [
+          'SHARPTREE.AUTOSCRIPT.INSTALL',
+          'SHARPTREE.AUTOSCRIPT.STORE',
+          'SHARPTREE.AUTOSCRIPT.EXTRACT',
+          'SHARPTREE.AUTOSCRIPT.LOGGING',
+          'SHARPTREE.AUTOSCRIPT.DEPLOY',
+          'SHARPTREE.AUTOSCRIPT.SCREENS',
+          'SHARPTREE.AUTOSCRIPT.FORM',
+          'SHARPTREE.AUTOSCRIPT.LIBRARY',
+          'SHARPTREE.AUTOSCRIPT.ADMIN'
+        ];
+      }
+      
+      if (scriptsToDelete.length === 0) {
+        this._sendToolboxOutput('⚠️ 脚本列表为空，无需删除');
+        return;
+      }
+      
+      this._sendToolboxOutput(`📋 找到 ${scriptsToDelete.length} 个脚本待删除`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (let i = 0; i < scriptsToDelete.length; i++) {
+        const scriptName = scriptsToDelete[i].trim();
+        
+        if (!scriptName) {
+          continue;
+        }
+        
+        try {
+          this._sendToolboxOutput(`  [${i + 1}/${scriptsToDelete.length}] 正在删除: ${scriptName}`);
+          
+          // 构建 scriptId (Base64 编码)
+          const scriptId = '_' + Buffer.from(scriptName).toString('base64');
+          
+          // 确定使用的 API 端点
+          const isMaximo91 = version === '9.1';
+          const apiEndpoint = isMaximo91 ? 'MXSCRIPT' : 'AUTOSCRIPT';
+          const deleteUrl = `${serverUrl}/api/os/${apiEndpoint}/${scriptId}${isMaximo91 ? '?lean=1' : ''}`;
+          
+          const deleteResult = await httpRequestToMaximo({
+            url: deleteUrl,
+            method: 'DELETE',
+            headers: {
+              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+            }
+          });
+          
+          if (deleteResult.status === 204 || deleteResult.status === 200) {
+            successCount++;
+            this._sendToolboxOutput(`  ✅ 删除成功: ${scriptName}`);
+          } else {
+            failCount++;
+            this._sendToolboxOutput(`  ❌ 删除失败: ${scriptName} - HTTP ${deleteResult.status}`);
+          }
+        } catch (error: any) {
+          failCount++;
+          this._sendToolboxOutput(`  ❌ 删除 ${scriptName} 时出错: ${error.message}`);
+        }
+      }
+      
+      this._sendToolboxOutput(`\n🎉 清除脚本完成！成功: ${successCount}, 失败: ${failCount}`);
+      
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 清除过程出错: ${error.message}`);
+      logger.error(`[ClearScripts] 清除失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'clearScriptsComplete' });
     }
   }
 

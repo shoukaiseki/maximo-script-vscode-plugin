@@ -26,7 +26,7 @@ interface ConfigData {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState('connection');
-  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init' or 'deploy'
+  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear' or 'deploy'
   const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
   const [toolboxOutput, setToolboxOutput] = useState<string>('');
   const [deployFilePath, setDeployFilePath] = useState<string>('');
@@ -34,7 +34,9 @@ const App: React.FC = () => {
   const [deployMode, setDeployMode] = useState<'file' | 'directory'>('file');
   const [deployRecursive, setDeployRecursive] = useState<boolean>(true);
   const [isInitRunning, setIsInitRunning] = useState<boolean>(false);
+  const [isClearRunning, setIsClearRunning] = useState<boolean>(false);
   const [isDeployRunning, setIsDeployRunning] = useState<boolean>(false);
+  const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
   const [config, setConfig] = useState<ConfigData>({
     serverUrl: '',
     authType: 'maxauth',
@@ -119,9 +121,20 @@ const App: React.FC = () => {
           // 设置部署目录路径
           setDeployDirectoryPath(message.path);
           break;
+        case 'setDeleteJsonPath':
+          // 设置删除脚本 JSON 文件路径
+          console.log('[App] 收到 setDeleteJsonPath 消息:', message.path);
+          console.log('[App] 当前的 deleteJsonPath:', deleteJsonPath);
+          setDeleteJsonPath(message.path);
+          console.log('[App] 已调用 setDeleteJsonPath，新值应该是:', message.path);
+          break;
         case 'initScriptsComplete':
           // 初始化脚本完成
           setIsInitRunning(false);
+          break;
+        case 'clearScriptsComplete':
+          // 清除脚本完成
+          setIsClearRunning(false);
           break;
         case 'deployScriptComplete':
           // 部署脚本完成
@@ -173,6 +186,38 @@ const App: React.FC = () => {
   // 工具箱 - 清空输出
   const handleClearToolboxOutput = () => {
     setToolboxOutput('');
+  };
+
+  // 工具箱 - 清除工具脚本
+  const handleClearScripts = () => {
+    console.log('[App] handleClearScripts 被调用');
+    console.log('[App] deleteJsonPath:', deleteJsonPath);
+    console.log('[App] isInitRunning:', isInitRunning);
+    console.log('[App] isClearRunning:', isClearRunning);
+    console.log('[App] isDeployRunning:', isDeployRunning);
+    
+    if (!deleteJsonPath) {
+      alert('请先选择要删除的脚本列表 JSON 文件');
+      return;
+    }
+    
+    if (!window.confirm('⚠️ 警告：此操作将删除服务器上指定的 Maximo 脚本！\n\n此操作不可恢复，确定要继续吗？')) {
+      return;
+    }
+    
+    setIsClearRunning(true);
+    setToolboxOutput(''); // 清空之前的输出
+    getVsCodeApi().postMessage({
+      command: 'clearScripts',
+      jsonPath: deleteJsonPath
+    });
+  };
+
+  // 工具箱 - 选择删除脚本 JSON 文件
+  const handleSelectDeleteJson = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDeleteJson'
+    });
   };
 
   // 工具箱 - 选择部署文件
@@ -579,6 +624,20 @@ const App: React.FC = () => {
                 🚀 初始化脚本
               </button>
               <button
+                onClick={() => setActiveToolboxTab('clear')}
+                style={{
+                  padding: '8px 16px',
+                  background: activeToolboxTab === 'clear' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'clear' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'clear' ? 'bold' : 'normal'
+                }}
+              >
+                🗑️ 清除脚本
+              </button>
+              <button
                 onClick={() => setActiveToolboxTab('deploy')}
                 style={{
                   padding: '8px 16px',
@@ -612,13 +671,13 @@ const App: React.FC = () => {
 
                 <button 
                   onClick={handleInitScripts}
-                  disabled={isInitRunning}
+                  disabled={isInitRunning || isClearRunning || isDeployRunning}
                   style={{
                     width: '100%',
                     padding: '12px',
                     marginBottom: '20px',
-                    opacity: isInitRunning ? 0.6 : 1,
-                    cursor: isInitRunning ? 'not-allowed' : 'pointer'
+                    opacity: (isInitRunning || isClearRunning || isDeployRunning) ? 0.6 : 1,
+                    cursor: (isInitRunning || isClearRunning || isDeployRunning) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   {isInitRunning ? '⏳ 正在初始化...' : '🚀 开始初始化'}
@@ -652,6 +711,147 @@ const App: React.FC = () => {
                     fontSize: '0.9em'
                   }}>
                     {toolboxOutput || '准备就绪，点击“开始初始化”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* 清除脚本标签页 */}
+            {activeToolboxTab === 'clear' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-errorForeground)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: 'var(--vscode-errorForeground)' }}>⚠️ 警告：危险操作</p>
+                  <p style={{ margin: '0 0 10px 0' }}>
+                    此功能将从 Maximo 服务器上删除指定的自动化脚本。
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                    📌 <strong>使用说明：</strong><br/>
+                    1. 准备一个 JSON 文件，包含要删除的脚本名称列表<br/>
+                    2. JSON 格式：<code>["script1", "script2", "script3"]</code><br/>
+                    3. 示例：demo/delete.json<br/>
+                    4. 点击“选择 JSON 文件”按钮选择文件<br/>
+                    5. 点击“开始清除”按钮执行删除
+                  </p>
+                </div>
+
+                {/* JSON 文件选择 */}
+                <div className="form-group">
+                  <label>选择脚本列表 JSON 文件：</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={deleteJsonPath}
+                      readOnly
+                      placeholder="选择包含脚本名称列表的 JSON 文件"
+                      style={{ flex: 1 }}
+                    />
+                    <button onClick={handleSelectDeleteJson} style={{ whiteSpace: 'nowrap' }}>📄 选择文件</button>
+                  </div>
+                </div>
+
+                <button 
+                  onMouseDown={(e) => {
+                    console.log('[Clear Button] onMouseDown 触发！');
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('[Clear Button] onClick 触发！');
+                    console.log('[Clear Button] deleteJsonPath:', deleteJsonPath);
+                    handleClearScripts();
+                  }}
+                  disabled={!deleteJsonPath || isInitRunning || isClearRunning || isDeployRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '10px',
+                    background: !deleteJsonPath ? 'var(--vscode-disabledForeground)' : 'var(--vscode-button-secondaryBackground)',
+                    color: 'var(--vscode-button-secondaryForeground)',
+                    opacity: (!deleteJsonPath || isInitRunning || isClearRunning || isDeployRunning) ? 0.6 : 1,
+                    cursor: (!deleteJsonPath || isInitRunning || isClearRunning || isDeployRunning) ? 'not-allowed' : 'pointer',
+                    position: 'relative',
+                    zIndex: 100
+                  }}
+                >
+                  {!deleteJsonPath ? '⚠️ 请先选择 JSON 文件' : (isClearRunning ? '⏳ 正在清除...' : '🗑️ 开始清除')}
+                </button>
+
+                {/* 测试按钮 */}
+                <button 
+                  onMouseDown={(e) => {
+                    console.log('[Test Button] onMouseDown 触发！');
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('[Test Button] onClick 触发！');
+                    console.log('[Test Button] deleteJsonPath:', deleteJsonPath);
+                    alert('测试按钮被点击了！deleteJsonPath: ' + deleteJsonPath);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    background: 'green',
+                    color: 'white',
+                    position: 'relative',
+                    zIndex: 100
+                  }}
+                >
+                  🧪 测试按钮（点击我）
+                </button>
+
+                {/* 调试信息 */}
+                <div style={{ 
+                  padding: '10px', 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  marginBottom: '20px',
+                  fontSize: '0.85em'
+                }}>
+                  <strong>🔍 调试信息：</strong><br/>
+                  deleteJsonPath: {deleteJsonPath || '(空)'}<br/>
+                  isInitRunning: {isInitRunning.toString()}<br/>
+                  isClearRunning: {isClearRunning.toString()}<br/>
+                  isDeployRunning: {isDeployRunning.toString()}<br/>
+                  disabled: {(!deleteJsonPath || isInitRunning || isClearRunning || isDeployRunning).toString()}
+                </div>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 清除进度</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，请选择 JSON 文件并点击“开始清除”按钮...'}
                   </pre>
                 </div>
               </div>
