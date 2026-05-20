@@ -83,6 +83,9 @@ export class ConfigPanel {
           case 'queryScripts':
             await this._queryScripts();
             return;
+          case 'pullScript':
+            await this._pullScript(message.scriptName, message.storagePath);
+            return;
           case 'confirmClearScripts':
             await this._confirmClearScripts(message.jsonPath);
             return;
@@ -1360,6 +1363,150 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         command: 'setScriptList',
         scripts: []
       });
+    }
+  }
+
+  /**
+   * Pull 单个脚本到本地目录
+   */
+  private async _pullScript(scriptName: string, storagePath: string) {
+    try {
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      
+      if (!serverUrl) {
+        vscode.window.showErrorMessage('请先在设置中配置服务器地址');
+        return;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        vscode.window.showErrorMessage('请先在设置中配置 MAXAUTH');
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        vscode.window.showErrorMessage('请先在设置中配置 API Key');
+        return;
+      }
+
+      // 获取工作区根目录
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('未打开工作区');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      const targetDir = path.join(workspaceRoot, storagePath || 'masscript');
+
+      // 确保目标目录存在
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      // 检查文件是否已存在
+      const jsonFilePath = path.join(targetDir, `${scriptName}.json`);
+      const fileExists = fs.existsSync(jsonFilePath);
+
+      if (fileExists) {
+        // 询问是否覆盖
+        const result = await vscode.window.showWarningMessage(
+          `文件 ${scriptName}.json 已存在，是否覆盖？`,
+          { modal: true },
+          '覆盖',
+          '取消'
+        );
+        
+        if (result !== '覆盖') {
+          return; // 用户取消
+        }
+      }
+
+      // 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
+      const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
+      const metadataResult = await httpRequestToMaximo({
+        url: metadataUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        },
+        data: { 'AUTOSCRIPT': scriptName }
+      });
+
+      if (metadataResult.status !== 200 || !metadataResult.data) {
+        vscode.window.showErrorMessage(`获取脚本元数据失败: ${scriptName}`);
+        return;
+      }
+
+      // 解析返回的JSON数据
+      let metadata: any;
+      try {
+        metadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
+      } catch (parseErr: any) {
+        vscode.window.showErrorMessage(`解析元数据失败: ${parseErr.message}`);
+        return;
+      }
+
+      if (metadata.code !== 200 || !metadata.data) {
+        vscode.window.showErrorMessage(`元数据响应错误: ${metadata.message}`);
+        return;
+      }
+
+      const scriptData = metadata.data;
+
+      // 调用 SKS_EXP_AUTOSCRIPTBYNAME 获取源代码
+      const exportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;
+      const exportResult = await httpRequestToMaximo({
+        url: exportUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        },
+        data: { 'AUTOSCRIPT': scriptName }
+      });
+
+      if (exportResult.status !== 200 || !exportResult.data) {
+        vscode.window.showErrorMessage(`导出源代码失败: ${scriptName}`);
+        return;
+      }
+
+      // 获取源代码
+      let sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+
+      // 确定文件扩展名
+      const scriptLanguage = (scriptData.SCRIPTLANGUAGE || 'javascript').toLowerCase();
+      const extMap: Record<string, string> = {
+        'javascript': 'js',
+        'js': 'js',
+        'python': 'py',
+        'jython': 'py',
+        'py': 'py',
+        'json': 'json',
+        'nashorn': 'js'
+      };
+      const ext = extMap[scriptLanguage] || 'txt';
+
+      // 保存配置文件（JSON格式）
+      const configFileName = `${scriptName}.json`;
+      const configFilePath = path.join(targetDir, configFileName);
+      fs.writeFileSync(configFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
+
+      // 保存源代码文件
+      const codeFileName = `${scriptName}.${ext}`;
+      const codeFilePath = path.join(targetDir, codeFileName);
+      fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
+
+      vscode.window.showInformationMessage(`✅ 脚本已导出: ${configFileName}, ${codeFileName}`);
+
+    } catch (error: any) {
+      logger.error(`[_pullScript] 导出失败: ${error.message}`);
+      vscode.window.showErrorMessage(`导出脚本失败: ${error.message}`);
     }
   }
 

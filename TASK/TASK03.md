@@ -124,3 +124,11 @@ E:\gitwork\maximo-script-manager\toolbox.js 目录搜索 startExtract
 是我搞错了,应该是参考 E:\gitwork\maximo-script-manager\renderer.js exportAllScripts 的导出方法,
 
 (不要使用 E:\gitwork\maximo-script-manager\toolbox.js 的 startExtract 方式)
+
+
+# 9
+其它配置中增加一个脚本存放目录,默认为项目下的 "masscript" 目录(下面就以masscript为例)
+
+脚本查询列表中加个pull按钮,点击后判断当前项目的 masscript 目录中是否存在 脚本名.json 文件,如果有提示是否覆盖
+
+确认后,使用 exportAllScripts 的功能,将 脚本名.json 脚本名.js/py 两个文件保存到 masscript目录中

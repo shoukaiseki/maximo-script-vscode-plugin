@@ -22,6 +22,7 @@ interface ConfigData {
   jdkPath: string;
   jarDirectories: string[];
   additionalJars: string[];
+  scriptStoragePath: string;
 }
 
 const App: React.FC = () => {
@@ -56,7 +57,8 @@ const App: React.FC = () => {
     enableHttpLog: false,
     jdkPath: '',
     jarDirectories: [],
-    additionalJars: []
+    additionalJars: [],
+    scriptStoragePath: 'masscript'
   });
 
   // 使用 useRef 确保只获取一次 VSCode API
@@ -381,6 +383,15 @@ const App: React.FC = () => {
     const description = (script.DESCRIPTION || '').toLowerCase();
     return autoscript.includes(keyword) || description.includes(keyword);
   });
+
+  // Pull 单个脚本
+  const handlePullScript = (scriptName: string) => {
+    getVsCodeApi().postMessage({
+      command: 'pullScript',
+      scriptName: scriptName,
+      storagePath: config.scriptStoragePath
+    });
+  };
 
   // 添加 JAR 目录
   const handleAddJarDirectory = () => {
@@ -719,6 +730,19 @@ const App: React.FC = () => {
               </div>
               <div className="help-text">
                 自动生成 IntelliJ IDEA HTTP Client 格式的 .http 文件到临时目录（开发调试时使用）
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>脚本存放目录</label>
+              <input
+                type="text"
+                value={config.scriptStoragePath}
+                onChange={(e) => updateConfig({ scriptStoragePath: e.target.value })}
+                placeholder="masscript"
+              />
+              <div className="help-text">
+                用于存储从 Maximo 导出的脚本文件，默认为项目根目录下的 masscript 文件夹
               </div>
             </div>
           </div>
@@ -1254,6 +1278,7 @@ const App: React.FC = () => {
                     }}>
                       <th style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold' }}>脚本名称</th>
                       <th style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold' }}>描述</th>
+                      <th style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', width: '100px' }}>操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1267,6 +1292,18 @@ const App: React.FC = () => {
                       >
                         <td style={{ padding: '8px 10px' }}>{script.AUTOSCRIPT || '-'}</td>
                         <td style={{ padding: '8px 10px' }}>{script.DESCRIPTION || '-'}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handlePullScript(script.AUTOSCRIPT)}
+                            style={{
+                              padding: '4px 12px',
+                              fontSize: '0.85em',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            📥 Pull
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
