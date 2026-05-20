@@ -174,9 +174,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       console.log('[SaveConfig] 开始保存配置...');
       console.log('[SaveConfig] enableHttpLog:', data.enableHttpLog, '类型:', typeof data.enableHttpLog);
+      console.log('[SaveConfig] localApiPath:', data.localApiPath);
+      console.log('[SaveConfig] scriptStoragePath:', data.scriptStoragePath);
       
       logger.info('[SaveConfig] 开始保存配置...');
       logger.info(`[SaveConfig] enableHttpLog: ${data.enableHttpLog}, 类型: ${typeof data.enableHttpLog}`);
+      logger.info(`[SaveConfig] localApiPath: ${data.localApiPath}`);
+      logger.info(`[SaveConfig] scriptStoragePath: ${data.scriptStoragePath}`);
       
       await config.update('serverUrl', data.serverUrl, vscode.ConfigurationTarget.Global);
       await config.update('authType', data.authType, vscode.ConfigurationTarget.Global);
@@ -186,6 +190,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('version', data.version, vscode.ConfigurationTarget.Global);
       await config.update('completionMode', data.completionMode || 'vscode', vscode.ConfigurationTarget.Global);
       await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
+      await config.update('scriptStoragePath', data.scriptStoragePath, vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
@@ -195,8 +200,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       // 验证保存结果
       const savedValue = config.get('enableHttpLog', false);
+      const savedLocalApiPath = config.get('localApiPath', '');
+      const savedScriptStoragePath = config.get('scriptStoragePath', 'masscript');
       console.log('[SaveConfig] 保存后读取 enableHttpLog:', savedValue);
+      console.log('[SaveConfig] 保存后读取 localApiPath:', savedLocalApiPath);
+      console.log('[SaveConfig] 保存后读取 scriptStoragePath:', savedScriptStoragePath);
       logger.info(`[SaveConfig] 保存后读取 enableHttpLog: ${savedValue}`);
+      logger.info(`[SaveConfig] 保存后读取 localApiPath: ${savedLocalApiPath}`);
+      logger.info(`[SaveConfig] 保存后读取 scriptStoragePath: ${savedScriptStoragePath}`);
       
       vscode.window.showInformationMessage('配置已保存');
     } catch (error: any) {
@@ -459,6 +470,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       version: config.get('version', '7.6'),
       completionMode: config.get('completionMode', 'vscode'),
       localApiPath: config.get('localApiPath', ''),
+      scriptStoragePath: config.get('scriptStoragePath', 'masscript'),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       enableHttpLog: config.get('enableHttpLog', false),
@@ -1502,32 +1514,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       const workspaceRoot = workspaceFolders[0].uri.fsPath;
-      const targetDir = path.join(workspaceRoot, storagePath || 'masscript');
+      let targetDir = path.join(workspaceRoot, storagePath || 'masscript');
 
-      // 确保目标目录存在
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
-
-      // 检查文件是否已存在
-      const jsonFilePath = path.join(targetDir, `${scriptName}.json`);
-      const fileExists = fs.existsSync(jsonFilePath);
-
-      if (fileExists) {
-        // 询问是否覆盖
-        const result = await vscode.window.showWarningMessage(
-          `文件 ${scriptName}.json 已存在，是否覆盖？`,
-          { modal: true },
-          '覆盖',
-          '取消'
-        );
-        
-        if (result !== '覆盖') {
-          return; // 用户取消
-        }
-      }
-
-      // 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
+      // 先获取接口 JSON 数据（元数据）
       const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
       const metadataResult = await httpRequestToMaximo({
         url: metadataUrl,
@@ -1544,7 +1533,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return;
       }
 
-      // 解析返回的JSON数据
+      // 解析返回的 JSON 数据
       let metadata: any;
       try {
         metadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
@@ -1559,6 +1548,46 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       const scriptData = metadata.data;
+
+      // 如果 IBM_PACKAGEPATH 存在且不为空，则追加到目标目录
+      const packagePath = scriptData.IBM_PACKAGEPATH;
+      if (packagePath && packagePath.trim() !== '') {
+        // 将点号替换为斜杠（例如：com.example.script -> com/example/script）
+        const packageDir = packagePath.replace(/\./g, '/');
+        targetDir = path.join(targetDir, packageDir);
+        logger.info(`[_pullScript] 使用 IBM_PACKAGEPATH: ${packagePath}, 目标目录: ${targetDir}`);
+      }
+
+      // 确保目标目录存在
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+        logger.info(`[_pullScript] 创建目录: ${targetDir}`);
+      }
+
+      // 检查 JSON 文件是否已存在
+      const jsonFilePath = path.join(targetDir, `${scriptName}.json`);
+      const fileExists = fs.existsSync(jsonFilePath);
+
+      if (fileExists) {
+        // 询问是否覆盖
+        const result = await vscode.window.showWarningMessage(
+          `文件 ${scriptName}.json 已存在，是否覆盖？`,
+          { modal: true },
+          '覆盖',
+          '取消'
+        );
+        
+        if (result !== '覆盖') {
+          logger.info(`[_pullScript] 用户取消覆盖: ${scriptName}`);
+          return; // 用户取消
+        }
+      }
+
+      // 用户同意后才将内容写入 JSON 文件
+      fs.writeFileSync(jsonFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
+      logger.info(`[_pullScript] 已保存 JSON 文件: ${jsonFilePath}`);
+
+      // 再拉取脚本文件（源代码）
 
       // 调用 SKS_EXP_AUTOSCRIPTBYNAME 获取源代码
       const exportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;

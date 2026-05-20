@@ -2073,6 +2073,8 @@ function MaxObject(maxobject) {
     this.auditTable = typeof maxobject.auditTable === "undefined" ? null : maxobject.auditTable;
     this.eAuditFilter = typeof maxobject.eAuditFilter === "undefined" ? null : maxobject.eAuditFilter;
     this.eSignatureFilter = typeof maxobject.eSignatureFilter === "undefined" ? null : maxobject.eSignatureFilter;
+    this.ignoreObjectMain = typeof maxobject.ignoreObjectMain === "undefined" ? false : maxobject.ignoreObjectMain;
+    this.internal = typeof maxobject.internal === "undefined" ? false : maxobject.internal;
 
     //attributes
     if (typeof maxobject.attributes !== "undefined" && Array.isArray(maxobject.attributes)) {
@@ -2130,42 +2132,49 @@ MaxObject.prototype.setMboValues = function (mbo) {
     if (mbo.toBeAdded()) {
         mbo.setValue("OBJECTNAME", this.object);
     }
+    var ignoreObjectMain=(typeof this.ignoreObjectMain === "undefined"||!this.ignoreObjectMain);
 
-    mbo.setValue("DESCRIPTION", this.description);
+  logger.debug("mbo.ignoreObjectMain30="+ignoreObjectMain);
+  //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
+    if(ignoreObjectMain){
 
-    if (this.service != null) {
-        mbo.setValue("SERVICENAME", this.service);
-    }
+        mbo.setValue("DESCRIPTION", this.description);
 
-    if (this.entity != null) {
-        mbo.setValue("ENTITYNAME", this.entity);
-    }
-
-    if (this.class != null) {
-        mbo.setValue("CLASSNAME", this.class);
-    }
-
-    if (mbo.toBeAdded()) {
-        if (this.extendsObject != null) {
-            mbo.setValue("EXTENDSOBJECT", this.extendsObject);
+        if (this.service != null) {
+            mbo.setValue("SERVICENAME", this.service);
         }
-    }
 
-    if (this.level != null && !mbo.getMboValueData("SITEORGTYPE").isReadOnly()) {
-        mbo.setValue("SITEORGTYPE", this.level);
-    }
+        if (this.entity != null) {
+            mbo.setValue("ENTITYNAME", this.entity);
+        }
 
-    if (!mbo.getMboValueData("TEXTDIRECTION").isReadOnly()) {
-        this.textDirection == null ? mbo.setValueNull("TEXTDIRECTION") : mbo.setValue("TEXTDIRECTION", this.textDirection);
-    }
+        if (this.class != null) {
+            mbo.setValue("CLASSNAME", this.class);
+        }
 
-    if (this.triggerRoot != null && !mbo.getMboValueData("TRIGROOT").isReadOnly()) {
-        mbo.setValue("TRIGROOT", this.triggerRoot);
-    }
+        if (mbo.toBeAdded()) {
+            if (this.extendsObject != null) {
+                mbo.setValue("EXTENDSOBJECT", this.extendsObject);
+            }
+        }
 
-    if (this.mainObject != null) {
-        mbo.setValue("MAINOBJECT", this.mainObject);
-    }
+        if (this.level != null && !mbo.getMboValueData("SITEORGTYPE").isReadOnly()) {
+            mbo.setValue("SITEORGTYPE", this.level);
+        }
+
+        if (!mbo.getMboValueData("TEXTDIRECTION").isReadOnly()) {
+            this.textDirection == null ? mbo.setValueNull("TEXTDIRECTION") : mbo.setValue("TEXTDIRECTION", this.textDirection);
+        }
+
+        if (this.triggerRoot != null && !mbo.getMboValueData("TRIGROOT").isReadOnly()) {
+            mbo.setValue("TRIGROOT", this.triggerRoot);
+        }
+
+        if (this.mainObject != null) {
+            mbo.setValue("MAINOBJECT", this.mainObject);
+        }
+
+      }
 
     if (!this.view) {
         if (mbo.toBeAdded()) {
@@ -2181,32 +2190,38 @@ MaxObject.prototype.setMboValues = function (mbo) {
                 mbo.setValue("UNIQUECOLUMNNAME", this.unqiueColumn);
             }
         }
+      if (typeof this.internal !== "undefined") {
+        mbo.setValue("internal", this.internal,2);
+      }
 
-        if (this.storagePartition != null) {
+        //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
+        if(ignoreObjectMain) {
+          if (this.storagePartition != null) {
             mbo.setValue("STORAGEPARTITION", this.storagePartition);
-        }
-        if (!mbo.getMboValueData("LANGTABLENAME").isReadOnly()) {
+          }
+          if (!mbo.getMboValueData("LANGTABLENAME").isReadOnly()) {
             this.languageTable != null ? mbo.setValue("LANGTABLENAME", this.languageTable) : mbo.setValueNull("LANGTABLENAME");
-        }
-        if (!mbo.getMboValueData("LANGCOLUMNNAME").isReadOnly()) {
+          }
+          if (!mbo.getMboValueData("LANGCOLUMNNAME").isReadOnly()) {
             this.languageColumn != null ? mbo.setValue("LANGCOLUMNNAME", this.languageColumn) : mbo.setValueNull("LANGCOLUMNNAME");
-        }
+          }
 
-        if (this.indexes.length > 0 && !mbo.getMboValueData("ALTIXNAME").isReadOnly()) {
+          if (this.indexes.length > 0 && !mbo.getMboValueData("ALTIXNAME").isReadOnly()) {
             this.alternateIndex != null ? mbo.setValue("ALTIXNAME", this.alternateIndex, MboConstants.NOVALIDATION) : mbo.setValueNull("ALTIXNAME");
-        }
+          }
 
-        if (!mbo.getMboValueData("TEXTSEARCHENABLED").isReadOnly()) {
+          if (!mbo.getMboValueData("TEXTSEARCHENABLED").isReadOnly()) {
             mbo.setValue("TEXTSEARCHENABLED", this.textSearchEnabled);
-        }
-        if (!mbo.getMboValueData("EAUDITENABLED").isReadOnly()) {
+          }
+          if (!mbo.getMboValueData("EAUDITENABLED").isReadOnly()) {
             mbo.setValue("EAUDITENABLED", this.auditEnabled);
-        }
+          }
 
-        if (mbo.getBoolean("EAUDITENABLED")) {
+          if (mbo.getBoolean("EAUDITENABLED")) {
             this.auditTable != null ? mbo.setValue("EAUDITTBNAME", this.auditTable) : mbo.setValueNull("EAUDITTBNAME");
             this.eAuditFilter != null ? mbo.setValue("EAUDITFILTER", this.eAuditFilter) : mbo.setValueNull("EAUDITFILTER");
             this.eSignatureFilter != null ? mbo.setValue("ESIGFILTER", this.eSignatureFilter) : mbo.setValueNull("ESIGFILTER");
+          }
         }
     } else {
         if (mbo.toBeAdded()) {

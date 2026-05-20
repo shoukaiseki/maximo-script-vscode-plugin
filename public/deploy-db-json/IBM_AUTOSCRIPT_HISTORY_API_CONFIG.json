@@ -1,0 +1,18 @@
+{
+  "maxObjects": [
+    {
+      "object": "IBM_AUTOSCRIPT_HISTORY",
+      "description": "自动化脚本历史记录",
+      "persistent": true,
+      "addRowstamp": true,
+      "level": "SYSTEM",
+      "serverName": "SCRIPT",
+      "attributes": [
+        {"attribute": "SOURCE", "description": "脚本的源代码", "title": "Source Code", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "SOURCE"},
+        {"attribute": "VERSION", "description": "Script Version", "title": "Version", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "VERSION", "searchType": "WILDCARD"},
+        {"attribute": "CREATEPERSON", "description": "创建人", "title": "创建人", "sameAsObject": "PERSON", "sameAsAttribute": "PERSONID", "maximoDefault": "&PERSONID&", "searchType": "WILDCARD"},
+        {"attribute": "CREATETIME", "description": "创建时间", "title": "创建时间", "type": "DATETIME", "length": 10, "maximoDefault": "%SYSDATE%"}
+      ]
+    }
+  ]
+}

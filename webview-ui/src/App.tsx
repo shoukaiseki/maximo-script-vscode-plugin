@@ -251,7 +251,6 @@ const App: React.FC = () => {
     console.log('[App] useEffect 执行，设置按钮事件监听器');
     
     const clearButton = document.getElementById('clearScriptsButton');
-    const testButton = document.getElementById('testButton');
     
     if (clearButton) {
       console.log('[App] 找到 clearScriptsButton');
@@ -265,29 +264,10 @@ const App: React.FC = () => {
       console.log('[App] 未找到 clearScriptsButton');
     }
     
-    if (testButton) {
-      console.log('[App] 找到 testButton');
-      testButton.addEventListener('click', (e) => {
-        console.log('[App] testButton 被点击（原生事件）');
-        e.preventDefault();
-        e.stopPropagation();
-        // 使用 VSCode 的通知而不是 alert
-        getVsCodeApi().postMessage({
-          command: 'showInfo',
-          message: '测试按钮被点击了！deleteJsonPath: ' + deleteJsonPath
-        });
-      });
-    } else {
-      console.log('[App] 未找到 testButton');
-    }
-    
     // 清理函数
     return () => {
       if (clearButton) {
         clearButton.removeEventListener('click', () => {});
-      }
-      if (testButton) {
-        testButton.removeEventListener('click', () => {});
       }
     };
   }, [deleteJsonPath, isInitRunning, isClearRunning, isDeployRunning]);
@@ -930,22 +910,6 @@ const App: React.FC = () => {
                   }}
                 >
                   {!deleteJsonPath ? '⚠️ 请先选择 JSON 文件' : (isClearRunning ? '⏳ 正在清除...' : '🗑️ 开始清除')}
-                </button>
-
-                {/* 测试按钮 */}
-                <button 
-                  id="testButton"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    marginBottom: '20px',
-                    background: 'green',
-                    color: 'white',
-                    position: 'relative',
-                    zIndex: 100
-                  }}
-                >
-                  🧪 测试按钮（点击我）
                 </button>
 
                 {/* 调试信息 */}

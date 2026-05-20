@@ -10,13 +10,9 @@ let globalJSESSIONID: string | null = null;
 export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
   try {
     const axios = require('axios');
-    const https = require('https');
     
-    // 配置 Axios 忽略 HTTPS 证书验证（用于开发环境）
-    const httpsAgent = new https.Agent({
-      rejectUnauthorized: false
-    });
-    axios.defaults.httpsAgent = httpsAgent;
+    // 完全禁用 TLS 证书验证（仅用于开发环境）
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     
     logger.info('[Axios] 已配置忽略 HTTPS 证书验证（仅用于开发环境）');
     
@@ -334,16 +330,18 @@ export async function httpRequestToMaximo({
     if(!requestHeaders['Content-Type']){
       requestHeaders['Content-Type'] = 'application/json';
     }
-    requestHeaders['Accept-Encoding']= 'gzip, deflate, br';
-    requestHeaders['Connection']= 'keep-alive';
-    requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-    requestHeaders['Cache-Control'] = 'no-cache';
 
     
     // console.log(`[HTTP Request] ${method} ${apiUrl}`);
     console.log(`[HTTP Request] Auth Type: ${noAuth ? 'No Auth' : authType}`);
+    console.log(`[HTTP Request] URL: ${apiUrl}`);
+    console.log(`[HTTP Request] Method: ${method}`);
+    console.log(`[HTTP Request] Timeout: ${timeout}`);
+    console.log(`[HTTP Request] Headers:`, JSON.stringify(requestHeaders, null, 2));
     
     // 发送请求
+    console.log('[HTTP Request] 开始发送请求...');
+    const startTime = Date.now();
     const response = await axios({
       method: method.toLowerCase(),
       url: apiUrl,
@@ -351,6 +349,9 @@ export async function httpRequestToMaximo({
       data: data,
       timeout: timeout
     });
+    const endTime = Date.now();
+    console.log(`[HTTP Response] 状态码: ${response.status}, 耗时: ${endTime - startTime}ms`);
+    console.log(`[HTTP Response] 响应头:`, JSON.stringify(response.headers, null, 2));
     
     // 检查响应中是否包含 JSESSIONID，如果有则缓存
     const setCookie = response.headers['set-cookie'];
@@ -374,18 +375,26 @@ export async function httpRequestToMaximo({
   } catch (error: any) {
     let errorMessage = '请求失败';
     
+    console.error('[HTTP Request Error] 错误对象:', error);
+    console.error('[HTTP Request Error] 错误消息:', error.message);
+    console.error('[HTTP Request Error] 错误代码:', error.code);
+    
     if (error.response) {
       // 服务器返回错误状态码
       errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
       if (error.response.data && error.response.data.errorMsg) {
         errorMessage += ` - ${error.response.data.errorMsg}`;
       }
+      console.error('[HTTP Request Error] 响应数据:', error.response.data);
     } else if (error.request) {
       // 请求已发送但没有收到响应
       errorMessage = '无法连接到服务器，请检查网络和服务器地址';
+      console.error('[HTTP Request Error] 请求对象存在但无响应');
+      console.error('[HTTP Request Error] 请求配置:', error.request);
     } else {
       // 其他错误
       errorMessage = error.message || '未知错误';
+      console.error('[HTTP Request Error] 错误设置阶段:', error.message);
     }
     
     console.error('[HTTP Request Error]', errorMessage);

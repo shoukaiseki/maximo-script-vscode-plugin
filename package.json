@@ -97,7 +97,7 @@
             "7.6",
             "9.1"
           ],
-          "default": "7.6",
+          "default": "9.1",
           "description": "Maximo版本"
         },
         "maximoScript.apiType": {
@@ -123,6 +123,11 @@
           "type": "string",
           "default": "",
           "description": "本地API反射数据目录路径（JSON文件所在目录）"
+        },
+        "maximoScript.scriptStoragePath": {
+          "type": "string",
+          "default": "masscript",
+          "description": "脚本存放目录（用于存储从 Maximo 导出的脚本文件，默认为项目根目录下的 masscript 文件夹）"
         },
         "maximoScript.enableJSDocParsing": {
           "type": "boolean",
