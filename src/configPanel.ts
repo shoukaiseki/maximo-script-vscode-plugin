@@ -630,6 +630,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         logger.error('脚本不存在,需要先新建,或者导入');
         return false;
         }
+      }else{
+        console.log(checkResult);
+        logger.info(`[PushScript] 检查脚本结果: ${JSON.stringify(checkResult.data)}`);
+        return false;
       }
       
       // 步骤2: 决定使用创建还是更新
@@ -1229,7 +1233,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       this._sendToolboxOutput(`📁 导出目录: ${backupDir}`);
 
       // 获取所有脚本名称
-      const scriptsUrl = `${serverUrl}/oslc/script/GETAUTOSCRIPTNAMES`;
+      const scriptsUrl = `${serverUrl}/oslc/script/SKS_GET_AUTOSCRIPTNAMES`;
       
       const scriptsResult = await httpRequestToMaximo({
         url: scriptsUrl,
@@ -1407,8 +1411,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return;
       }
 
-      // 调用 GETAUTOSCRIPTNAMES 获取所有脚本名称
-      const scriptsUrl = `script/GETAUTOSCRIPTNAMES`;
+      // 调用 SKS_GET_AUTOSCRIPTNAMES 获取所有脚本名称
+      const scriptsUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
       
       const scriptsResult = await httpRequestToMaximo({
         url: scriptsUrl,

@@ -10,6 +10,15 @@ let globalJSESSIONID: string | null = null;
 export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
   try {
     const axios = require('axios');
+    const https = require('https');
+    
+    // 配置 Axios 忽略 HTTPS 证书验证（用于开发环境）
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
+    axios.defaults.httpsAgent = httpsAgent;
+    
+    logger.info('[Axios] 已配置忽略 HTTPS 证书验证（仅用于开发环境）');
     
     // 配置请求拦截器
     if (!(axios.interceptors.request as any)._maximoScriptHelperConfigured) {

@@ -32,7 +32,8 @@
   ],
   "activationEvents": [
     "onLanguage:javascript",
-    "onCommand:maximoScript.showConfig"
+    "onCommand:maximoScript.showConfig",
+    "onCommand:maximoScript.pushToMaximo"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -48,8 +49,21 @@
       {
         "command": "maximoScript.setLogLevel",
         "title": "Maximo Script: 设置日志级别"
+      },
+      {
+        "command": "maximoScript.pushToMaximo",
+        "title": "Maximo Script: 推送到 Maximo"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "maximoScript.pushToMaximo",
+          "when": "editorLangId == javascript",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "configuration": {
       "title": "Maximo Script Helper",
       "properties": {

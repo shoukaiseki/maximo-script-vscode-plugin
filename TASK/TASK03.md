@@ -135,7 +135,7 @@ E:\gitwork\maximo-script-manager\toolbox.js 目录搜索 startExtract
 
 
 # 10
-编辑框增加一个右键菜单"推送到maximo",使用 _pushScript 方法将脚本内容通过接口更新到maximo
+vscode的代码编辑框增加一个右键菜单"推送到maximo",使用 _pushScript 方法将脚本内容通过接口更新到maximo
 
 只传2个属性即可,文件名作为 autoscript,文件内容作为source
 
