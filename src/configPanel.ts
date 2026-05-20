@@ -152,18 +152,32 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     
     const nonce = this._getNonce();
     
+    logger.info(`[Webview] Script URI: ${scriptUri.toString()}`);
+    logger.info(`[Webview] Style URI: ${styleUri.toString()}`);
+    
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vscode-resource: https: data: blob:; script-src 'nonce-${nonce}' 'unsafe-inline'; style-src vscode-resource: 'unsafe-inline' https:; font-src vscode-resource: https:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vscode-resource: https: data: blob:; script-src 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval'; style-src vscode-resource: 'unsafe-inline' https:; font-src vscode-resource: https:;">
   <title>Maximo Script 配置</title>
   <link href="${styleUri}" rel="stylesheet">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">Loading...</div>
+  <div id="debug" style="position:fixed;top:0;left:0;background:#ff0;padding:10px;z-index:9999;">Debug Info</div>
+  <script nonce="${nonce}">
+    const debug = document.getElementById('debug');
+    debug.textContent = 'Debug: Before script load';
+  </script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script nonce="${nonce}">
+    setTimeout(() => {
+      const root = document.getElementById('root');
+      debug.textContent = 'Debug: Root content = ' + root.innerHTML.substring(0, 50);
+    }, 1000);
+  </script>
 </body>
 </html>`;
   }
@@ -1289,8 +1303,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${i + 1}/${scriptNames.length}] 正在导出: ${scriptName}`);
 
-          // 步骤1: 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
-          const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
+          // 步骤1: 调用 SKS_GET_AUTOSCRIPTNAMES 获取元数据
+          const metadataUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
           const metadataResult = await httpRequestToMaximo({
             url: metadataUrl,
             method: 'POST',
@@ -1517,7 +1531,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       let targetDir = path.join(workspaceRoot, storagePath || 'masscript');
 
       // 先获取接口 JSON 数据（元数据）
-      const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
+      const metadataUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
       const metadataResult = await httpRequestToMaximo({
         url: metadataUrl,
         method: 'POST',

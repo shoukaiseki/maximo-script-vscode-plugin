@@ -11,6 +11,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         format: 'iife',
+        name: 'App',
         entryFileNames: 'index.js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]'

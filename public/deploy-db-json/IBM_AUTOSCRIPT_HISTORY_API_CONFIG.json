@@ -8,8 +8,11 @@
       "level": "SYSTEM",
       "serverName": "SCRIPT",
       "attributes": [
-        {"attribute": "SOURCE", "description": "脚本的源代码", "title": "Source Code", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "SOURCE"},
+        {"attribute": "AUTOSCRIPT", "description": "自动化脚本名称", "title": "Script Name", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "AUTOSCRIPT", "searchType": "WILDCARD"},
+        {"attribute": "SOURCE", "description": "脚本的源代码", "title": "Source Code"},
         {"attribute": "VERSION", "description": "Script Version", "title": "Version", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "VERSION", "searchType": "WILDCARD"},
+        {"attribute": "ALIASNAME", "description": "脚本别名", "title": "Alias Name", "searchType": "WILDCARD"},
+        {"attribute": "HOSTNAME", "description": "主机名", "title": "Host Name", "type": "UPPER", "length": 50, "required": false, "persistent": true, "searchType": "WILDCARD"},
         {"attribute": "CREATEPERSON", "description": "创建人", "title": "创建人", "sameAsObject": "PERSON", "sameAsAttribute": "PERSONID", "maximoDefault": "&PERSONID&", "searchType": "WILDCARD"},
         {"attribute": "CREATETIME", "description": "创建时间", "title": "创建时间", "type": "DATETIME", "length": 10, "maximoDefault": "%SYSDATE%"}
       ]
