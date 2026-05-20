@@ -157,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
           
           // 调用 ConfigPanel 的静态方法，传递文件路径
           const success = await ConfigPanel.pushScriptToMaximo(scriptName, source, logger, fileName);
-          
+
           if (success) {
             logger.info(`[PushToMaximo] ✅ 脚本推送成功: ${scriptName}`);
             vscode.window.showInformationMessage(`脚本 "${scriptName}" 已成功推送到 Maximo`);

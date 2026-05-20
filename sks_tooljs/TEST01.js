@@ -1,6 +1,6 @@
 /*
  *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): TEST
+ * 脚本(AUTOSCRIPT): TEST01
  * 脚本语言(SCRIPTLANGUAGE): javascript
  * 描述(DESCRIPTION): 测试脚本3
  * 日志级别(LOGLEVEL): ERROR
@@ -17,7 +17,7 @@
 load('nashorn:mozilla_compat.js');
 
 
-service.log("TEST444"); 
+service.log("TEST333"); 
 
  //省略一堆代码
 responseBody = '{\n' +

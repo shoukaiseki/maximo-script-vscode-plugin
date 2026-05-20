@@ -1178,7 +1178,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       // 检查必需字段
-      const requiredFields = ['AUTOSCRIPT', 'DESCRIPTION', 'SCRIPTLANGUAGE'];
+      const requiredFields = ['autoscript', 'description', 'scriptlanguage'];
       const missingFields = requiredFields.filter((field: string) => !config[field]);
       if (missingFields.length > 0) {
         this._sendToolboxOutput(`❌ 配置文件缺少必需字段: ${missingFields.join(', ')}`);
@@ -1186,8 +1186,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       // 获取脚本名和语言
-      const autoScript = config.AUTOSCRIPT;
-      const scriptLanguage = config.SCRIPTLANGUAGE.toLowerCase();
+      const autoScript = config.autoscript;
+      const scriptLanguage = config.scriptlanguage.toLowerCase();
       const isPython = (scriptLanguage === 'python' || scriptLanguage === 'jython');
       const scriptExt = isPython ? '.py' : '.js';
 
@@ -1232,13 +1232,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 添加必要字段
       customFields.autoscript = autoScript;
-      customFields.description = config.DESCRIPTION;
+      customFields.description = config.description;
       customFields.source = scriptContent.replace(/\r\n/g, '\n');
-      customFields.scriptlanguage = config.SCRIPTLANGUAGE;
+      customFields.scriptlanguage = config.scriptlanguage;
       
       // 处理 ACTIVE 字段
-      if (config.ACTIVE !== undefined) {
-        customFields.active = config.ACTIVE === true || config.ACTIVE === 1 || config.ACTIVE === '1';
+      if (config.active !== undefined) {
+        customFields.active = config.active === true || config.active === 1 || config.active === '1';
       } else {
         customFields.active = true; // 默认为 true
       }
@@ -1476,14 +1476,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       this._sendToolboxOutput(`📁 导出目录: ${backupDir}`);
 
       // 获取所有脚本名称
-      const scriptsUrl = `${serverUrl}/oslc/script/SKS_GET_AUTOSCRIPTNAMES`;
+      const scriptsUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
       
       const scriptsResult = await httpRequestToMaximo({
         url: scriptsUrl,
-        method: 'GET',
-        headers: {
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-        }
+        method: 'GET'
       });
 
       if (scriptsResult.status !== 200 || !scriptsResult.data) {
@@ -1520,14 +1517,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${i + 1}/${scriptNames.length}] 正在导出: ${scriptName}`);
 
-          // 步骤1: 调用 SKS_GET_AUTOSCRIPTNAMES 获取元数据
-          const metadataUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
+          // 步骤1: 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
+          const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
           const metadataResult = await httpRequestToMaximo({
             url: metadataUrl,
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+              'Content-Type': 'application/json'
             },
             data: { 'AUTOSCRIPT': scriptName }
           });
@@ -1557,13 +1553,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           const scriptData = metadata.data;
 
           // 步骤2: 调用 SKS_EXP_AUTOSCRIPTBYNAME 获取源代码
-          const exportUrl = `${serverUrl}/oslc/script/SKS_EXP_AUTOSCRIPTBYNAME`;
+          const exportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;
           const exportResult = await httpRequestToMaximo({
             url: exportUrl,
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+              'Content-Type': 'application/json'
             },
             data: { 'AUTOSCRIPT': scriptName }
           });
