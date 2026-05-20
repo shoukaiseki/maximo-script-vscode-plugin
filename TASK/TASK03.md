@@ -114,3 +114,13 @@ http://localhost:9080/maximo/api/os/MXSCRIPT/_VEVTVA==?lean=1
 # 7
 _deploySingleFileInternal 方法中,读取json文件,然后再读取脚本文件(具体参考 E:\gitwork\maximo-script-manager\toolbox.js deploySingleFile方法)
 调再 _deployScript 接口啊
+
+# 导出脚本
+
+工具箱中再增加个导出标签,标签内增加导出按钮功能逻辑参考
+E:\gitwork\maximo-script-manager\toolbox.js 目录搜索 startExtract
+
+
+是我搞错了,应该是参考 E:\gitwork\maximo-script-manager\renderer.js exportAllScripts 的导出方法,
+
+(不要使用 E:\gitwork\maximo-script-manager\toolbox.js 的 startExtract 方式)

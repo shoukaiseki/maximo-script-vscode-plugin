@@ -74,6 +74,15 @@ export class ConfigPanel {
           case 'selectDeleteJson':
             await this._selectDeleteJson();
             return;
+          case 'selectDirectoryForExtract':
+            await this._selectDirectoryForExtract();
+            return;
+          case 'extractScripts':
+            await this._extractScripts(message.directoryPath);
+            return;
+          case 'queryScripts':
+            await this._queryScripts();
+            return;
           case 'confirmClearScripts':
             await this._confirmClearScripts(message.jsonPath);
             return;
@@ -1055,6 +1064,302 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[InitScripts] 初始化失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'initScriptsComplete' });
+    }
+  }
+
+  /**
+   * 选择导出目录
+   */
+  private async _selectDirectoryForExtract() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      this._panel.webview.postMessage({
+        command: 'setExtractDirectoryPath',
+        path: result[0].fsPath
+      });
+    }
+  }
+
+  /**
+   * 导出 Maximo 脚本
+   */
+  private async _extractScripts(directoryPath: string) {
+    try {
+      this._sendToolboxOutput('📦 开始导出所有脚本...');
+
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 MAXAUTH');
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        this._sendToolboxOutput('❌ 请先在设置中配置 API Key');
+        return;
+      }
+
+      // 创建带日期时间的导出目录
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const backupDirName = `autoscript_backup_${dateStr}`;
+      const backupDir = path.join(directoryPath, backupDirName);
+
+      // 检查目录是否存在，不存在则创建
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+
+      this._sendToolboxOutput(`📁 导出目录: ${backupDir}`);
+
+      // 获取所有脚本名称
+      const scriptsUrl = `${serverUrl}/oslc/script/GETAUTOSCRIPTNAMES`;
+      
+      const scriptsResult = await httpRequestToMaximo({
+        url: scriptsUrl,
+        method: 'GET',
+        headers: {
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+
+      if (scriptsResult.status !== 200 || !scriptsResult.data) {
+        this._sendToolboxOutput(`❌ 获取脚本列表失败: HTTP ${scriptsResult.status}`);
+        return;
+      }
+
+      // 解析脚本名称列表
+      let scriptNames: any[];
+      if (Array.isArray(scriptsResult.data)) {
+        scriptNames = scriptsResult.data;
+      } else if (scriptsResult.data.member && Array.isArray(scriptsResult.data.member)) {
+        scriptNames = scriptsResult.data.member;
+      } else {
+        this._sendToolboxOutput('❌ 获取脚本列表失败，数据格式不正确');
+        return;
+      }
+
+      this._sendToolboxOutput(`📋 共找到 ${scriptNames.length} 个脚本`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // 循环获取每个脚本的详情并保存
+      for (let i = 0; i < scriptNames.length; i++) {
+        const scriptInfo = scriptNames[i];
+        const scriptName = scriptInfo.autoScript || scriptInfo['oslc:autoscript'] || scriptInfo.autoscript;
+
+        if (!scriptName) {
+          this._sendToolboxOutput(`⚠️ 跳过无效脚本 [${i + 1}]`);
+          continue;
+        }
+
+        try {
+          this._sendToolboxOutput(`[${i + 1}/${scriptNames.length}] 正在导出: ${scriptName}`);
+
+          // 步骤1: 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
+          const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
+          const metadataResult = await httpRequestToMaximo({
+            url: metadataUrl,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+            },
+            data: { 'AUTOSCRIPT': scriptName }
+          });
+
+          if (metadataResult.status !== 200 || !metadataResult.data) {
+            failCount++;
+            this._sendToolboxOutput(`❌ 获取元数据失败: ${scriptName} - 状态码: ${metadataResult.status}`);
+            continue;
+          }
+
+          // 解析返回的JSON数据
+          let metadata: any;
+          try {
+            metadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
+          } catch (parseErr: any) {
+            failCount++;
+            this._sendToolboxOutput(`❌ 解析元数据失败: ${scriptName} - ${parseErr.message}`);
+            continue;
+          }
+
+          if (metadata.code !== 200 || !metadata.data) {
+            failCount++;
+            this._sendToolboxOutput(`❌ 元数据响应错误: ${scriptName} - ${metadata.message}`);
+            continue;
+          }
+
+          const scriptData = metadata.data;
+
+          // 步骤2: 调用 SKS_EXP_AUTOSCRIPTBYNAME 获取源代码
+          const exportUrl = `${serverUrl}/oslc/script/SKS_EXP_AUTOSCRIPTBYNAME`;
+          const exportResult = await httpRequestToMaximo({
+            url: exportUrl,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+            },
+            data: { 'AUTOSCRIPT': scriptName }
+          });
+
+          if (exportResult.status === 200 && exportResult.data) {
+            // 获取源代码
+            let sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+
+            // 确定文件扩展名
+            const scriptLanguage = (scriptData.SCRIPTLANGUAGE || 'javascript').toLowerCase();
+            const extMap: Record<string, string> = {
+              'javascript': 'js',
+              'js': 'js',
+              'python': 'py',
+              'jython': 'py',
+              'py': 'py',
+              'json': 'json',
+              'nashorn': 'js'
+            };
+            const ext = extMap[scriptLanguage] || 'txt';
+
+            // 保存配置文件（JSON格式）
+            const configFileName = `${scriptName}.json`;
+            const configFilePath = path.join(backupDir, configFileName);
+            fs.writeFileSync(configFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
+
+            // 保存源代码文件
+            const codeFileName = `${scriptName}.${ext}`;
+            const codeFilePath = path.join(backupDir, codeFileName);
+            fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
+
+            successCount++;
+            this._sendToolboxOutput(`✅ 已导出: ${scriptName} (${configFileName}, ${codeFileName})`);
+          } else {
+            failCount++;
+            this._sendToolboxOutput(`❌ 导出源代码失败: ${scriptName} - 状态码: ${exportResult.status}`);
+          }
+        } catch (error: any) {
+          failCount++;
+          this._sendToolboxOutput(`❌ 导出异常: ${scriptName} - ${error.message}`);
+        }
+      }
+
+      this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
+      this._sendToolboxOutput(`📁 保存位置: ${backupDir}`);
+
+    } catch (error: any) {
+      logger.error(`[_extractScripts] 导出失败: ${error.message}`);
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractScriptsComplete' });
+    }
+  }
+
+  /**
+   * 查询所有脚本
+   */
+  private async _queryScripts() {
+    try {
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      
+      if (!serverUrl) {
+        this._panel.webview.postMessage({
+          command: 'setScriptList',
+          scripts: []
+        });
+        return;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        this._panel.webview.postMessage({
+          command: 'setScriptList',
+          scripts: []
+        });
+        return;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        this._panel.webview.postMessage({
+          command: 'setScriptList',
+          scripts: []
+        });
+        return;
+      }
+
+      // 调用 GETAUTOSCRIPTNAMES 获取所有脚本名称
+      const scriptsUrl = `script/GETAUTOSCRIPTNAMES`;
+      
+      const scriptsResult = await httpRequestToMaximo({
+        url: scriptsUrl,
+        method: 'GET',
+        headers: {
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+
+      if (scriptsResult.status !== 200 || !scriptsResult.data) {
+        this._panel.webview.postMessage({
+          command: 'setScriptList',
+          scripts: []
+        });
+        return;
+      }
+
+      // 解析脚本名称列表
+      let scriptNames: any[];
+      if (Array.isArray(scriptsResult.data)) {
+        scriptNames = scriptsResult.data;
+      } else if (scriptsResult.data.member && Array.isArray(scriptsResult.data.member)) {
+        scriptNames = scriptsResult.data.member;
+      } else {
+        this._panel.webview.postMessage({
+          command: 'setScriptList',
+          scripts: []
+        });
+        return;
+      }
+
+      // 提取脚本信息（只需要 autoscript 和 description）
+      const scriptDetails: any[] = scriptNames.map((scriptInfo: any) => {
+        return {
+          AUTOSCRIPT: scriptInfo.autoScript || scriptInfo['oslc:autoscript'] || scriptInfo.autoscript || '',
+          DESCRIPTION: scriptInfo.description || scriptInfo['oslc:description'] || ''
+        };
+      }).filter((script: any) => script.AUTOSCRIPT); // 过滤掉没有脚本名的项
+
+      // 发送脚本列表到前端
+      this._panel.webview.postMessage({
+        command: 'setScriptList',
+        scripts: scriptDetails
+      });
+
+    } catch (error: any) {
+      logger.error(`[_queryScripts] 查询失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'setScriptList',
+        scripts: []
+      });
     }
   }
 

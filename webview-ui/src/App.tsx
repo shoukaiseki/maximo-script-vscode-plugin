@@ -26,7 +26,7 @@ interface ConfigData {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState('connection');
-  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear' or 'deploy'
+  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear', 'deploy' or 'extract'
   const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
   const [toolboxOutput, setToolboxOutput] = useState<string>('');
   const [deployFilePath, setDeployFilePath] = useState<string>('');
@@ -36,7 +36,12 @@ const App: React.FC = () => {
   const [isInitRunning, setIsInitRunning] = useState<boolean>(false);
   const [isClearRunning, setIsClearRunning] = useState<boolean>(false);
   const [isDeployRunning, setIsDeployRunning] = useState<boolean>(false);
+  const [isExtractRunning, setIsExtractRunning] = useState<boolean>(false);
+  const [extractDirectoryPath, setExtractDirectoryPath] = useState<string>('');
   const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
+  const [scriptList, setScriptList] = useState<any[]>([]);
+  const [isQueryingScripts, setIsQueryingScripts] = useState<boolean>(false);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [config, setConfig] = useState<ConfigData>({
     serverUrl: '',
     authType: 'maxauth',
@@ -128,6 +133,10 @@ const App: React.FC = () => {
           setDeleteJsonPath(message.path);
           console.log('[App] 已调用 setDeleteJsonPath，新值应该是:', message.path);
           break;
+        case 'setExtractDirectoryPath':
+          // 设置导出目录路径
+          setExtractDirectoryPath(message.path);
+          break;
         case 'initScriptsComplete':
           // 初始化脚本完成
           setIsInitRunning(false);
@@ -143,6 +152,15 @@ const App: React.FC = () => {
         case 'deployScriptComplete':
           // 部署脚本完成
           setIsDeployRunning(false);
+          break;
+        case 'extractScriptsComplete':
+          // 导出脚本完成
+          setIsExtractRunning(false);
+          break;
+        case 'setScriptList':
+          // 设置脚本列表
+          setScriptList(message.scripts || []);
+          setIsQueryingScripts(false);
           break;
       }
     });
@@ -321,6 +339,49 @@ const App: React.FC = () => {
     }
   };
 
+  // 工具箱 - 选择导出目录
+  const handleSelectExtractDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtract'
+    });
+  };
+
+  // 工具箱 - 开始导出
+  const handleStartExtract = () => {
+    if (!extractDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractScripts',
+      directoryPath: extractDirectoryPath
+    });
+  };
+
+  // 查询脚本
+  const handleQueryScripts = () => {
+    setIsQueryingScripts(true);
+    setScriptList([]);
+    setSearchKeyword(''); // 清空搜索关键词
+    getVsCodeApi().postMessage({
+      command: 'queryScripts'
+    });
+  };
+
+  // 过滤脚本列表（基于缓存数据）
+  const filteredScriptList = scriptList.filter(script => {
+    if (!searchKeyword) return true;
+    const keyword = searchKeyword.toLowerCase();
+    const autoscript = (script.AUTOSCRIPT || '').toLowerCase();
+    const description = (script.DESCRIPTION || '').toLowerCase();
+    return autoscript.includes(keyword) || description.includes(keyword);
+  });
+
   // 添加 JAR 目录
   const handleAddJarDirectory = () => {
     const jarDirInput = document.getElementById('jarDirectoryInput') as HTMLInputElement;
@@ -379,6 +440,7 @@ const App: React.FC = () => {
     { id: 'completion', label: '补全设置' },
     { id: 'other', label: '其它配置' },
     { id: 'toolbox', label: '工具箱' },
+    { id: 'queryScripts', label: '查询脚本' },
     { id: 'about', label: '关于' }
   ];
 
@@ -710,6 +772,20 @@ const App: React.FC = () => {
               >
                 📤 导入脚本
               </button>
+              <button
+                onClick={() => setActiveToolboxTab('extract')}
+                style={{
+                  padding: '8px 16px',
+                  background: activeToolboxTab === 'extract' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extract' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extract' ? 'bold' : 'normal'
+                }}
+              >
+                📥 导出脚本
+              </button>
             </div>
 
             {/* 初始化脚本标签页 */}
@@ -1025,6 +1101,196 @@ const App: React.FC = () => {
                     {toolboxOutput || '准备就绪，点击“开始导入”按钮...'}
                   </pre>
                 </div>
+              </div>
+            )}
+
+            {/* 导出脚本标签页 */}
+            {activeToolboxTab === 'extract' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-button-background)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📥 导出 Maximo 脚本</p>
+                  <p style={{ margin: '0 0 10px 0' }}>
+                    此功能将从 Maximo 服务器上获取所有自动化脚本，并保存到本地目录。
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                    📌 <strong>使用说明：</strong><br/>
+                    1. 选择要保存脚本的本地目录<br/>
+                    2. 点击“开始导出”按钮<br/>
+                    3. 等待导出完成，所有脚本将保存为 .js 或 .py 文件
+                  </p>
+                </div>
+
+                {/* 导出目录选择 */}
+                <div className="form-group">
+                  <label>选择导出目录：</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={extractDirectoryPath}
+                      readOnly
+                      placeholder="选择要保存脚本的目录"
+                      style={{ flex: 1 }}
+                    />
+                    <button onClick={handleSelectExtractDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleStartExtract}
+                  disabled={!extractDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    opacity: (!extractDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning) ? 0.6 : 1,
+                    cursor: (!extractDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!extractDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractRunning ? '⏳ 正在导出...' : '📥 开始导出')}
+                </button>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，请选择导出目录并点击“开始导出”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 查询脚本页面 */}
+        {activeSection === 'queryScripts' && (
+          <div className="section active">
+            <h2>查询脚本</h2>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <button 
+                onClick={handleQueryScripts}
+                disabled={isQueryingScripts}
+                style={{
+                  padding: '10px 20px',
+                  marginRight: '10px',
+                  opacity: isQueryingScripts ? 0.6 : 1,
+                  cursor: isQueryingScripts ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isQueryingScripts ? '⏳ 正在查询...' : '🔍 查询所有脚本'}
+              </button>
+              
+              {scriptList.length > 0 && (
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="搜索脚本名称或描述..."
+                  style={{
+                    padding: '10px',
+                    width: '300px',
+                    marginLeft: '10px'
+                  }}
+                />
+              )}
+            </div>
+
+            {/* 显示统计信息 */}
+            {scriptList.length > 0 && (
+              <div style={{ 
+                marginBottom: '15px',
+                fontSize: '0.9em',
+                color: 'var(--vscode-descriptionForeground)'
+              }}>
+                共 {scriptList.length} 个脚本{searchKeyword ? `，找到 ${filteredScriptList.length} 个匹配结果` : ''}
+              </div>
+            )}
+
+            {/* 脚本列表表格 */}
+            {filteredScriptList.length > 0 && (
+              <div style={{ 
+                overflowX: 'auto',
+                border: '1px solid var(--vscode-panel-border)',
+                borderRadius: '4px'
+              }}>
+                <table style={{ 
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: '0.9em'
+                }}>
+                  <thead>
+                    <tr style={{ 
+                      background: 'var(--vscode-editor-background)',
+                      borderBottom: '2px solid var(--vscode-panel-border)'
+                    }}>
+                      <th style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold' }}>脚本名称</th>
+                      <th style={{ padding: '10px', textAlign: 'left', fontWeight: 'bold' }}>描述</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredScriptList.map((script, index) => (
+                      <tr 
+                        key={index}
+                        style={{ 
+                          borderBottom: '1px solid var(--vscode-panel-border)',
+                          background: index % 2 === 0 ? 'transparent' : 'var(--vscode-editor-background)'
+                        }}
+                      >
+                        <td style={{ padding: '8px 10px' }}>{script.AUTOSCRIPT || '-'}</td>
+                        <td style={{ padding: '8px 10px' }}>{script.DESCRIPTION || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {scriptList.length > 0 && filteredScriptList.length === 0 && (
+              <div style={{ 
+                padding: '40px',
+                textAlign: 'center',
+                color: 'var(--vscode-descriptionForeground)'
+              }}>
+                <p>没有找到匹配的脚本</p>
+              </div>
+            )}
+
+            {scriptList.length === 0 && !isQueryingScripts && (
+              <div style={{ 
+                padding: '40px',
+                textAlign: 'center',
+                color: 'var(--vscode-descriptionForeground)'
+              }}>
+                <p>点击“查询所有脚本”按钮获取脚本列表</p>
               </div>
             )}
           </div>
