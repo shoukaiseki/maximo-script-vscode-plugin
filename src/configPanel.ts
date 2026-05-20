@@ -165,19 +165,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   <link href="${styleUri}" rel="stylesheet">
 </head>
 <body>
-  <div id="root">Loading...</div>
-  <div id="debug" style="position:fixed;top:0;left:0;background:#ff0;padding:10px;z-index:9999;">Debug Info</div>
-  <script nonce="${nonce}">
-    const debug = document.getElementById('debug');
-    debug.textContent = 'Debug: Before script load';
-  </script>
+  <div id="root"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
-  <script nonce="${nonce}">
-    setTimeout(() => {
-      const root = document.getElementById('root');
-      debug.textContent = 'Debug: Root content = ' + root.innerHTML.substring(0, 50);
-    }, 1000);
-  </script>
 </body>
 </html>`;
   }
@@ -190,11 +179,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       console.log('[SaveConfig] enableHttpLog:', data.enableHttpLog, '类型:', typeof data.enableHttpLog);
       console.log('[SaveConfig] localApiPath:', data.localApiPath);
       console.log('[SaveConfig] scriptStoragePath:', data.scriptStoragePath);
+      console.log('[SaveConfig] aliasName:', data.aliasName);
       
       logger.info('[SaveConfig] 开始保存配置...');
       logger.info(`[SaveConfig] enableHttpLog: ${data.enableHttpLog}, 类型: ${typeof data.enableHttpLog}`);
       logger.info(`[SaveConfig] localApiPath: ${data.localApiPath}`);
       logger.info(`[SaveConfig] scriptStoragePath: ${data.scriptStoragePath}`);
+      logger.info(`[SaveConfig] aliasName: ${data.aliasName}`);
       
       await config.update('serverUrl', data.serverUrl, vscode.ConfigurationTarget.Global);
       await config.update('authType', data.authType, vscode.ConfigurationTarget.Global);
@@ -205,6 +196,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('completionMode', data.completionMode || 'vscode', vscode.ConfigurationTarget.Global);
       await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
       await config.update('scriptStoragePath', data.scriptStoragePath, vscode.ConfigurationTarget.Global);
+      await config.update('aliasName', data.aliasName || '', vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
@@ -485,6 +477,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       completionMode: config.get('completionMode', 'vscode'),
       localApiPath: config.get('localApiPath', ''),
       scriptStoragePath: config.get('scriptStoragePath', 'masscript'),
+      aliasName: config.get('aliasName', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       enableHttpLog: config.get('enableHttpLog', false),
@@ -607,10 +600,107 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
    * @param customFields 自定义字段对象，包含 autoscript、description、source 等
    * @returns 是否成功
    */
-  private async _pushScript(
+  /**
+   * 保存脚本历史记录
+   */
+  private async _saveScriptHistory(
     autoscript: string,
-    source: string
+    source: string,
+    serverUrl: string,
+    authType: string,
+    maxauth: string,
+    apiKey: string,
+    aliasName: string,
+    scriptStoragePath: string
+  ): Promise<void> {
+    try {
+      // 获取工作区根目录
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
+        return;
+      }
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      const jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
+
+      let version = '1.0.1'; // 默认版本
+
+      logger.debug(`[_saveScriptHistory] 正在检查 JSON 文件: ${jsonFilePath}`);
+      // 检查 JSON 文件是否存在
+      if (fs.existsSync(jsonFilePath)) {
+        logger.debug(`[_saveScriptHistory] JSON 文件存在，正在读取: ${jsonFilePath}`);
+        try {
+          const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
+          const jsonData = JSON.parse(fileContent);
+          
+          if (jsonData.version) {
+            // 解析版本号，尝试递增最后一位
+            const versionParts = jsonData.version.split('.');
+            const lastPart = versionParts[versionParts.length - 1];
+            
+            // 检查最后一部分是否是数字
+            if (/^\d+$/.test(lastPart)) {
+              const newLastPart = parseInt(lastPart) + 1;
+              versionParts[versionParts.length - 1] = newLastPart.toString();
+              version = versionParts.join('.');
+              
+              // 更新 JSON 文件中的版本号
+              jsonData.version = version;
+              fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2), 'utf-8');
+              logger.info(`[_saveScriptHistory] 版本号已更新: ${jsonData.version} -> ${version}`);
+            } else {
+              version = jsonData.version;
+              logger.info(`[_saveScriptHistory] 版本号最后一位不是数字，使用原版本: ${version}`);
+            }
+          }
+        } catch (parseError: any) {
+          logger.error(`[_saveScriptHistory] 解析 JSON 文件失败: ${parseError.message}`);
+        }
+      }
+
+      // 获取本机主机名
+      const hostname = require('os').hostname();
+
+      // 调用保存历史记录 API
+      const historyUrl = `${serverUrl}/api/script/SKS_AUTOSCRIPT_HISTORY_SAVE`;
+      const historyResult = await httpRequestToMaximo({
+        url: historyUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        },
+        data: {
+          source: source,
+          autoscript: autoscript,
+          version: version,
+          aliasname: aliasName || '',
+          hostname: hostname
+        }
+      });
+
+      if (historyResult.status === 200) {
+        logger.info(`[_saveScriptHistory] 历史记录保存成功: ${autoscript} v${version}`);
+      } else {
+        logger.error(`[_saveScriptHistory] 历史记录保存失败: ${historyResult.status}`);
+      }
+    } catch (error: any) {
+      logger.error(`[_saveScriptHistory] 保存历史记录异常: ${error.message}`);
+      throw error; // 重新抛出，让调用者处理
+    }
+  }
+
+  /**
+   * 推送脚本到 Maximo（公共静态方法，供 extension.ts 调用）
+   */
+  public static async pushScriptToMaximo(
+    autoscript: string,
+    source: string,
+    logger: vscode.LogOutputChannel,
+    filePath?: string  // 可选：脚本文件的完整路径
   ): Promise<boolean> {
+    logger.debug(`[pushScriptToMaximo] ------------------- 开始推送脚本: ${autoscript} -------------------`);
     try {
       if (!autoscript || !source) {
         logger.error('[_deployScript] autoscript, source 缺少必要参数');
@@ -622,6 +712,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const authType = config.get<string>('authType', 'maxauth');
       const maxauth = config.get<string>('maxauth', '');
       const apiKey = config.get<string>('apiKey', '');
+      const aliasName = config.get<string>('aliasName', '');
+      const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
       
       if (!serverUrl) {
         logger.error('[_deployScript] 服务器地址未配置');
@@ -637,16 +729,21 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         logger.error('[_deployScript] API Key 未配置');
         return false;
       }
+
+      // 步骤0: 保存历史记录（失败只记录日志，继续执行）
+      try {
+        logger.debug(`[pushScriptToMaximo] 正在保存历史记录: ${autoscript}, filePath: ${filePath || '未提供'}, storagePath: ${scriptStoragePath}`);
+        await ConfigPanel._saveScriptHistoryStatic(autoscript, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+      } catch (historyError: any) {
+        logger.error(`[pushScriptToMaximo] 保存历史记录失败: ${historyError.message}`);
+      }
       
       // 步骤1: 检查脚本是否存在
       const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
       
       const checkResult = await httpRequestToMaximo({
         url: checkUrl,
-        method: 'GET',
-        headers: {
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-        }
+        method: 'GET'
       });
       
       
@@ -665,15 +762,31 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤2: 决定使用创建还是更新
       let deployUrl:string;
       let deployMethod: 'POST'|'PATCH' = 'POST';
-      const deployHeaders: any = {
-        'Content-Type': 'application/json',
-        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-      };
       
         // 更新现有脚本
-      deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_`+atob(autoscript);
-      deployHeaders['Content-Type'] = 'application/json';
-      deployHeaders['x-method-override'] = 'PATCH';
+      deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
+      deployMethod = 'POST';
+      
+      // 步骤2.5: 获取版本号（如果 JSON 文件存在）
+      let version: string | undefined;
+      try {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          const workspaceRoot = workspaceFolders[0].uri.fsPath;
+          const jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
+          
+          if (fs.existsSync(jsonFilePath)) {
+            const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
+            const jsonData = JSON.parse(fileContent);
+            if (jsonData.version) {
+              version = jsonData.version;
+              logger.info(`[pushScriptToMaximo] 从 JSON 文件获取版本号: ${version}`);
+            }
+          }
+        }
+      } catch (versionError: any) {
+        logger.error(`[pushScriptToMaximo] 获取版本号失败: ${versionError.message}`);
+      }
       
       // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
       const deployBody: any = {};
@@ -686,20 +799,140 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       if (!deployBody['spi:source']) {
         deployBody['spi:source'] = source.replace(/\r\n/g, '\n');
       }
+      // 如果 version 存在，添加 version 字段
+      if (version) {
+        deployBody['spi:version'] = version;
+        logger.info(`[pushScriptToMaximo] 推送脚本时包含版本号: ${version}`);
+      }
       
       // 步骤4: 发送请求
       const deployResult = await httpRequestToMaximo({
         url: deployUrl,
         method: deployMethod,
-        headers: deployHeaders,
+        headers: {
+          'x-method-override': 'PATCH'
+        },
         data: deployBody
       });
       
       return deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204;
       
     } catch (error: any) {
+      console.log(error);
       logger.error(`[_deployScript] 部署失败: ${error.message}`);
       return false;
+    }
+  }
+
+  /**
+   * 保存脚本历史记录（静态版本，供 extension.ts 调用）
+   */
+  private static async _saveScriptHistoryStatic(
+    autoscript: string,
+    source: string,
+    serverUrl: string,
+    authType: string,
+    maxauth: string,
+    apiKey: string,
+    aliasName: string,
+    scriptStoragePath: string,
+    logger: vscode.LogOutputChannel,
+    filePath?: string  // 可选：脚本文件的完整路径
+  ): Promise<void> {
+    try {
+      let jsonFilePath: string;
+
+      // 如果提供了文件路径，使用文件所在目录；否则使用配置的 storagePath
+      if (filePath) {
+        const fileDir = path.dirname(filePath);
+        jsonFilePath = path.join(fileDir, `${autoscript}.json`);
+        logger.debug(`[_saveScriptHistory] 使用脚本所在目录: ${fileDir}`);
+      } else {
+        // 获取工作区根目录
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
+          return;
+        }
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
+        logger.debug(`[_saveScriptHistory] 使用配置的存储路径: ${scriptStoragePath}`);
+      }
+
+      let version = '1.0.1'; // 默认版本
+
+      logger.debug(`[_saveScriptHistory] 正在检查 JSON 文件: ${jsonFilePath}`);
+      // 检查 JSON 文件是否存在
+      if (fs.existsSync(jsonFilePath)) {
+        logger.debug(`[_saveScriptHistory] JSON 文件存在，正在读取: ${jsonFilePath}`);
+        try {
+          const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
+          const jsonData = JSON.parse(fileContent);
+          
+          if (jsonData.version) {
+            version = jsonData.version;
+            logger.debug(`[_saveScriptHistory] 当前版本: ${version}`);
+            
+            // 检查最后一个 '.' 后面的字符是否是数字
+            const parts = version.split('.');
+            const lastPart = parts[parts.length - 1];
+            
+            if (/^\d+$/.test(lastPart)) {
+              // 是数字，递增
+              const newNumber = parseInt(lastPart) + 1;
+              parts[parts.length - 1] = newNumber.toString();
+              version = parts.join('.');
+              
+              // 写回 JSON 文件
+              jsonData.version = version;
+              fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2), 'utf-8');
+              logger.info(`[_saveScriptHistory] 版本号已更新: ${version}`);
+            } else {
+              logger.debug(`[_saveScriptHistory] 版本号最后一部分不是数字，保持原版本: ${version}`);
+            }
+          }
+        } catch (parseError: any) {
+          logger.error(`[_saveScriptHistory] 解析 JSON 文件失败: ${parseError.message}`);
+        }
+      } else {
+        logger.debug(`[_saveScriptHistory] JSON 文件不存在，使用默认版本: ${version}`);
+      }
+
+      // 获取本机主机名
+      const os = require('os');
+      const hostname = os.hostname();
+
+      // 构建历史记录请求
+      const historyUrl = `${serverUrl}/api/script/SKS_AUTOSCRIPT_HISTORY_SAVE`;
+      const historyBody = {
+        source: source,
+        autoscript: autoscript,
+        version: version,
+        aliasname: aliasName || '',
+        hostname: hostname
+      };
+
+      logger.debug(`[_saveScriptHistory] 正在保存历史记录: ${autoscript}, 版本: ${version}, 主机名: ${hostname}`);
+
+      // 发送请求
+      const result = await httpRequestToMaximo({
+        url: historyUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        },
+        data: historyBody
+      });
+
+      if (result.status === 200 || result.status === 201) {
+        logger.info(`[_saveScriptHistory] ✅ 历史记录保存成功: ${autoscript} v${version}`);
+      } else {
+        logger.error(`[_saveScriptHistory] 历史记录保存失败，状态码: ${result.status}`);
+      }
+    } catch (error: any) {
+      logger.error(`[_saveScriptHistory] 保存历史记录异常: ${error.message}`);
+      throw error; // 重新抛出异常，让调用者处理
     }
   }
 

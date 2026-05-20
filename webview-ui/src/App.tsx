@@ -23,6 +23,7 @@ interface ConfigData {
   jarDirectories: string[];
   additionalJars: string[];
   scriptStoragePath: string;
+  aliasName: string;
 }
 
 const App: React.FC = () => {
@@ -58,7 +59,8 @@ const App: React.FC = () => {
     jdkPath: '',
     jarDirectories: [],
     additionalJars: [],
-    scriptStoragePath: 'masscript'
+    scriptStoragePath: 'masscript',
+    aliasName: ''
   });
 
   // 使用 useRef 确保只获取一次 VSCode API
@@ -723,6 +725,19 @@ const App: React.FC = () => {
               />
               <div className="help-text">
                 用于存储从 Maximo 导出的脚本文件，默认为项目根目录下的 masscript 文件夹
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>别名（Alias Name）</label>
+              <input
+                type="text"
+                value={config.aliasName}
+                onChange={(e) => updateConfig({ aliasName: e.target.value })}
+                placeholder="请输入别名"
+              />
+              <div className="help-text">
+                用于推送脚本时保存历史记录的别名字段
               </div>
             </div>
           </div>

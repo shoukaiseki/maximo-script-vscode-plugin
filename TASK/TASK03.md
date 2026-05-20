@@ -135,8 +135,43 @@ E:\gitwork\maximo-script-manager\toolbox.js 目录搜索 startExtract
 
 
 # 10
-vscode的代码编辑框增加一个右键菜单"推送到maximo",使用 _pushScript 方法将脚本内容通过接口更新到maximo
+vscode的代码编辑框增加一个右键菜单"推送到maximo",使用 pushScriptToMaximo 方法将脚本内容通过接口更新到maximo
 
 只传2个属性即可,文件名作为 autoscript,文件内容作为source
 
 其它方法不要改动
+
+
+
+# 11
+
+推送到maximo之前先调用保存历史记录,保存历史记录失败只给日志输出,接着继续执行推送
+```
+curl --request POST \
+  --url http://localhost:9080/maximo/api/script/SKS_AUTOSCRIPT_HISTORY_SAVE \
+  --header 'Accept: */*' \
+  --header 'Accept-Encoding: gzip, deflate, br' \
+  --header 'Connection: keep-alive' \
+  --header 'Content-Type: application/json' \
+  --header 'Cookie: JSESSIONID=0000I0bSqgJUZP8O9HKqKHzreqw:ab7f4ee0-4b39-4f2c-9213-d1469e0f6ca5' \
+  --header 'User-Agent: PostmanRuntime-ApipostRuntime/1.1.0' \
+  --header 'apiKey: i98u21udk65m0p1t2ng6ikvbse27pd884reh44t7' \
+  --data '{
+  "source": "//",
+  "autoscript": "autoscript",
+  "version": "1.0.1",
+  "aliasname": "别名",
+  "hostname": "主机名"
+
+}
+'
+```
+在连接配置加一个 aliasname 持久化存储的配置,在历史记录时候设置该值(如果为空就传空字符)
+hostname 传送本机主机名
+
+version: 获取逻辑,检查是否存在脚本同名的json文件,有的话获取version字段, 获取version最后一个.后面的字符是不是数字,如果是数字就+1,之后拼接回字符串,并且写回json文件中
+
+切记,该try的时候使用try
+
+代码中多谢注释,跟你说的功能描述也要写到注视中
+如果version存在,推送脚本的时候也加上version字段

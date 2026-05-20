@@ -119,135 +119,65 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 注册推送到 Maximo 命令
   const pushToMaximoCommand = vscode.commands.registerCommand('maximoScript.pushToMaximo', async () => {
-    await pushScriptToMaximo(logger);
+    try {
+      const editor = vscode.window.activeTextEditor;
+      
+      if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+      }
+      
+      const document = editor.document;
+      
+      // 只处理 JavaScript 文件
+      if (document.languageId !== 'javascript') {
+        vscode.window.showErrorMessage('只能在 JavaScript 文件中使用此功能');
+        return;
+      }
+      
+      // 获取文件名（不含扩展名）作为 autoscript
+      const fileName = document.fileName;
+      const path = require('path');
+      const scriptName = path.basename(fileName, path.extname(fileName));
+      
+      // 获取文件内容作为 source
+      const source = document.getText();
+      
+      logger.info(`[PushToMaximo] 开始推送脚本: ${scriptName}, 文件路径: ${fileName}`);
+      
+      // 显示进度提示
+      vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `正在推送脚本: ${scriptName}`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: '正在连接 Maximo...' });
+          
+          // 调用 ConfigPanel 的静态方法，传递文件路径
+          const success = await ConfigPanel.pushScriptToMaximo(scriptName, source, logger, fileName);
+          
+          if (success) {
+            logger.info(`[PushToMaximo] ✅ 脚本推送成功: ${scriptName}`);
+            vscode.window.showInformationMessage(`脚本 "${scriptName}" 已成功推送到 Maximo`);
+          } else {
+            logger.error(`[PushToMaximo] ❌ 推送失败: ${scriptName}`);
+            vscode.window.showErrorMessage(`推送到 Maximo 失败: ${scriptName}`);
+          }
+        }
+      );
+    } catch (error: any) {
+      console.log(error);
+      logger.error(`[PushToMaximo] ❌ 推送失败: ${error.message}`);
+      vscode.window.showErrorMessage(`推送到 Maximo 失败: ${error.message}`);
+    }
   });
   context.subscriptions.push(pushToMaximoCommand);
 }
 
 export function deactivate() {
   console.log('Maximo Script Helper 已停用');
-}
-
-/**
- * 推送当前编辑器中的脚本到 Maximo
- */
-async function pushScriptToMaximo(logger: vscode.LogOutputChannel) {
-  try {
-    const editor = vscode.window.activeTextEditor;
-    
-    if (!editor) {
-      vscode.window.showErrorMessage('没有打开的编辑器');
-      return;
-    }
-    
-    const document = editor.document;
-    
-    // 只处理 JavaScript 文件
-    if (document.languageId !== 'javascript') {
-      vscode.window.showErrorMessage('只能在 JavaScript 文件中使用此功能');
-      return;
-    }
-    
-    // 获取文件名（不含扩展名）作为 autoscript
-    const fileName = document.fileName;
-    const path = require('path');
-    const scriptName = path.basename(fileName, path.extname(fileName));
-    
-    // 获取文件内容作为 source
-    const source = document.getText();
-    
-    logger.info(`[PushToMaximo] 开始推送脚本: ${scriptName}`);
-    
-    // 显示进度提示
-    vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `正在推送脚本: ${scriptName}`,
-        cancellable: false
-      },
-      async (progress) => {
-        progress.report({ message: '正在连接 Maximo...' });
-        
-        // 从配置中读取服务器信息
-        const config = vscode.workspace.getConfiguration('maximoScript');
-        const serverUrl = config.get<string>('serverUrl', '');
-        const authType = config.get<string>('authType', 'maxauth');
-        const maxauth = config.get<string>('maxauth', '');
-        const apiKey = config.get<string>('apiKey', '');
-        
-        if (!serverUrl) {
-          throw new Error('未配置服务器地址，请先在配置面板中设置');
-        }
-        
-        if (authType === 'maxauth' && !maxauth) {
-          throw new Error('未配置 MAXAUTH，请先在配置面板中设置');
-        }
-        
-        if (authType === 'apikey' && !apiKey) {
-          throw new Error('未配置 API Key，请先在配置面板中设置');
-        }
-        
-        progress.report({ message: '正在检查脚本是否存在...' });
-        
-        // 步骤1: 检查脚本是否存在
-        const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${scriptName}"`;
-        
-        const checkResult = await httpRequestToMaximo({
-          url: checkUrl,
-          method: 'GET',
-          headers: {
-            ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-          }
-        });
-        
-        let scriptExists = false;
-        
-        if (checkResult.status === 200 && checkResult.data) {
-          const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
-          scriptExists = memberCount > 0;
-        }
-        
-        if (!scriptExists) {
-          throw new Error(`脚本 "${scriptName}" 不存在于 Maximo 中，请先创建或导入该脚本`);
-        }
-        
-        progress.report({ message: '正在更新脚本...' });
-        
-        // 步骤2: 构建部署 URL 和请求头
-        const deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_${Buffer.from(scriptName).toString('base64')}`;
-        const deployHeaders: any = {
-          'Content-Type': 'application/json',
-          'x-method-override': 'PATCH',
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
-        };
-        
-        // 步骤3: 构建请求体
-        const deployBody: any = {
-          'spi:autoscript': scriptName,
-          'spi:source': source.replace(/\r\n/g, '\n')
-        };
-        
-        // 步骤4: 发送请求
-        const deployResult = await httpRequestToMaximo({
-          url: deployUrl,
-          method: 'POST',
-          headers: deployHeaders,
-          data: deployBody
-        });
-        
-        if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
-          logger.info(`[PushToMaximo] ✅ 脚本推送成功: ${scriptName}`);
-          vscode.window.showInformationMessage(`✅ 脚本已成功推送到 Maximo: ${scriptName}`);
-        } else {
-          throw new Error(`HTTP ${deployResult.status}: 推送失败`);
-        }
-      }
-    );
-    
-  } catch (error: any) {
-    logger.error(`[PushToMaximo] ❌ 推送失败: ${error.message}`);
-    vscode.window.showErrorMessage(`推送到 Maximo 失败: ${error.message}`);
-  }
 }
 
 /**
