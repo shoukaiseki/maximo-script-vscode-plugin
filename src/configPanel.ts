@@ -581,6 +581,103 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
    * @param customFields 自定义字段对象，包含 autoscript、description、source 等
    * @returns 是否成功
    */
+  private async _pushScript(
+    autoscript: string,
+    source: string
+  ): Promise<boolean> {
+    try {
+      if (!autoscript || !source) {
+        logger.error('[_deployScript] autoscript, source 缺少必要参数');
+        return false;
+      }
+      // 从配置中读取服务器信息
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      
+      if (!serverUrl) {
+        logger.error('[_deployScript] 服务器地址未配置');
+        return false;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        logger.error('[_deployScript] MAXAUTH 未配置');
+        return false;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        logger.error('[_deployScript] API Key 未配置');
+        return false;
+      }
+      
+      // 步骤1: 检查脚本是否存在
+      const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
+      
+      const checkResult = await httpRequestToMaximo({
+        url: checkUrl,
+        method: 'GET',
+        headers: {
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+      
+      
+      if (checkResult.status === 200 && checkResult.data) {
+        const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
+        if (memberCount === 0) {
+        logger.error('脚本不存在,需要先新建,或者导入');
+        return false;
+        }
+      }
+      
+      // 步骤2: 决定使用创建还是更新
+      let deployUrl:string;
+      let deployMethod: 'POST'|'PATCH' = 'POST';
+      const deployHeaders: any = {
+        'Content-Type': 'application/json',
+        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+      };
+      
+        // 更新现有脚本
+      deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_`+atob(autoscript);
+      deployHeaders['Content-Type'] = 'application/json';
+      deployHeaders['x-method-override'] = 'PATCH';
+      
+      // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
+      const deployBody: any = {};
+      
+      
+      // 确保必要的字段存在
+      if (!deployBody['spi:autoscript']) {
+        deployBody['spi:autoscript'] = autoscript;
+      }
+      if (!deployBody['spi:source']) {
+        deployBody['spi:source'] = source.replace(/\r\n/g, '\n');
+      }
+      
+      // 步骤4: 发送请求
+      const deployResult = await httpRequestToMaximo({
+        url: deployUrl,
+        method: deployMethod,
+        headers: deployHeaders,
+        data: deployBody
+      });
+      
+      return deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204;
+      
+    } catch (error: any) {
+      logger.error(`[_deployScript] 部署失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 通用的脚本部署方法（先查后改）
+   * @param customFields 自定义字段对象，包含 autoscript、description、source 等
+   * @returns 是否成功
+   */
   private async _deployScript(
     customFields: any
   ): Promise<boolean> {

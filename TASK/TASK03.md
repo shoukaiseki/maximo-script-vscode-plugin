@@ -132,3 +132,11 @@ E:\gitwork\maximo-script-manager\toolbox.js 目录搜索 startExtract
 脚本查询列表中加个pull按钮,点击后判断当前项目的 masscript 目录中是否存在 脚本名.json 文件,如果有提示是否覆盖
 
 确认后,使用 exportAllScripts 的功能,将 脚本名.json 脚本名.js/py 两个文件保存到 masscript目录中
+
+
+# 10
+编辑框增加一个右键菜单"推送到maximo",使用 _pushScript 方法将脚本内容通过接口更新到maximo
+
+只传2个属性即可,文件名作为 autoscript,文件内容作为source
+
+其它方法不要改动
