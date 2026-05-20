@@ -691,6 +691,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     }
   }
 
+
+
   /**
    * 推送脚本到 Maximo（公共静态方法，供 extension.ts 调用）
    */
@@ -731,9 +733,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       // 步骤0: 保存历史记录（失败只记录日志，继续执行）
+      let version: string | undefined;
       try {
         logger.debug(`[pushScriptToMaximo] 正在保存历史记录: ${autoscript}, filePath: ${filePath || '未提供'}, storagePath: ${scriptStoragePath}`);
-        await ConfigPanel._saveScriptHistoryStatic(autoscript, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+        version = await ConfigPanel._saveScriptHistoryStatic(autoscript, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+        logger.info(`[pushScriptToMaximo] 获取版本号: ${version}`);
       } catch (historyError: any) {
         logger.error(`[pushScriptToMaximo] 保存历史记录失败: ${historyError.message}`);
       }
@@ -766,27 +770,6 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         // 更新现有脚本
       deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
       deployMethod = 'POST';
-      
-      // 步骤2.5: 获取版本号（如果 JSON 文件存在）
-      let version: string | undefined;
-      try {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-          const workspaceRoot = workspaceFolders[0].uri.fsPath;
-          const jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
-          
-          if (fs.existsSync(jsonFilePath)) {
-            const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
-            const jsonData = JSON.parse(fileContent);
-            if (jsonData.version) {
-              version = jsonData.version;
-              logger.info(`[pushScriptToMaximo] 从 JSON 文件获取版本号: ${version}`);
-            }
-          }
-        }
-      } catch (versionError: any) {
-        logger.error(`[pushScriptToMaximo] 获取版本号失败: ${versionError.message}`);
-      }
       
       // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
       const deployBody: any = {};
@@ -838,7 +821,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     scriptStoragePath: string,
     logger: vscode.LogOutputChannel,
     filePath?: string  // 可选：脚本文件的完整路径
-  ): Promise<void> {
+  ): Promise<string> {
+    let version: string = '1.0.1'; // 默认版本
+    
     try {
       let jsonFilePath: string;
 
@@ -852,14 +837,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
           logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
-          return;
+          return '';
         }
         const workspaceRoot = workspaceFolders[0].uri.fsPath;
         jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
         logger.debug(`[_saveScriptHistory] 使用配置的存储路径: ${scriptStoragePath}`);
       }
-
-      let version = '1.0.1'; // 默认版本
 
       logger.debug(`[_saveScriptHistory] 正在检查 JSON 文件: ${jsonFilePath}`);
       // 检查 JSON 文件是否存在
@@ -934,6 +917,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[_saveScriptHistory] 保存历史记录异常: ${error.message}`);
       throw error; // 重新抛出异常，让调用者处理
     }
+    return version;
   }
 
   /**
@@ -1764,13 +1748,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       let targetDir = path.join(workspaceRoot, storagePath || 'masscript');
 
       // 先获取接口 JSON 数据（元数据）
-      const metadataUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
+      const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
       const metadataResult = await httpRequestToMaximo({
         url: metadataUrl,
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+          'Content-Type': 'application/json'
         },
         data: { 'AUTOSCRIPT': scriptName }
       });
@@ -1789,20 +1772,24 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return;
       }
 
+      // 调试：打印实际响应结构
+      logger.debug(`[_pullScript] 元数据响应: ${JSON.stringify(metadata, null, 2)}`);
+
+      // SKS_GET_AUTOSCRIPTINFOBYNAME 返回格式: { code: 200, data: {...} }
       if (metadata.code !== 200 || !metadata.data) {
-        vscode.window.showErrorMessage(`元数据响应错误: ${metadata.message}`);
+        vscode.window.showErrorMessage(`元数据响应错误: ${metadata.message || '未知错误'}\n响应数据: ${JSON.stringify(metadata)}`);
         return;
       }
 
       const scriptData = metadata.data;
 
-      // 如果 IBM_PACKAGEPATH 存在且不为空，则追加到目标目录
-      const packagePath = scriptData.IBM_PACKAGEPATH;
+      // 如果 ibm_packagepath 存在且不为空，则追加到目标目录
+      const packagePath = scriptData.ibm_packagepath;
       if (packagePath && packagePath.trim() !== '') {
         // 将点号替换为斜杠（例如：com.example.script -> com/example/script）
         const packageDir = packagePath.replace(/\./g, '/');
         targetDir = path.join(targetDir, packageDir);
-        logger.info(`[_pullScript] 使用 IBM_PACKAGEPATH: ${packagePath}, 目标目录: ${targetDir}`);
+        logger.info(`[_pullScript] 使用 ibm_packagepath: ${packagePath}, 目标目录: ${targetDir}`);
       }
 
       // 确保目标目录存在
@@ -1842,8 +1829,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         url: exportUrl,
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+          'Content-Type': 'application/json'
         },
         data: { 'AUTOSCRIPT': scriptName }
       });

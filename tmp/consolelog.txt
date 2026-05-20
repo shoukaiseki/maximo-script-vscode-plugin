@@ -1,22 +1,93 @@
-[React Webview] 加载配置: {serverUrl: 'http://localhost:9080/maximo', authType: 'apikey', maxauth: '', apiKey: 'erg8n2vk6pcu9ou1cr61jag49qdmjuk65ac6l1q0', apiType: 'rest', …}
-index.js:9 [React Webview] 收到消息: {command: 'setDeleteJsonPath', path: 'e:\\devwork\\tongyi_tmp\\test_vscode_plugin\\delete.json'}
-index.js:10 [App] 收到 setDeleteJsonPath 消息: e:\devwork\tongyi_tmp\test_vscode_plugin\delete.json
-index.js:10 [App] 当前的 deleteJsonPath: 
-index.js:10 [App] 已调用 setDeleteJsonPath，新值应该是: e:\devwork\tongyi_tmp\test_vscode_plugin\delete.json
-index.js:12 [App] useEffect 执行，设置按钮事件监听器
-index.js:12 [App] 找到 clearScriptsButton
-index.js:12 [App] 找到 testButton
-index.js:12 [App] clearScriptsButton 被点击（原生事件）
-index.js:10 [App] handleClearScripts 被调用
-index.js:10 [App] deleteJsonPath: e:\devwork\tongyi_tmp\test_vscode_plugin\delete.json
-index.js:10 [App] isInitRunning: false
-index.js:10 [App] isClearRunning: false
-index.js:10 [App] isDeployRunning: false
-index.js:10 Ignored call to 'confirm()'. The document is sandboxed, and the 'allow-modals' keyword is not set.
-O @ index.js:10
-(anonymous) @ index.js:12
-index.js:12 [App] testButton 被点击（原生事件）
-index.js:12 Ignored call to 'alert()'. The document is sandboxed, and the 'allow-modals' keyword is not set.
-(anonymous) @ index.js:12
-index.js:12 [App] testButton 被点击（原生事件）
-index.js:12 Ignored call to 'alert()'. The document is sandboxed, and the 'allow-modals' keyword is not set.
+2026-05-21 01:58:46.675 [info] [ConfigPanel] 收到消息: pullScript
+2026-05-21 01:58:46.676 [debug] ### POST http://localhost:9080/maximo/api/script/SKS_GET_AUTOSCRIPTNAMES
+POST http://localhost:9080/maximo/api/script/SKS_GET_AUTOSCRIPTNAMES
+Accept: application/json
+Content-Type: application/json
+Cookie: JSESSIONID=0000mRpqWRbAjdgs4fKcS7E3YhT:ab7f4ee0-4b39-4f2c-9213-d1469e0f6ca5
+apiKey: i98u21udk65m0p1t2ng6ikvbse27pd884reh44t7
+X-Requested-With: Maximo-Script-Helper
+
+2026-05-21 01:58:46.676 [info] [HTTP Client File] 已保存: C:\Users\jiang\AppData\Local\Temp\maximo-script-helper\request-POST-2026-05-20T17-58-46-675Z.http
+2026-05-21 01:58:46.724 [debug] [Axios Response] 200 http://localhost:9080/maximo/api/script/SKS_GET_AUTOSCRIPTNAMES
+2026-05-21 01:58:46.725 [debug] [_pullScript] 元数据响应: [
+  {
+    "autoScript": "OSACTION.MXAPIINSPRESULT.CREATEWO",
+    "description": "Create WO for items that require action"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.DEPLOY.HISTORY",
+    "description": "Automation Script Deploy History"
+  },
+  {
+    "autoScript": "TEST",
+    "description": "测试脚本333"
+  },
+  {
+    "autoScript": "GETAUTOSCRIPTNAMES",
+    "description": "获取所有脚本名"
+  },
+  {
+    "autoScript": "SKS_GET_AUTOSCRIPTNAMES",
+    "description": "获取所有脚本名"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.STORE",
+    "description": "Sharptree Automation Script Storage Script"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.EXTRACT",
+    "description": "Sharptree Automation Script Extract Script"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.LOGGING",
+    "description": "Sharptree Automation Script Log Streaming"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.DEPLOY",
+    "description": "Sharptree Automation Script Deploy Script"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.SCREENS",
+    "description": "Sharptree Screens Script"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.FORM",
+    "description": "Sharptree Forms Script"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.LIBRARY",
+    "description": "Sharptree Deployment Library Script"
+  },
+  {
+    "autoScript": "TEST01",
+    "description": "测试脚本333"
+  },
+  {
+    "autoScript": "SKS_GET_AUTOSCRIPTINFOBYNAME",
+    "description": "获取脚本详情用于导出"
+  },
+  {
+    "autoScript": "SKS_EXP_AUTOSCRIPTBYNAME",
+    "description": "导出脚本"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.ADMIN",
+    "description": "Sharptree Admin Script"
+  },
+  {
+    "autoScript": "SKS_LOGGER_LEVEL_UPDATE",
+    "description": "更新日志级别"
+  },
+  {
+    "autoScript": "TEST_SCRIPT_NEW",
+    "description": "测试脚本"
+  },
+  {
+    "autoScript": "SHARPTREE.AUTOSCRIPT.INSTALL",
+    "description": "Sharptree Automation Script Install Script"
+  },
+  {
+    "autoScript": "SKS_AUTOSCRIPT_HISTORY_SAVE",
+    "description": "存储脚本历史记录"
+  }
+]
