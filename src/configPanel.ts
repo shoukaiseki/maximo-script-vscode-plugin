@@ -743,7 +743,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
       
       // 步骤1: 检查脚本是否存在
-      const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
+      const checkUrl = `os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
       
       const checkResult = await httpRequestToMaximo({
         url: checkUrl,
@@ -768,7 +768,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       let deployMethod: 'POST'|'PATCH' = 'POST';
       
         // 更新现有脚本
-      deployUrl = `${serverUrl}/oslc/os/MXSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
+      deployUrl = `os/MXSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
       deployMethod = 'POST';
       
       // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
@@ -962,7 +962,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
       
       // 步骤1: 检查脚本是否存在
-      const checkUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
+      const checkUrl = `os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
       
       const checkResult = await httpRequestToMaximo({
         url: checkUrl,
@@ -998,7 +998,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         deployHeaders['x-method-override'] = 'PATCH';
       } else {
         // 创建新脚本
-        deployUrl = `${serverUrl}/oslc/os/MXAPIAUTOSCRIPT`;
+        deployUrl = `os/MXAPIAUTOSCRIPT`;
       }
       
       // 步骤3: 构建请求体 - 遍历 customFields，将所有字段添加为 spi: 前缀
@@ -1330,7 +1330,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       // 执行 bootstrap 脚本
       this._sendToolboxOutput('⚙️ 正在执行 bootstrap 脚本...');
-      const execUrl = `${serverUrl}/oslc/script/sharptree.autoscript.install`;
+      const execUrl = `${serverUrl}/api/script/sharptree.autoscript.install`;
       
       const execResult = await httpRequestToMaximo({
         url: execUrl,

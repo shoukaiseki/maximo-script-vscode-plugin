@@ -61,6 +61,17 @@
   - Maximo API 返回小写字段名：`ibm_packagepath`
   - 代码中相应调整为小写
 
+#### HTTP Header 溢出问题
+- 🐛 修复部署时的 "Header overflow" 错误
+  - **问题原因**：使用 `/oslc/os` 路径时，请求头过大导致解析失败
+  - **解决方案**：将接口路径从 `/maximo/oslc/os` 改为 `/maximo/api/os`
+  - **影响范围**：所有涉及 MXAPIAUTOSCRIPT 和 MXSCRIPT 的 API 调用
+  - **具体修改**：
+    - 检查脚本存在性：`os/MXAPIAUTOSCRIPT`
+    - 创建新脚本：`os/MXAPIAUTOSCRIPT`
+    - 更新脚本：`os/MXSCRIPT/_{base64编码}`
+  - **技术说明**：`/api/os` 路径使用更简洁的请求格式，避免 Header 过大
+
 #### 认证头重复设置
 - 🐛 删除所有手动设置的认证头
   - `httpRequestToMaximo` 已自动处理认证

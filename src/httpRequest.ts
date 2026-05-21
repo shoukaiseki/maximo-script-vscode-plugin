@@ -227,36 +227,6 @@ export interface HttpResponse {
  * });
  * ```
  * 
- * @description URL 拼接规则（假设 serverUrl = 'http://localhost:9080/maximo'）：
- * 
- * **1. 完整 URL**（以 http:// 或 https:// 开头）
- * ```typescript
- * // 直接使用，不添加任何前缀
- * await httpGet('https://example.com/api/test');
- * // → https://example.com/api/test
- * ```
- * 
- * **2. 绝对路径**（以 / 开头）
- * ```typescript
- * // 直接拼接到 baseUrl，用户完全控制路径
- * await httpGet('/oslc/os/MXAPIPERSON/1');
- * // → http://localhost:9080/maximo/oslc/os/MXAPIPERSON/1
- * 
- * await httpGet('/api/os/MXAPIPERSON/1');
- * // → http://localhost:9080/maximo/api/os/MXAPIPERSON/1
- * ```
- * 
- * **3. 相对路径**（不以 / 开头）
- * ```typescript
- * // 根据 apiType 配置自动添加前缀
- * // 如果 apiType = 'oslc'，自动添加 '/oslc/' 前缀
- * await httpGet('os/MXAPIPERSON/1');
- * // → http://localhost:9080/maximo/oslc/os/MXAPIPERSON/1
- * 
- * // 如果 apiType = 'rest'，自动添加 '/api/' 前缀
- * await httpGet('os/MXAPIPERSON/1');
- * // → http://localhost:9080/maximo/api/os/MXAPIPERSON/1
- * ```
  */
 export async function httpRequestToMaximo({
   method = 'GET',
