@@ -1,3 +1,19 @@
+/*
+ *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
+ * 脚本(AUTOSCRIPT): SHARPTREE.AUTOSCRIPT.DEPLOY
+ * 脚本语言(SCRIPTLANGUAGE): nashorn
+ * 描述(DESCRIPTION): Sharptree Automation Script Deploy Script
+ * 日志级别(LOGLEVEL): ERROR
+ * 唯一标识(AUTOSCRIPTID): 253            语言代码(LANGCODE): ZH
+ * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
+ * 是接口(INTERFACE): N                  活动(ACTIVE): Y
+ * 变更人(CHANGEBY): MAXADMIN
+ * 日期(CHANGEDATE): 2026/5/20 18:19:31
+ *
+ * Variables: 无
+ *
+ * Launch Points: 无
+ */
 /* eslint-disable no-redeclare */
 /* eslint-disable indent */
 /* eslint-disable quotes */

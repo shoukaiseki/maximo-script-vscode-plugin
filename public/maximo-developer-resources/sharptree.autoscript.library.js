@@ -1,3 +1,19 @@
+/*
+ *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
+ * 脚本(AUTOSCRIPT): SHARPTREE.AUTOSCRIPT.LIBRARY
+ * 脚本语言(SCRIPTLANGUAGE): nashorn
+ * 描述(DESCRIPTION): Sharptree Deployment Library Script
+ * 日志级别(LOGLEVEL): ERROR
+ * 唯一标识(AUTOSCRIPTID): 256            语言代码(LANGCODE): ZH
+ * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
+ * 是接口(INTERFACE): N                  活动(ACTIVE): Y
+ * 变更人(CHANGEBY): MAXADMIN
+ * 日期(CHANGEDATE): 2026/5/20 18:19:19
+ *
+ * Variables: 无
+ *
+ * Launch Points: 无
+ */
 /* eslint-disable indent */
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
@@ -2134,7 +2150,11 @@ MaxObject.prototype.setMboValues = function (mbo) {
     }
     var ignoreObjectMain=(typeof this.ignoreObjectMain === "undefined"||!this.ignoreObjectMain);
 
-  logger.debug("mbo.ignoreObjectMain30="+ignoreObjectMain);
+  logger.error("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
+  logger.error("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
+    logger.error("mbo.ignoreObjectMain10="+(typeof this.ignoreObjectMain === "undefined"));
+  logger.error("mbo.ignoreObjectMain20="+(!this.ignoreObjectMain));
+  logger.error("mbo.ignoreObjectMain30="+ignoreObjectMain);
   //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
     if(ignoreObjectMain){
 

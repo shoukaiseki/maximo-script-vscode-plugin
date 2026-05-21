@@ -1353,14 +1353,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       this._sendToolboxOutput('\n📦 步骤 2/2: 部署其他工具脚本...');
       
       const otherScripts = [
-        { fileName: 'sharptree.autoscript.store.js', autoscript: 'SHARPTREE.AUTOSCRIPT.STORE', description: 'Sharptree Automation Script Storage Script' },
-        { fileName: 'sharptree.autoscript.extract.js', autoscript: 'SHARPTREE.AUTOSCRIPT.EXTRACT', description: 'Sharptree Automation Script Extract Script' },
-        { fileName: 'sharptree.autoscript.logging.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LOGGING', description: 'Sharptree Automation Script Log Streaming' },
-        { fileName: 'sharptree.autoscript.deploy.js', autoscript: 'SHARPTREE.AUTOSCRIPT.DEPLOY', description: 'Sharptree Automation Script Deploy Script' },
-        { fileName: 'sharptree.autoscript.screens.js', autoscript: 'SHARPTREE.AUTOSCRIPT.SCREENS', description: 'Sharptree Screens Script' },
-        { fileName: 'sharptree.autoscript.form.js', autoscript: 'SHARPTREE.AUTOSCRIPT.FORM', description: 'Sharptree Forms Script' },
-        { fileName: 'sharptree.autoscript.library.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LIBRARY', description: 'Sharptree Deployment Library Script' },
-        { fileName: 'sharptree.autoscript.admin.js', autoscript: 'SHARPTREE.AUTOSCRIPT.ADMIN', description: 'Sharptree Admin Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.STORE.js', autoscript: 'SHARPTREE.AUTOSCRIPT.STORE', description: 'Sharptree Automation Script Storage Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.EXTRACT.js', autoscript: 'SHARPTREE.AUTOSCRIPT.EXTRACT', description: 'Sharptree Automation Script Extract Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.LOGGING.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LOGGING', description: 'Sharptree Automation Script Log Streaming' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.DEPLOY.js', autoscript: 'SHARPTREE.AUTOSCRIPT.DEPLOY', description: 'Sharptree Automation Script Deploy Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.SCREENS.js', autoscript: 'SHARPTREE.AUTOSCRIPT.SCREENS', description: 'Sharptree Screens Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.FORM.js', autoscript: 'SHARPTREE.AUTOSCRIPT.FORM', description: 'Sharptree Forms Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.LIBRARY.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LIBRARY', description: 'Sharptree Deployment Library Script' },
+        { fileName: 'SHARPTREE.AUTOSCRIPT.ADMIN.js', autoscript: 'SHARPTREE.AUTOSCRIPT.ADMIN', description: 'Sharptree Admin Script' },
       ];
       
       let successCount = 0;

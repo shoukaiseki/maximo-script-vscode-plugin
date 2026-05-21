@@ -224,6 +224,23 @@ firstLocation.getString("location");
 - 显示所有 Maximo 自动化脚本的列表
 - 支持快速搜索和过滤
 
+#### 5. 脚本来源说明
+
+本插件的部分工具脚本来源于 **Sharptree Maximo Script Deploy** 扩展：
+
+- **来源项目**：[Sharptree Maximo Script Deploy](https://marketplace.visualstudio.com/items?itemName=sharptree.maximo-script-deploy)
+- **包含的脚本**：
+  - `SHARPTREE.AUTOSCRIPT.STORE` - Sharptree 自动化脚本存储
+  - `SHARPTREE.AUTOSCRIPT.EXTRACT` - Sharptree 自动化脚本提取
+  - `SHARPTREE.AUTOSCRIPT.LOGGING` - Sharptree 日志流式传输
+  - `SHARPTREE.AUTOSCRIPT.DEPLOY` - Sharptree 自动化脚本部署
+  - `SHARPTREE.AUTOSCRIPT.SCREENS` - Sharptree 屏幕脚本
+  - `SHARPTREE.AUTOSCRIPT.FORM` - Sharptree 表单脚本
+  - `SHARPTREE.AUTOSCRIPT.LIBRARY` - Sharptree 部署库脚本
+  - `SHARPTREE.AUTOSCRIPT.ADMIN` - Sharptree 管理脚本
+
+这些脚本提供了强大的 Maximo 自动化脚本管理功能，感谢 Sharptree 团队的贡献！
+
 ### 支持的补全对象
 
 - `service` - 脚本服务对象

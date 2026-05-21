@@ -1,0 +1,1 @@
+npx vsce package --baseContentUrl https://gitee.com/shoukaiseki/maximo-script-vscode-plugin --baseImagesUrl https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/blob/master/images/icon.png
