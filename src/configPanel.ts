@@ -1359,16 +1359,72 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤2: 部署其余脚本
       this._sendToolboxOutput('\n📦 步骤 2/2: 部署其他工具脚本...');
       
-      const otherScripts = [
-        { fileName: 'SHARPTREE.AUTOSCRIPT.STORE.js', autoscript: 'SHARPTREE.AUTOSCRIPT.STORE', description: 'Sharptree Automation Script Storage Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.EXTRACT.js', autoscript: 'SHARPTREE.AUTOSCRIPT.EXTRACT', description: 'Sharptree Automation Script Extract Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.LOGGING.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LOGGING', description: 'Sharptree Automation Script Log Streaming' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.DEPLOY.js', autoscript: 'SHARPTREE.AUTOSCRIPT.DEPLOY', description: 'Sharptree Automation Script Deploy Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.SCREENS.js', autoscript: 'SHARPTREE.AUTOSCRIPT.SCREENS', description: 'Sharptree Screens Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.FORM.js', autoscript: 'SHARPTREE.AUTOSCRIPT.FORM', description: 'Sharptree Forms Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.LIBRARY.js', autoscript: 'SHARPTREE.AUTOSCRIPT.LIBRARY', description: 'Sharptree Deployment Library Script' },
-        { fileName: 'SHARPTREE.AUTOSCRIPT.ADMIN.js', autoscript: 'SHARPTREE.AUTOSCRIPT.ADMIN', description: 'Sharptree Admin Script' },
+      interface ScriptInfo {
+        _fileName: string;
+        autoscript: string;
+        description: string;
+        version: string;
+        scriptlanguage: string;
+        _sourceDir: string;  // 记录脚本来源目录
+      }
+      
+      const otherScripts: ScriptInfo[] = [];
+      
+      // 定义要扫描的目录列表
+      const scanDirs = [
+        { path: scriptsDir, name: '主目录' },
+        { path: path.join(scriptsDir, '..', 'sks_tooljs'), name: 'sks_tooljs' }
       ];
+      
+      
+      for (const dir of scanDirs) {
+      this._sendToolboxOutput(`📂 脚本目录: ${dir.path}`);
+        try {
+          // 检查目录是否存在
+          if (!fs.existsSync(dir.path)) {
+            this._sendToolboxOutput(`  ⚠️ 目录不存在，跳过: ${dir.name} (${dir.path})`);
+            continue;
+          }
+          
+          // 读取目录下的所有 JSON 文件
+          const jsonFiles = fs.readdirSync(dir.path).filter(f => f.endsWith('.json'));
+          this._sendToolboxOutput(`  📋 ${dir.name}: 找到 ${jsonFiles.length} 个脚本配置文件`);
+          
+          for (const jsonFile of jsonFiles) {
+            try {
+              const jsonPath = path.join(dir.path, jsonFile);
+              const jsonContent = fs.readFileSync(jsonPath, 'utf-8');
+              const jsonData = JSON.parse(jsonContent);
+              
+              // 从 JSON 文件中获取 autoscript 和 description
+              if (jsonData.autoscript && jsonData.description) {
+                // 对应的 .js 文件名
+                const jsFileName = jsonFile.replace('.json', '.js');
+                
+                otherScripts.push({
+                  _fileName: jsFileName,
+                  autoscript: jsonData.autoscript,
+                  description: jsonData.description,
+                  version: jsonData.version,
+                  scriptlanguage: jsonData.scriptlanguage,
+                  _sourceDir: dir.path
+                });
+              }
+            } catch (error: any) {
+              this._sendToolboxOutput(`  ⚠️ 解析 ${jsonFile} 失败: ${error.message}`);
+            }
+          }
+        } catch (error: any) {
+          this._sendToolboxOutput(`  ⚠️ 扫描 ${dir.name} 目录失败: ${error.message}`);
+        }
+      }
+      
+      if (otherScripts.length === 0) {
+        this._sendToolboxOutput('  ⚠️ 未找到有效的脚本配置');
+        return;
+      }
+      
+      this._sendToolboxOutput(`  ✅ 共准备部署 ${otherScripts.length} 个脚本\n`);
       
       let successCount = 0;
       let failCount = 0;
@@ -1376,13 +1432,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       for (let i = 0; i < otherScripts.length; i++) {
         const script = otherScripts[i];
-        const filePath = path.join(scriptsDir, script.fileName);
+        // 使用脚本来源目录构建完整路径
+        const filePath = path.join(script._sourceDir, script._fileName);
         
         try {
-          this._sendToolboxOutput(`  [${i + 1}/${totalFiles}] 正在部署: ${script.fileName}`);
+          this._sendToolboxOutput(`  [${i + 1}/${totalFiles}] 正在部署: ${script._fileName}`);
           
           if (!fs.existsSync(filePath)) {
-            this._sendToolboxOutput(`  ⚠️ 文件不存在，跳过: ${script.fileName}`);
+            this._sendToolboxOutput(`  ⚠️ 文件不存在，跳过: ${script._fileName}`);
             failCount++;
             continue;
           }
@@ -1393,21 +1450,22 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           const deployResult = await this._deployScript({
             autoscript: script.autoscript,
             description: script.description,
+            version: script.version,
+            scriptlanguage: script.scriptlanguage,
             source: scriptContent,
-            scriptlanguage: 'nashorn',
             active: true
           });
           
           if (deployResult) {
             successCount++;
-            this._sendToolboxOutput(`  ✅ 部署成功: ${script.fileName}`);
+            this._sendToolboxOutput(`  ✅ 部署成功: ${script._fileName}`);
           } else {
             failCount++;
-            this._sendToolboxOutput(`  ❌ 部署失败: ${script.fileName}`);
+            this._sendToolboxOutput(`  ❌ 部署失败: ${script._fileName}`);
           }
         } catch (error: any) {
           failCount++;
-          this._sendToolboxOutput(`  ❌ 处理 ${script.fileName} 时出错: ${error.message}`);
+          this._sendToolboxOutput(`  ❌ 处理 ${script._fileName} 时出错: ${error.message}`);
         }
       }
       

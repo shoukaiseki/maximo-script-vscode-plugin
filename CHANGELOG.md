@@ -5,6 +5,44 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.4] - 2026-05-21
+
+### 新增功能
+
+#### 初始化工具脚本增强
+- ✨ 支持从多个目录扫描脚本配置文件
+  - **主目录**：`public/maximo-developer-resources`
+  - **工具目录**：`public/sks_tools`
+  - 自动合并两个目录下的所有 JSON 配置文件
+- ✨ 动态读取脚本配置
+  - 不再硬编码脚本列表
+  - 从 JSON 文件中提取 `autoscript` 和 `description`
+  - 根据 JSON 文件名推导对应的 `.js` 文件
+- ✨ 智能部署流程
+  - 显示每个目录找到的配置文件数量
+  - 跳过不存在的目录（友好提示）
+  - 记录每个脚本的来源目录
+  - 显示部署进度和统计信息
+
+### 改进
+
+#### 代码优化
+- 🔧 重构脚本初始化逻辑
+  - 使用 `ScriptInfo` 接口统一管理脚本信息
+  - 添加 `sourceDir` 字段追踪脚本来源
+  - 支持灵活扩展更多扫描目录
+- 🔧 完善错误处理
+  - 捕获 JSON 解析失败的文件
+  - 记录警告但不中断流程
+  - 提供详细的调试日志
+
+#### 打包配置
+- 📦 忽略备份文件
+  - 在 `.vscodeignore` 中添加 `public/maximo-developer-resources_bak01.7z`
+  - 减小 VSIX 包体积
+
+---
+
 ## [1.2.3] - 2026-05-21
 
 ### 新增功能
