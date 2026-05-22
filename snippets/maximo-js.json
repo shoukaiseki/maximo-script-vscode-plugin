@@ -1,0 +1,122 @@
+{
+	"JSDoc String Type": {
+		"prefix": ["jsdocstr", "@type String"],
+		"body": [
+			"/** @type {java.lang.String} */"
+		],
+		"description": "Add JSDoc type annotation for java.lang.String"
+	},
+	"JSDoc MboRemote Type": {
+		"prefix": ["jsdocmbo", "@type Mbo"],
+		"body": [
+			"/** @type {psdi.mbo.MboRemote} */"
+		],
+		"description": "Add JSDoc type annotation for MboRemote"
+	},
+	"JSDoc MboSetRemote Type": {
+		"prefix": ["jsdocmboset", "@type MboSet"],
+		"body": [
+			"/** @type {psdi.mbo.MboSetRemote} */"
+		],
+		"description": "Add JSDoc type annotation for MboSetRemote"
+	},
+	"JSDoc ScriptService Type": {
+		"prefix": ["jsdocservice", "@type Service"],
+		"body": [
+			"/** @type {com.ibm.ism.script.ScriptService} */"
+		],
+		"description": "Add JSDoc type annotation for ScriptService"
+	},
+	"JSDoc UserInfo Type": {
+		"prefix": ["jsdocuser", "@type UserInfo"],
+		"body": [
+			"/** @type {psdi.security.UserInfo} */"
+		],
+		"description": "Add JSDoc type annotation for UserInfo"
+	},
+	"JSDoc Custom Type": {
+		"prefix": ["jdoctype", "@type"],
+		"body": [
+			"/** @type {${1:className}} */"
+		],
+		"description": "Add JSDoc type annotation with custom class name"
+	},
+	"Maximo service.log": {
+		"prefix": ["slog", "service.log"],
+		"body": [
+			"service.log(\"$1\");"
+		],
+		"description": "Log message using service.log()"
+	},
+	"Maximo service.error": {
+		"prefix": ["serr", "service.error"],
+		"body": [
+			"service.error(\"$1\");"
+		],
+		"description": "Log error using service.error()"
+	},
+	"Maximo mbo.getString": {
+		"prefix": ["mgetstr", "mbo.getString"],
+		"body": [
+			"mbo.getString(\"$1\")"
+		],
+		"description": "Get string value from MBO"
+	},
+	"Maximo mbo.setValue": {
+		"prefix": ["msetval", "mbo.setValue"],
+		"body": [
+			"mbo.setValue(\"$1\", $2);"
+		],
+		"description": "Set value on MBO"
+	},
+	"Maximo mbo.getMboSet": {
+		"prefix": ["mgetset", "mbo.getMboSet"],
+		"body": [
+			"mbo.getMboSet(\"$1\")"
+		],
+		"description": "Get MBO set relationship"
+	},
+	"Maximo mboset.moveFirst": {
+		"prefix": ["mmovefirst", "mboset.moveFirst"],
+		"body": [
+			"mboset.moveFirst()"
+		],
+		"description": "Move to first record in MBO set"
+	},
+	"Maximo mboset.count": {
+		"prefix": ["mcount", "mboset.count"],
+		"body": [
+			"mboset.count()"
+		],
+		"description": "Count records in MBO set"
+	},
+	"Maximo if mbo not null": {
+		"prefix": ["ifmbo", "if mbo"],
+		"body": [
+			"if (mbo != null) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Check if mbo is not null"
+	},
+	"Maximo try-catch with service.log": {
+		"prefix": ["trylog", "try catch log"],
+		"body": [
+			"try {",
+			"\t$1",
+			"} catch (e) {",
+			"\tservice.log(\"Error: \" + e);",
+			"\t$0",
+			"}"
+		],
+		"description": "Try-catch block with error logging"
+	},
+	"Maximo Variable Declaration with JSDoc": {
+		"prefix": ["varjsdoc", "var with jsdoc"],
+		"body": [
+			"/** @type {${1:psdi.mbo.MboRemote}} */",
+			"var ${2:variableName} = ${3:mbo};"
+		],
+		"description": "Declare variable with JSDoc type annotation"
+	}
+}

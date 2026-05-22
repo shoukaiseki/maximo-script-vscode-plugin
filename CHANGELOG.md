@@ -5,6 +5,56 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.3] - 2026-05-21
+
+### 新增功能
+
+#### 代码片段（Snippets）支持
+- ✨ 新增 13 个 Maximo 专用代码片段
+  - **JSDoc 类型注释片段**（6个）：
+    - `jsdocstr` - 快速生成 String 类型注释
+    - `jsdocmbo` - 快速生成 MboRemote 类型注释
+    - `jsdocmboset` - 快速生成 MboSetRemote 类型注释
+    - `jsdocservice` - 快速生成 ScriptService 类型注释
+    - `jsdocuser` - 快速生成 UserInfo 类型注释
+    - `jdoctype` - 自定义类型注释（可编辑类名）
+    - `varjsdoc` - 一键生成带 JSDoc 的变量声明
+  - **Maximo API 常用片段**（7个）：
+    - `slog` / `serr` - 日志记录
+    - `mgetstr` / `msetval` / `mgetset` - MBO 操作
+    - `mmovefirst` / `mcount` - MBO Set 操作
+    - `ifmbo` - null 检查
+    - `trylog` - 带日志的 try-catch
+- 📝 创建代码片段使用文档：`AIDOC/SNIPPETS_GUIDE.md`
+
+### 改进
+
+#### 智能补全增强
+- 🔧 修复输入部分方法名后补全消失的问题
+  - **问题场景**：输入 `a.toU` 后按 Esc 取消，再次触发补全时无法识别类型
+  - **根本原因**：正则表达式只能匹配以 `.` 结尾的情况，无法处理已输入部分方法名的场景
+  - **解决方案**：改进正则表达式，支持捕获用户已输入的方法名前缀
+  - **修改前**：`/([\w$]+(?:\.\s*[\w$]+\s*\([^)]*\))*)\.\s*$/`
+  - **修改后**：`/([\w$]+(?:\.\s*[\w$]+\s*\([^)]*\))*)\.\s*([\w]*)$/`
+  - **效果**：现在可以正确识别 `triggerPrefix`（对象表达式）和 `inputSuffix`（已输入的方法名前缀）
+- 🔧 添加详细的补全调试日志
+  - 显示用户输入的后缀
+  - 显示匹配的补全项数量
+  - 显示匹配特定前缀的方法列表（最多5个）
+  - 便于排查补全问题
+
+#### 文档优化
+- 📝 README.md 链接指向 Gitee 远程文档
+  - Reflection Data 提取指南改为在线版本
+  - 用户可以直接访问最新文档
+- 📝 JSDOC_COMPLETION_GUIDE.md 添加 reflection-data 下载说明
+  - 提供 Gitee 仓库链接
+  - 说明如何下载和配置
+- 📝 修正 ScriptService 类名
+  - 从 `com.ibm.ism.script.ScriptService` 改为 `com.ibm.tivoli.maximo.script.ScriptService`
+
+---
+
 ## [1.2.1] - 2026-05-21
 
 ### 新增功能

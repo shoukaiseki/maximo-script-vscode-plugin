@@ -172,7 +172,7 @@ firstLocation.getString("location");
 
 5. **如何生成 reflection-data**：
    - 如果你有 Maximo 环境，可以自行提取 API 数据
-   - 查看详细说明：[Reflection Data 提取指南](./REFLECTION_DATA_EXTRACTION.md)
+   - 查看详细说明：[Reflection Data 提取指南](https://gitee.com/shoukaiseki/maximo-script-editor/blob/master/REFLECTION_EXTRACT_GUIDE.md)
    - 支持从 Maximo JAR 包中自动提取所有类的方法信息
 
 6. **支持的 API 文件格式**：
@@ -318,7 +318,7 @@ MIT License
 
 ## 相关资源
 
-- **[Reflection Data 提取指南](./REFLECTION_DATA_EXTRACTION.md)** - 如何从 Maximo JAR 包中提取 API 数据
+- **[Reflection Data 提取指南](https://gitee.com/shoukaiseki/maximo-script-editor/blob/master/REFLECTION_EXTRACT_GUIDE.md)** - 如何从 Maximo JAR 包中提取 API 数据
 - **[JSDoc 补全功能使用指南](./JSDOC_COMPLETION_GUIDE.md)** - 详细的 JSDoc 类型注释和智能补全使用说明
 - **[快速开始](./QUICK_START.md)** - 5分钟快速上手指南
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
