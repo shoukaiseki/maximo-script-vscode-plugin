@@ -33,7 +33,8 @@
   "activationEvents": [
     "onLanguage:javascript",
     "onCommand:maximoScript.showConfig",
-    "onCommand:maximoScript.pushToMaximo"
+    "onCommand:maximoScript.pushToMaximo",
+    "onCommand:extension.triggerComplete"
   ],
   "main": "./dist/extension.js",
   "contributes": {

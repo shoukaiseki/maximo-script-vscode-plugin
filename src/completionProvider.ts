@@ -160,21 +160,22 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     const linePrefix = document.lineAt(position).text.substr(0, position.character);
     
-    // 检查是否是方法调用或属性访问
-    // if (!linePrefix.endsWith('.') && !linePrefix.endsWith('(')) {
-    //   return [];
-    // }
-
     // 获取当前行的完整文本，用于分析上下文
     const lineText = document.lineAt(position).text;
     
     // 提取触发前缀（支持复杂表达式，如：assetMbo.getMboSet("LOCATIONS")）
-    const prefixMatch = linePrefix.match(/([\w$]+(?:\.\s*[\w$]+\s*\([^)]*\))*)\.\s*$/);
-    const triggerPrefix = prefixMatch ? prefixMatch[1].trim() : null;
+    // 改进：支持匹配到部分方法名，例如：service.inv、a.toU
+    const prefixMatch = linePrefix.match(/([\w$]+(?:\.\s*[\w$]+\s*\([^)]*\))*)\.\s*([\w]*)$/);
+    this.log(`prefixMatch: ${prefixMatch}`);
     
-    if (!triggerPrefix) {
+    if (!prefixMatch) {
       return [];
     }
+    
+    const triggerPrefix = prefixMatch[1].trim();  // 对象表达式，如：service、a
+    const inputSuffix = prefixMatch[2] || '';      // 用户已输入的方法名前缀，如：inv、toU
+    
+    this.log(`triggerPrefix: ${triggerPrefix}, inputSuffix: "${inputSuffix}"`);
 
     const startTime = Date.now();
     this.log(`触发补全，前缀: ${triggerPrefix}`);
@@ -225,6 +226,20 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       
       // 5. 根据类型获取补全建议（三层降级策略）
       const suggestions = await this.getReflectionSuggestions(matchedType, position);
+      
+      // 6. 记录当前输入的后缀，用于调试
+      this.log(`用户输入后缀: "${inputSuffix}"，补全项数量: ${suggestions.length}`);
+      
+      // 7. 如果有输入后缀，显示匹配的方法
+      if (inputSuffix) {
+        const matchedMethods = suggestions.filter(item => 
+          item.label.toString().toLowerCase().startsWith(inputSuffix.toLowerCase())
+        );
+        this.log(`匹配 "${inputSuffix}" 的方法数: ${matchedMethods.length}`);
+        if (matchedMethods.length > 0 && matchedMethods.length <= 5) {
+          matchedMethods.forEach(m => this.log(`  - ${m.label}`));
+        }
+      }
       
       const endTime = Date.now();
       this.log(`补全完成，耗时: ${endTime - startTime}ms，返回 ${suggestions.length} 个项`);
