@@ -19,3 +19,4 @@ webpack.config.js
 .DS_Store
 sks_tooljs/
 demo/
+reflection-data/

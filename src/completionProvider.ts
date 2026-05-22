@@ -153,16 +153,17 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
   ): Promise<vscode.CompletionItem[] | vscode.CompletionList> {
-    if (!this.config.enableCompletion || !this.config.serverUrl) {
+    this.log('触发补全');
+    if (!this.config.enableCompletion) {
       return [];
     }
 
     const linePrefix = document.lineAt(position).text.substr(0, position.character);
     
     // 检查是否是方法调用或属性访问
-    if (!linePrefix.endsWith('.') && !linePrefix.endsWith('(')) {
-      return [];
-    }
+    // if (!linePrefix.endsWith('.') && !linePrefix.endsWith('(')) {
+    //   return [];
+    // }
 
     // 获取当前行的完整文本，用于分析上下文
     const lineText = document.lineAt(position).text;
@@ -199,7 +200,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       
       // 4. 匹配表达式到类型
       const matchedType = this.matchExpressionToType(triggerPrefix, mergedTypeMap);
-      
+      this.log(`matchedType: ${matchedType}`) 
       if (!matchedType) {
         this.log(`未找到 ${triggerPrefix} 的类型定义`, 'warn');
         // 降级到原有的简单对象名匹配逻辑
