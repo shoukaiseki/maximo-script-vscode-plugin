@@ -61,6 +61,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     'moveFirst': 'psdi.mbo.MboRemote',
     'moveNext': 'psdi.mbo.MboRemote',
     'getCurrentRow': 'psdi.mbo.MboRemote',
+
+    'service': 'com.ibm.ism.script.ScriptService',
   };
 
   constructor(outputChannel: vscode.OutputChannel) {

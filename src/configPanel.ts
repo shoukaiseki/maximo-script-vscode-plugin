@@ -796,9 +796,16 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           'x-method-override': 'PATCH'
         },
         data: deployBody
+
       });
+      if(deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204){
+        return true
+      }else{
+        console.error(deployResult);
+        logger.error(`[pushScriptToMaximo] 部署失败: ${deployResult.status} ${deployResult.data}`);
+        return false
+      }
       
-      return deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204;
       
     } catch (error: any) {
       console.log(error);

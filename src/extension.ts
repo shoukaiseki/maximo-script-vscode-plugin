@@ -162,7 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
             logger.info(`[PushToMaximo] ✅ 脚本推送成功: ${scriptName}`);
             vscode.window.showInformationMessage(`脚本 "${scriptName}" 已成功推送到 Maximo`);
           } else {
-            logger.error(`[PushToMaximo] ❌ 推送失败: ${scriptName}`);
+            logger.error(`[PushToMaximo] ❌ 推送失败: ${scriptName}`+success);
             vscode.window.showErrorMessage(`推送到 Maximo 失败: ${scriptName}`);
           }
         }
