@@ -1,0 +1,507 @@
+<!--*********************************-->
+<!--****页面关键字-->
+<!--*********************************-->
+
+<!--主页面配置-->
+<presentation>
+</presentation>
+
+<!--部分-->
+<section>
+	<!--部分标题,一般不用-->
+	<sectionheader/>
+	<!--部分行-->
+	<sectionrow>
+		<!--部分列-->
+		<sectioncol>
+		</sectioncol>
+	</sectionrow>
+</section>
+
+<!--文本框-->
+<textbox/>
+
+<!--多部分文本框-->
+<multiparttextbox/>
+
+<!--多行文本框-->
+<multilinetextbox/>
+
+<!--缺省值-->
+<defaultvalue/>
+
+<!--表-->
+<table id="table_xml_1"   datasrc="数据源标识" description="描述"  selectmode="MULTIPLE" inputmode="DEFAULT">
+	<!--表主体-->
+	<tablebody id="table_xml_tablebody_1">
+		<!--表列-->
+		<tablecol id="table_xml_tablecol_1" type="EVENT" inputmode="DEFAULT" ondatachange="REFRESHTABLE" showfilterfield="true"/>
+	</tablebody>
+</table>
+
+<!--按钮组,按钮-->
+<defaultvalue/>
+
+<!--单选框-->
+<radiobuttongroup border="true" dataattribute="JYUUYOU" id="1330429058296" label="重要程度">
+<radiobutton id="1330429058312" label="一般" value="一般"/>
+<radiobutton id="1330429067234" label="重要辅机" value="重要辅机"/>
+<radiobutton id="1330432129718" label="主机" value="主机"/>
+</radiobuttongroup>
+
+<!--单选框高级用法-->
+<!--没有radiobutton标签默认显示所有该值的-->
+<radiobuttongroup dataattribute="字段属性(本表)" descattribute="显示属性(关系表),字段getList()之后的关系表属性值,不用填写默认为Description" id="completewf_t2" label="标签" valueattribute="值属性(本表)"/>
+
+
+
+
+<!--主页面配置-->
+<presentation apprestrictions="worktype='ORDER'[应用程序限制where]" beanclass="psdi.webclient.system.beans.AppBean" id="invqc" mboname="WORKORDER[主对象]" resultstableid="results_showlist"  keyattribute="WONUM[选择操作左边的查找框以WONUM为精确查找字段]" version="7.1.0.0">
+</presentation>
+
+
+<!--部分,部分行,部分列-->
+<!--默认-->
+
+		<section id="section_xml_bubunn_1" inputmode="DEFAULT" >
+			<sectionheader id="section_xml_header_1"/>
+			<sectionrow id="section_xml_row_1">
+				<sectioncol id="section_xml_col_1">
+					<section id="section_xml_bubunn_2"  inputmode="DEFAULT" >
+						<textbox dataattribute="属性" id="section_xml_textbox_1"  inputmode="DEFAULT" ondatachange="REFRESHTABLE"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="section_xml_col_2">
+					<section id="section_xml_bubunn_3"  inputmode="DEFAULT" >
+						<textbox dataattribute="属性" id="section_xml_textbox_2"  inputmode="DEFAULT" ondatachange="REFRESHTABLE"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+
+		<!--解释--><script>
+
+		<section 
+		border="显示边界:false,true" 
+		collapsed="显示边界(开启后显示部分上下分界线):false,true" 
+		datasrc="数据源标识"
+		description="描述" 
+		id="部分" 
+		inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+		label="标签" 
+		listeners="侦听器"
+		mboname="业务对象" 
+		parentdatasrc="父级数据源标识" 
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识">
+			<sectionrow 
+			id="部分行"
+			sigoption="签名选项" 
+			sigoptiondatasrc="签名数据源标识">
+				<sectioncol 
+				id="部分列"
+				sigoption="签名选项" 
+				sigoptiondatasrc="签名数据源标识"/>
+			</sectionrow>
+			<sectionheader 
+			datasrc="数据源标识" 
+			id="部分标题" 
+			label="标签" 
+			plaintext="纯文本:false,true" 
+			sigoption="签名选项" 
+			sigoptiondatasrc="签名数据源标识"/>
+		</section>
+
+		<!----></script>
+
+
+
+<!--文本框-->
+<!--默认-->
+
+		<textbox dataattribute="属性" id="section_xml_textbox_1" inputmode="DEFAULT" ondatachange="REFRESHTABLE" />
+
+		<!--解释--><script>
+
+		<textbox
+		id="文本框" 
+		label="标签" 
+		hidelabel="隐藏标签:false,true"
+		dataattribute="属性"
+		menutype="菜单类型"
+		lookup="查找"
+		detailimage="详细信息图像"
+		inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+		prepend="QBE预先考虑"
+		ondatachange="变更事件:REFRESHTABLE(刷新表),RESETCHILDREN(复位子表)"
+		smartfilloff="关闭只能填充:false,true" 
+		longdescreadonly="只读详细描述:false,true" 
+		applink="转到应用程序"
+		displaytype="显示类型"
+					"移动到数据源标识(不能用)"
+		datasrc="数据源标识"
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识"/>
+
+		<!----></script>
+
+
+<!--多部分文本框-->
+<!--默认-->
+		<multiparttextbox  dataattribute="属性" descdataattribute="部件2的属性" id="section_xml_multiparttextbox_1" inputmode="DEFAULT" ondatachange="REFRESHTABLE" descinputmode="DEFAULT"/>
+
+		<!--解释--><script>
+
+		<multiparttextbox
+		id="多部分文本框" 
+		label="标签" 
+		dataattribute="属性"
+		lookup="查找"
+		inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+		ondatachange="变更事件:REFRESHTABLE(刷新表),RESETCHILDREN(复位子表)"
+		smartfilloff="关闭只能填充:false,true" 
+		applink="转到应用程序"
+					"移动到数据源标识(不能用)"
+		descdataattribute="部件2的属性"
+		desclookup="查找部件2"
+		descinputmode="部件2的输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)"
+		longdescreadonly="只读详细描述:false,true" 
+		datasrc="数据源标识"
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识"/>
+
+		<!----></script>
+
+<!--多行文本框-->
+<!--默认-->
+
+		<multilinetextbox  dataattribute="属性"  id="section_xml_multilinetextbox_1" inputmode="DEFAULT" ondatachange="REFRESHTABLE"/>
+
+		<!--解释--><script>
+
+		<multilinetextbox
+		id="多行文本框" 
+		label="标签" 
+		hidelabel="隐藏标签:false,true"
+		columns="列(宽度),默认为30"
+		rows="行(高度),默认为2"
+		dataattribute="属性"
+		datasrc="数据源标识"
+		lookup="查找"
+		menutype="菜单类型"
+		inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+		ondatachange="变更事件:REFRESHTABLE(刷新表),RESETCHILDREN(复位子表)"
+					"移动到数据源标识(不能用)"
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识"/>
+
+		<!----></script>
+
+
+<!--缺省值-->
+<!--默认-->
+
+		<defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
+		<!--解释--><script>
+
+		<defaultvalue
+		id="控制标识" 
+		dataattribute="属性"
+		value="值" 
+		fromdatasrc="原数据标识-主表的数据源标识。mainrecord 主表"
+		fromattribute="来自属性"
+		defaulttype="缺省类型:INSERT(插入),QUERY(查询)"
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识"/>
+
+		<!----></script>
+
+	<!-- table {{{2 -->
+<!--表,表列,表主体-->
+<!--默认-->
+	<table id="table_xml_1"   datasrc="数据源标识" description="描述"  selectmode="MULTIPLE" inputmode="DEFAULT">
+		<tablebody id="table_xml_tablebody_1">
+			<tablecol id="table_xml_tablecol_1" type="EVENT" inputmode="DEFAULT" ondatachange="REFRESHTABLE" showfilterfield="true"/>
+		</tablebody>
+			<tabledetails id="table_xml_tabledetails_1">
+			<!--部分,文本框等组件请插入此位置-->
+			</tabledetails>
+			<!--按钮组请插入此位置-->
+	</table>
+
+		<!--解释--><script>
+			<table 隱藏屬性
+
+			filterexpanded="自動打開過濾器相當與'自動點那個 綠色三角';true:自動開啟,false:默認關閉"
+			/>
+
+		<table 
+		id="表" 
+		label="标签" 
+		width="宽度:默认为空"
+		description="描述"
+		titleattributes="标题属性"
+		startempty="开始清空:false,true"
+		rowdetailsexpanded="扩展行详细信息"
+		collapsed="折叠"
+		collapsedemptylabel="折叠的空标签"
+		collapsedlabel="折叠的标签"
+		parentemptylabel="父级空标签"
+		beanclass="Bean类"
+		selectmode="选择方式:MULTIPLE(多个),SINGLE(单个)"
+		inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+		datasrc="数据源标识"
+		mboname="业务对象"
+		parentdatasrc="父级数据源标识"
+		relationship="关系"
+		orderby="排序条件"
+		apprestrictions="应用程序限制"
+		listeners="侦听器"
+				  "可过滤"
+		sigoption="签名选项" 
+		sigoptiondatasrc="签名数据源标识"/>
+			<tablebody
+			id="表主体"
+			customizable="可定制:false,true"
+			displayrowsperpage="显示每页的行"
+			filterexpanded="扩展的过滤器:false,true"
+			filterable="过滤器:false,true"
+			sigoption="签名选项选项名称" 
+			sigoptiondatasrc="签名数据源标识"/>
+				<tablecol 
+				id="表列" 
+				label="标签" 
+				labelattributes="标签属性"
+				labelsrcid="标签源标识" 
+							"标签属性"
+				classname="CSS类名称" 
+				showfilterfield="显示过滤器true,false"
+				filterable="可过滤:false,true"
+				sortable="可排序:false,true"
+				type="类型:EVENT(事件),LINK(链接)"
+				dataattribute="属性"
+				linkedcontrolid="链接的控制标识"
+				applink="转到应用程序"
+				inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+				menutype="菜单类型" 
+				lookup="查找" 
+				ondatachange="变更事件:REFRESHTABLE(刷新表),RESETCHILDREN(复位子集)"
+				smartfilloff="关闭只能填充:false,true" 
+				longdescreadonly="只读详细描述:false,true" 
+				urlattribute="URL属性"
+				mxevent="事件"
+				mxevent_desc="事件描述" 
+				mxevent_icon="事件图标"
+				targetid="目标标识" 
+				sigoption="签名选项" 
+				sigoptiondatasrc="签名数据源标识"
+				detailimage="详细信息图像"/> 
+			</tablebody>
+			<tabledetails id="表详细描述,可不用">
+			<!--部分,文本框等组件请插入此位置-->
+			</tabledetails>
+			<!--按钮组请插入此位置-->
+		</table>
+		<!----></script>
+
+
+
+<!--按钮组,按钮-->
+<buttongroup align="CENTER" id="xml_buttongroup_1" labelalign="CENTER" >
+<pushbutton id="xml_pushbutton_1" label="更改"  mxevent="INSERT"/>
+</buttongroup>
+
+
+
+<!--单选框-->
+		<radiobuttongroup 
+		border="显示边界:true" dataattribute="属性" id="xml_radiobuttongroup_1" label="单选框组">
+			<radiobutton id="xml_radiobuttongroup_2" label="单选框" value="选择后radiobuttongroup的值"/>
+			<radiobutton id="xml_radiobuttongroup_2" label="重要辅机" value="选择后radiobuttongroup的值"/>
+			<radiobutton id="xml_radiobuttongroup_3" label="主机" value="选择后radiobuttongroup的值"/>
+		</radiobuttongroup>
+
+		<!--选择文件按钮及选择框-->
+ <attachdoc id="addnewattachments_file_1_8" label="指定文件"/>
+<buttongroup id="addnewattachments_file_3">
+<doclinkuploadbutton default="true" id="addnewattachments_file_3_1" label="确定"/>
+<pushbutton id="addnewattachments_file_3_2" label="取消" mxevent="dialogcancel"/>
+</buttongroup>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--对话框-->
+
+		<!--解释--><script>
+<dialog id="lookup_jyuuyou" label="选择值" relationship="JYUUYOU" width="510">
+	<table id="persongroup_calendar_table" label="重要程度"  inputmode="readonly" selectmode="single">
+		<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="persongroup_calendar_table_tablebody">
+			<tablecol dataattribute="value" mxevent_desc="Go To %1" id="persongroup_calendar_table_tablebody_2" linkedcontrolid="persongroup_calendar_table_1_grid2_1"  type="link" sortable="true" mxevent="selectrecord" />
+			<tablecol dataattribute="description" mxevent_desc="Go To %1" id="persongroup_calendar_table_tablebody_3" linkedcontrolid="persongroup_calendar_table_1_grid2_2" type="link" sortable="true" mxevent="selectrecord" />
+		</tablebody>
+	</table>
+	<buttongroup id="persongroup_calendar_table_2">
+		<pushbutton default="true" id="bookmarks_2_11" label="确定" mxevent="dialogok"/>
+		<pushbutton default="true" id="main_cal_table_2_3" label="取消" mxevent="dialogcancel"/>
+	</buttongroup>
+</dialog>
+
+
+<!--完整版-->
+	<dialog id="lookup_jyuuyou" label="选择值" relationship="JYUUYOU" width="510">
+		<table id="persongroup_calendar_table" label="重要程度"  inputmode="readonly" selectmode="single">
+			<tablebody displayrowsperpage="10" filterable="true" id="persongroup_calendar_table_tablebody">
+				<tablecol filterable="false" id="persongroup_calendar_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="value" mxevent_desc="Go To %1" id="persongroup_calendar_table_tablebody_2" linkedcontrolid="persongroup_calendar_table_1_grid2_1"/>
+				<tablecol dataattribute="description" mxevent_desc="Go To %1" id="persongroup_calendar_table_tablebody_3" linkedcontrolid="persongroup_calendar_table_1_grid2_2"/>
+			</tablebody>
+			<tabledetails id="persongroup_calendar_table_1">
+				<section id="persongroup_calendar_table_1_grid1" label="详细信息">
+					<sectionrow id="persongroup_calendar_table_1_grid1_row1">
+						<sectioncol id="persongroup_calendar_table_1_grid1_row1_col1">
+							<section id="persongroup_calendar_table_1_grid1_row1_col1_sec1">
+								<textbox dataattribute="value" id="persongroup_calendar_table_1_grid2_1" inputmode="readonly"/>
+								<textbox dataattribute="description" id="persongroup_calendar_table_1_grid2_3" inputmode="readonly"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="persongroup_calendar_table_1_grid1_row1_col2">
+							<section id="persongroup_calendar_table_1_grid1_row1_col2_sec1">
+								<textbox dataattribute="value" id="persongroup_calendar_table_1_grid2_2" inputmode="readonly"/>
+								<checkbox dataattribute="description" id="persongroup_calendar_table_1_grid2_4" inputmode="readonly"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+		</table>
+		<buttongroup id="persongroup_calendar_table_2">
+			<pushbutton default="true" id="bookmarks_2_11" label="确定" mxevent="dialogok"/>
+			<pushbutton default="true" id="main_cal_table_2_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+	<!--说明-->
+ <dialog id="flexdialog" label="XXX window caption" relationship="ralationship" beanclass="classname" >
+    id="flexdialog"  此属性表示dialog ID名，也是界面事件调用事件名称,按钮事件名称="flexdialog",查找调用id="lookup_flexdialog" 查找名称为"flexdialog"
+    label="XXX window caption" 此属性表示窗口名
+    relationship="ralationship" 表示关系名
+    beanclass="classname"  页面控制类名
+     <table id="table_name" startrow="0" selectmode="multiple" inputmode="readonly" width="800" label="XXX tablename" >
+       selectmode="multiple" 表示多选 single 表示单选
+      <tablebody id="table_name_tablebody" displayrowsperpage="20" filterexpanded="true" filterable="true" >
+        <tablecol id="table_name_tablebody_1" type="event" mxevent="toggleselectrow" sortable="false" filterable="false" hidden="false" />
+        <tablecol id="table_name_tablebody_2" dataattribute="显示字段名" sortable="true" />
+        <tablecol id="table_name_tablebody_3" dataattribute="显示字段名" sortable="true" />
+       
+      </tablebody>
+
+    </table>
+    <buttongroup id="buttongroup_table" >
+      <pushbutton id="buttongroup_table1" label="确定" default="true" mxevent="dialogok" />
+      <pushbutton id="buttongroup_table2" label="取消" mxevent="dialogcancel" />
+    </buttongroup>
+
+  </dialog>
+  
+
+		<!----></script>
+
+
+		<!--解释--><script>
+<!--列表颜色显示-->
+	<!--应用中导出xml
+	在</tablebody>前面插入以下代码
+	再导入即可-->
+	<displayrule dataattribute="calcpriority" id="displayrule1">  
+		<range classname="rowcolor_calcpriority_2" id="range1" lower="0" upper="2"/>  
+		<range classname="rowcolor_calcpriority_4" id="range2" lower="3" upper="4"/>  
+		<range classname="rowcolor_calcpriority_6" id="range3" lower="5" upper="6"/>  
+		<range classname="rowcolor_calcpriority_8" id="range4" lower="7" upper="8"/>  
+	</displayrule> 	<!--一定要放在</tablebody>前面-->
+
+	<!--注释-->
+	<displayrule 
+	id="exactrule1" 
+	dataattribute="status">
+		<exact 
+		id="准确匹配,对int类型无效" 
+		value="已批准" 
+		classname="颜色名" />
+	</displayrule>
+	<displayrule 
+	id="exactrule1" 
+	dataattribute="status">
+		<range 
+		id="范围匹配,只对int类型有效" 
+		classname="颜色名" 
+		lower="最小值" 
+		upper="最大值"/>  
+	</displayrule>
+颜色设置文件路径为:典型 maximo.css is:  
+maximo\maximouiweb\webclient\skins\mobile\css\maximo.css
+ tivoli09 配色  maximo.css file is:  
+maximo\maximouiweb\webclient\skins\tivoli09\css\maximo.css
+
+maximo\maximouiweb\webclient\css\maximo.css
+
+<!--例:-->
+	<table id="table_xml_1"   datasrc="数据源标识" description="描述"  selectmode="MULTIPLE" inputmode="DEFAULT">
+		<tablebody id="table_xml_tablebody_1">
+			<tablecol id="table_xml_tablecol_1" type="EVENT" inputmode="DEFAULT" ondatachange="REFRESHTABLE" showfilterfield="true"/>		
+			<displayrule id="exactrule1" dataattribute="status">
+				<exact   id="exact1" value="新建" classname="purple" />
+				<exact   id="exact2" value="已批准" classname="blue" />
+				<exact   id="exact3" value="待组长审批" classname="gold" />
+				<exact   id="eaxct5" value="重新填写" classname="red" />
+			</displayrule>
+		</tablebody>
+			<tabledetails id="table_xml_tabledetails_1">
+			<!--部分,文本框等组件请插入此位置-->
+			</tabledetails>
+			<!--按钮组请插入此位置-->
+	</table>
+	<!---->
+
+
+	<!-- tree {{{1 -->
+	<tree 
+	maxchildren="字節點最多顯示數量  此级别已达到设置的显示限制"
+	expandallnodes="true:自動展開所有節點,數據量大會卡死."
+		></tree>
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<!--应用中设置-->
+	<!--粗字体-->
+<strong style="color :red ";/>机组 </strong>		
+	<!--换行-->
+	<!--<br>-->
+
