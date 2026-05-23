@@ -86,6 +86,18 @@ export class ConfigPanel {
           case 'pullScript':
             await this._pullScript(message.scriptName, message.storagePath);
             return;
+          case 'loadLoggerConfig':
+            await this._loadLoggerConfig();
+            return;
+          case 'saveLoggerConfig':
+            await this._saveLoggerConfig(message.config);
+            return;
+          case 'queryLoggerLevel':
+            await this._queryLoggerLevel(message.loggers);
+            return;
+          case 'updateLoggerLevel':
+            await this._updateLoggerLevel(message.loggers);
+            return;
           case 'confirmClearScripts':
             await this._confirmClearScripts(message.jsonPath);
             return;
@@ -2061,6 +2073,159 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     } finally {
       this._panel.webview.postMessage({ command: 'clearScriptsComplete' });
     }
+  }
+
+  // ==================== 日志管理相关方法 ====================
+
+  /**
+   * 加载本地日志配置
+   */
+  private async _loadLoggerConfig() {
+    try {
+      const configPath = this._getLoggerConfigPath();
+      
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, 'utf-8');
+        const config = JSON.parse(content);
+        this._panel.webview.postMessage({
+          command: 'loggerConfigLoaded',
+          config: config
+        });
+        logger.debug(`[Logger] 配置已加载: ${configPath}`);
+      } else {
+        // 文件不存在，返回空数组
+        this._panel.webview.postMessage({
+          command: 'loggerConfigLoaded',
+          config: []
+        });
+        logger.debug('[Logger] 配置文件不存在，返回空配置');
+      }
+    } catch (error: any) {
+      logger.error(`[Logger] 加载配置失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'loggerConfigLoaded',
+        config: [],
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 保存日志配置到本地
+   */
+  private async _saveLoggerConfig(config: any[]) {
+    try {
+      const configPath = this._getLoggerConfigPath();
+      const configDir = path.dirname(configPath);
+      
+      // 确保目录存在
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+      
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+      logger.info(`[Logger] 配置已保存: ${configPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'loggerConfigSaved',
+        success: true
+      });
+    } catch (error: any) {
+      logger.error(`[Logger] 保存配置失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'loggerConfigSaved',
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 查询日志级别
+   */
+  private async _queryLoggerLevel(loggers: any[]) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get('serverUrl', '');
+      const authType = config.get('authType', 'maxauth');
+      const maxauth = config.get('maxauth', '');
+      const apiKey = config.get('apiKey', '');
+      
+      const result = await httpRequestToMaximo({
+        url: 'script/SKS_LOGGER_LEVEL_QUERY',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: { loggers: loggers || [] }
+      });
+      
+      if (result.status === 200 && result.data.success) {
+        this._panel.webview.postMessage({
+          command: 'loggerQueryResult',
+          result: result.data.result
+        });
+        logger.info(`[Logger] 查询成功，返回 ${result.data.result?.length || 0} 条记录`);
+      } else {
+        throw new Error(result.data?.message || '查询失败');
+      }
+    } catch (error: any) {
+      logger.error(`[Logger] 查询失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'loggerQueryResult',
+        result: [],
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 更新日志级别
+   */
+  private async _updateLoggerLevel(loggers: any[]) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get('serverUrl', '');
+      const authType = config.get('authType', 'maxauth');
+      const maxauth = config.get('maxauth', '');
+      const apiKey = config.get('apiKey', '');
+      
+      const result = await httpRequestToMaximo({
+        url: 'script/SKS_LOGGER_LEVEL_UPDATE',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: { loggers }
+      });
+      
+      if (result.status === 200 && result.data.success) {
+        this._panel.webview.postMessage({
+          command: 'loggerUpdateResult',
+          success: true,
+          message: result.data.message || '日志级别更新成功',
+          result: result.data.result
+        });
+        logger.info(`[Logger] 更新成功: ${result.data.message}`);
+      } else {
+        throw new Error(result.data?.message || '更新失败');
+      }
+    } catch (error: any) {
+      logger.error(`[Logger] 更新失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'loggerUpdateResult',
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * 获取日志配置文件路径
+   */
+  private _getLoggerConfigPath(): string {
+    const homeDir = require('os').homedir();
+    return path.join(homeDir, '.sks', 'maximo-script-helper', 'logger-config.json');
   }
 
   public dispose() {

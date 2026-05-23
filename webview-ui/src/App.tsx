@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import LogManager from './components/LogManager';
 
 declare global {
   interface Window {
@@ -434,6 +435,7 @@ const App: React.FC = () => {
     { id: 'other', label: '其它配置' },
     { id: 'toolbox', label: '工具箱' },
     { id: 'queryScripts', label: '查询脚本' },
+    { id: 'logger', label: '日志' },
     { id: 'about', label: '关于' }
   ];
 
@@ -1318,6 +1320,12 @@ const App: React.FC = () => {
             <p><strong>Maximo Script Helper</strong></p>
             <p>版本：1.0.0</p>
             <p>作者：shoukaiseki</p>
+          </div>
+        )}
+
+        {activeSection === 'logger' && (
+          <div className="section active">
+            <LogManager vscode={getVsCodeApi()} />
           </div>
         )}
       </div>

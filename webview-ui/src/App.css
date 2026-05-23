@@ -116,3 +116,264 @@ button:hover {
   color: var(--vscode-descriptionForeground);
   margin-top: 5px;
 }
+
+/* 日志管理样式 */
+.log-manager {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--vscode-panel-border);
+  padding-bottom: 10px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--vscode-button-secondaryBackground);
+  color: var(--vscode-foreground);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.tab-button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+}
+
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* 日志查看器样式 */
+.log-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.log-list {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.log-item {
+  display: flex;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+}
+
+.log-timestamp {
+  color: var(--vscode-descriptionForeground);
+  min-width: 150px;
+}
+
+.log-level {
+  min-width: 60px;
+  font-weight: bold;
+}
+
+.log-logger {
+  color: var(--vscode-textLink-foreground);
+  min-width: 200px;
+}
+
+.log-message {
+  flex: 1;
+  color: var(--vscode-foreground);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* 日志级别配置样式 */
+.log-level-config {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.info-banner {
+  padding: 10px 15px;
+  background: var(--vscode-inputValidation-infoBackground);
+  border: 1px solid var(--vscode-inputValidation-infoBorder);
+  color: var(--vscode-inputValidation-infoForeground);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.message {
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.message.success {
+  background: var(--vscode-inputValidation-infoBackground);
+  border: 1px solid var(--vscode-inputValidation-infoBorder);
+  color: var(--vscode-inputValidation-infoForeground);
+}
+
+.message.error {
+  background: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  color: var(--vscode-inputValidation-errorForeground);
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.btn-success {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.btn-secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  background: #f44336;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #da190b;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--vscode-editor-background);
+}
+
+.config-table th,
+.config-table td {
+  padding: 10px;
+  border: 1px solid var(--vscode-panel-border);
+  text-align: left;
+}
+
+.config-table th {
+  background: var(--vscode-sideBar-background);
+  font-weight: 600;
+}
+
+.table-input,
+.table-select {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 15px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-style: italic;
+}
+
+.empty-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.json-editor {
+  width: 100%;
+  min-height: 400px;
+  padding: 15px;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
