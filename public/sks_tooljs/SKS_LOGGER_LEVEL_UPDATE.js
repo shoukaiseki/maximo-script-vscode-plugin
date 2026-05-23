@@ -1,34 +1,5 @@
 /*
- *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): SKS_LOGGER_LEVEL_UPDATE
- * 脚本语言(SCRIPTLANGUAGE): Nashorn
- * 描述(DESCRIPTION): 更新日志级别
- * 日志级别(LOGLEVEL): ERROR
- * 唯一标识(AUTOSCRIPTID): 115            语言代码(LANGCODE): ZH
- * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
- * 是接口(INTERFACE): N                  活动(ACTIVE): Y
- * 变更人(CHANGEBY): MAXADMIN
- * 日期(CHANGEDATE): 2026/5/15 9:24:49
- *
- * Variables: 无
- *
- * Launch Points: 无
- */
-/*
- *shoukaiseki_auto_comment:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): LOGGER_LEVEL_UPDATE
- * 脚本语言(SCRIPTLANGUAGE): Nashorn
- * 描述(DESCRIPTION): 更新日志级别
- * 日志级别(LOGLEVEL): ERROR
- * 唯一标识(AUTOSCRIPTID): 9              语言代码(LANGCODE): ZH
- * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
- * 是接口(INTERFACE): N                  活动(ACTIVE): Y
- * 变更人(CHANGEBY): MAXADMIN
- * 日期(CHANGEDATE): 2026/5/14 3:6:49
- *
- * Variables: 无
- *
- * Launch Points: 无
+ 更新日志级别
  */
 // 1. 解析 requestBody 中的 JSON
 var body = requestBody;
@@ -58,6 +29,18 @@ for (var i = 0; i < data.loggers.length; i++) {
     var item = data.loggers[i];
     var loggerName = item.loggerName;
     var logLevel = item.level;
+    var ignore = item.ignore || false;
+
+    // 如果 ignore 为 true，跳过设置
+    if (ignore) {
+        resultList.push({
+            loggerName: loggerName,
+            level: logLevel,
+            status: "IGNORED",
+            reason: "ignore 属性为 true，已跳过"
+        });
+        continue;
+    }
 
     if (!loggerName || !logLevel) {
         resultList.push({
