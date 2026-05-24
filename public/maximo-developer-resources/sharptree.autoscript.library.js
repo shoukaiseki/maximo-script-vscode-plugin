@@ -1,19 +1,3 @@
-/*
- *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): SHARPTREE.AUTOSCRIPT.LIBRARY
- * 脚本语言(SCRIPTLANGUAGE): nashorn
- * 描述(DESCRIPTION): Sharptree Deployment Library Script
- * 日志级别(LOGLEVEL): ERROR
- * 唯一标识(AUTOSCRIPTID): 256            语言代码(LANGCODE): ZH
- * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
- * 是接口(INTERFACE): N                  活动(ACTIVE): Y
- * 变更人(CHANGEBY): MAXADMIN
- * 日期(CHANGEDATE): 2026/5/20 18:19:19
- *
- * Variables: 无
- *
- * Launch Points: 无
- */
 /* eslint-disable indent */
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
@@ -27,7 +11,10 @@ MXServer = Java.type("psdi.server.MXServer");
 
 System = Java.type("java.lang.System");
 Level = Java.type("org.apache.log4j.Level");
+JSONObject = Java.type("com.ibm.json.java.JSONObject");
+JSONArray = Java.type("com.ibm.json.java.JSONArray");
 
+MXApplicationException = Java.type("psdi.util.MXApplicationException");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 /**  @type {psdi.util.logging.MXLogger}*/
@@ -57,9 +44,9 @@ if (typeof Array.prototype.find != "function") {
 
 function MaxLogger(maxLogger) {
     if (!maxLogger) {
-        throw new Error("A maxLogger JSON is required to create the MaxLogger object.");
+        throw new MXApplicationException("","A maxLogger JSON is required to create the MaxLogger object.");
     } else if (typeof maxLogger.logger === "undefined") {
-        throw new Error("The logger property is required and must be a Maximo MaxLogger field value.");
+        throw new MXApplicationException("","The logger property is required and must be a Maximo MaxLogger field value.");
     }
 
     this.logger = maxLogger.logger;
@@ -79,11 +66,11 @@ function MaxLogger(maxLogger) {
 MaxLogger.prototype.constructor = MaxLogger;
 MaxLogger.prototype.apply = function (mboSet) {
     if (!mboSet) {
-        throw new Error("A MboSet is required to set values from the MaxLogger object.");
+        throw new MXApplicationException("","A MboSet is required to set values from the MaxLogger object.");
     } else if (!(mboSet instanceof Java.type("psdi.mbo.MboSet"))) {
-        throw new Error("The mboSet parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mboSet parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mboSet.isBasedOn("MAXLOGGER")) {
-        throw new Error("The mboSet parameter must be based on the MAXLOGGER Maximo object.");
+        throw new MXApplicationException("","The mboSet parameter must be based on the MAXLOGGER Maximo object.");
     }
 
     var sqlFormat;
@@ -93,7 +80,7 @@ MaxLogger.prototype.apply = function (mboSet) {
         sqlFormat.setObject(1, "MAXLOGGER", "LOGKEY", this.parentLogKey);
         mboSet.setWhere(sqlFormat.format());
         if (mboSet.isEmpty()) {
-            throw new Error(
+            throw new MXApplicationException("",
                 "The parent logger key value " + this.parentLogKey + " does not exist in the target system, cannot add child logger " + this.logger
             );
         } else {
@@ -138,11 +125,11 @@ MaxLogger.prototype.apply = function (mboSet) {
 
 function CronTask(cronTask) {
     if (!cronTask) {
-        throw new Error("A integration object JSON is required to create the CronTask object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the CronTask object.");
     } else if (typeof cronTask.cronTaskName === "undefined") {
-        throw new Error("The cronTaskName property is required and must a Maximo CronTask field value.");
+        throw new MXApplicationException("","The cronTaskName property is required and must a Maximo CronTask field value.");
     } else if (typeof cronTask.className === "undefined") {
-        throw new Error("The className property is required and must a Maximo CronTask field value.");
+        throw new MXApplicationException("","The className property is required and must a Maximo CronTask field value.");
     }
 
     this.cronTaskName = cronTask.cronTaskName;
@@ -153,7 +140,7 @@ function CronTask(cronTask) {
     if (typeof cronTask.cronTaskInstance !== "undefined" && Array.isArray(cronTask.cronTaskInstance)) {
         cronTask.cronTaskInstance.forEach(function (instance) {
             if (typeof instance.instanceName === "undefined" || !instance.instanceName) {
-                throw new Error("The CronTask object " + cronTask.cronTaskName + " instance is missing a name property for the instance name.");
+                throw new MXApplicationException("","The CronTask object " + cronTask.cronTaskName + " instance is missing a name property for the instance name.");
             }
 
             instance.description = typeof instance.description === "undefined" ? "" : instance.description;
@@ -166,7 +153,7 @@ function CronTask(cronTask) {
             if (typeof instance.cronTaskParam !== "undefined" && Array.isArray(instance.cronTaskParam)) {
                 instance.cronTaskParam.forEach(function (cronTaskParam) {
                     if (typeof cronTaskParam.parameter === "undefined" || !cronTaskParam.parameter) {
-                        throw new Error(
+                        throw new MXApplicationException("",
                             "A CronTask object " + cronTask.cronTaskName + " instance " + instance.instanceName + " parameter is missing a parameter property."
                         );
                     }
@@ -187,11 +174,11 @@ function CronTask(cronTask) {
 CronTask.prototype.constructor = CronTask;
 CronTask.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the CronTask object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the CronTask object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("CRONTASKDEF")) {
-        throw new Error("The mbo parameter must be based on the CRONTASKDEF Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the CRONTASKDEF Maximo object.");
     }
 
     if (mbo.toBeAdded()) {
@@ -239,11 +226,11 @@ CronTask.prototype.setMboValues = function (mbo) {
 
 function EndPoint(endPoint) {
     if (!endPoint) {
-        throw new Error("A integration object JSON is required to create the endPoint object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the endPoint object.");
     } else if (typeof endPoint.endPointName === "undefined") {
-        throw new Error("The endPointName property is required.");
+        throw new MXApplicationException("","The endPointName property is required.");
     } else if (typeof endPoint.handlerName === "undefined") {
-        throw new Error("The handler property is required and must a valid Maximo handler.");
+        throw new MXApplicationException("","The handler property is required and must a valid Maximo handler.");
     }
 
     this.endPointName = endPoint.endPointName;
@@ -253,7 +240,7 @@ function EndPoint(endPoint) {
     if (!Array.isArray(this.maxEndPointDtl)) {
         endPoint.endPointDtl.forEach(function (detail) {
             if (typeof detail.property === "undefined" || !detail.property) {
-                throw new Error("Property " + detail.property + " is missing or has an empty value for the required Property name.");
+                throw new MXApplicationException("","Property " + detail.property + " is missing or has an empty value for the required Property name.");
             }
 
             detail.value = typeof detail.value === "undefined" ? "" : detail.value;
@@ -269,11 +256,11 @@ function EndPoint(endPoint) {
 EndPoint.prototype.constructor = EndPoint;
 EndPoint.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the End Point object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the End Point object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXENDPOINT")) {
-        throw new Error("The mbo parameter must be based on the MAXENDPOINT Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXENDPOINT Maximo object.");
     }
     if (mbo.toBeAdded()) {
         mbo.setValue("ENDPOINTNAME", this.endPointName);
@@ -302,9 +289,9 @@ EndPoint.prototype.setMboValues = function (mbo) {
 
 function ExternalSystem(externalSystem) {
     if (!externalSystem) {
-        throw new Error("A integration object JSON is required to create the ExternalSystem object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the ExternalSystem object.");
     } else if (typeof externalSystem.extSysName === "undefined") {
-        throw new Error("The extSysName property is required and must a Maximo External System field value.");
+        throw new MXApplicationException("","The extSysName property is required and must a Maximo External System field value.");
     }
 
     this.extSysName = externalSystem.extSysName;
@@ -321,7 +308,7 @@ function ExternalSystem(externalSystem) {
     if (externalSystem.maxExtIfaceOut && Array.isArray(externalSystem.maxExtIfaceOut)) {
         externalSystem.maxExtIfaceOut.forEach(function (ifaceOut) {
             if (typeof ifaceOut.ifaceName === "undefined" || !ifaceOut.ifaceName) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "An interface name for external system " +
                         externalSystem.extSysName +
                         " is missing or has an empty value for the required ifaceName property."
@@ -341,7 +328,7 @@ function ExternalSystem(externalSystem) {
     if (externalSystem.maxExtIfaceIn && Array.isArray(externalSystem.maxExtIfaceIn)) {
         externalSystem.maxExtIfaceIn.forEach(function (ifaceIn) {
             if (typeof ifaceIn.ifaceName === "undefined" || !ifaceIn.ifaceName) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "An interface name for external system " +
                         externalSystem.extSysName +
                         " is missing or has an empty value for the required ifaceName property."
@@ -360,11 +347,11 @@ function ExternalSystem(externalSystem) {
 ExternalSystem.prototype.constructor = ExternalSystem;
 ExternalSystem.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the External System object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the External System object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXEXTSYSTEM")) {
-        throw new Error("The mbo parameter must be based on the MAXEXTSYSTEM Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXEXTSYSTEM Maximo object.");
     }
     mbo.setValue("EXTSYSNAME", this.extSysName);
     mbo.setValue("DESCRIPTION", this.description);
@@ -398,13 +385,13 @@ ExternalSystem.prototype.setMboValues = function (mbo) {
 
 function Message(message) {
     if (!message) {
-        throw new Error("A message JSON is required to create the Message object.");
+        throw new MXApplicationException("","A message JSON is required to create the Message object.");
     } else if (typeof message.msgGroup === "undefined") {
-        throw new Error("The msgGroup property is required and must a Maximo Message Group field value.");
+        throw new MXApplicationException("","The msgGroup property is required and must a Maximo Message Group field value.");
     } else if (typeof message.msgKey === "undefined") {
-        throw new Error("The msgKey property is required and must a Maximo Message Key field value.");
+        throw new MXApplicationException("","The msgKey property is required and must a Maximo Message Key field value.");
     } else if (typeof message.value === "undefined") {
-        throw new Error("The value property is required and must a Maximo Value field value.");
+        throw new MXApplicationException("","The value property is required and must a Maximo Value field value.");
     }
 
     this.msgGroup = message.msgGroup;
@@ -420,11 +407,11 @@ function Message(message) {
 Message.prototype.constructor = Message;
 Message.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the Message object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the Message object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXMESSAGES")) {
-        throw new Error("The mbo parameter must be based on the MAXMESSAGES Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXMESSAGES Maximo object.");
     }
 
     mbo.setValue("MSGGROUP", this.msgGroup);
@@ -462,7 +449,7 @@ Message.prototype.setMboValues = function (mbo) {
 
 function Property(property) {
     if (typeof property.propName === "undefined") {
-        throw new Error("The propName property is required and must be a Maximo Property Name field value.");
+        throw new MXApplicationException("","The propName property is required and must be a Maximo Property Name field value.");
     }
 
     this.propName = property.propName;
@@ -483,13 +470,13 @@ function Property(property) {
     if (property.maxPropInstance && Array.isArray(property.maxPropInstance)) {
         property.maxPropInstance.forEach(function (instance) {
             if (typeof instance.serverName === "undefined" || !instance.serverName) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A property instance for property " + property.propName + " is missing or has an empty value for the required serverName property."
                 );
             }
 
             if (instance.serverName.toLowerCase() == "common") {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A property instance for property " +
                         property.propName +
                         " has a value of COMMON for the serverName property, define COMMON property values using the dispPropValue property on the root property object."
@@ -509,11 +496,11 @@ function Property(property) {
 Property.prototype.constructor = Property;
 Property.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the Properties object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the Properties object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXPROP")) {
-        throw new Error("The mbo parameter must be based on the MAXPROP Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXPROP Maximo object.");
     }
 
     // if this is a system only a select few things can be altered and the property can't be deleted.
@@ -560,11 +547,11 @@ Property.prototype.setMboValues = function (mbo) {
 
 function IntegrationObject(intObject) {
     if (!intObject) {
-        throw new Error("A integration object JSON is required to create the IntegrationObject object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the IntegrationObject object.");
     } else if (typeof intObject.intObjectName === "undefined") {
-        throw new Error("The intObjectName property is required and must a Maximo Integration Object field value.");
+        throw new MXApplicationException("","The intObjectName property is required and must a Maximo Integration Object field value.");
     } else if (typeof intObject.maxIntObjDetails === "undefined" || !Array.isArray(intObject.maxIntObjDetails) || intObject.maxIntObjDetails.length == 0) {
-        throw new Error("The maxIntObjDetails property is required and must an array that contains at least one Maximo Integration Object Detail object.");
+        throw new MXApplicationException("","The maxIntObjDetails property is required and must an array that contains at least one Maximo Integration Object Detail object.");
     }
 
     this.intObjectName = intObject.intObjectName;
@@ -587,7 +574,7 @@ function IntegrationObject(intObject) {
             return typeof maxIntObjDetail.objectName === "undefined" || !maxIntObjDetail.objectName;
         })
     ) {
-        throw new Error("The integration object " + this.intObjectName + " contains a object detail record that does not contain an object name.");
+        throw new MXApplicationException("","The integration object " + this.intObjectName + " contains a object detail record that does not contain an object name.");
     }
 
     if (
@@ -599,7 +586,7 @@ function IntegrationObject(intObject) {
             );
         })
     ) {
-        throw new Error("The integration object " + this.intObjectName + " contains a child object detail record that does not contain a relation name.");
+        throw new MXApplicationException("","The integration object " + this.intObjectName + " contains a child object detail record that does not contain a relation name.");
     }
 
     var parents = intObject.maxIntObjDetails.filter(function (maxIntObjDetail) {
@@ -607,7 +594,7 @@ function IntegrationObject(intObject) {
     });
 
     if (parents.length == 0) {
-        throw new Error(
+        throw new MXApplicationException("",
             "The integration object " +
                 this.intObjectName +
                 " does not have a top level object detail record, a top level parent must be defined for an integration object."
@@ -615,7 +602,7 @@ function IntegrationObject(intObject) {
     }
 
     if (parents.length > 1) {
-        throw new Error(
+        throw new MXApplicationException("",
             "The integration object " +
                 this.intObjectName +
                 " has more than one top level object detail record, only one top level parent can be defined for an integration object."
@@ -626,7 +613,7 @@ function IntegrationObject(intObject) {
         if (typeof maxIntObjDetail.maxIntObjCols !== "undefined" && Array.isArray(maxIntObjDetail.maxIntObjCols)) {
             maxIntObjDetail.maxIntObjCols.forEach(function (obj) {
                 if (typeof obj.name === "undefined" || !obj.name) {
-                    throw new Error(
+                    throw new MXApplicationException("",
                         "The integration object " +
                             intObject.intObjectName +
                             " object " +
@@ -635,7 +622,7 @@ function IntegrationObject(intObject) {
                     );
                 }
                 if (typeof obj.intObjFldType === "undefined" || !obj.intObjFldType) {
-                    throw new Error(
+                    throw new MXApplicationException("",
                         "The integration object " +
                             intObject.intObjectName +
                             " object " +
@@ -650,7 +637,7 @@ function IntegrationObject(intObject) {
 
         if (typeof maxIntObjDetail.maxIntObjAlias !== "undefined" && Array.isArray(maxIntObjDetail.maxIntObjAlias)) {
             if (!intObject.flatSupported) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "The maxIntObjAlias entries can only be applied to integration objects that support flat structure, " +
                         intObject.objectName +
                         " does not support flat structure."
@@ -659,7 +646,7 @@ function IntegrationObject(intObject) {
 
             maxIntObjDetail.maxIntObjAlias.forEach(function (obj) {
                 if (typeof obj.name === "undefined" || !obj.name) {
-                    throw new Error(
+                    throw new MXApplicationException("",
                         "The integration object " +
                             intObject.intObjectName +
                             " object " +
@@ -668,7 +655,7 @@ function IntegrationObject(intObject) {
                     );
                 }
                 if (typeof obj.aliasName === "undefined" || !obj.aliasName) {
-                    throw new Error(
+                    throw new MXApplicationException("",
                         "The integration object " +
                             intObject.intObjectName +
                             " object " +
@@ -684,7 +671,7 @@ function IntegrationObject(intObject) {
         if (typeof maxIntObjDetail.objectAppAuth !== "undefined" && Array.isArray(maxIntObjDetail.objectAppAuth)) {
             maxIntObjDetail.objectAppAuth.forEach(function (obj) {
                 if (typeof obj.context === "undefined" || !obj.context) {
-                    throw new Error(
+                    throw new MXApplicationException("",
                         "The integration object " +
                             intObject.intObjectName +
                             " object " +
@@ -732,11 +719,11 @@ function IntegrationObject(intObject) {
     if (typeof intObject.objectAppAuth !== "undefined" && intObject.objectAppAuth && Array.isArray(intObject.objectAppAuth)) {
         intObject.objectAppAuth.forEach(function (obj) {
             if (typeof obj.context === "undefined" || !obj.context) {
-                throw new Error("An objectAppAuth entry is missing the required context property.");
+                throw new MXApplicationException("","An objectAppAuth entry is missing the required context property.");
             } else if (typeof obj.objectName === "undefined" || !obj.objectName) {
-                throw new Error("An objectAppAuth entry is missing the required objectName property.");
+                throw new MXApplicationException("","An objectAppAuth entry is missing the required objectName property.");
             } else if (typeof obj.authApp === "undefined" || !obj.authApp) {
-                throw new Error("An objectAppAuth entry is missing the required authApp property.");
+                throw new MXApplicationException("","An objectAppAuth entry is missing the required authApp property.");
             }
             obj.description = typeof obj.description == "undefined" ? "" : obj.description;
         });
@@ -748,7 +735,7 @@ function IntegrationObject(intObject) {
     if (typeof intObject.sigOption !== "undefined" && intObject.sigOption && Array.isArray(intObject.sigOption)) {
         intObject.sigOption.forEach(function (option) {
             if (typeof option.optionName === "undefined" || !option.optionName) {
-                throw new Error("A sigOption entry is missing the required optionName property.");
+                throw new MXApplicationException("","A sigOption entry is missing the required optionName property.");
             }
             option.description = typeof option.description === "undefined" ? "" : option.description;
             option.alsoGrants = typeof option.alsoGrants === "undefined" ? "" : option.alsoGrants;
@@ -766,11 +753,11 @@ function IntegrationObject(intObject) {
     if (typeof intObject.osOSLCAction !== "undefined" && intObject.osOSLCAction && Array.isArray(intObject.osOSLCAction)) {
         intObject.osOSLCAction.forEach(function (action) {
             if (typeof action.name === "undefined" || !action.name) {
-                throw new Error("A osOSLCAction entry is missing the required name property.");
+                throw new MXApplicationException("","A osOSLCAction entry is missing the required name property.");
             }
 
             if (typeof action.implType === "undefined" || !action.implType) {
-                throw new Error("An osOSLCAction entry is missing the required implType property.");
+                throw new MXApplicationException("","An osOSLCAction entry is missing the required implType property.");
             } else {
                 action.implType = action.implType.toLowerCase();
             }
@@ -778,26 +765,26 @@ function IntegrationObject(intObject) {
             var implTypes = ["script", "system", "workflow", "wsmethod"];
 
             if (implTypes.indexOf(action.implType) < 0) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "The osOSLCAction implementation type " + action.implType + " is not valid, " + implTypes.join(",") + " are the valid implementation types."
                 );
             }
 
             if (action.implType == "script") {
                 if (typeof action.scriptName === "undefined" || !action.scriptName) {
-                    throw new Error('The osOSLCAction entry is missing the required scriptName property for the implementation type of "script".');
+                    throw new MXApplicationException("",'The osOSLCAction entry is missing the required scriptName property for the implementation type of "script".');
                 }
             } else if (action.implType == "system") {
                 if (typeof action.systemName === "undefined" || !action.systemName) {
-                    throw new Error('The osOSLCAction entry is missing the required systemName property for the implementation type of "system".');
+                    throw new MXApplicationException("",'The osOSLCAction entry is missing the required systemName property for the implementation type of "system".');
                 }
             } else if (action.implType == "workflow") {
                 if (typeof action.processName === "undefined" || !action.processName) {
-                    throw new Error('The osOSLCAction entry is missing the required processName property for the implementation type of "workflow".');
+                    throw new MXApplicationException("",'The osOSLCAction entry is missing the required processName property for the implementation type of "workflow".');
                 }
             } else if (action.implType == "wsmethod") {
                 if (typeof action.methodName === "undefined" || !action.methodName) {
-                    throw new Error('The osOSLCAction entry is missing the required methodName property for the implementation type of "wsmethod".');
+                    throw new MXApplicationException("",'The osOSLCAction entry is missing the required methodName property for the implementation type of "wsmethod".');
                 }
             }
 
@@ -813,7 +800,7 @@ function IntegrationObject(intObject) {
     if (typeof intObject.oslcQuery !== "undefined" && intObject.oslcQuery && Array.isArray(intObject.oslcQuery)) {
         intObject.oslcQuery.forEach(function (query) {
             if (typeof query.queryType === "undefined" || !query.queryType) {
-                throw new Error("A oslcQuery entry is missing the required queryType property.");
+                throw new MXApplicationException("","A oslcQuery entry is missing the required queryType property.");
             } else {
                 query.queryType = query.queryType.toLowerCase();
             }
@@ -821,33 +808,33 @@ function IntegrationObject(intObject) {
             var queryTypes = ["appclause", "method", "osclause", "script"];
 
             if (queryTypes.indexOf(query.queryType) < 0) {
-                throw new Error("The oslcQuery query type " + query.queryType + " is not valid, " + queryTypes.join(",") + " are the valid query types.");
+                throw new MXApplicationException("","The oslcQuery query type " + query.queryType + " is not valid, " + queryTypes.join(",") + " are the valid query types.");
             }
 
             if (query.queryType == "appclause") {
                 if (typeof action.app === "undefined" || !action.app) {
-                    throw new Error('The oslcQuery entry is missing the required app property for the query type of "appclause".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required app property for the query type of "appclause".');
                 }
                 if (typeof action.clauseName === "undefined" || !action.clauseName) {
-                    throw new Error('The oslcQuery entry is missing the required clauseName property for the query type of "appclause".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required clauseName property for the query type of "appclause".');
                 }
             } else if (query.queryType == "method") {
                 if (typeof action.method === "undefined" || !action.method) {
-                    throw new Error('The oslcQuery entry is missing the required method property for the query type of "method".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required method property for the query type of "method".');
                 }
                 query.description = typeof query.description === "undefined" ? "" : query.description;
             } else if (query.queryType == "osclause") {
                 if (typeof query.clauseName === "undefined" || !query.clauseName) {
-                    throw new Error('The oslcQuery entry is missing the required clauseName property for the query type of "osclause".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required clauseName property for the query type of "osclause".');
                 }
                 if (typeof query.clause === "undefined" || !query.clause) {
-                    throw new Error('The oslcQuery entry is missing the required clause property for the query type of "osclause".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required clause property for the query type of "osclause".');
                 }
                 query.description = typeof query.description === "undefined" ? "" : query.description;
                 query.isPublic = typeof query.isPublic === "undefined" ? true : query.isPublic == true;
             } else if (query.queryType == "script") {
                 if (typeof action.scriptName === "undefined" || !query.scriptName) {
-                    throw new Error('The oslcQuery entry is missing the required scriptName property for the query type of "script".');
+                    throw new MXApplicationException("",'The oslcQuery entry is missing the required scriptName property for the query type of "script".');
                 }
             }
         });
@@ -859,7 +846,7 @@ function IntegrationObject(intObject) {
     if (typeof intObject.queryTemplate !== "undefined" && intObject.queryTemplate && Array.isArray(intObject.queryTemplate)) {
         intObject.queryTemplate.forEach(function (template) {
             if (typeof template.templateName === "undefined" || !template.templateName) {
-                throw new Error("A queryTemplate entry is missing the required templateName property.");
+                throw new MXApplicationException("","A queryTemplate entry is missing the required templateName property.");
             }
             template.description = typeof template.description === "undefined" ? "" : template.description;
             template.pageSize = typeof template.pageSize === "undefined" ? "" : template.pageSize;
@@ -871,7 +858,7 @@ function IntegrationObject(intObject) {
             if (typeof template.queryTemplateAttr !== "undefined" && template.queryTemplateAttr && Array.isArray(template.queryTemplateAttr)) {
                 template.queryTemplateAttr.forEach(function (attr) {
                     if (typeof attr.selectAttrName === "undefined" || !attr.selectAttrName) {
-                        throw new Error("A queryTemplateAttr entry is missing the required selectAttrName property.");
+                        throw new MXApplicationException("","A queryTemplateAttr entry is missing the required selectAttrName property.");
                     }
 
                     attr.title = typeof attr.title === "undefined" ? "" : attr.title;
@@ -894,11 +881,11 @@ function IntegrationObject(intObject) {
 IntegrationObject.prototype.constructor = IntegrationObject;
 IntegrationObject.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the IntegrationObject object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the IntegrationObject object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXINTOBJECT")) {
-        throw new Error("The mbo parameter must be based on the MAXINTOBJECT Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXINTOBJECT Maximo object.");
     }
 
     if (mbo.toBeAdded()) {
@@ -1070,13 +1057,13 @@ IntegrationObject.prototype.setMboValues = function (mbo) {
 
 function Action(action) {
     if (!action) {
-        throw new Error("An action JSON is required to create the Action object.");
+        throw new MXApplicationException("","An action JSON is required to create the Action object.");
     } else if (typeof action.useWith === "undefined") {
-        throw new Error("The useWeith property is required and must be a Maximo useWith field value.");
+        throw new MXApplicationException("","The useWeith property is required and must be a Maximo useWith field value.");
     } else if (typeof action.type === "undefined") {
-        throw new Error("The type property is required and must be a Maximo type field value.");
+        throw new MXApplicationException("","The type property is required and must be a Maximo type field value.");
     } else if (typeof action.action === "undefined") {
-        throw new Error("The action property is required and must be a Maximo action field value.");
+        throw new MXApplicationException("","The action property is required and must be a Maximo action field value.");
     }
 
     this.action = action.action;
@@ -1084,13 +1071,13 @@ function Action(action) {
     this.type = action.type;
     this.description = typeof action.description === "undefined" ? "" : action.description;
     if (action.type == "APPACTION" && typeof action.value === "undefined") {
-        throw new Error("The value property is required for Application Action type actions.");
+        throw new MXApplicationException("","The value property is required for Application Action type actions.");
     } else if (action.type == "CHANGESTATUS" && typeof action.objectName === "undefined") {
-        throw new Error("The objectName property is required for Change Status type actions.");
+        throw new MXApplicationException("","The objectName property is required for Change Status type actions.");
     } else if (action.type == "CUSTOM" && typeof action.objectName === "undefined") {
-        throw new Error("The objectName property is required for Custom Class type actions.");
+        throw new MXApplicationException("","The objectName property is required for Custom Class type actions.");
     } else if (action.type == "SETVALUE" && (typeof action.objectName === "undefined" || typeof action.parameter === "undefined")) {
-        throw new Error("The objectName  and parameter properties are required for Set Value type actions.");
+        throw new MXApplicationException("","The objectName  and parameter properties are required for Set Value type actions.");
     }
     //no fields are required for EXECUTABLE or GROUP action types
 
@@ -1103,9 +1090,9 @@ function Action(action) {
     if (typeof action.actionGroup !== "undefined" && Array.isArray(action.actionGroup)) {
         action.actionGroup.forEach(function (group) {
             if (typeof group.member === "undefined") {
-                throw new Error("The member property is required for each action group member.");
+                throw new MXApplicationException("","The member property is required for each action group member.");
             } else if (typeof group.sequence === "undefined") {
-                throw new Error("The sequence property is required for each action group member");
+                throw new MXApplicationException("","The sequence property is required for each action group member");
             }
         });
         this.actionGroup = action.actionGroup;
@@ -1117,11 +1104,11 @@ function Action(action) {
 Action.prototype.constructor = Action;
 Action.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the ACTION object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the ACTION object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("ACTION")) {
-        throw new Error("The mbo parameter must be based on the ACTION Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the ACTION Maximo object.");
     }
 
     mbo.setValue("ACTION", this.action);
@@ -1151,11 +1138,11 @@ Action.prototype.setMboValues = function (mbo) {
 
 function InvocationChannel(invocationChannel) {
     if (!invocationChannel) {
-        throw new Error("A invocationChannel JSON is required to create the InvocationChannel object.");
+        throw new MXApplicationException("","A invocationChannel JSON is required to create the InvocationChannel object.");
     } else if (typeof invocationChannel.ifaceName === "undefined") {
-        throw new Error("The ifaceName property is required and must be a Maximo ifaceName field value.");
+        throw new MXApplicationException("","The ifaceName property is required and must be a Maximo ifaceName field value.");
     } else if (typeof invocationChannel.intObjectName === "undefined") {
-        throw new Error("The intObjectName property is required and must be a Maximo intObjectName field value.");
+        throw new MXApplicationException("","The intObjectName property is required and must be a Maximo intObjectName field value.");
     }
 
     this.ifaceName = invocationChannel.ifaceName;
@@ -1169,7 +1156,7 @@ function InvocationChannel(invocationChannel) {
     this.ifaceUserExitClass = typeof invocationChannel.ifaceUserExitClass === "undefined" ? "" : invocationChannel.ifaceUserExitClass;
     this.ifaceMapName = typeof invocationChannel.ifaceMapName === "undefined" ? "" : invocationChannel.ifaceMapName;
     if (invocationChannel.processResponse == true && typeof invocationChannel.replyIntObjName === "undefined") {
-        throw new Error("A reponse object structure name is required when the process response checkbox is checked.");
+        throw new MXApplicationException("","A reponse object structure name is required when the process response checkbox is checked.");
     }
     this.replyIntObjName = typeof invocationChannel.replyIntObjName === "undefined" ? "" : invocationChannel.replyIntObjName;
     this.replyExitClass = typeof invocationChannel.replyExitClass === "undefined" ? "" : invocationChannel.replyExitClass;
@@ -1180,11 +1167,11 @@ function InvocationChannel(invocationChannel) {
 InvocationChannel.prototype.constructor = InvocationChannel;
 InvocationChannel.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the MAXIFACEINVOKE object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the MAXIFACEINVOKE object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXIFACEINVOKE")) {
-        throw new Error("The mbo parameter must be based on the MAXIFACEINVOKE Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXIFACEINVOKE Maximo object.");
     }
 
     mbo.setValue("IFACENAME", this.ifaceName);
@@ -1205,11 +1192,11 @@ InvocationChannel.prototype.setMboValues = function (mbo) {
 
 function EnterpriseService(enterpriseService) {
     if (!enterpriseService) {
-        throw new Error("A integration object JSON is required to create the enterpriseService object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the enterpriseService object.");
     } else if (typeof enterpriseService.ifaceName === "undefined") {
-        throw new Error("The ifaceName property is required and must a Maximo Publish Channel field value.");
+        throw new MXApplicationException("","The ifaceName property is required and must a Maximo Publish Channel field value.");
     } else if (typeof enterpriseService.intObjectName === "undefined") {
-        throw new Error("The intObjectName property is required and must a Maximo Publish Channel field value.");
+        throw new MXApplicationException("","The intObjectName property is required and must a Maximo Publish Channel field value.");
     }
 
     this.ifaceName = enterpriseService.ifaceName;
@@ -1236,14 +1223,14 @@ function EnterpriseService(enterpriseService) {
     if (enterpriseService.maxIfaceProc && Array.isArray(enterpriseService.maxIfaceProc)) {
         enterpriseService.maxIfaceProc.forEach(function (ifaceProc) {
             if (typeof ifaceProc.procName === "undefined" || !ifaceProc.procName) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A processing rule name for enterprise service " +
                         enterpriseService.ifaceName +
                         " is missing or has an empty value for the required procName property."
                 );
             }
             if (typeof ifaceProc.procType === "undefined" || !ifaceProc.procType) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "An action for enterprise service " +
                         enterpriseService.ifaceName +
                         " enterprise service, " +
@@ -1252,7 +1239,7 @@ function EnterpriseService(enterpriseService) {
                 );
             }
             if (typeof ifaceProc.procSequence === "undefined" || !ifaceProc.procSequence) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A sequence for enterprise service " +
                         enterpriseService.ifaceName +
                         " enterprise service, " +
@@ -1278,23 +1265,23 @@ function EnterpriseService(enterpriseService) {
                 if (typeof ifaceProc.maxReplaceProc !== "undefined " && ifaceProc.maxReplaceProc && Array.isArray(ifaceProc.maxReplaceProc)) {
                     ifaceProc.maxReplaceProc.forEach(function (setReplaceProc) {
                         if (typeof setReplaceProc.valueType === "undefined" || !setReplaceProc.valueType) {
-                            throw new Error("A value type is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A value type is required for the " + processingRuleName + " rule.");
                         }
                         if (typeof setReplaceProc.value === "undefined" || !setReplaceProc.value) {
-                            throw new Error("A value is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                         }
                         if (typeof setReplaceProc.fieldName === "undefined" || !setReplaceProc.fieldName) {
-                            throw new Error("A field is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A field is required for the " + processingRuleName + " rule.");
                         }
                         if (setReplaceProc.valueType.toUpperCase() == "MBOFIELD") {
                             if (typeof setReplaceProc.relation === "undefined" || !setReplaceProc.relation) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof setReplaceProc.mboName === "undefined" || !setReplaceProc.mboName) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof setReplaceProc.mboColumnName === "undefined" || !setReplaceProc.mboColumnName) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                         }
                         setReplaceProc.relation = typeof setReplaceProc.relation === "undefined" ? "" : setReplaceProc.relation;
@@ -1313,7 +1300,7 @@ function EnterpriseService(enterpriseService) {
                 if (ifaceProc.maxProcCols && Array.isArray(ifaceProc.maxProcCols)) {
                     ifaceProc.maxProcCols.forEach(function (combineSplitProc) {
                         if (typeof combineSplitProc.fieldName === "undefined" || !combineSplitProc.fieldName) {
-                            throw new Error("A fieldName is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A fieldName is required for the " + processingRuleName + " rule.");
                         }
 
                         combineSplitProc.ifaceControl = typeof combineSplitProc.ifaceControl === "undefined" ? "" : combineSplitProc.ifaceControl;
@@ -1325,12 +1312,12 @@ function EnterpriseService(enterpriseService) {
                                     (typeof transformProc.transFieldName === "undefined" || !transformProc.transFieldName) &&
                                     (typeof transformProc.ifaceControl === "undefined" || !transformProc.ifaceControl)
                                 ) {
-                                    throw new Error("A transFieldName or ifaceControl is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A transFieldName or ifaceControl is required for the " + processingRuleName + " rule.");
                                 }
                             });
                         } else {
                             ifaceProc.maxTransformProc = [];
-                            throw new Error("A set of transform / source sub-record fields is required for combine and split processing rules");
+                            throw new MXApplicationException("","A set of transform / source sub-record fields is required for combine and split processing rules");
                         }
                     });
                 } else {
@@ -1345,7 +1332,7 @@ function EnterpriseService(enterpriseService) {
                 ifaceProc.maxReplaceProc = [];
                 ifaceProc.maxProcCols = [];
             } else {
-                throw new Error(
+                throw new MXApplicationException("",
                     "The processing action " +
                         ifaceProc.procType +
                         " for enterprise service " +
@@ -1360,71 +1347,71 @@ function EnterpriseService(enterpriseService) {
             if (ifaceProc.maxIfaceCond && Array.isArray(ifaceProc.maxIfaceCond)) {
                 ifaceProc.maxIfaceCond.forEach(function (ifaceCond) {
                     if (typeof ifaceCond.condition === "undefined" || !ifaceCond.condition) {
-                        throw new Error("A condition number is required for the " + processingRuleName + " rule.");
+                        throw new MXApplicationException("","A condition number is required for the " + processingRuleName + " rule.");
                     }
 
                     if (ifaceCond.maxCondDetail && Array.isArray(ifaceCond.maxCondDetail)) {
                         ifaceCond.maxCondDetail.forEach(function (condDetail) {
                             if (typeof condDetail.condType === "undefined" || !condDetail.condType) {
-                                throw new Error("A condition type is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A condition type is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof condDetail.compareType === "undefined" || !condDetail.compareType) {
-                                throw new Error("A compare type is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A compare type is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof condDetail.condSequence === "undefined" || !condDetail.condSequence) {
-                                throw new Error("A condition sequence is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A condition sequence is required for the " + processingRuleName + " rule.");
                             }
                             if (condDetail.condType == "IFACECONTROL" || condDetail.condType == "MAXVAR") {
                                 if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                    throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                    throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                 }
                             } else if (condDetail.condType == "MBO") {
                                 if (typeof condDetail.mboColumnName === "undefined" || !condDetail.mboColumnName) {
-                                    throw new Error("A mbo column name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo column name is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                    throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                    throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                    throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                 }
                             } else if (condDetail.condType == "FIELD") {
                                 if (condDetail.compareType == "MBOFIELD") {
                                     if (typeof condDetail.mboColumnName === "undefined" || !condDetail.mboColumnName) {
-                                        throw new Error("A mbo column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A mbo column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                        throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                        throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                        throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                     }
                                 } else {
                                     if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                        throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                        throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                     }
                                 }
                             } else if (condDetail.condType == "MBOSET") {
                                 if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                    throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                    throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                 }
                             } else {
-                                throw new Error("Provided condition type and/or compare type value is invalid.");
+                                throw new MXApplicationException("","Provided condition type and/or compare type value is invalid.");
                             }
 
                             condDetail.mboColumnName = typeof condDetail.mboColumnName === "undefined" ? "" : condDetail.mboColumnName;
@@ -1458,11 +1445,11 @@ function EnterpriseService(enterpriseService) {
 EnterpriseService.prototype.constructor = EnterpriseService;
 EnterpriseService.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the enterprise service object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the enterprise service object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXIFACEIN")) {
-        throw new Error("The mbo parameter must be based on the MAXENDPOINT Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXENDPOINT Maximo object.");
     }
     if (mbo.toBeAdded()) {
         mbo.setValue("IFACENAME", this.ifaceName);
@@ -1563,11 +1550,11 @@ EnterpriseService.prototype.setMboValues = function (mbo) {
 
 function PublishChannel(publishChannel) {
     if (!publishChannel) {
-        throw new Error("A integration object JSON is required to create the publishChannel object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the publishChannel object.");
     } else if (typeof publishChannel.ifaceName === "undefined") {
-        throw new Error("The ifaceName property is required and must a Maximo Publish Channel field value.");
+        throw new MXApplicationException("","The ifaceName property is required and must a Maximo Publish Channel field value.");
     } else if (typeof publishChannel.intObjectName === "undefined") {
-        throw new Error("The intObjectName property is required and must a Maximo Publish Channel field value.");
+        throw new MXApplicationException("","The intObjectName property is required and must a Maximo Publish Channel field value.");
     }
 
     this.ifaceName = publishChannel.ifaceName;
@@ -1588,14 +1575,14 @@ function PublishChannel(publishChannel) {
     if (publishChannel.maxIfaceProc && Array.isArray(publishChannel.maxIfaceProc)) {
         publishChannel.maxIfaceProc.forEach(function (ifaceProc) {
             if (typeof ifaceProc.procName === "undefined" || !ifaceProc.procName) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A processing rule name for publish channel " +
                         publishChannel.ifaceName +
                         " is missing or has an empty value for the required procName property."
                 );
             }
             if (typeof ifaceProc.procType === "undefined" || !ifaceProc.procType) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "An action for publish channel " +
                         publishChannel.ifaceName +
                         " publish channel, " +
@@ -1604,7 +1591,7 @@ function PublishChannel(publishChannel) {
                 );
             }
             if (typeof ifaceProc.procSequence === "undefined" || !ifaceProc.procSequence) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A sequence for publish channel " +
                         publishChannel.ifaceName +
                         " publish channel, " +
@@ -1629,23 +1616,23 @@ function PublishChannel(publishChannel) {
                 if (typeof ifaceProc.maxReplaceProc !== "undefined " && ifaceProc.maxReplaceProc && Array.isArray(ifaceProc.maxReplaceProc)) {
                     ifaceProc.maxReplaceProc.forEach(function (setReplaceProc) {
                         if (typeof setReplaceProc.valueType === "undefined" || !setReplaceProc.valueType) {
-                            throw new Error("A value type is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A value type is required for the " + processingRuleName + " rule.");
                         }
                         if (typeof setReplaceProc.value === "undefined" || !setReplaceProc.value) {
-                            throw new Error("A value is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                         }
                         if (typeof setReplaceProc.fieldName === "undefined" || !setReplaceProc.fieldName) {
-                            throw new Error("A field is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A field is required for the " + processingRuleName + " rule.");
                         }
                         if (setReplaceProc.valueType.toUpperCase() == "MBOFIELD") {
                             if (typeof setReplaceProc.relation === "undefined" || !setReplaceProc.relation) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof setReplaceProc.mboName === "undefined" || !setReplaceProc.mboName) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof setReplaceProc.mboColumnName === "undefined" || !setReplaceProc.mboColumnName) {
-                                throw new Error("A relationship is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A relationship is required for the " + processingRuleName + " rule.");
                             }
                         }
                         setReplaceProc.relation = typeof setReplaceProc.relation === "undefined" ? "" : setReplaceProc.relation;
@@ -1664,7 +1651,7 @@ function PublishChannel(publishChannel) {
                 if (ifaceProc.maxProcCols && Array.isArray(ifaceProc.maxProcCols)) {
                     ifaceProc.maxProcCols.forEach(function (combineSplitProc) {
                         if (typeof combineSplitProc.fieldName === "undefined" || !combineSplitProc.fieldName) {
-                            throw new Error("A fieldName is required for the " + processingRuleName + " rule.");
+                            throw new MXApplicationException("","A fieldName is required for the " + processingRuleName + " rule.");
                         }
 
                         combineSplitProc.ifaceControl = typeof combineSplitProc.ifaceControl === "undefined" ? "" : combineSplitProc.ifaceControl;
@@ -1676,12 +1663,12 @@ function PublishChannel(publishChannel) {
                                     (typeof transformProc.transFieldName === "undefined" || !transformProc.transFieldName) &&
                                     (typeof transformProc.ifaceControl === "undefined" || !transformProc.ifaceControl)
                                 ) {
-                                    throw new Error("A transFieldName or ifaceControl is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A transFieldName or ifaceControl is required for the " + processingRuleName + " rule.");
                                 }
                             });
                         } else {
                             ifaceProc.maxTransformProc = [];
-                            throw new Error("A set of transform / source sub-record fields is required for combine and split processing rules");
+                            throw new MXApplicationException("","A set of transform / source sub-record fields is required for combine and split processing rules");
                         }
                     });
                 } else {
@@ -1697,7 +1684,7 @@ function PublishChannel(publishChannel) {
                 ifaceProc.maxReplaceProc = [];
                 ifaceProc.maxProcCols = [];
             } else {
-                throw new Error(
+                throw new MXApplicationException("",
                     "The processing action " +
                         ifaceProc.procType +
                         " for publish channel " +
@@ -1712,71 +1699,71 @@ function PublishChannel(publishChannel) {
             if (ifaceProc.maxIfaceCond && Array.isArray(ifaceProc.maxIfaceCond)) {
                 ifaceProc.maxIfaceCond.forEach(function (ifaceCond) {
                     if (typeof ifaceCond.condition === "undefined" || !ifaceCond.condition) {
-                        throw new Error("A condition number is required for the " + processingRuleName + " rule.");
+                        throw new MXApplicationException("","A condition number is required for the " + processingRuleName + " rule.");
                     }
 
                     if (ifaceCond.maxCondDetail && Array.isArray(ifaceCond.maxCondDetail)) {
                         ifaceCond.maxCondDetail.forEach(function (condDetail) {
                             if (typeof condDetail.condType === "undefined" || !condDetail.condType) {
-                                throw new Error("A condition type is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A condition type is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof condDetail.compareType === "undefined" || !condDetail.compareType) {
-                                throw new Error("A compare type is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A compare type is required for the " + processingRuleName + " rule.");
                             }
                             if (typeof condDetail.condSequence === "undefined" || !condDetail.condSequence) {
-                                throw new Error("A condition sequence is required for the " + processingRuleName + " rule.");
+                                throw new MXApplicationException("","A condition sequence is required for the " + processingRuleName + " rule.");
                             }
                             if (condDetail.condType == "IFACECONTROL" || condDetail.condType == "MAXVAR") {
                                 if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                    throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                    throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                 }
                             } else if (condDetail.condType == "MBO") {
                                 if (typeof condDetail.mboColumnName === "undefined" || !condDetail.mboColumnName) {
-                                    throw new Error("A mbo column name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo column name is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                    throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                    throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                    throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                 }
                             } else if (condDetail.condType == "FIELD") {
                                 if (condDetail.compareType == "MBOFIELD") {
                                     if (typeof condDetail.mboColumnName === "undefined" || !condDetail.mboColumnName) {
-                                        throw new Error("A mbo column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A mbo column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                        throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                        throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                        throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                     }
                                 } else {
                                     if (typeof condDetail.columnName === "undefined" || !condDetail.columnName) {
-                                        throw new Error("A column name is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A column name is required for the " + processingRuleName + " rule.");
                                     }
                                     if (typeof condDetail.value === "undefined" || !condDetail.value) {
-                                        throw new Error("A value is required for the " + processingRuleName + " rule.");
+                                        throw new MXApplicationException("","A value is required for the " + processingRuleName + " rule.");
                                     }
                                 }
                             } else if (condDetail.condType == "MBOSET") {
                                 if (typeof condDetail.relation === "undefined" || !condDetail.relation) {
-                                    throw new Error("A relation is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A relation is required for the " + processingRuleName + " rule.");
                                 }
                                 if (typeof condDetail.mboName === "undefined" || !condDetail.mboName) {
-                                    throw new Error("A mbo name is required for the " + processingRuleName + " rule.");
+                                    throw new MXApplicationException("","A mbo name is required for the " + processingRuleName + " rule.");
                                 }
                             } else {
-                                throw new Error("Provided condition type and/or compare type value is invalid.");
+                                throw new MXApplicationException("","Provided condition type and/or compare type value is invalid.");
                             }
 
                             condDetail.mboColumnName = typeof condDetail.mboColumnName === "undefined" ? "" : condDetail.mboColumnName;
@@ -1810,11 +1797,11 @@ function PublishChannel(publishChannel) {
 PublishChannel.prototype.constructor = PublishChannel;
 PublishChannel.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the Publish Channel object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the Publish Channel object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXIFACEOUT")) {
-        throw new Error("The mbo parameter must be based on the MAXENDPOINT Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXENDPOINT Maximo object.");
     }
     if (mbo.toBeAdded()) {
         mbo.setValue("IFACENAME", this.ifaceName);
@@ -1907,13 +1894,13 @@ PublishChannel.prototype.setMboValues = function (mbo) {
 
 function CommunicationTemplate(communicationTemplate) {
     if (!communicationTemplate) {
-        throw new Error("A integration object JSON is required to create the CommunicationTemplate object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the CommunicationTemplate object.");
     } else if (typeof communicationTemplate.templateID === "undefined") {
-        throw new Error("The templateID property is required and must a Maximo Communication Template field value.");
+        throw new MXApplicationException("","The templateID property is required and must a Maximo Communication Template field value.");
     } else if (typeof communicationTemplate.objectName === "undefined") {
-        throw new Error("The objectName property is required and must a Maximo Communication Template field value.");
+        throw new MXApplicationException("","The objectName property is required and must a Maximo Communication Template field value.");
     } else if (typeof communicationTemplate.sendFrom === "undefined") {
-        throw new Error("The sendFrom property is required and must a Maximo Communication Template field value.");
+        throw new MXApplicationException("","The sendFrom property is required and must a Maximo Communication Template field value.");
     }
 
     this.templateID = communicationTemplate.templateID;
@@ -1932,14 +1919,14 @@ function CommunicationTemplate(communicationTemplate) {
     if (communicationTemplate.commTmpltSendTo && Array.isArray(communicationTemplate.commTmpltSendTo)) {
         communicationTemplate.commTmpltSendTo.forEach(function (sendTo) {
             if (typeof sendTo.type === "undefined" || !sendTo.type) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A type for communication template " +
                         communicationTemplate.templateID +
                         " is missing or has an empty value for the required type property."
                 );
             }
             if (typeof sendTo.sendToValue === "undefined" || !sendTo.sendToValue) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A sendToValue for communication template " +
                         communicationTemplate.templateID +
                         " is missing or has an empty value for the required sendToValue property."
@@ -1958,11 +1945,11 @@ function CommunicationTemplate(communicationTemplate) {
 CommunicationTemplate.prototype.constructor = CommunicationTemplate;
 CommunicationTemplate.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the External System object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the External System object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("COMMTEMPLATE")) {
-        throw new Error("The mbo parameter must be based on the COMMTEMPLATE Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the COMMTEMPLATE Maximo object.");
     }
     mbo.setValue("TEMPLATEID", this.templateID);
     mbo.setValue("OBJECTNAME", this.objectName);
@@ -1991,11 +1978,11 @@ CommunicationTemplate.prototype.setMboValues = function (mbo) {
 
 function LaunchInContext(launchInContext) {
     if (!launchInContext) {
-        throw new Error("A integration object JSON is required to create the launchInContext object.");
+        throw new MXApplicationException("","A integration object JSON is required to create the launchInContext object.");
     } else if (typeof launchInContext.launchEntryName === "undefined") {
-        throw new Error("The launchEntryName property is required and must a Maximo Launch in Context field value.");
+        throw new MXApplicationException("","The launchEntryName property is required and must a Maximo Launch in Context field value.");
     } else if (typeof launchInContext.consoleURL === "undefined") {
-        throw new Error("The consoleURL property is required and must a Maximo Launch in Context field value.");
+        throw new MXApplicationException("","The consoleURL property is required and must a Maximo Launch in Context field value.");
     }
 
     this.launchEntryName = launchInContext.launchEntryName;
@@ -2009,7 +1996,7 @@ function LaunchInContext(launchInContext) {
     if (launchInContext.maxLeContext && Array.isArray(launchInContext.maxLeContext)) {
         launchInContext.maxLeContext.forEach(function (leContext) {
             if (typeof leContext.resourceType === "undefined" || !leContext.resourceType) {
-                throw new Error(
+                throw new MXApplicationException("",
                     "A type for launch in context " +
                         launchInContext.launchEntryName +
                         " is missing or has an empty value for the required resource type property."
@@ -2027,11 +2014,11 @@ function LaunchInContext(launchInContext) {
 LaunchInContext.prototype.constructor = LaunchInContext;
 LaunchInContext.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the External System object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the External System object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXLAUNCHENTRY")) {
-        throw new Error("The mbo parameter must be based on the MAXLAUNCHENTRY Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXLAUNCHENTRY Maximo object.");
     }
     mbo.setValue("LAUNCHENTRYNAME", this.launchEntryName);
     mbo.setValue("CONSOLEURL", this.consoleURL);
@@ -2055,9 +2042,9 @@ LaunchInContext.prototype.setMboValues = function (mbo) {
 
 function MaxObject(maxobject) {
     if (!maxobject) {
-        throw new Error("An maxobject JSON is required to create the MaxObject object.");
+        throw new MXApplicationException("","An maxobject JSON is required to create the MaxObject object.");
     } else if (typeof maxobject.object === "undefined") {
-        throw new Error("The object property is required and must be the name of the object.");
+        throw new MXApplicationException("","The object property is required and must be the name of the object.");
     }
 
     this.object = maxobject.object;
@@ -2096,11 +2083,11 @@ function MaxObject(maxobject) {
     if (typeof maxobject.attributes !== "undefined" && Array.isArray(maxobject.attributes)) {
         maxobject.attributes.forEach(function (attribute) {
             if (typeof attribute.attribute === "undefined") {
-                throw new Error("The attribute property is required for each attribute.");
+                throw new MXApplicationException("","The attribute property is required for each attribute.");
             } else if (typeof attribute.description === "undefined" || attribute.description == "") {
-                throw new Error("The description property is required for each attribute");
+                throw new MXApplicationException("","The description property is required for each attribute");
             } else if (typeof attribute.title === "undefined" || attribute.title == "") {
-                throw new Error("The title property is required for each attribute");
+                throw new MXApplicationException("","The title property is required for each attribute");
             }
         });
         this.attributes = maxobject.attributes;
@@ -2112,7 +2099,7 @@ function MaxObject(maxobject) {
     if (typeof maxobject.indexes !== "undefined" && Array.isArray(maxobject.indexes)) {
         maxobject.indexes.forEach(function (index) {
             if (typeof index.index === "undefined") {
-                throw new Error("The index property is required for each index.");
+                throw new MXApplicationException("","The index property is required for each index.");
             }
         });
         this.indexes = maxobject.indexes;
@@ -2124,9 +2111,9 @@ function MaxObject(maxobject) {
     if (typeof maxobject.relationships !== "undefined" && Array.isArray(maxobject.relationships)) {
         maxobject.relationships.forEach(function (relationship) {
             if (typeof relationship.relationship === "undefined") {
-                throw new Error("The relationship property is required for each relationship.");
+                throw new MXApplicationException("","The relationship property is required for each relationship.");
             } else if (typeof relationship.child === "undefined" && typeof relationship.delete === "undefined") {
-                throw new Error("The child property is required for each relationship.");
+                throw new MXApplicationException("","The child property is required for each relationship.");
             }
         });
         this.relationships = maxobject.relationships;
@@ -2138,11 +2125,11 @@ function MaxObject(maxobject) {
 MaxObject.prototype.constructor = MaxObject;
 MaxObject.prototype.setMboValues = function (mbo) {
     if (!mbo) {
-        throw new Error("A Mbo is required to set values from the MAXOBJECTCFG object.");
+        throw new MXApplicationException("","A Mbo is required to set values from the MAXOBJECTCFG object.");
     } else if (!(mbo instanceof Java.type("psdi.mbo.Mbo"))) {
-        throw new Error("The mbo parameter must be an instance of psdi.mbo.Mbo.");
+        throw new MXApplicationException("","The mbo parameter must be an instance of psdi.mbo.Mbo.");
     } else if (!mbo.isBasedOn("MAXOBJECTCFG")) {
-        throw new Error("The mbo parameter must be based on the MAXOBJECTCFG Maximo object.");
+        throw new MXApplicationException("","The mbo parameter must be based on the MAXOBJECTCFG Maximo object.");
     }
 
     if (mbo.toBeAdded()) {
@@ -2150,11 +2137,10 @@ MaxObject.prototype.setMboValues = function (mbo) {
     }
     var ignoreObjectMain=(typeof this.ignoreObjectMain === "undefined"||!this.ignoreObjectMain);
 
-  logger.error("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
-  logger.error("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
-    logger.error("mbo.ignoreObjectMain10="+(typeof this.ignoreObjectMain === "undefined"));
+  logger.debug("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
+  logger.info("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
+    logger.warn("mbo.ignoreObjectMain10="+(typeof this.ignoreObjectMain === "undefined"));
   logger.error("mbo.ignoreObjectMain20="+(!this.ignoreObjectMain));
-  logger.error("mbo.ignoreObjectMain30="+ignoreObjectMain);
   //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
     if(ignoreObjectMain){
 
@@ -2269,16 +2255,39 @@ MaxObject.prototype.setMboValues = function (mbo) {
       ignoreAttributes=true
     }
     if(!ignoreAttributes){
+      /** @type {psdi.mbo.MboSetRemote} */
       var attributeSet = mbo.getMboSet("MAXATTRIBUTECFG");
+        // attributeSet.reset()
+        var keyAttributes = [ "ATTRIBUTENAME", "TITLE", "REMARKS", "AUTOKEYNAME", "DEFAULTVALUE", "CLASSNAME", "DOMAINID", "SAMEASOBJECT", "SAMEASATTRIBUTE"];
+
+        /** @type{com.ibm.json.java.JSONArray}*/
+        var jsonArray = new JSONArray();
+        var attrMbo = attributeSet.moveFirst();
+        while (attrMbo) {
+            /** @type{com.ibm.json.java.JSONObject}*/
+            var jsonObject = new JSONObject();
+            for (i = 0; i < keyAttributes.length; i++) {
+                /** @type{java.lang.String}*/
+                var key = keyAttributes[i];
+                jsonObject.put(key, attrMbo.getString(key));
+                jsonObject.put(key + "_readonly", attrMbo.getMboValueData(key).isReadOnly());
+            }
+            jsonArray.add(jsonObject);
+              attrMbo = attributeSet.moveNext();
+
+        }
+        logger.debug(service.jsonarrayToString(jsonArray));
 
       this.attributes.forEach(function (attributeConfig) {
-          attribute = attributeSet.moveFirst();
+          /** @type {psdi.mbo.MboRemote} */
+          var attribute = attributeSet.moveFirst();
           while (attribute) {
               if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
                   break;
               }
               attribute = attributeSet.moveNext();
           }
+                logger.debug("attribute="+attributeConfig.attribute)
           if (attributeConfig.delete) {
               if (attribute != null) {
                   attribute.delete();
@@ -2287,141 +2296,186 @@ MaxObject.prototype.setMboValues = function (mbo) {
               if (!attribute) {
                   attribute = attributeSet.add();
                   attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
+                  logger.debug("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
               }
+              if (attribute.isNew()||!attributeConfig._updateIgnored) {
+                  logger.debug("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
 
-              attribute.setValue("REMARKS", attributeConfig.description);
-              attribute.setValue("TITLE", attributeConfig.title);
+                  attribute.setValue("REMARKS", attributeConfig.description);
+                  attribute.setValue("TITLE", attributeConfig.title);
 
-              if (typeof attributeConfig.class !== "undefined") {
-                  attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
-              }
-
-            //只有等同对象为空的时候才会设置type和length
-            if(typeof attributeConfig.sameAsAttribute === "undefined"&&typeof attributeConfig.sameAsObject === "undefined"){
-              if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
-                attributeConfig.type == null ? attribute.setValueNull("MAXTYPE") : attribute.setValue("MAXTYPE", attributeConfig.type);
-              }
-
-              if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
-                attribute.setValue("LENGTH", attributeConfig.length);
-              }
-
-              if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
-                attribute.setValue("SCALE", attributeConfig.scale);
-              }
-            }
-
-            if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
-                  attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
-              }
-
-              if (typeof attributeConfig.defaultValue !== "undefined") {
-                  attributeConfig.defaultValue == null
-                      ? attribute.setValueNull("DEFAULTVALUE")
-                      : attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-              }
-
-              if (typeof attributeConfig.domain !== "undefined") {
-                  attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
-              }
-
-              if (typeof attributeConfig.alias !== "undefined") {
-                  attributeConfig.alias == null ? attribute.setValueNull("ALIAS") : attribute.setValue("ALIAS", attributeConfig.alias);
-              }
-
-              if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
-                  attribute.setValue("PERSISTENT", typeof attributeConfig.presistent === "undefined" ? true : attributeConfig.presistent);
-              }
-
-              if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
-                  attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
-              }
-
-              if (typeof attributeConfig.column !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
-                  attributeConfig.column == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.column);
-              }
-
-              if (typeof attributeConfig.sameAsObject !== "undefined") {
-                  attributeConfig.sameAsObject == null
-                      ? attribute.setValueNull("SAMEASOBJECT")
-                      : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject);
-              }
-              if (typeof attributeConfig.sameAsAttribute !== "undefined") {
-                  attributeConfig.sameAsAttribute == null
-                      ? attribute.setValueNull("SAMEASATTRIBUTE")
-                      : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute);
-              }
-
-              if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
-                  attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
-              }
-
-              if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
-                  if (typeof attributeConfig.autonumber !== "undefined") {
-                      attributeConfig.autonumber == null ? attribute.setValueNull("AUTOKEYNAME") : attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
+                  if (typeof attributeConfig.class !== "undefined") {
+                      attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
                   }
-              }
 
-              if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
-                  if (typeof attributeConfig.searchType !== "undefined") {
-                      attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
+                  //只有等同对象为空的时候才会设置type和length
+                  if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
+                      if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
+                          attributeConfig.type == null ? attribute.setValueNull("MAXTYPE") : attribute.setValue("MAXTYPE", attributeConfig.type);
+                      }
+
+                      if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
+                          attribute.setValue("LENGTH", attributeConfig.length);
+                      }
+
+                      if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
+                          attribute.setValue("SCALE", attributeConfig.scale);
+                      }
                   }
-              }
 
-              if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
-                  attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
-              }
-
-              if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
-                  if (typeof attributeConfig.textDirection !== "undefined") {
-                      attributeConfig.textDirection == null
-                          ? attribute.setValueNull("TEXTDIRECTION")
-                          : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
+                  if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
+                      attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
                   }
-              }
 
-              if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
-                  attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
-              }
-
-              if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
-                  attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
-              }
-              if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
-                  if (typeof attributeConfig.sequenceName !== "undefined") {
-                      attributeConfig.sequenceName == null
-                          ? attribute.setValueNull("SEQUENCENAME")
-                          : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
+                  if (typeof attributeConfig.defaultValue !== "undefined") {
+                      if (attributeConfig.defaultValue == null) {
+                          attribute.setValueNull("DEFAULTVALUE")
+                          logger.debug("attributeConfig.defaultValue=null")
+                      } else {
+                          //如果是autokey,而且 AUTOKEYNAME 是只读的,则不设置默认值
+                          if (!("&AUTOKEY&".equalsIgnoreCase(attributeConfig.defaultValue) && attribute.getMboValueData("AUTOKEYNAME").isReadOnly())) {
+                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                          }
+                      }
                   }
-              }
 
-              if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
-                  if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
-                      attributeConfig.typeOfComplexExpression == null
-                          ? attribute.setValueNull("COMPLEXEXPRESSION")
-                          : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
+                  if (typeof attributeConfig.domain !== "undefined") {
+                      attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
                   }
-              }
 
-              if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
-                  attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
-              }
-              if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
-                  attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
-              }
-              if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
-                  attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
-              }
-              if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
-                  attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
-              } else {
-                  attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
+                  if (typeof attributeConfig.alias !== "undefined") {
+                      attributeConfig.alias == null ? attribute.setValueNull("ALIAS") : attribute.setValue("ALIAS", attributeConfig.alias);
+                  }
+
+                  if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
+                      attribute.setValue("PERSISTENT", typeof attributeConfig.presistent === "undefined" ? true : attributeConfig.presistent);
+                  }
+
+                  if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
+                      attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
+                  }
+
+                  if (typeof attributeConfig.column !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
+                      attributeConfig.column == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.column);
+                  }
+
+                  if (typeof attributeConfig.sameAsObject !== "undefined") {
+                      attributeConfig.sameAsObject == null
+                          ? attribute.setValueNull("SAMEASOBJECT")
+                          : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject);
+                  }
+                  if (typeof attributeConfig.sameAsAttribute !== "undefined") {
+                      attributeConfig.sameAsAttribute == null
+                          ? attribute.setValueNull("SAMEASATTRIBUTE")
+                          : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute);
+                  }
+
+                  if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
+                      attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
+                  }
+
+                  //   logger.debug(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
+                  if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
+                      if (typeof attributeConfig.autonumber !== "undefined") {
+                          if (attributeConfig.autonumber == null) {
+                              attribute.setValueNull("AUTOKEYNAME")
+                              // logger.debug("attributeConfig.autonumber=null")
+                          } else {
+                              attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
+                              logger.debug("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                          }
+                      } else {
+                          // logger.debug("attributeConfig.autonumber is undefined")
+                      }
+                  } else {
+                      if (attributeConfig.autonumber) {
+                          attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
+                          logger.debug("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                      }
+                      // logger.debug("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
+                  }
+
+                  if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
+                      if (typeof attributeConfig.searchType !== "undefined") {
+                          attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
+                      }
+                  }
+
+                  if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
+                      attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
+                  }
+
+                  if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
+                      if (typeof attributeConfig.textDirection !== "undefined") {
+                          attributeConfig.textDirection == null
+                              ? attribute.setValueNull("TEXTDIRECTION")
+                              : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
+                      }
+                  }
+
+                  if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
+                      attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
+                  }
+
+                  if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
+                      attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
+                  }
+                  if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
+                      if (typeof attributeConfig.sequenceName !== "undefined") {
+                          attributeConfig.sequenceName == null
+                              ? attribute.setValueNull("SEQUENCENAME")
+                              : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
+                      }
+                  }
+
+                  if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
+                      if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                          attributeConfig.typeOfComplexExpression == null
+                              ? attribute.setValueNull("COMPLEXEXPRESSION")
+                              : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
+                      }
+                  }
+
+                  if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
+                      attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
+                  }
+                  if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
+                      attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
+                  }
+                  if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
+                      attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
+                  }
+                  if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
+                      attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
+                  } else {
+                      attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
+                  }
               }
           }
       });
+
+
+       /** @type{com.ibm.json.java.JSONArray}*/
+        jsonArray = new JSONArray();
+        attrMbo = attributeSet.moveFirst();
+        while (attrMbo) {
+            /** @type{com.ibm.json.java.JSONObject}*/
+            var jsonObject = new JSONObject();
+            for (i = 0; i < keyAttributes.length; i++) {
+                /** @type{java.lang.String}*/
+                var key = keyAttributes[i];
+                jsonObject.put(key, attrMbo.getString(key));
+                jsonObject.put(key + "_readonly", attrMbo.getMboValueData(key).isReadOnly());
+            }
+            jsonArray.add(jsonObject);
+              attrMbo = attributeSet.moveNext();
+
+        }
+        logger.debug(service.jsonarrayToString(jsonArray));
     }
 
-if (this.indexes && Array.isArray(this.indexes) && this.indexes.length > 0) {
+    if (this.indexes && Array.isArray(this.indexes) && this.indexes.length > 0) {
         var indexSet = mbo.getMboSet("MAXSYSINDEXES");
         this.indexes.forEach(function (indexConfig) {
             index = indexSet.moveFirst();
@@ -2462,42 +2516,42 @@ if (this.indexes && Array.isArray(this.indexes) && this.indexes.length > 0) {
         });
     }
 
-  var ignoreRelationships = false;
-  //加上忽略关系参数
-  if (typeof request !== "undefined" &&  request.getQueryParam("ignoreRelationships") == "true") {
-    ignoreRelationships=true
-  }
-  if (this.relationships && Array.isArray(this.relationships) && this.relationships.length > 0&&!ignoreRelationships) {
-        var relationshipSet = mbo.getMboSet("MAXRELATIONSHIP");
-
-        this.relationships.forEach(function (relationshipConfig) {
-            relationship = relationshipSet.moveFirst();
-            while (relationship) {
-                if (relationship.getString("NAME").equalsIgnoreCase(relationshipConfig.relationship)) {
-                    break;
-                }
-                relationship = relationshipSet.moveNext();
-            }
-            if (relationshipConfig.delete) {
-                if (relationship != null) {
-                    relationship.delete();
-                }
-            } else if (!relationshipConfig.delete) {
-                if (!relationship) {
-                    relationship = relationshipSet.add();
-                    relationship.setValue("NAME", relationshipConfig.relationship);
-                    relationship.setValue("CHILD", relationshipConfig.child);
-                }
-
-                typeof relationshipConfig.remarks === "undefined" || relationshipConfig.remarks == null
-                    ? relationship.setValueNull("REMARKS")
-                    : relationship.setValue("REMARKS", relationshipConfig.remarks);
-                typeof relationshipConfig.whereClause === "undefined" || relationshipConfig.whereClause == null
-                    ? relationship.setValueNull("WHERECLAUSE")
-                    : relationship.setValue("WHERECLAUSE", relationshipConfig.whereClause);
-            }
-        });
+    var ignoreRelationships = false;
+    //加上忽略关系参数
+    if (typeof request !== "undefined" &&  request.getQueryParam("ignoreRelationships") == "true") {
+        ignoreRelationships=true
     }
+    if (this.relationships && Array.isArray(this.relationships) && this.relationships.length > 0&&!ignoreRelationships) {
+            var relationshipSet = mbo.getMboSet("MAXRELATIONSHIP");
+
+            this.relationships.forEach(function (relationshipConfig) {
+                relationship = relationshipSet.moveFirst();
+                while (relationship) {
+                    if (relationship.getString("NAME").equalsIgnoreCase(relationshipConfig.relationship)) {
+                        break;
+                    }
+                    relationship = relationshipSet.moveNext();
+                }
+                if (relationshipConfig.delete) {
+                    if (relationship != null) {
+                        relationship.delete();
+                    }
+                } else if (!relationshipConfig.delete) {
+                    if (!relationship) {
+                        relationship = relationshipSet.add();
+                        relationship.setValue("NAME", relationshipConfig.relationship);
+                        relationship.setValue("CHILD", relationshipConfig.child);
+                    }
+
+                    typeof relationshipConfig.remarks === "undefined" || relationshipConfig.remarks == null
+                        ? relationship.setValueNull("REMARKS")
+                        : relationship.setValue("REMARKS", relationshipConfig.remarks);
+                    typeof relationshipConfig.whereClause === "undefined" || relationshipConfig.whereClause == null
+                        ? relationship.setValueNull("WHERECLAUSE")
+                        : relationship.setValue("WHERECLAUSE", relationshipConfig.whereClause);
+                }
+            });
+        }
 };
 
 // Main function that is called when the script is invoked.
@@ -2579,7 +2633,7 @@ function deployConfig(config) {
  */
 function deployActions(actions) {
     if (!actions || !Array.isArray(actions)) {
-        throw new Error("The actions parameter is required and must be an array of action objects.");
+        throw new MXApplicationException("","The actions parameter is required and must be an array of action objects.");
     }
 
     actions.forEach(function (action) {
@@ -2648,7 +2702,7 @@ function deleteAction(action) {
  */
 function deployCommunicationTemplates(communicationTemplates) {
     if (!communicationTemplates || !Array.isArray(communicationTemplates)) {
-        throw new Error("The communicationTemplates parameter is required and must be an array of communication template objects.");
+        throw new MXApplicationException("","The communicationTemplates parameter is required and must be an array of communication template objects.");
     }
 
     communicationTemplates.forEach(function (communicationTemplate) {
@@ -2717,7 +2771,7 @@ function deleteCommunicationTemplate(communicationTemplate) {
  */
 function deployMaxObjects(maxObjects) {
     if (!maxObjects || !Array.isArray(maxObjects)) {
-        throw new Error("The maxObjects parameter is required and must be an array of Maximo objects.");
+        throw new MXApplicationException("","The maxObjects parameter is required and must be an array of Maximo objects.");
     }
 
     maxObjects.forEach(function (maxObject) {
@@ -2738,7 +2792,7 @@ function addOrUpdateMaxObject(maxObject) {
     logger.debug("Setting up the " + maxObject.object + " Maximo object.");
     var maxObjectSet;
     try {
-        maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECTCFG", MXServer.getMXServer().getSystemUserInfo());
+        maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECTCFG", userInfo);
         var maxObjectConfig = new MaxObject(maxObject);
         var sqlf = new SqlFormat("objectname = :1");
         sqlf.setObject(1, "MAXOBJECTCFG", "OBJECTNAME", maxObject.object);
@@ -2750,7 +2804,9 @@ function addOrUpdateMaxObject(maxObject) {
             maxObjectConfig.setMboValues(maxObjectSet.moveFirst());
         }
 
+        logger.info(maxObject.object+".save.before")
         maxObjectSet.save();
+        logger.info(maxObject.object+".save.after")
     } finally {
         __libraryClose(maxObjectSet);
     }
@@ -2788,7 +2844,7 @@ function deleteMaxObject(maxObject) {
  */
 function deployLaunchInContexts(launchInContexts) {
     if (!launchInContexts || !Array.isArray(launchInContexts)) {
-        throw new Error("The launchInContexts parameter is required and must be an array of launch in context objects.");
+        throw new MXApplicationException("","The launchInContexts parameter is required and must be an array of launch in context objects.");
     }
 
     launchInContexts.forEach(function (launchInContext) {
@@ -2857,7 +2913,7 @@ function deleteLaunchInContext(launchInContext) {
  */
 function deployInvocationChannels(invocationChannels) {
     if (!invocationChannels || !Array.isArray(invocationChannels)) {
-        throw new Error("The invocationChannels parameter is required and must be an array of external system objects.");
+        throw new MXApplicationException("","The invocationChannels parameter is required and must be an array of external system objects.");
     }
 
     invocationChannels.forEach(function (invocationChannel) {
@@ -2926,7 +2982,7 @@ function deleteInvocationChannel(invocationChannel) {
  */
 function deployEnterpriseServices(enterpriseServices) {
     if (!enterpriseServices || !Array.isArray(enterpriseServices)) {
-        throw new Error("The enterpriseServices parameter is required and must be an array of external system objects.");
+        throw new MXApplicationException("","The enterpriseServices parameter is required and must be an array of external system objects.");
     }
 
     enterpriseServices.forEach(function (enterpriseService) {
@@ -3013,7 +3069,7 @@ function deleteEnterpriseService(enterpriseService) {
  */
 function deployPublishChannels(publishChannels) {
     if (!publishChannels || !Array.isArray(publishChannels)) {
-        throw new Error("The publishChannels parameter is required and must be an array of external system objects.");
+        throw new MXApplicationException("","The publishChannels parameter is required and must be an array of external system objects.");
     }
 
     publishChannels.forEach(function (publishChannel) {
@@ -3098,7 +3154,7 @@ function deletePublishChannel(publishChannel) {
 
 function deployLoggers(loggers) {
     if (!loggers || !Array.isArray(loggers)) {
-        throw new Error("The loggers parameter is required and must be an array of MaxLogger objects.");
+        throw new MXApplicationException("","The loggers parameter is required and must be an array of MaxLogger objects.");
     }
 
     loggers.forEach(function (logger) {
@@ -3145,7 +3201,7 @@ function deleteLogger(logger) {
 
 function deployCronTasks(cronTasks) {
     if (!cronTasks || !Array.isArray(cronTasks)) {
-        throw new Error("The cronTasks parameter is required and must be an array of CronTask objects.");
+        throw new MXApplicationException("","The cronTasks parameter is required and must be an array of CronTask objects.");
     }
 
     cronTasks.forEach(function (cronTask) {
@@ -3238,7 +3294,7 @@ function addOrUpdateCronTask(cronTask) {
  */
 function deployEndPoints(endPoints) {
     if (!endPoints || !Array.isArray(endPoints)) {
-        throw new Error("The endPoints parameter is required and must be an array of external system objects.");
+        throw new MXApplicationException("","The endPoints parameter is required and must be an array of external system objects.");
     }
 
     endPoints.forEach(function (endPoint) {
@@ -3308,7 +3364,7 @@ function deleteEndPoint(endPoint) {
  */
 function deployExternalSystems(externalSystems) {
     if (!externalSystems || !Array.isArray(externalSystems)) {
-        throw new Error("The externalSystems parameter is required and must be an array of external system objects.");
+        throw new MXApplicationException("","The externalSystems parameter is required and must be an array of external system objects.");
     }
 
     externalSystems.forEach(function (externalSystem) {
@@ -3374,7 +3430,7 @@ function deleteExternalSystem(externalSystem) {
 
 function deployIntegrationObjects(integrationObjects) {
     if (!integrationObjects || !Array.isArray(integrationObjects)) {
-        throw new Error("The integrationObjects parameter is required and must be an array of integration object objects.");
+        throw new MXApplicationException("","The integrationObjects parameter is required and must be an array of integration object objects.");
     }
 
     logger.debug("Integration Objects: \n" + JSON.stringify(integrationObjects, null, 4));
@@ -3537,7 +3593,7 @@ function addOrUpdateIntegrationObject(integrationObject) {
  */
 function deployMessages(messages) {
     if (!messages || !Array.isArray(messages)) {
-        throw new Error("The messages parameter is required and must be an array of message objects.");
+        throw new MXApplicationException("","The messages parameter is required and must be an array of message objects.");
     }
 
     logger.debug("Deploying Messages: \n" + JSON.stringify(messages, null, 4));
@@ -3593,7 +3649,7 @@ function addOrUpdateMessage(message) {
  */
 function deleteMessage(message) {
     if (!message) {
-        throw new Error("The message parameter is required for the removeMessage function.");
+        throw new MXApplicationException("","The message parameter is required for the removeMessage function.");
     }
 
     var messageObj = new Message(message);
@@ -3624,7 +3680,7 @@ function deleteMessage(message) {
  */
 function deployProperties(properties) {
     if (!properties || !Array.isArray(properties)) {
-        throw new Error("The properties parameter is required and must be an array of property objects.");
+        throw new MXApplicationException("","The properties parameter is required and must be an array of property objects.");
     }
 
     properties.forEach(function (property) {
@@ -3678,7 +3734,7 @@ function deleteProperty(property) {
     logger.debug("deleteProperty function called, passed property " + property + " argument");
 
     if (!property) {
-        throw new Error("The property parameter is required for the deleteProperty function.");
+        throw new MXApplicationException("","The property parameter is required for the deleteProperty function.");
     }
 
     var maxPropSet;
