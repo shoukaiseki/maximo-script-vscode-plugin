@@ -54,6 +54,10 @@
       {
         "command": "maximoScript.pushToMaximo",
         "title": "Maximo Script: 推送到 Maximo"
+      },
+      {
+        "command": "maximoScript.pushXmlToMaximo",
+        "title": "Maximo Script: 推送 XML 到 Maximo"
       }
     ],
     "menus": {
@@ -61,6 +65,11 @@
         {
           "command": "maximoScript.pushToMaximo",
           "when": "editorLangId == javascript",
+          "group": "navigation@1"
+        },
+        {
+          "command": "maximoScript.pushXmlToMaximo",
+          "when": "editorLangId == xml",
           "group": "navigation@1"
         }
       ]

@@ -116,3 +116,14 @@ curl --request POST \
 
 # 5
 日志级别查询中修改单个的别清空整个列表啊,返回的信息中只有一条记录器级别信息,遍历整个列表的list,更新记录器名称相同的那条记录即可
+
+
+
+# 6
+编辑器打开xml文件加个右键菜单, 应用xml推送到maximo,与js不同的处理逻辑
+
+xml文件是直接调用
+```
+POST /maximo/api/script/SHARPTREE.AUTOSCRIPT.SCREENS
+```
+文件内容放到body里面

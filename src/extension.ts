@@ -174,6 +174,60 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(pushToMaximoCommand);
+
+  // 注册推送 XML 到 Maximo 命令
+  const pushXmlToMaximoCommand = vscode.commands.registerCommand('maximoScript.pushXmlToMaximo', async () => {
+    try {
+      const editor = vscode.window.activeTextEditor;
+      
+      if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+      }
+      
+      const document = editor.document;
+      
+      // 只处理 XML 文件
+      if (document.languageId !== 'xml') {
+        vscode.window.showErrorMessage('只能在 XML 文件中使用此功能');
+        return;
+      }
+      
+      // 获取文件内容
+      const xmlContent = document.getText();
+      const fileName = document.fileName;
+      
+      logger.info(`[PushXmlToMaximo] 开始推送 XML: ${fileName}`);
+      
+      // 显示进度提示
+      vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `正在推送 XML 到 Maximo`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: '正在连接 Maximo...' });
+          
+          // 调用 ConfigPanel 的静态方法推送 XML
+          const success = await ConfigPanel.pushXmlToMaximo(xmlContent, logger);
+
+          if (success) {
+            logger.info(`[PushXmlToMaximo] ✅ XML 推送成功`);
+            vscode.window.showInformationMessage(`XML 已成功推送到 Maximo`);
+          } else {
+            logger.error(`[PushXmlToMaximo] ❌ 推送失败`);
+            vscode.window.showErrorMessage(`推送到 Maximo 失败`);
+          }
+        }
+      );
+    } catch (error: any) {
+      console.log(error);
+      logger.error(`[PushXmlToMaximo] ❌ 推送失败: ${error.message}`);
+      vscode.window.showErrorMessage(`推送到 Maximo 失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(pushXmlToMaximoCommand);
 }
 
 export function deactivate() {

@@ -704,6 +704,32 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
 
+  public static async checkConfig() {
+      // 从配置中读取服务器信息
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      const aliasName = config.get<string>('aliasName', '');
+      const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
+      
+      if (!serverUrl) {
+        logger.error('[checkConfig] 服务器地址未配置');
+        return false;
+      }
+      
+      if (authType === 'maxauth' && !maxauth) {
+        logger.error('[checkConfig] MAXAUTH 未配置');
+        return false;
+      }
+      
+      if (authType === 'apikey' && !apiKey) {
+        logger.error('[checkConfig] API Key 未配置');
+        return false;
+      }
+      return true;
+  }
 
   /**
    * 推送脚本到 Maximo（公共静态方法，供 extension.ts 调用）
@@ -729,26 +755,16 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const aliasName = config.get<string>('aliasName', '');
       const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
       
-      if (!serverUrl) {
-        logger.error('[_deployScript] 服务器地址未配置');
-        return false;
+      if(!this.checkConfig()){
+        return false
       }
-      
-      if (authType === 'maxauth' && !maxauth) {
-        logger.error('[_deployScript] MAXAUTH 未配置');
-        return false;
-      }
-      
-      if (authType === 'apikey' && !apiKey) {
-        logger.error('[_deployScript] API Key 未配置');
-        return false;
-      }
-
+      var historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
       // 步骤0: 保存历史记录（失败只记录日志，继续执行）
       let version: string | undefined;
       try {
         logger.debug(`[pushScriptToMaximo] 正在保存历史记录: ${autoscript}, filePath: ${filePath || '未提供'}, storagePath: ${scriptStoragePath}`);
-        version = await ConfigPanel._saveScriptHistoryStatic(autoscript, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+        historyResult = await ConfigPanel._saveScriptHistoryStatic(autoscript, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+        version = historyResult.version;
         logger.info(`[pushScriptToMaximo] 获取版本号: ${version}`);
       } catch (historyError: any) {
         logger.error(`[pushScriptToMaximo] 保存历史记录失败: ${historyError.message}`);
@@ -799,6 +815,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         deployBody['spi:version'] = version;
         logger.info(`[pushScriptToMaximo] 推送脚本时包含版本号: ${version}`);
       }
+      if (historyResult&&historyResult.logLevel!=undefined&&historyResult.logLevel!=null&&historyResult.logLevel!='') {
+        deployBody['spi:loglevel'] = historyResult.logLevel;
+      }
       
       // 步骤4: 发送请求
       const deployResult = await httpRequestToMaximo({
@@ -827,6 +846,45 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 推送 XML 文件到 Maximo（静态方法，供 extension.ts 调用）
+   */
+  public static async pushXmlToMaximo(
+    xmlContent: string,
+    logger: vscode.LogOutputChannel
+  ): Promise<boolean> {
+    try {
+      if(!this.checkConfig()){
+        return false
+      }
+
+      logger.info('[pushXmlToMaximo] 开始推送 XML...');
+
+      // 直接调用 SHARPTREE.AUTOSCRIPT.SCREENS API
+      const deployUrl = `api/script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      
+      const deployResult = await httpRequestToMaximo({
+        url: deployUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml'
+        },
+        data: xmlContent
+      });
+
+      if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
+        logger.info('[pushXmlToMaximo] ✅ XML 推送成功');
+        return true;
+      } else {
+        logger.error(`[pushXmlToMaximo] ❌ 部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`);
+        return false;
+      }
+    } catch (error: any) {
+      logger.error(`[pushXmlToMaximo] ❌ 推送失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
    * 保存脚本历史记录（静态版本，供 extension.ts 调用）
    */
   private static async _saveScriptHistoryStatic(
@@ -840,7 +898,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     scriptStoragePath: string,
     logger: vscode.LogOutputChannel,
     filePath?: string  // 可选：脚本文件的完整路径
-  ): Promise<string> {
+  ): Promise<{ version: string; logLevel: any }> {
     let version: string = '1.0.1'; // 默认版本
     
     try {
@@ -856,13 +914,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
           logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
-          return '';
+          return { version: '', logLevel: undefined };
         }
         const workspaceRoot = workspaceFolders[0].uri.fsPath;
         jsonFilePath = path.join(workspaceRoot, scriptStoragePath || 'masscript', `${autoscript}.json`);
         logger.debug(`[_saveScriptHistory] 使用配置的存储路径: ${scriptStoragePath}`);
       }
 
+      var loglevel = undefined;
       logger.debug(`[_saveScriptHistory] 正在检查 JSON 文件: ${jsonFilePath}`);
       // 检查 JSON 文件是否存在
       if (fs.existsSync(jsonFilePath)) {
@@ -870,6 +929,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
           const jsonData = JSON.parse(fileContent);
+          if(jsonData&&jsonData.loglevel!==undefined&&jsonData.loglevel!==null&&jsonData.loglevel!==''){
+            loglevel = jsonData.loglevel
+          }
           
           if (jsonData.version) {
             version = jsonData.version;
@@ -936,7 +998,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[_saveScriptHistory] 保存历史记录异常: ${error.message}`);
       throw error; // 重新抛出异常，让调用者处理
     }
-    return version;
+    return {
+      version: version,
+      logLevel: loglevel
+    };
   }
 
   /**

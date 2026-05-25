@@ -112,7 +112,7 @@
 		"description": "Try-catch block with error logging"
 	},
 	"Maximo Variable Declaration with JSDoc": {
-		"prefix": ["varjsdoc", "var with jsdoc"],
+		"prefix": ["varjsdoc", "var with jsdoc","jsdoc variable"],
 		"body": [
 			"/** @type {${1:psdi.mbo.MboRemote}} */",
 			"var ${2:variableName} = ${3:mbo};"
