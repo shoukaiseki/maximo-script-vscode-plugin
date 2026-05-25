@@ -259,6 +259,131 @@ apiKey: <your_api_key>
 }
 ```
 
+#### 导入域（Domain）数据
+
+**功能说明**：批量创建或更新 Maximo 域（Domain），支持 ALN、NUMERIC、SYNONYM 等类型。
+
+**接口地址：**
+```
+POST http://localhost:9080/maximo/api/script/SKS_DEPLOY_DOMAIN?lean=1
+```
+
+**请求头：**
+```
+Content-Type: application/json
+apiKey: <your_api_key>
+```
+
+**请求体格式：**
+```json
+[
+  {
+    "domainid": "TEST_DOMAIN_TYPE",
+    "domaintype": "ALN",
+    "description": "测试业务类型",
+    "maxtype": "UPPER",
+    "internal": 0,
+    "length": 30,
+    "nevercache": false,
+    "alndomain": [
+      {
+        "value": "TYPE_A",
+        "description": "类型A"
+      },
+      {
+        "value": "TYPE_B",
+        "description": "类型B"
+      },
+      {
+        "value": "TYPE_C",
+        "description": "类型C"
+      }
+    ]
+  },
+  {
+    "domainid": "TEST_STATUS",
+    "domaintype": "ALN",
+    "description": "测试状态域",
+    "maxtype": "UPPER",
+    "internal": 0,
+    "length": 20,
+    "nevercache": false,
+    "alndomain": [
+      {
+        "value": "NEW",
+        "description": "新建"
+      },
+      {
+        "value": "IN_PROGRESS",
+        "description": "处理中"
+      },
+      {
+        "value": "COMPLETED",
+        "description": "已完成"
+      },
+      {
+        "value": "CANCELLED",
+        "description": "已取消"
+      }
+    ]
+  },
+  {
+    "_delete": true,
+    "domainid": "OLD_DOMAIN_TO_DELETE",
+    "domaintype": "ALN",
+    "description": "要删除的旧域"
+  }
+]
+```
+
+**字段说明：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `domainid` | String | ✅ | 域的唯一标识符 |
+| `domaintype` | String | ✅ | 域类型：`ALN`（字母数字）、`NUMERIC`（数字）、`SYNONYM`（同义词） |
+| `description` | String | ✅ | 域的描述 |
+| `maxtype` | String | ❌ | 数据类型：`UPPER`（大写）、`LOWER`（小写）、`MAXTYPE`（保持原样） |
+| `internal` | Number | ❌ | 是否内部域：`0`（否）、`1`（是），默认 `0` |
+| `length` | Number | ❌ | 字段长度，仅 ALN 类型需要 |
+| `nevercache` | Boolean | ❌ | 是否永不缓存，默认 `false` |
+| `alndomain` | Array | ⚠️ | ALN 类型的值列表，包含 `value` 和 `description` |
+| `numericdomain` | Array | ⚠️ | NUMERIC 类型的值列表，包含 `value` 和 `description` |
+| `synonymdomain` | Array | ⚠️ | SYNONYM 类型的值列表，包含 `value`、`description` 和 `maxvalue` |
+| `_delete` | Boolean | ❌ | 设置为 `true` 时删除该域 |
+
+**注意事项：**
+
+1. **数组格式**：请求体必须是 JSON 数组，可以一次性导入多个域
+2. **域类型匹配**：确保 `domaintype` 与对应的子数组匹配（ALN → alndomain，NUMERIC → numericdomain，SYNONYM → synonymdomain）
+3. **删除操作**：设置 `_delete: true` 可以删除指定的域，其他字段可选
+4. **更新操作**：如果域已存在，会自动更新；不存在则创建
+5. **幂等性**：多次执行相同请求不会产生重复数据
+
+**cURL 示例：**
+```bash
+curl --request POST \
+  --url 'http://localhost:9080/maximo/api/script/SKS_DEPLOY_DOMAIN?lean=1' \
+  --header 'Content-Type: application/json' \
+  --header 'MAXAUTH: bWF4YWRtaW46MTIzNDU2' \
+  --data '[
+  {
+    "domainid": "TEST_PRIORITY",
+    "domaintype": "ALN",
+    "description": "优先级测试域",
+    "maxtype": "UPPER",
+    "internal": 0,
+    "length": 10,
+    "nevercache": false,
+    "alndomain": [
+      {"value": "HIGH", "description": "高优先级"},
+      {"value": "MEDIUM", "description": "中优先级"},
+      {"value": "LOW", "description": "低优先级"}
+    ]
+  }
+]'
+```
+
 ### 配置文件说明
 
 #### AUTOSCRIPT_PACKAGEPATH_API_CONFIG.json
@@ -470,4 +595,4 @@ graph LR
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-21 | 版本：1.2.4*
+*最后更新：2026-05-25 | 版本：1.2.5*

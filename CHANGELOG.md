@@ -5,7 +5,7 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [1.2.5] - 2026-05-23
+## [1.2.5] - 2026-05-25
 
 ### 新增功能
 
@@ -36,7 +36,53 @@
   - JSON 格式读写
   - 重启后保留配置
 
+#### 域（Domain）导入功能
+- ✨ 新增 SKS_DEPLOY_DOMAIN API 接口文档
+  - 支持批量创建或更新 Maximo 域
+  - 支持 ALN、NUMERIC、SYNONYM 等多种域类型
+  - 支持删除操作（`_delete: true`）
+  - 幂等性保证，多次执行不会产生重复数据
+
+- ✨ HELP.md 添加详细的域导入使用说明
+  - 完整的 JSON 请求体示例
+  - 字段说明表格
+  - cURL 命令示例
+  - 注意事项和最佳实践
+
 ### 改进
+
+#### TypeScript 错误修复
+- 🔧 修复 httpRequest.ts 中的类型错误
+  - **问题 1**：绑定模式参数在实现签名中不能为可选参数 (ts(2463))
+    - 将解构赋值从函数参数移到函数体内
+    - 保持 HttpRequestOptions 接口的可选参数定义
+  - **问题 2**：增强错误消息解析
+    - 支持解析 `Error.message` 格式
+    - 支持解析 `oslc:Error.oslc:message` 格式
+    - 提供更详细的服务器错误信息
+
+#### 推送错误消息传递优化
+- 🔧 完善脚本和 XML 推送的错误处理
+  - 修改返回类型为 `{ success: boolean; errorMessage?: string }`
+  - 在所有错误情况下发送 Webview 消息
+  - 前端显示错误提示（红色警告框，5秒后自动消失）
+  - VSCode 通知弹窗显示详细错误信息
+
+- 🔧 ConfigPanel 静态方法增强
+  - 添加 `sendMessageToWebview()` 静态方法
+  - pushScriptToMaximo 和 pushXmlToMaximo 支持向前端发送消息
+  - 消息类型：`pushScriptError`、`pushXmlError`、`pushXmlSuccess`
+
+- 🔧 extension.ts 调用方更新
+  - 使用新的返回值格式处理推送结果
+  - 提取 errorMessage 并显示给用户
+  - 改进错误提示信息
+
+- 🔧 App.tsx 前端消息监听
+  - 添加 pushScriptError 消息处理
+  - 添加 pushXmlError 消息处理
+  - 添加 pushXmlSuccess 消息处理
+  - 使用 connectionResult 状态显示错误信息
 
 #### 用户体验优化
 - 🔧 智能数据更新策略
@@ -99,6 +145,7 @@
 
 ### 文档更新
 - 📝 HELP.md 添加 Skills 文档链接
+- 📝 HELP.md 添加域导入功能详细说明
 - 📝 tmp/LOG_FEATURE_IMPLEMENTATION.md - 实施步骤文档
 - 📝 tmp/LOG_FEATURE_TEST.md - 测试指南
 

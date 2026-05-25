@@ -191,6 +191,7 @@ export interface HttpRequestOptions {
   maxauth?: string;
   apiKey?: string;
   apiType?: string;
+  logger?: vscode.LogOutputChannel;
 }
 
 export interface HttpResponse {
@@ -228,14 +229,16 @@ export interface HttpResponse {
  * ```
  * 
  */
-export async function httpRequestToMaximo({
-  method = 'GET',
-  url,
-  headers = {},
-  data,
-  noAuth = false,
-  timeout = 10000,
-}: HttpRequestOptions): Promise<HttpResponse> {
+export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<HttpResponse> {
+  const {
+    method = 'GET',
+    url,
+    headers = {},
+    data,
+    noAuth = false,
+    timeout = 10000,
+    logger,
+  } = options;
   try {
     const axios = require('axios');
     const config = vscode.workspace.getConfiguration('maximoScript');
@@ -335,6 +338,10 @@ export async function httpRequestToMaximo({
         console.log(`[HTTP Response] 缓存 JSESSIONID: ${globalJSESSIONID}`);
       }
     }
+    if(!(response.status>=200 && response.status<300)){
+      if(logger!=null)logger.error('[HTTP Response Error] 非 2xx 状态码:', response);
+      console.error('[HTTP Response Error] 非 2xx 状态码:', response);
+    }
     
     return {
       status: response.status,
@@ -356,6 +363,14 @@ export async function httpRequestToMaximo({
         errorMessage += ` - ${error.response.data.errorMsg}`;
       }
       console.error('[HTTP Request Error] 响应数据:', error.response.data);
+      if(error.response.data){
+        if(error.response.data['Error']&&error.response.data['Error']['message']){
+          throw new Error(error.response.data['Error']['message']);
+        }
+        if(error.response.data['oslc:Error']&&error.response.data['oslc:Error']['oslc:message']){
+          throw new Error(error.response.data['oslc:Error']['oslc:message']);
+        }
+      }
     } else if (error.request) {
       // 请求已发送但没有收到响应
       errorMessage = '无法连接到服务器，请检查网络和服务器地址';

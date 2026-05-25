@@ -115,6 +115,24 @@ const App: React.FC = () => {
           // 3秒后自动清除结果
           setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
           break;
+        case 'pushScriptError':
+          // 处理脚本推送错误
+          setConnectionResult({ type: 'error', text: `脚本推送失败: ${message.error}` });
+          setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
+          console.error('[React Webview] 脚本推送错误:', message.error);
+          break;
+        case 'pushXmlError':
+          // 处理 XML 推送错误
+          setConnectionResult({ type: 'error', text: `XML 推送失败: ${message.error}` });
+          setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
+          console.error('[React Webview] XML 推送错误:', message.error);
+          break;
+        case 'pushXmlSuccess':
+          // 处理 XML 推送成功
+          setConnectionResult({ type: 'success', text: message.message || 'XML 推送成功' });
+          setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
+          console.log('[React Webview] XML 推送成功:', message.message);
+          break;
         case 'updateToolboxOutput':
           // 更新工具箱输出日志
           setToolboxOutput(prev => prev + message.text + '\n');

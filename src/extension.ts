@@ -156,14 +156,15 @@ export function activate(context: vscode.ExtensionContext) {
           progress.report({ message: '正在连接 Maximo...' });
           
           // 调用 ConfigPanel 的静态方法，传递文件路径
-          const success = await ConfigPanel.pushScriptToMaximo(scriptName, source, logger, fileName);
+          const result = await ConfigPanel.pushScriptToMaximo(scriptName, source, logger, fileName);
 
-          if (success) {
+          if (result.success) {
             logger.info(`[PushToMaximo] ✅ 脚本推送成功: ${scriptName}`);
             vscode.window.showInformationMessage(`脚本 "${scriptName}" 已成功推送到 Maximo`);
           } else {
-            logger.error(`[PushToMaximo] ❌ 推送失败: ${scriptName}`+success);
-            vscode.window.showErrorMessage(`推送到 Maximo 失败: ${scriptName}`);
+            logger.error(`[PushToMaximo] ❌ 推送失败: ${scriptName}`);
+            const errorMsg = result.errorMessage || '未知错误';
+            vscode.window.showErrorMessage(`推送到 Maximo 失败: ${errorMsg}`);
           }
         }
       );
@@ -210,14 +211,15 @@ export function activate(context: vscode.ExtensionContext) {
           progress.report({ message: '正在连接 Maximo...' });
           
           // 调用 ConfigPanel 的静态方法推送 XML
-          const success = await ConfigPanel.pushXmlToMaximo(xmlContent, logger);
+          const result = await ConfigPanel.pushXmlToMaximo(xmlContent, logger);
 
-          if (success) {
+          if (result.success) {
             logger.info(`[PushXmlToMaximo] ✅ XML 推送成功`);
             vscode.window.showInformationMessage(`XML 已成功推送到 Maximo`);
           } else {
             logger.error(`[PushXmlToMaximo] ❌ 推送失败`);
-            vscode.window.showErrorMessage(`推送到 Maximo 失败`);
+            const errorMsg = result.errorMessage || '未知错误';
+            vscode.window.showErrorMessage(`推送到 Maximo 失败: ${errorMsg}`);
           }
         }
       );

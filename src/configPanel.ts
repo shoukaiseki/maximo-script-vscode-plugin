@@ -14,6 +14,15 @@ export class ConfigPanel {
   private _disposables: vscode.Disposable[] = [];
   private readonly _extensionUri: vscode.Uri;
 
+  /**
+   * 向 Webview 发送消息（静态方法）
+   */
+  private static sendMessageToWebview(command: string, data?: any) {
+    if (ConfigPanel.currentPanel && ConfigPanel.currentPanel._panel) {
+      ConfigPanel.currentPanel._panel.webview.postMessage({ command, ...data });
+    }
+  }
+
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
     this._extensionUri = extensionUri;
@@ -732,19 +741,22 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
-   * 推送脚本到 Maximo（公共静态方法，供 extension.ts 调用）
+   * 推送脚本到 Maximo（公共静态方法,供 extension.ts 调用）
+   * @returns { success: boolean, errorMessage?: string }
    */
   public static async pushScriptToMaximo(
     autoscript: string,
     source: string,
     logger: vscode.LogOutputChannel,
     filePath?: string  // 可选：脚本文件的完整路径
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; errorMessage?: string }> {
     logger.debug(`[pushScriptToMaximo] ------------------- 开始推送脚本: ${autoscript} -------------------`);
     try {
       if (!autoscript || !source) {
-        logger.error('[_deployScript] autoscript, source 缺少必要参数');
-        return false;
+        const errorMsg = '[_deployScript] autoscript, source 缺少必要参数';
+        logger.error(errorMsg);
+        ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
       }
       // 从配置中读取服务器信息
       const config = vscode.workspace.getConfiguration('maximoScript');
@@ -756,7 +768,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
       
       if(!this.checkConfig()){
-        return false
+        const errorMsg = '配置不完整，请先在配置面板中设置服务器信息';
+        logger.error(errorMsg);
+        ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
       }
       var historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
       // 步骤0: 保存历史记录（失败只记录日志，继续执行）
@@ -782,13 +797,17 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       if (checkResult.status === 200 && checkResult.data) {
         const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
         if (memberCount === 0) {
-        logger.error('脚本不存在,需要先新建,或者导入');
-        return false;
+        const errorMsg = '脚本不存在,需要先新建,或者导入';
+        logger.error(errorMsg);
+        ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
         }
       }else{
         console.log(checkResult);
         logger.info(`[PushScript] 检查脚本结果: ${JSON.stringify(checkResult.data)}`);
-        return false;
+        const errorMsg = `检查脚本失败: ${checkResult.status}`;
+        ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
       }
       
       // 步骤2: 决定使用创建还是更新
@@ -830,37 +849,45 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       });
       if(deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204){
-        return true
+        return { success: true }
       }else{
         console.error(deployResult);
-        logger.error(`[pushScriptToMaximo] 部署失败: ${deployResult.status} ${deployResult.data}`);
-        return false
+        const errorMsg = `部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`;
+        logger.error(`[pushScriptToMaximo] ❌ ${errorMsg}`);
+        ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg }
       }
       
       
     } catch (error: any) {
       console.log(error);
-      logger.error(`[_deployScript] 部署失败: ${error.message}`);
-      return false;
+      const errorMsg = `[_deployScript] 部署失败: ${error.message}`;
+      logger.error(errorMsg);
+      ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
+      return { success: false, errorMessage: errorMsg };
     }
   }
 
   /**
    * 推送 XML 文件到 Maximo（静态方法，供 extension.ts 调用）
+   * @returns { success: boolean, errorMessage?: string }
    */
   public static async pushXmlToMaximo(
     xmlContent: string,
     logger: vscode.LogOutputChannel
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
       if(!this.checkConfig()){
-        return false
+        const errorMsg = '配置不完整，请先在配置面板中设置服务器信息';
+        logger.error(errorMsg);
+        ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
       }
 
       logger.info('[pushXmlToMaximo] 开始推送 XML...');
 
       // 直接调用 SHARPTREE.AUTOSCRIPT.SCREENS API
-      const deployUrl = `api/script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      const deployUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
       
       const deployResult = await httpRequestToMaximo({
         url: deployUrl,
@@ -868,19 +895,26 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         headers: {
           'Content-Type': 'application/xml'
         },
-        data: xmlContent
+        data: xmlContent,
+        logger: logger
       });
 
       if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
         logger.info('[pushXmlToMaximo] ✅ XML 推送成功');
-        return true;
+        ConfigPanel.sendMessageToWebview('pushXmlSuccess', { message: 'XML 推送成功' });
+        return { success: true };
       } else {
-        logger.error(`[pushXmlToMaximo] ❌ 部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`);
-        return false;
+        const errorMsg = `[pushXmlToMaximo] ❌ 部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`;
+        logger.error(errorMsg);
+        ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
       }
     } catch (error: any) {
-      logger.error(`[pushXmlToMaximo] ❌ 推送失败: ${error.message}`);
-      return false;
+      logger.error(error)
+      const errorMsg = `[pushXmlToMaximo] ❌ 推送失败: ${error.message}`;
+      logger.error(errorMsg);
+      ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
+      return { success: false, errorMessage: errorMsg };
     }
   }
 
