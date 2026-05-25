@@ -2332,11 +2332,8 @@ MaxObject.prototype.setMboValues = function (mbo) {
                           attribute.setValueNull("DEFAULTVALUE")
                           logger.debug("attributeConfig.defaultValue=null")
                       } else {
-                          //如果是autokey,而且 AUTOKEYNAME 是只读的,则不设置默认值
-                          if (!("&AUTOKEY&".equalsIgnoreCase(attributeConfig.defaultValue) && attribute.getMboValueData("AUTOKEYNAME").isReadOnly())) {
-                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
-                          }
+                          attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                          logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
                       }
                   }
 
