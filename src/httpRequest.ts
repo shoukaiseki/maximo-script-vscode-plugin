@@ -410,3 +410,11 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
   }
 }
 
+/**
+ * 清除全局 JSESSIONID Cookie
+ */
+export function clearJSESSIONID(): void {
+  globalJSESSIONID = null;
+  console.log('[HTTP Request] 已清除 JSESSIONID Cookie');
+}
+

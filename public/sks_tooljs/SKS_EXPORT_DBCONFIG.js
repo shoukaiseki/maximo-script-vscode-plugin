@@ -26,8 +26,9 @@ var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName(
 /** @type {psdi.webclient.system.session.WebClientSession} */
 WebClientSession = Java.type("psdi.webclient.system.session.WebClientSession");
 
-/** @type {psdi.webclient.system.session.WebClientSession} */
-var masSession = service.webclientsession();
+//脚本中获取webclientsession为null
+// /** @type {psdi.webclient.system.session.WebClientSession} */
+// var masSession = service.webclientsession();
 commonsUtils=service.invokeScript("SKS_COMMONS_UTILS");
 
 /** @type {psdi.security.UserInfo} */

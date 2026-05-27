@@ -147,7 +147,9 @@ const App: React.FC = () => {
           break;
         case 'pushXmlError':
           // 处理 XML 推送错误
-          setConnectionResult({ type: 'error', text: `XML 推送失败: ${message.error}` });
+          // 如果 useHtml 为 true，直接使用 HTML 格式；否则添加前缀
+          const errorText = message.useHtml ? message.error : `XML 推送失败: ${message.error}`;
+          setConnectionResult({ type: 'error', text: errorText });
           setTimeout(() => setConnectionResult({ type: null, text: '' }), 5000);
           console.error('[React Webview] XML 推送错误:', message.error);
           break;

@@ -18,9 +18,9 @@ export class ConfigPanel {
   /**
    * 向 Webview 发送消息（静态方法）
    */
-  private static sendMessageToWebview(command: string, data?: any) {
+  private static sendMessageToWebview(command: string, data?: any, useHtml: boolean = false) {
     if (ConfigPanel.currentPanel && ConfigPanel.currentPanel._panel) {
-      ConfigPanel.currentPanel._panel.webview.postMessage({ command, ...data });
+      ConfigPanel.currentPanel._panel.webview.postMessage({ command, useHtml, ...data });
     }
   }
 
@@ -405,7 +405,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.info('[TestConnection] 开始发送 HTTP 请求...');
       
       // 使用全局 httpRequestToMaximo 方法（会从配置中读取）
-      const { httpRequestToMaximo } = require('./extension');
+      const { httpRequestToMaximo, clearJSESSIONID } = require('./extension');
+      
+      // 先清除 Cookie，避免使用旧的会话信息
+      clearJSESSIONID();
+      logger.info('[TestConnection] 已清除 JSESSIONID Cookie');
       
       const response = await httpRequestToMaximo({
         method: 'GET',
@@ -1026,6 +1030,24 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         data: xmlContent,
         logger: logger
       });
+      if(deployResult.data&&deployResult.data.status&&deployResult.data.status==='error'){
+        const errorMsgHtml = [`[pushXmlToMaximo] ❌ 部署失败: ${deployResult.data.status} ${JSON.stringify(deployResult.data.message)}
+`,`
+💡 提示：
+`,`
+1. 推送应用 XML 需要使用 MAXAUTH 授权方式
+`,`
+2. 如果之前使用过 API Key，请点击"测试连接"清除 Cookie 缓存`];
+        const errorMsgText = `[pushXmlToMaximo] ❌ 部署失败: ${deployResult.data.status} ${JSON.stringify(deployResult.data.message)}
+
+💡 提示：
+1. 推送应用 XML 需要使用 MAXAUTH 授权方式
+2. 如果之前使用过 API Key，请点击"测试连接"清除 Cookie 缓存`;
+        logger.error(errorMsgText);
+        // 前端 Webview 使用 HTML 格式，后端通知使用纯文本格式
+        ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsgHtml }, true);
+        return { success: false, errorMessage: errorMsgText };
+      }
 
       if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
         logger.info('[pushXmlToMaximo] ✅ XML 推送成功');

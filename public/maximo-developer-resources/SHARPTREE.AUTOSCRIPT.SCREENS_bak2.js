@@ -5,16 +5,12 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 logger.setLevel(Level.DEBUG);
 logger.info("----------------Starting execution of script " + service.getScriptName());
-logger.info("-------------webclientsession=" + service.webclientsession())
+// logger.info("-------------webclientsession=" + service.webclientsession())
 
 RESTRequest = Java.type("com.ibm.tivoli.oslc.RESTRequest");
 
-/** @type {psdi.util.MXSession} */
-MXSession = Java.type("psdi.util.MXSession");
-
 RuntimeException = Java.type("java.lang.RuntimeException");
 System = Java.type("java.lang.System");
-System.out.println("----------------Starting execution of script " + service.getScriptName());
 
 URLDecoder = Java.type("java.net.URLDecoder");
 StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
@@ -34,6 +30,7 @@ try {
     logger.error(ignored);
 }
 
+MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 
 // MAS removed support for legacy JDOM, switch to JDOM2 and then fall back to legacy JDOM for older versions.
 try {
@@ -55,7 +52,8 @@ try {
 
 StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
-logger.setLevel(Level.DEBUG);
+
+var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
 main();
 
@@ -85,8 +83,6 @@ function main() {
                         response.status = "success";
                         response.screenNames = presentations;
                         responseBody = JSON.stringify(response);
-                    } catch (error) {
-                        logger.error(error);
                     } finally {
                         _close(presentationSet);
                     }
@@ -136,36 +132,10 @@ function main() {
                 new XMLOutputter(Format.getPrettyFormat()).output(screen, writer);
 
                 if (typeof PresentationLoader !== "undefined" && typeof WebClientSessionFactory !== "undefined") {
-                    // var loader = new PresentationLoader();
-                    // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
-                    // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
-
-                    logger.info("request.getMXSession()=" + request.getMXSession());
                     var loader = new PresentationLoader();
                     var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
 
-
-                    // logger.info("-------------webclientsession="+service.webclientsession())
-                    // //wcs = service.webclientsession()
-                    // if (wcs.getMXSession() == null) {
-                    //     logger.error("wcs.MXSession is null");
-                    //     var session = request.getHttpServletRequest().getSession();
-                    //     var mxSession = session.getAttribute("MXSession");
-                    //     logger.info("mxSession=" + mxSession);
-                    //     if (mxSession == null) {
-                    //         mxSession = request.getMXSession();
-                    //         if (mxSession == null) {
-                    //             mxSession = MXSession.getNewSession();
-                    //             logger.info("newSession=" + mxSession);
-                    //         }
-                    //         session.setAttribute("MXSession", mxSession);
-                    //     }
-                    //     logger.error("wcs.MXSession is null");
-                    // }
-
-
-                    logger.info("Importing application " + app + " through PresentationLoader.");
                     loader.importApp(wcs, writer.toString());
                 } else {
                     var maxPresentationSet;
@@ -184,8 +154,6 @@ function main() {
                         } else {
                             throw new MXApplicationException("designer", "noapp", Java.to([app.toUpperCase()], "java.lang.String[]"));
                         }
-                    } catch (error) {
-                        logger.error(error);
                     } finally {
                         _close(maxPresentationSet);
                     }
@@ -193,14 +161,9 @@ function main() {
                 response.status = "success";
                 responseBody = JSON.stringify(response);
             } else {
-                throw new MXApplicationException("only_get_supported", "Only the HTTP GET method is supported when extracting automation scripts.");
+                throw new ScriptError("only_get_supported", "Only the HTTP GET method is supported when extracting automation scripts.");
             }
         } catch (error) {
-            if (error instanceof MXApplicationException){
-                throw error;
-            }
-            logger.error("----------");
-            logger.error(error);
             response.status = "error";
             // ensure the error is logged to the Maximo logs
             Java.type("java.lang.System").out.println(error);
@@ -213,12 +176,10 @@ function main() {
             } else if (error instanceof Error) {
                 response.message = error.message;
             } else if (error instanceof MXException) {
-                throw error;
                 response.reason = error.getErrorGroup() + "_" + error.getErrorKey();
                 response.message = error.getMessage();
             } else if (error instanceof RuntimeException) {
                 if (error.getCause() instanceof MXException) {
-                    throw error.getCause();
                     response.reason = error.getCause().getErrorGroup() + "_" + error.getCause().getErrorKey();
                     response.message = error.getCause().getMessage();
                 } else {
@@ -228,17 +189,12 @@ function main() {
             } else {
                 response.cause = error;
             }
-            // logger.error(error);
 
-            if (response.status == "error") {
-                logger.error("----------"+response.message);
-                throw new MXApplicationException("", response.message)
-            }
             if (typeof httpMethod !== "undefined") {
                 responseBody = JSON.stringify(response);
             }
 
-
+            logger.error(error);
 
             return;
         }
@@ -258,8 +214,6 @@ function resetControlGroups(app) {
 
         ctrlGroupSet.deleteAll();
         ctrlGroupSet.save();
-    } catch (error) {
-        logger.error(error);
     } finally {
         _close(ctrlGroupSet);
     }
@@ -303,8 +257,6 @@ function createControlGroup(ctrlGroupInfo) {
         }
 
         ctrlGroupSet.save();
-    } catch (error) {
-        logger.error(error);
     } finally {
         _close(ctrlGroupSet);
     }
@@ -334,8 +286,6 @@ function createOrUpdateCondition(conditionInfo) {
             condition.setValue("NOCACHING", conditionInfo.getAttributeValue("nocaching"));
 
             conditionSet.save();
-        } catch (error) {
-            logger.error(error);
         } finally {
             _close(conditionSet);
         }
@@ -406,8 +356,6 @@ function createOrUpdateSigOption(sigOptionInfo) {
                     }
                 }
             }
-        } catch (error) {
-            logger.error(error);
         } finally {
             _close(sigOptionSet);
         }
@@ -454,8 +402,6 @@ function createGroupIfNotExists(groupInfo) {
 
                 groupSet.save();
             }
-        } catch (error) {
-            logger.error(error);
         } finally {
             _close(groupSet);
         }
@@ -472,8 +418,6 @@ function scTemplateExists(templateId) {
             sctemplateSet.setWhere(sqlf.format());
 
             return !sctemplateSet.exists();
-        } catch (error) {
-            logger.error(error);
         } finally {
             _close(sctemplateSet);
         }
@@ -495,7 +439,6 @@ function extractScreen(screenName) {
         } else {
             throw new ScreenError("screen_not_found", "The screen definition for " + screenName + " was not found.");
         }
-    } catch (error) {
     } finally {
         _close(maxpresentationSet);
     }
@@ -530,8 +473,6 @@ function addConditionalExpressionsMetaData(xml, screenName) {
         } else {
             return xml;
         }
-    } catch (error) {
-        logger.error(error);
     } finally {
         _close(controlGroupSet);
     }
@@ -715,8 +656,6 @@ function isInAdminGroup() {
             service.log_info("The user " + user + " is not in the administrator group " + adminGroup + ".");
             return false;
         }
-    } catch (error) {
-        logger.error(error);
     } finally {
         _close(groupUserSet);
     }

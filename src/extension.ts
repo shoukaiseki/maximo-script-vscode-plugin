@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
-import { httpRequestToMaximo, initializeAxiosInterceptors, HttpRequestOptions, HttpResponse } from './httpRequest';
+import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse } from './httpRequest';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
-export { httpRequestToMaximo, initializeAxiosInterceptors };
+export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
 export type { HttpRequestOptions, HttpResponse };
 
 export function activate(context: vscode.ExtensionContext) {
