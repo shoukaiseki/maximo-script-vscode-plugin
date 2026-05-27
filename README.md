@@ -116,7 +116,7 @@ assetMbo.getInt("priority");
 - 多变量声明：`/** @type {ClassName} */ var var1, var2;`
 - 表达式映射：`/** @type {ClassName} b3.getMbo(\d) */`
 
-详见：[JSDoc 补全功能使用指南](./JSDOC_COMPLETION_GUIDE.md)
+详见：[JSDoc 补全功能使用指南](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/blob/master/JSDOC_COMPLETION_GUIDE.md)
 
 #### 3. 链式调用支持（新功能）✨
 
@@ -319,7 +319,7 @@ MIT License
 ## 相关资源
 
 - **[Reflection Data 提取指南](https://gitee.com/shoukaiseki/maximo-script-editor/blob/master/REFLECTION_EXTRACT_GUIDE.md)** - 如何从 Maximo JAR 包中提取 API 数据
-- **[JSDoc 补全功能使用指南](./JSDOC_COMPLETION_GUIDE.md)** - 详细的 JSDoc 类型注释和智能补全使用说明
+- **[JSDoc 补全功能使用指南](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/blob/master/JSDOC_COMPLETION_GUIDE.md)** - 详细的 JSDoc 类型注释和智能补全使用说明
 - **[快速开始](./QUICK_START.md)** - 5分钟快速上手指南
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
 

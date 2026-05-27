@@ -22,3 +22,5 @@ demo/
 reflection-data/
 public/maximo-developer-resources_bak01.7z
 public/bak/
+AITMP/
+npx_vsce_package.cmd
