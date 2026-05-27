@@ -80,6 +80,9 @@ const App: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   // 待删除的环境名称
   const [envToDelete, setEnvToDelete] = useState<string>('');
+  // 密码显示状态
+  const [showMaxauth, setShowMaxauth] = useState<boolean>(false);
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
 
   // 使用 useRef 确保只获取一次 VSCode API
   const vscodeRef = React.useRef<any>(null);
@@ -641,24 +644,64 @@ const App: React.FC = () => {
             {config.authType === 'maxauth' && (
               <div className="form-group">
                 <label>认证信息 (MAXAUTH)</label>
-                <input
-                  type="password"
-                  value={config.maxauth}
-                  onChange={(e) => updateConfig({ maxauth: e.target.value })}
-                  placeholder="Base64编码的用户名:密码"
-                />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type={showMaxauth ? 'text' : 'password'}
+                    value={config.maxauth}
+                    onChange={(e) => updateConfig({ maxauth: e.target.value })}
+                    placeholder="Base64编码的用户名:密码"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    onClick={() => setShowMaxauth(!showMaxauth)}
+                    style={{
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      color: 'var(--vscode-foreground)',
+                      fontSize: '16px',
+                      lineHeight: 1,
+                      minWidth: '32px'
+                    }}
+                    title={showMaxauth ? '隐藏' : '显示'}
+                  >
+                    {showMaxauth ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
             )}
 
             {config.authType === 'apikey' && (
               <div className="form-group">
                 <label>API Key</label>
-                <input
-                  type="password"
-                  value={config.apiKey}
-                  onChange={(e) => updateConfig({ apiKey: e.target.value })}
-                  placeholder="输入您的 API Key"
-                />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={config.apiKey}
+                    onChange={(e) => updateConfig({ apiKey: e.target.value })}
+                    placeholder="输入您的 API Key"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    style={{
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      color: 'var(--vscode-foreground)',
+                      fontSize: '16px',
+                      lineHeight: 1,
+                      minWidth: '32px'
+                    }}
+                    title={showApiKey ? '隐藏' : '显示'}
+                  >
+                    {showApiKey ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
             )}
 
