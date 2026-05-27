@@ -25,6 +25,9 @@ interface ConfigData {
   additionalJars: string[];
   scriptStoragePath: string;
   aliasName: string;
+  exportDirectory: string;
+  envnum: string;
+  envList: string[];
 }
 
 const App: React.FC = () => {
@@ -61,8 +64,22 @@ const App: React.FC = () => {
     jarDirectories: [],
     additionalJars: [],
     scriptStoragePath: 'masscript',
-    aliasName: ''
+    aliasName: '',
+    exportDirectory: '',
+    envnum: 'default',
+    envList: []
   });
+  
+  // 环境配置缓存
+  const [envsCache, setEnvsCache] = useState<Record<string, Partial<ConfigData>>>({});
+  // 是否有未保存的变更
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+  // 是否显示环境选择对话框
+  const [showEnvDialog, setShowEnvDialog] = useState<boolean>(false);
+  // 是否显示删除确认对话框
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  // 待删除的环境名称
+  const [envToDelete, setEnvToDelete] = useState<string>('');
 
   // 使用 useRef 确保只获取一次 VSCode API
   const vscodeRef = React.useRef<any>(null);
@@ -89,6 +106,10 @@ const App: React.FC = () => {
           // 加载初始配置
           console.log('[React Webview] 加载配置:', message.data);
           setConfig(message.data);
+          // 同时设置导出目录路径
+          if (message.data.exportDirectory) {
+            setExtractDirectoryPath(message.data.exportDirectory);
+          }
           break;
         case 'setDirectoryPath':
           setConfig(prev => ({ ...prev, localApiPath: message.path }));
@@ -159,6 +180,33 @@ const App: React.FC = () => {
         case 'setExtractDirectoryPath':
           // 设置导出目录路径
           setExtractDirectoryPath(message.path);
+          // 同时更新 config 中的 exportDirectory
+          setConfig(prev => ({ ...prev, exportDirectory: message.path }));
+          break;
+        case 'loadEnvironmentConfig':
+          // 加载环境配置到表单
+          console.log('[React Webview] 加载环境配置:', message.data);
+          const envData = message.data;
+          setConfig(prev => ({
+            ...prev,
+            envnum: envData.envnum || prev.envnum,  // 更新环境名称
+            serverUrl: envData.serverUrl || '',
+            authType: envData.authType || 'maxauth',
+            maxauth: envData.maxauth || '',
+            apiKey: envData.apiKey || '',
+            apiType: envData.apiType || 'oslc',
+            version: envData.version || '7.6',
+            completionMode: envData.completionMode || 'vscode'
+          }));
+          setHasChanges(true); // 标记有未保存的变更
+          break;
+        case 'updateEnvList':
+          // 更新环境列表（删除环境后）
+          console.log('[React Webview] 更新环境列表:', message.envList);
+          setConfig(prev => ({
+            ...prev,
+            envList: message.envList || []
+          }));
           break;
         case 'initScriptsComplete':
           // 初始化脚本完成
@@ -197,11 +245,43 @@ const App: React.FC = () => {
     });
   };
 
-  // 更新配置并自动保存
+  // 更新配置并自动保存（用于其他字段）
   const updateConfig = (updates: Partial<ConfigData>) => {
     const newConfig = { ...config, ...updates };
     setConfig(newConfig);
+    setHasChanges(true); // 标记有未保存的变更
     saveConfig(newConfig);
+  };
+
+  // 仅更新环境名称，不自动保存（需要手动点击保存按钮）
+  const updateEnvnum = (value: string) => {
+    setConfig(prev => ({ ...prev, envnum: value }));
+    setHasChanges(true); // 标记有未保存的变更
+  };
+
+  // 删除环境
+  const handleDeleteEnvironment = (envName: string) => {
+    console.log('[App] 点击删除环境按钮:', envName);
+    setEnvToDelete(envName);
+    setShowDeleteConfirm(true);
+  };
+
+  // 确认删除
+  const confirmDelete = () => {
+    console.log('[App] 用户确认删除环境:', envToDelete);
+    getVsCodeApi().postMessage({
+      command: 'deleteEnvironment',
+      envnum: envToDelete
+    });
+    setShowDeleteConfirm(false);
+    setEnvToDelete('');
+  };
+
+  // 取消删除
+  const cancelDelete = () => {
+    console.log('[App] 用户取消删除');
+    setShowDeleteConfirm(false);
+    setEnvToDelete('');
   };
 
   const handleSave = () => {
@@ -209,6 +289,7 @@ const App: React.FC = () => {
       command: 'saveConfig',
       data: config
     });
+    setHasChanges(false); // 清除变化标记
     alert('配置已保存！');
   };
 
@@ -476,6 +557,66 @@ const App: React.FC = () => {
           <div className="section active">
             <h2>连接配置</h2>
             
+            {/* 环境选择器 */}
+            <div className="form-group">
+              <label>当前环境: <strong>{config.envnum || 'default'}</strong></label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {/* 环境名称输入框 - 用于新增或修改环境名 */}
+                <input
+                  type="text"
+                  value={config.envnum}
+                  onChange={(e) => updateEnvnum(e.target.value)}
+                  placeholder="输入环境名称"
+                  style={{ flex: 1 }}
+                  autoComplete="off"
+                  title="输入环境名称，可以是已有环境或新环境"
+                />
+                {/* 切换环境按钮 - 从已有环境中选择 */}
+                <button
+                  onClick={() => setShowEnvDialog(true)}
+                  style={{ 
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    backgroundColor: 'var(--vscode-button-background)',
+                    color: 'var(--vscode-button-foreground)',
+                    border: 'none',
+                    borderRadius: '4px'
+                  }}
+                  title="从已保存的环境中选择"
+                >
+                  切换环境
+                </button>
+                {/* 保存环境按钮 */}
+                <button
+                  onClick={() => {
+                    if (config.envnum) {
+                      getVsCodeApi().postMessage({
+                        command: 'saveConfig',
+                        data: config
+                      });
+                      setHasChanges(false);
+                    }
+                  }}
+                  disabled={!config.envnum}
+                  title="将当前配置保存为环境"
+                  style={{ 
+                    padding: '6px 12px', 
+                    cursor: config.envnum ? 'pointer' : 'not-allowed',
+                    backgroundColor: 'var(--vscode-button-background)',
+                    color: 'var(--vscode-button-foreground)',
+                    opacity: config.envnum ? 1 : 0.5,
+                    border: 'none',
+                    borderRadius: '4px'
+                  }}
+                >
+                  保存环境
+                </button>
+              </div>
+              <small style={{ color: 'var(--vscode-descriptionForeground)' }}>
+                💡 在输入框中输入环境名称（已有环境或新环境），点击“切换环境”可从列表选择，修改后点击“保存环境”
+              </small>
+            </div>
+            
             <div className="form-group">
               <label>服务器地址</label>
               <input
@@ -711,6 +852,21 @@ const App: React.FC = () => {
               </div>
               <div className="help-text">添加单个 JAR 文件，用于精确控制需要反射的 JAR 文件</div>
             </div>
+
+            {/* 保存提醒 */}
+            {hasChanges && (
+              <div style={{ 
+                color: 'var(--vscode-errorForeground)', 
+                backgroundColor: 'var(--vscode-inputValidation-errorBackground)',
+                border: '1px solid var(--vscode-inputValidation-errorBorder)',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                marginBottom: '12px',
+                fontSize: '13px'
+              }}>
+                ⚠️ 有未保存的配置变更
+              </div>
+            )}
 
             <button onClick={handleSave}>保存配置</button>
           </div>
@@ -1347,6 +1503,181 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 环境选择对话框 */}
+      {showEnvDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setShowEnvDialog(false)}>
+          <div 
+            style={{
+              backgroundColor: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '6px',
+              padding: '20px',
+              minWidth: '400px',
+              maxWidth: '600px',
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 15px 0' }}>选择环境</h3>
+            
+            {config.envList.length === 0 ? (
+              <p style={{ color: 'var(--vscode-descriptionForeground)' }}>暂无已保存的环境</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {config.envList.map(env => (
+                  <div 
+                    key={env}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px',
+                      backgroundColor: env === config.envnum ? 'var(--vscode-list-activeSelectionBackground)' : 'var(--vscode-list-hoverBackground)',
+                      borderRadius: '4px',
+                      border: env === config.envnum ? '1px solid var(--vscode-focusBorder)' : '1px solid transparent'
+                    }}
+                  >
+                    <span style={{ fontWeight: env === config.envnum ? 'bold' : 'normal' }}>
+                      {env} {env === config.envnum && '(当前)'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {/* 加载按钮 */}
+                      <button
+                        onClick={() => {
+                          getVsCodeApi().postMessage({
+                            command: 'loadEnvironmentConfig',
+                            envnum: env
+                          });
+                          setShowEnvDialog(false);
+                        }}
+                        style={{
+                          padding: '4px 12px',
+                          cursor: 'pointer',
+                          backgroundColor: 'var(--vscode-button-background)',
+                          color: 'var(--vscode-button-foreground)',
+                          border: 'none',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        加载
+                      </button>
+                      {/* 删除按钮 */}
+                      <button
+                        onClick={() => handleDeleteEnvironment(env)}
+                        style={{
+                          padding: '4px 12px',
+                          cursor: 'pointer',
+                          backgroundColor: 'var(--vscode-errorForeground)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px'
+                        }}
+                        title="删除此环境"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div style={{ marginTop: '20px', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowEnvDialog(false)}
+                style={{
+                  padding: '6px 16px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                  color: 'var(--vscode-button-secondaryForeground)',
+                  border: 'none',
+                  borderRadius: '4px'
+                }}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认对话框 */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1001
+        }} onClick={cancelDelete}>
+          <div 
+            style={{
+              backgroundColor: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '6px',
+              padding: '24px',
+              minWidth: '400px',
+              maxWidth: '500px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--vscode-errorForeground)' }}>⚠️ 确认删除</h3>
+            <p style={{ margin: '0 0 24px 0', lineHeight: '1.6' }}>
+              确定要删除环境 <strong>"{envToDelete}"</strong> 吗？
+              <br />
+              <span style={{ color: 'var(--vscode-descriptionForeground)' }}>此操作不可恢复！</span>
+            </p>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelDelete}
+                style={{
+                  padding: '8px 20px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                  color: 'var(--vscode-button-secondaryForeground)',
+                  border: 'none',
+                  borderRadius: '4px'
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '8px 20px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--vscode-errorForeground)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontWeight: 'bold'
+                }}
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

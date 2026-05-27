@@ -144,6 +144,16 @@
           "default": "",
           "description": "别名（用于推送脚本时保存历史记录）"
         },
+        "maximoScript.exportDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "导出脚本目录（用于存储导出的 Maximo 脚本，持久化保存）"
+        },
+        "maximoScript.envnum": {
+          "type": "string",
+          "default": "default",
+          "description": "当前环境名称（用于切换不同的 Maximo 服务器配置）"
+        },
         "maximoScript.enableJSDocParsing": {
           "type": "boolean",
           "default": true,

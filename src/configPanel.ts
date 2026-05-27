@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { httpRequestToMaximo } from './httpRequest';
+import * as envConfig from './envConfig';
 
 // 创建日志输出通道
 const logger = vscode.window.createOutputChannel('Maximo Script Helper', { log: true });
@@ -119,6 +120,14 @@ export class ConfigPanel {
           case 'showInfo':
             vscode.window.showInformationMessage(message.message);
             return;
+          case 'loadEnvironmentConfig':
+            // 加载指定环境的配置
+            await this._loadEnvironmentConfig(message.envnum);
+            return;
+          case 'deleteEnvironment':
+            // 删除指定环境
+            await this._deleteEnvironment(message.envnum);
+            return;
         }
       },
       null,
@@ -192,6 +201,70 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 </html>`;
   }
 
+  /**
+   * 加载指定环境的配置
+   */
+  private async _loadEnvironmentConfig(envnum: string) {
+    try {
+      const envConfigData = envConfig.findEnvironment(envnum);
+      
+      if (!envConfigData) {
+        logger.warn(`[EnvConfig] 环境配置不存在: ${envnum}`);
+        this._panel.webview.postMessage({
+          command: 'showMessage',
+          type: 'warning',
+          text: `环境配置 "${envnum}" 不存在`
+        });
+        return;
+      }
+      
+      logger.info(`[EnvConfig] 加载环境配置: ${envnum}`);
+      
+      // 更新 VSCode 配置中的当前环境名称
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('envnum', envnum, vscode.ConfigurationTarget.Global);
+      logger.info(`[EnvConfig] 已更新 VSCode 配置 envnum: ${envnum}`);
+      
+      // 发送环境配置到前端
+      this._panel.webview.postMessage({
+        command: 'loadEnvironmentConfig',
+        data: envConfigData
+      });
+      
+      vscode.window.showInformationMessage(`已加载环境配置: ${envnum}`);
+    } catch (error: any) {
+      logger.error(`[EnvConfig] 加载环境配置失败: ${error.message}`);
+      vscode.window.showErrorMessage(`加载环境配置失败: ${error.message}`);
+    }
+  }
+
+  private async _deleteEnvironment(envnum: string) {
+    try {
+      logger.info(`[EnvConfig] 删除环境配置: ${envnum}`);
+      
+      const deleteResult = envConfig.deleteEnvironment(envnum);
+      
+      if (deleteResult) {
+        logger.info(`[EnvConfig] 环境配置已删除: ${envnum}`);
+        
+        // 刷新环境列表
+        const envNames = envConfig.getEnvironmentNames();
+        this._panel.webview.postMessage({
+          command: 'updateEnvList',
+          envList: envNames
+        });
+        
+        vscode.window.showInformationMessage(`环境配置 "${envnum}" 已删除`);
+      } else {
+        logger.warn(`[EnvConfig] 环境配置不存在，无法删除: ${envnum}`);
+        vscode.window.showWarningMessage(`环境配置 "${envnum}" 不存在`);
+      }
+    } catch (error: any) {
+      logger.error(`[EnvConfig] 删除环境配置失败: ${error.message}`);
+      vscode.window.showErrorMessage(`删除环境配置失败: ${error.message}`);
+    }
+  }
+
   private async _saveConfig(data: any) {
     try {
       const config = vscode.workspace.getConfiguration('maximoScript');
@@ -218,6 +291,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('localApiPath', data.localApiPath, vscode.ConfigurationTarget.Global);
       await config.update('scriptStoragePath', data.scriptStoragePath, vscode.ConfigurationTarget.Global);
       await config.update('aliasName', data.aliasName || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportDirectory', data.exportDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('envnum', data.envnum || 'default', vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
@@ -235,6 +310,33 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.info(`[SaveConfig] 保存后读取 enableHttpLog: ${savedValue}`);
       logger.info(`[SaveConfig] 保存后读取 localApiPath: ${savedLocalApiPath}`);
       logger.info(`[SaveConfig] 保存后读取 scriptStoragePath: ${savedScriptStoragePath}`);
+      
+      // 保存环境配置到 envs.json
+      const envnum = data.envnum || 'default';
+      const environmentConfig: envConfig.EnvironmentConfig = {
+        envnum: envnum,
+        serverUrl: data.serverUrl,
+        authType: data.authType,
+        maxauth: data.maxauth,
+        apiKey: data.apiKey,
+        apiType: data.apiType,
+        version: data.version,
+        completionMode: data.completionMode || 'vscode'
+      };
+      
+      const saveResult = envConfig.upsertEnvironment(environmentConfig);
+      if (saveResult) {
+        logger.info(`[EnvConfig] 环境配置已保存到 envs.json: ${envnum}`);
+        
+        // 刷新环境列表
+        const envNames = envConfig.getEnvironmentNames();
+        this._panel.webview.postMessage({
+          command: 'updateEnvList',
+          envList: envNames
+        });
+      } else {
+        logger.error(`[EnvConfig] 保存环境配置失败: ${envnum}`);
+      }
       
       vscode.window.showInformationMessage('配置已保存');
     } catch (error: any) {
@@ -488,7 +590,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   private _sendInitialConfig() {
     const config = vscode.workspace.getConfiguration('maximoScript');
     
-    const configData = {
+    // 加载环境列表
+    const envNames = envConfig.getEnvironmentNames();
+    const currentEnvnum = config.get('envnum', 'default');
+    
+    // 尝试从 envs.json 加载当前环境的配置
+    let initialConfigData: any = {
       serverUrl: config.get('serverUrl', ''),
       authType: config.get('authType', 'maxauth'),
       maxauth: config.get('maxauth', ''),
@@ -499,19 +606,40 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       localApiPath: config.get('localApiPath', ''),
       scriptStoragePath: config.get('scriptStoragePath', 'masscript'),
       aliasName: config.get('aliasName', ''),
+      exportDirectory: config.get('exportDirectory', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       enableHttpLog: config.get('enableHttpLog', false),
       jdkPath: config.get('jdkPath', ''),
       jarDirectories: config.get('jarDirectories', []),
-      additionalJars: config.get('additionalJars', [])
+      additionalJars: config.get('additionalJars', []),
+      envnum: currentEnvnum,
+      envList: envNames
     };
     
-    logger.info('[ConfigPanel] 发送初始配置到 Webview');
+    // 如果当前环境存在于 envs.json 中，使用该环境的配置
+    const envConfigData = envConfig.findEnvironment(currentEnvnum);
+    if (envConfigData) {
+      logger.info(`[ConfigPanel] 从 envs.json 加载环境配置: ${currentEnvnum}`);
+      initialConfigData = {
+        ...initialConfigData,
+        serverUrl: envConfigData.serverUrl || initialConfigData.serverUrl,
+        authType: envConfigData.authType || initialConfigData.authType,
+        maxauth: envConfigData.maxauth || initialConfigData.maxauth,
+        apiKey: envConfigData.apiKey || initialConfigData.apiKey,
+        apiType: envConfigData.apiType || initialConfigData.apiType,
+        version: envConfigData.version || initialConfigData.version,
+        completionMode: envConfigData.completionMode || initialConfigData.completionMode
+      };
+    } else {
+      logger.info(`[ConfigPanel] 环境配置不存在，使用 VSCode 配置: ${currentEnvnum}`);
+    }
+    
+    logger.info(`[ConfigPanel] 发送初始配置到 Webview (当前环境: ${currentEnvnum}, 环境列表: ${envNames.length}个)`);
     
     this._panel.webview.postMessage({
       command: 'loadConfig',
-      data: configData
+      data: initialConfigData
     });
   }
 
@@ -1602,9 +1730,23 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     });
 
     if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      // 保存到 VSCode 配置（持久化）
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportDirectory] 导出目录已保存: ${exportPath}`);
+      
       this._panel.webview.postMessage({
         command: 'setExtractDirectoryPath',
-        path: result[0].fsPath
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '导出目录已保存'
       });
     }
   }

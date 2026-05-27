@@ -150,3 +150,49 @@ maximo Script配置 -> 连接配置 服务器地址上面增加 环境选项(字
 保存配置按钮上面加个 红色提示 ,类似需要保存提醒的字样, 在页面有信息变更的时候显示 ,保存之后消失
 
 
+# 8
+怎么保存到连接 envs.json 文件?如果没有 就在加载右边加个保存按钮
+
+两个按钮都显示
+
+
+环境选项怎么没有下拉功能?我要的是能下拉也能输入
+
+
+这样太丑了,下拉去掉吧,加载按钮 缓存 "切换环境"按钮,点击后弹出对话框,对话框显示当前所有环境列表,一列放加载按钮,点击后实现加载环境的功能
+
+你又删掉输入框干嘛?我怎么新增环境?,怎么显示当前是哪个环境?
+你能不能有点脑子?让啥啥不行,坑人第一名
+
+
+
+# 9
+
+```
+2026-05-27 21:33:45.910 [info] [EnvConfig] 环境配置已保存到 envs.json: localhost
+2026-05-27 21:33:51.708 [info] [ConfigPanel] 收到消息: saveConfig
+2026-05-27 21:33:51.709 [info] [SaveConfig] 开始保存配置...
+2026-05-27 21:33:51.709 [info] [SaveConfig] enableHttpLog: true, 类型: boolean
+2026-05-27 21:33:51.709 [info] [SaveConfig] localApiPath: e:\gitwork\maximo-script-manager\reflection-data
+2026-05-27 21:33:51.709 [info] [SaveConfig] scriptStoragePath: masscript
+2026-05-27 21:33:51.709 [info] [SaveConfig] aliasName: leo
+2026-05-27 21:33:51.813 [info] [21:33:51] [INFO] ✅ 已加载 36 个API类数据
+2026-05-27 21:33:51.890 [info] [SaveConfig] 保存后读取 enableHttpLog: true
+2026-05-27 21:33:51.890 [info] [SaveConfig] 保存后读取 localApiPath: e:\gitwork\maximo-script-manager\reflection-data
+2026-05-27 21:33:51.890 [info] [SaveConfig] 保存后读取 scriptStoragePath: masscript
+2026-05-27 21:33:51.890 [info] [EnvConfig] 环境配置已保存到 envs.json: localhos
+2026-05-27 21:33:52.853 [info] [ConfigPanel] 收到消息: saveConfig
+2026-05-27 21:33:52.853 [info] [SaveConfig] 开始保存配置...
+2026-05-27 21:33:52.853 [info] [SaveConfig] enableHttpLog: true, 类型: boolean
+2026-05-27 21:33:52.853 [info] [SaveConfig] localApiPath: e:\gitwork\maximo-script-manager\reflection-data
+2026-05-27 21:33:52.853 [info] [SaveConfig] scriptStoragePath: masscript
+2026-05-27 21:33:52.853 [info] [SaveConfig] aliasName: leo
+2026-05-27 21:33:52.960 [info] [21:33:52] [INFO] ✅ 已加载 36 个API类数据
+2026-05-27 21:33:53.103 [info] [SaveConfig] 保存后读取 enableHttpLog: true
+2026-05-27 21:33:53.103 [info] [SaveConfig] 保存后读取 localApiPath: e:\gitwork\maximo-script-manager\reflection-data
+2026-05-27 21:33:53.103 [info] [SaveConfig] 保存后读取 scriptStoragePath: masscript
+2026-05-27 21:33:53.103 [info] [EnvConfig] 环境配置已保存到 envs.json: localhosl
+```
+这是干嘛,我输入一个字符保存一次
+
+把环境输入框的监听取消掉,不需要自动触发,我会手动点击保存按钮的
