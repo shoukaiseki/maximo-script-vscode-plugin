@@ -127,3 +127,26 @@ xml文件是直接调用
 POST /maximo/api/script/SHARPTREE.AUTOSCRIPT.SCREENS
 ```
 文件内容放到body里面
+
+
+# 7
+
+maximo Script配置 -> 工具箱 -> 导出脚本,选择目录后,目录持久化保存
+
+maximo Script配置 -> 连接配置 服务器地址上面增加 环境选项(字段名为envnum)  下拉切换环境 这个选项进行持久化保存 
+
+然后不同的环境配置存储到 ~/.sks/maximo-script-helper/envs.json 文件中(只保存连接配置的信息)
+
+
+## 环境选项逻辑
+1. 环境选项可以输入,也可以下拉, 右边加个加载按钮
+2. 如果当前环境名称对应的选项不存在,加载按钮只读
+3. 默认环境选项是从vscode配置中读取
+4. 环境选项默认值为 default,页面初始化时 整个 "连接配置" 页面显示 vscode的配置存储的配置信息,同时加载 envs.json进页面缓存(字段名为envsCache)
+5. 点击最下面的 保存配置 按钮之后,vscode配置进行保存, 再根据envnum的值,查找envsCache中是否有envnum相同的记录,如果有则更新,没有则新增,envsCache更新之后,同时将envsCache保存到 envs.json 文件中
+6. 加载按钮点击后,将envsCache对应的信息设置到连接配置页面中的其它字段中
+
+
+保存配置按钮上面加个 红色提示 ,类似需要保存提醒的字样, 在页面有信息变更的时候显示 ,保存之后消失
+
+

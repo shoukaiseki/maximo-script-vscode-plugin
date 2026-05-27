@@ -1,9 +1,16 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
+Level = Java.type("org.apache.log4j.Level");
+MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
+logger.setLevel(Level.DEBUG);
+logger.info("----------------Starting execution of script " + service.getScriptName());
+
 RESTRequest = Java.type("com.ibm.tivoli.oslc.RESTRequest");
 
 RuntimeException = Java.type("java.lang.RuntimeException");
 System = Java.type("java.lang.System");
+System.out.println("----------------Starting execution of script " + service.getScriptName());
 
 URLDecoder = Java.type("java.net.URLDecoder");
 StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
@@ -19,9 +26,10 @@ MXApplicationException = Java.type("psdi.util.MXApplicationException");
 try {
     PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
-} catch (ignored) {}
+} catch (ignored) {
+    logger.error(ignored);
+}
 
-MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 
 // MAS removed support for legacy JDOM, switch to JDOM2 and then fall back to legacy JDOM for older versions.
 try {
@@ -43,8 +51,6 @@ try {
 
 StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
-
-var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
 main();
 
@@ -74,6 +80,8 @@ function main() {
                         response.status = "success";
                         response.screenNames = presentations;
                         responseBody = JSON.stringify(response);
+                    } catch (error) {
+                        logger.error(error);
                     } finally {
                         _close(presentationSet);
                     }
@@ -127,6 +135,12 @@ function main() {
                     var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
 
+                    if (wcs.getMXSession() == null) {
+                        logger.error("wcs.MXSession is null");
+                    }
+
+
+                    logger.info("Importing application " + app + " through PresentationLoader.");
                     loader.importApp(wcs, writer.toString());
                 } else {
                     var maxPresentationSet;
@@ -145,6 +159,8 @@ function main() {
                         } else {
                             throw new MXApplicationException("designer", "noapp", Java.to([app.toUpperCase()], "java.lang.String[]"));
                         }
+                    } catch (error) {
+                        logger.error(error);
                     } finally {
                         _close(maxPresentationSet);
                     }
@@ -155,6 +171,7 @@ function main() {
                 throw new ScriptError("only_get_supported", "Only the HTTP GET method is supported when extracting automation scripts.");
             }
         } catch (error) {
+            logger.error(error);
             response.status = "error";
             // ensure the error is logged to the Maximo logs
             Java.type("java.lang.System").out.println(error);
@@ -205,6 +222,8 @@ function resetControlGroups(app) {
 
         ctrlGroupSet.deleteAll();
         ctrlGroupSet.save();
+    } catch (error) {
+        logger.error(error);
     } finally {
         _close(ctrlGroupSet);
     }
@@ -248,6 +267,8 @@ function createControlGroup(ctrlGroupInfo) {
         }
 
         ctrlGroupSet.save();
+    } catch (error) {
+        logger.error(error);
     } finally {
         _close(ctrlGroupSet);
     }
@@ -277,6 +298,8 @@ function createOrUpdateCondition(conditionInfo) {
             condition.setValue("NOCACHING", conditionInfo.getAttributeValue("nocaching"));
 
             conditionSet.save();
+        } catch (error) {
+            logger.error(error);
         } finally {
             _close(conditionSet);
         }
@@ -347,6 +370,8 @@ function createOrUpdateSigOption(sigOptionInfo) {
                     }
                 }
             }
+        } catch (error) {
+            logger.error(error);
         } finally {
             _close(sigOptionSet);
         }
@@ -393,6 +418,8 @@ function createGroupIfNotExists(groupInfo) {
 
                 groupSet.save();
             }
+        } catch (error) {
+            logger.error(error);
         } finally {
             _close(groupSet);
         }
@@ -409,6 +436,8 @@ function scTemplateExists(templateId) {
             sctemplateSet.setWhere(sqlf.format());
 
             return !sctemplateSet.exists();
+        } catch (error) {
+            logger.error(error);
         } finally {
             _close(sctemplateSet);
         }
@@ -430,6 +459,7 @@ function extractScreen(screenName) {
         } else {
             throw new ScreenError("screen_not_found", "The screen definition for " + screenName + " was not found.");
         }
+    } catch (error) {
     } finally {
         _close(maxpresentationSet);
     }
@@ -464,6 +494,8 @@ function addConditionalExpressionsMetaData(xml, screenName) {
         } else {
             return xml;
         }
+    } catch (error) {
+        logger.error(error);
     } finally {
         _close(controlGroupSet);
     }
@@ -647,6 +679,8 @@ function isInAdminGroup() {
             service.log_info("The user " + user + " is not in the administrator group " + adminGroup + ".");
             return false;
         }
+    } catch (error) {
+        logger.error(error);
     } finally {
         _close(groupUserSet);
     }

@@ -19,7 +19,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 /**  @type {psdi.util.logging.MXLogger}*/
 var logger = MXLoggerFactory.getLogger("maximo.script.SHARPTREE.AUTOSCRIPT.LIBRARY");
-// logger.setLevel(Level.DEBUG);
+logger.setLevel(Level.DEBUG);
 
 // Array find polyfill.
 if (typeof Array.prototype.find != "function") {
@@ -2287,7 +2287,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
               }
               attribute = attributeSet.moveNext();
           }
-                logger.debug("attribute="+attributeConfig.attribute)
+        logger.debug("attribute="+attributeConfig.attribute)
           if (attributeConfig.delete) {
               if (attribute != null) {
                   attribute.delete();

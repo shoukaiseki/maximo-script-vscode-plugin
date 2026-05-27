@@ -248,6 +248,12 @@ function saveOrUpdateDomain(domainData, index) {
         if (neverCache !== 'undefined') {
             domainMbo.setValue("NEVERCACHE", neverCache);
         }
+
+        if(domainData.alndomain !== 'undefined'&&domainData.alndomain){
+            /** @type {psdi.mbo.MboSetRemote} */
+            var alndomainSet = domainMbo.getMboSet("ALNDOMAINVALUE");
+            saveOrUpdateAlnDomain(alndomainSet,domainData.alndomain)
+        }
         
         // 保存记录
         domainSet.save();
@@ -260,6 +266,148 @@ function saveOrUpdateDomain(domainData, index) {
     } finally {
         __mboSetClose(domainSet)
     }
+}
+
+/**
+ * 保存或更新 ALNDOMAIN（同义词域）子记录
+ * @param {psdi.mbo.MboSetRemote} alndomainSet - ALNDOMAIN MBO 集合
+ * @param {Array} alndomainDatas - ALNDOMAIN 数据数组
+ */
+function saveOrUpdateAlnDomain(alndomainSet, alndomainDatas) {
+    if (!alndomainDatas || !Array.isArray(alndomainDatas) || alndomainDatas.length === 0) {
+        logger.info("没有 ALNDOMAIN 数据需要处理");
+        return;
+    }
+
+    logger.info("开始处理 " + alndomainDatas.length + " 条 ALNDOMAIN 记录");
+
+
+    // alndomainDatas.forEach(function (alnDataIn) {
+    //     /** @type {Object} */
+    //     var alnData = alnDataIn;
+    //     // 提取必填字段
+    //     /** @type {java.lang.String} */
+    //     var value = alnData.value;
+    //     /** @type {java.lang.String} */
+    //     var description = alnData.description;
+
+    //     // 验证必填字段
+    //     if (!value) {
+    //         logger.warn("第 " + (i + 1) + " 条 ALNDOMAIN 记录的 value 为空，跳过");
+    //         continue;
+    //     }
+    //     // 先删除现有的所有 ALNDOMAIN 记录
+    //     /** @type {psdi.mbo.MboRemote} */
+    //     var alnMbo = alndomainSet.moveFirst();
+    //     while (alnMbo) {
+    //         alnMbo.delete();
+    //         if (alnMbo.getString("VALUE") == alnData.value) {
+    //             break;
+    //         }
+    //         alnMbo = alndomainSet.moveNext();
+    //     }
+    //     if(alnData._delete){
+    //         if (alnMbo != null) {
+    //             alnMbo.delete()
+    //         }
+
+    //     } else {
+    //         if (!alnMbo) {
+    //             alnMbo=alndomainSet.add()
+    //             alnMbo.setValue("VALUE", alnData.value)
+    //         }
+    //         if (description !== 'undefined' && description) {
+    //             alnMbo.setValue("DESCRIPTION", description);
+    //         }
+
+    //         // 设置可选字段
+    //         if (alnData.maxvalue !== 'undefined' && alnData.maxvalue) {
+    //             alnMbo.setValue("MAXVALUE", alnData.maxvalue);
+    //         }
+
+    //         if (alnData.defaultvalue !== 'undefined' && alnData.defaultvalue) {
+    //             alnMbo.setValue("DEFAULTVALUE", alnData.defaultvalue);
+    //         }
+
+    //         if (alnData.orgid !== 'undefined' && alnData.orgid) {
+    //             alnMbo.setValue("ORGID", alnData.orgid);
+    //         }
+
+    //         if (alnData.siteid !== 'undefined' && alnData.siteid) {
+    //             alnMbo.setValue("SITEID", alnData.siteid);
+    //         }
+    //     }
+    // })
+
+    // // 添加新的 ALNDOMAIN 记录
+    for (var i = 0; i < alndomainDatas.length; i++) {
+        /** @type {Object} */
+        var alnData = alndomainDatas[i];
+
+
+        try {
+        // 提取必填字段
+        /** @type {java.lang.String} */
+        var value = alnData.value;
+        /** @type {java.lang.String} */
+        var description = alnData.description;
+
+        // 验证必填字段
+        if (!value) {
+            logger.warn("第 " + (i + 1) + " 条 ALNDOMAIN 记录的 value 为空，跳过");
+            continue;
+        }
+        // 先删除现有的所有 ALNDOMAIN 记录
+        /** @type {psdi.mbo.MboRemote} */
+        var alnMbo = alndomainSet.moveFirst();
+        while (alnMbo) {
+            if (alnMbo.getString("VALUE") == alnData.value) {
+                break;
+            }
+            alnMbo = alndomainSet.moveNext();
+        }
+        if(alnData._delete){
+            if (alnMbo != null) {
+                alnMbo.delete()
+                logger.info("已删除 ALNDOMAIN 记录: VALUE=" + value);
+            }
+
+        } else {
+            if (!alnMbo) {
+                alnMbo=alndomainSet.add()
+                alnMbo.setValue("VALUE", alnData.value)
+            }
+            if (description !== 'undefined' && description) {
+                alnMbo.setValue("DESCRIPTION", description);
+            }
+
+            // 设置可选字段
+            if (alnData.maxvalue !== 'undefined' && alnData.maxvalue) {
+                alnMbo.setValue("MAXVALUE", alnData.maxvalue);
+            }
+
+            if (alnData.defaultvalue !== 'undefined' && alnData.defaultvalue) {
+                alnMbo.setValue("DEFAULTVALUE", alnData.defaultvalue);
+            }
+
+            if (alnData.orgid !== 'undefined' && alnData.orgid) {
+                alnMbo.setValue("ORGID", alnData.orgid);
+            }
+
+            if (alnData.siteid !== 'undefined' && alnData.siteid) {
+                alnMbo.setValue("SITEID", alnData.siteid);
+            }
+            logger.info("已添加 ALNDOMAIN 记录: VALUE=" + value);
+        }
+
+
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 ALNDOMAIN 记录失败: " + error.message);
+            // 继续处理下一条记录
+        }
+    }
+
+    logger.info("ALNDOMAIN 记录处理完成");
 }
 
 

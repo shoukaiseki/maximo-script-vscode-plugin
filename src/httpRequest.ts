@@ -4,6 +4,23 @@ import * as vscode from 'vscode';
 let globalJSESSIONID: string | null = null;
 
 /**
+ * 限制日志输出长度
+ * @param data 要输出的数据
+ * @param maxLength 最大长度，默认 200
+ * @returns true 表示未超出限制，false 表示已截断
+ */
+function limitLogOutput(data: any, maxLength: number = 200): { truncated: boolean, data: string } {
+  const str = typeof data === 'string' ? data : JSON.stringify(data);
+  
+  if (str.length <= maxLength) {
+    return {truncated: false, data: str};
+  } else {
+    const truncated = str.substring(0, maxLength) + `...(${str.length}个字)`;
+    return {truncated: true, data: truncated};
+  }
+}
+
+/**
  * 初始化 Axios 全局拦截器
  * @param logger VSCode 日志通道，用于记录日志
  */
@@ -130,12 +147,18 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
           // 对响应数据做点什么
           const logMessage = `[Axios Response] ${response.status} ${response.config.url}`;
           console.log(logMessage);
-          logger.debug(logMessage);
+          logger.info(logMessage);
+          const { truncated, data } = limitLogOutput(response.data);
+          console.log(data)
+          logger.info(data);
           return response;
         },
         (error: any) => {
           // 对响应错误做点什么
           let errorMessage = '[Axios Response Error] ';
+          const { truncated, data } = limitLogOutput(error);
+          console.log(data)
+          logger.info(data);
           
           if (error.response) {
             errorMessage += `${error.response.status}: ${error.response.statusText}`;
