@@ -5,6 +5,91 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.8] - 2026-05-27
+
+### 新增功能
+
+#### MAXAUTH 会话隔离
+- ✨ 为 MAXAUTH 认证方式创建专用的 JSESSIONID 缓存
+  - 新增 `globalMaxAuthJSESSIONID` 全局变量
+  - 与 API Key 的 `globalJSESSIONID` 完全隔离
+  - 避免两种认证方式的会话冲突
+
+- ✨ 智能会话选择机制
+  - 根据 `authType` 自动选择正确的 JSESSIONID
+  - 支持 `authTypeIn` 参数覆盖（强制使用指定认证方式）
+  - XML 推送强制使用 MAXAUTH 认证（`authTypeIn: 'maxauth'`）
+
+- ✨ 增强的 Cookie 管理
+  - 请求时根据认证类型设置对应的 JSESSIONID Cookie
+  - 响应时根据认证类型缓存对应的 JSESSIONID
+  - `clearJSESSIONID()` 同时清除两种认证的会话信息
+
+### 改进优化
+
+#### HTML 渲染参数化控制
+- 🔧 `sendMessageToWebview` 方法添加 `useHtml` 参数
+  - 默认值为 `false`，向后兼容
+  - 只有明确需要的地方才启用 HTML 渲染
+  - 不影响其他调用该方法的地方
+
+- 🔧 双重消息格式策略
+  - **HTML 版本**：用于前端 Webview 显示（支持 `<br>`、`<b>` 等标签）
+  - **纯文本版本**：用于 VSCode 原生通知（不支持 HTML）
+  - 错误提示在两种场景下都能正确显示格式化内容
+
+#### XML 推送优化
+- 🔧 强制使用 MAXAUTH 认证
+  - XML 推送必须使用 MAXAUTH 授权方式
+  - 添加 `noAuth: true` 避免重复认证头
+  - 通过 `authTypeIn: 'maxauth'` 强制指定认证类型
+
+- 🔧 改进错误消息格式
+  - 提供清晰的故障排查指引
+  - 提示用户需要使用 MAXAUTH 授权方式
+  - 提示清除 Cookie 缓存的操作步骤
+
+#### 用户体验优化
+- 🔧 认证类型选项优化
+  - API Key 标注为"推荐默认"
+  - 帮助用户理解不同认证方式的适用场景
+
+- 🔧 日志增强
+  - 显示当前使用的认证类型（便于调试）
+  - 区分 MAXAUTH 和 API Key 的会话缓存状态
+
+### 技术实现
+
+- 📦 修改文件
+  - `src/httpRequest.ts`
+    - 新增 `globalMaxAuthJSESSIONID` 全局变量
+    - 修改请求拦截器，根据 `authType` 选择 JSESSIONID
+    - 修改响应处理，根据 `authType` 缓存 JSESSIONID
+    - 修改 `clearJSESSIONID()` 函数，清除所有会话
+    - 支持 `authTypeIn` 参数覆盖认证类型
+    - MAXAUTH 认证直接设置 `MAXAUTH` 请求头
+  
+  - `src/configPanel.ts`
+    - 修改 `sendMessageToWebview` 方法签名，添加 `useHtml` 参数
+    - XML 推送添加前置配置检查（服务器地址、MAXAUTH）
+    - 实现双重消息格式（HTML + 纯文本）
+    - 强制使用 MAXAUTH 认证（`authTypeIn: 'maxauth'`）
+    - 添加 `noAuth: true` 避免重复认证
+  
+  - `webview-ui/src/App.tsx`
+    - 修改 `pushXmlError` 消息处理逻辑
+    - 根据 `useHtml` 参数决定是否直接使用 HTML 格式
+    - 移除额外的包装文本（避免重复显示）
+
+### 注意事项
+
+- ⚠️ MAXAUTH 和 API Key 的会话完全隔离，互不干扰
+- ⚠️ XML 推送必须使用 MAXAUTH 认证方式
+- ⚠️ 切换环境或点击"测试连接"时会清除所有会话信息
+- ⚠️ `useHtml` 参数默认为 `false`，确保向后兼容性
+
+---
+
 ## [1.2.7] - 2026-05-27
 
 ### 新增功能
