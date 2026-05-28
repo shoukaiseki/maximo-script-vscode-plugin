@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 
 // 全局 JSESSIONID 缓存
 let globalJSESSIONID: string | null = null;
+// MAXAUTH 认证方式的专用 JSESSIONID 缓存
+let globalMaxAuthJSESSIONID: string | null = null;
 
 /**
  * 限制日志输出长度
@@ -210,7 +212,7 @@ export interface HttpRequestOptions {
   timeout?: number;
   // 可选的配置覆盖（用于测试等场景，避免先保存配置）
   serverUrl?: string;
-  authType?: string;
+  authTypeIn?: string;
   maxauth?: string;
   apiKey?: string;
   apiType?: string;
@@ -260,15 +262,19 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     data,
     noAuth = false,
     timeout = 10000,
+    authTypeIn = '',
     logger,
   } = options;
   try {
     const axios = require('axios');
     const config = vscode.workspace.getConfiguration('maximoScript');
     
+    var authType = authTypeIn;
     // 获取服务器配置（优先使用传入的参数，否则从配置中读取）
     const serverUrl =(config.get('serverUrl', '') as string);
-    const authType = (config.get('authType', 'maxauth') as string);
+    if(!authType){
+      authType = (config.get('authType', 'maxauth') as string);
+    }
     const maxauth = (config.get('maxauth', '') as string);
     const apiKey = (config.get('apiKey', '') as string);
     const apiType =  (config.get('apiType', 'oslc') as string);
@@ -300,13 +306,17 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     };
     
     // 添加 JSESSIONID 到 Cookie（如果存在）
-    if (globalJSESSIONID) {
-      requestHeaders['Cookie'] = `JSESSIONID=${globalJSESSIONID}`;
-      console.log(`[HTTP Request] 使用缓存的 JSESSIONID`);
+    // 根据认证类型选择不同的 JSESSIONID
+    const currentJSESSIONID = authType === 'maxauth' ? globalMaxAuthJSESSIONID : globalJSESSIONID;
+    if (currentJSESSIONID) {
+      requestHeaders['Cookie'] = `JSESSIONID=${currentJSESSIONID}`;
+      console.log(`[HTTP Request] 使用缓存的 JSESSIONID (${authType})`);
     }
     
     // 添加认证信息（除非 noAuth=true）
-    if (!noAuth) {
+    if (authTypeIn === 'maxauth'){
+        requestHeaders['MAXAUTH'] = maxauth;
+    }else if (!noAuth) {
       if (authType === 'apikey') {
         if (!apiKey) {
           throw new Error('未配置 API Key');
@@ -357,8 +367,13 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
         : setCookie.match(/JSESSIONID=([^;]+)/);
       
       if (jsessionMatch && jsessionMatch[1]) {
+        if(authType === 'maxauth'){
+        globalMaxAuthJSESSIONID = jsessionMatch[1];
+        console.log(`[HTTP Response] 缓存 JSESSIONID: ${globalMaxAuthJSESSIONID}`);
+        }else{
         globalJSESSIONID = jsessionMatch[1];
         console.log(`[HTTP Response] 缓存 JSESSIONID: ${globalJSESSIONID}`);
+        }
       }
     }
     if(!(response.status>=200 && response.status<300)){
@@ -415,6 +430,7 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
  */
 export function clearJSESSIONID(): void {
   globalJSESSIONID = null;
-  console.log('[HTTP Request] 已清除 JSESSIONID Cookie');
+  globalMaxAuthJSESSIONID = null;
+  console.log('[HTTP Request] 已清除所有 JSESSIONID Cookie (包括 MAXAUTH 专用)');
 }
 

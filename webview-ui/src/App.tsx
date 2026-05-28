@@ -639,7 +639,7 @@ const App: React.FC = () => {
                 onChange={(e) => updateConfig({ authType: e.target.value })}
               >
                 <option value="maxauth">MAXAUTH (Base64认证)</option>
-                <option value="apikey">API Key</option>
+                <option value="apikey">API Key(推荐默认)</option>
               </select>
             </div>
 

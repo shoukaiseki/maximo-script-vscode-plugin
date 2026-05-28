@@ -1009,12 +1009,28 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     logger: vscode.LogOutputChannel
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
-      if(!this.checkConfig()){
-        const errorMsg = '配置不完整，请先在配置面板中设置服务器信息';
-        logger.error(errorMsg);
+      // 从配置中读取服务器信息
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      const aliasName = config.get<string>('aliasName', '');
+      const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
+      
+      if (!serverUrl) {
+        logger.error('[checkConfig] 服务器地址未配置');
+        const errorMsg = '服务器地址未配置';
         ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
         return { success: false, errorMessage: errorMsg };
       }
+      
+      if (!maxauth) {
+        logger.error('[checkConfig] MAXAUTH 未配置');
+        const errorMsg = 'MAXAUTH 未配置,推送应用xml需要使用MAXAUTH';
+        ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
+        return { success: false, errorMessage: errorMsg };
+      }
+      
 
       logger.info('[pushXmlToMaximo] 开始推送 XML...');
 
@@ -1024,8 +1040,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const deployResult = await httpRequestToMaximo({
         url: deployUrl,
         method: 'POST',
+        noAuth: true,
+        authTypeIn: 'maxauth',
         headers: {
-          'Content-Type': 'application/xml'
+          'Content-Type': 'application/xml',
         },
         data: xmlContent,
         logger: logger
