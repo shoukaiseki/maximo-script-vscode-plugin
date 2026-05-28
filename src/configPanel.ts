@@ -980,6 +980,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         data: deployBody
 
       });
+      if(deployResult.data&&deployResult.data.status&&deployResult.data.status==='error'){
+        const errorMsgText = `[pushScriptToMaximo] ❌ 部署失败: ${deployResult.data.status} ${JSON.stringify(deployResult.data.message)}`;
+        logger.error(errorMsgText);
+        // 前端 Webview 使用 HTML 格式，后端通知使用纯文本格式
+        ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsgText }, true);
+        return { success: false, errorMessage: errorMsgText };
+      }
       if(deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204){
         return { success: true }
       }else{
