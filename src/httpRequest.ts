@@ -434,3 +434,39 @@ export function clearJSESSIONID(): void {
   console.log('[HTTP Request] 已清除所有 JSESSIONID Cookie (包括 MAXAUTH 专用)');
 }
 
+
+/**
+ * 检查响应是否包含错误
+ * @param deployResult 响应结果
+ * @returns 是否包含错误
+ */
+export function checkResponseHasError(deployResult: any,logger: vscode.LogOutputChannel|null,logName=''): { hasError: boolean, errorMsg: string, successMsg: string } {
+  var hasError = false;
+  var errorMsg = '';
+  if(logger!=null){
+    logger.debug(`[${logName}] 检查响应是否包含错误\n`, JSON.stringify(deployResult, null, 2));
+  }
+  if (deployResult.data && deployResult.data.status && deployResult.data.status === 'error') {
+    if (logger != null) {
+      logger.warn(`[${logName}] ❌ 包含错误\n`, JSON.stringify(deployResult.data, null, 2));
+    }
+    hasError = true;
+    errorMsg = `${deployResult.data.status} ${JSON.stringify(deployResult.data.message|| deployResult.data.errorMsg)}`
+    return { hasError: true, errorMsg: errorMsg, successMsg: '' };
+  }
+  if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
+    if (logger != null) {
+      logger.info(`[${logName}] ✅ 成功\n`, JSON.stringify(deployResult.data, null, 2));
+    }
+    return { hasError: false, errorMsg: '', successMsg: '' }
+  } else {
+    if (logger != null) {
+      logger.warn(`[${logName}] ❌ 包含错误\n`, JSON.stringify(deployResult.data, null, 2));
+    }
+    const errorMsg = ` ${deployResult.status} ${JSON.stringify(deployResult.data)}`;
+    return { hasError: true, errorMsg: errorMsg, successMsg: '' };
+  }
+
+
+  return { hasError: hasError, errorMsg: errorMsg, successMsg: '' }
+}

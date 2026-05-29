@@ -135,6 +135,7 @@ try {
         if(lp.getString("EVCONTEXT")==="2"){
           EVCONTEXT="落实后"
         }
+        
         var lpObj = new JSONObject();
         lpObj.put("launchpointname", lp.getString("LAUNCHPOINTNAME"));
         lpObj.put("description", lp.getString("DESCRIPTION"));
@@ -143,10 +144,12 @@ try {
         lpObj.put("attributename", lp.getString("ATTRIBUTENAME"));
         lpObj.put("objectevent", lp.getString("OBJECTEVENT"));
         lpObj.put("eventtype", EVENTTYPE);
-        lpObj.put("evcontext", EVCONTEXT);
+        lpObj.put("sks:evcontext", EVCONTEXT);
         lpObj.put("addupdatedelete", ADDUPDATEDELETE.join(","));
         lpObj.put("condition", lp.getString("CONDITION"));
+        lpObj.put("attributeevent", lp.getString("ATTRIBUTEEVENT"));
         lpObj.put("active", lp.getString("ACTIVE"));
+
         lpArr.add(lpObj);
         lp = lpSet.moveNext();
       }

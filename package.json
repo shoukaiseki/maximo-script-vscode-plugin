@@ -104,7 +104,6 @@
         "maximoScript.version": {
           "type": "string",
           "enum": [
-            "7.6",
             "9.1"
           ],
           "default": "9.1",

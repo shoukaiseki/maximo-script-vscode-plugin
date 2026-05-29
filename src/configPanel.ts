@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { httpRequestToMaximo } from './httpRequest';
+import { checkResponseHasError, httpRequestToMaximo } from './httpRequest';
 import * as envConfig from './envConfig';
 
 // 创建日志输出通道
@@ -1073,17 +1073,26 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsgHtml }, true);
         return { success: false, errorMessage: errorMsgText };
       }
-
-      if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
-        logger.info('[pushXmlToMaximo] ✅ XML 推送成功');
-        ConfigPanel.sendMessageToWebview('pushXmlSuccess', { message: 'XML 推送成功' });
-        return { success: true };
-      } else {
-        const errorMsg = `[pushXmlToMaximo] ❌ 部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`;
+      const { hasError, errorMsg, successMsg } = checkResponseHasError(deployResult, logger, '[pushXmlToMaximo]');
+      if(hasError){
         logger.error(errorMsg);
         ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
         return { success: false, errorMessage: errorMsg };
       }
+      logger.info('[pushXmlToMaximo] ✅ XML 推送成功');
+      ConfigPanel.sendMessageToWebview('pushXmlSuccess', { message: 'XML 推送成功' });
+      return { success: true };
+
+      // if (deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204) {
+      //   logger.info('[pushXmlToMaximo] ✅ XML 推送成功');
+      //   ConfigPanel.sendMessageToWebview('pushXmlSuccess', { message: 'XML 推送成功' });
+      //   return { success: true };
+      // } else {
+      //   const errorMsg = `[pushXmlToMaximo] ❌ 部署失败: ${deployResult.status} ${JSON.stringify(deployResult.data)}`;
+      //   logger.error(errorMsg);
+      //   ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
+      //   return { success: false, errorMessage: errorMsg };
+      // }
     } catch (error: any) {
       logger.error(error)
       const errorMsg = `[pushXmlToMaximo] ❌ 推送失败: ${error.message}`;
@@ -1304,10 +1313,45 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           if (key.toLowerCase() === 'autoscript' || key.toLowerCase() === 'description' || key.toLowerCase() === 'source') {
             continue;
           }
+          if(key.toLowerCase().startsWith('sks:')){
+            // 跳过 sks: 开头的字段
+            continue;
+          }
           
           // 其他字段都添加 spi: 前缀
           const prefixedKey = `spi:${key.toLowerCase()}`;
-          let value = customFields[key];
+          let value = (customFields as any)[key];
+          if(key.toLowerCase() === 'launchpoints'){
+            const launchPointsTmp = []
+            for(const launchPoint of value){
+              const launchPointTmp: any = {}
+              for (const lpKey in launchPoint) {
+                if (launchPoint.hasOwnProperty(lpKey)) {
+                  const prefixedKey = `spi:${lpKey.toLowerCase()}`;
+                  launchPointTmp[prefixedKey] = (launchPoint as any)[lpKey];
+                }
+              }
+              launchPointsTmp.push(launchPointTmp)
+            }
+            deployBody['spi:scriptlaunchpoint'] = launchPointsTmp;
+            continue;
+          }
+
+          if(key.toLowerCase() === 'variables'){
+            const variablesTmp = []
+            for(const variable of value){
+              const variableTmp: any = {}
+              for (const lpKey in variable) {
+                if (variable.hasOwnProperty(lpKey)) {
+                  const prefixedKey = `spi:${lpKey.toLowerCase()}`;
+                  variableTmp[prefixedKey] = (variable as any)[lpKey];
+                }
+              }
+              variablesTmp.push(variableTmp)
+            }
+            deployBody['spi:autoscriptvars'] = variablesTmp;
+            continue;
+          }
           
           // 如果是 source 字段，需要处理换行符
           if (key === 'source') {
@@ -1342,14 +1386,20 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         headers: deployHeaders,
         data: deployBody
       });
+      const { hasError, errorMsg, successMsg } = checkResponseHasError(deployResult, logger, '[pushXmlToMaximo]');
+      if (hasError) {
+        logger.error(`[_deployScript] 部署失败: ${errorMsg}`);
+        return false;
+      }
       
-      return deployResult.status === 200 || deployResult.status === 201 || deployResult.status === 204;
+      return true;
       
     } catch (error: any) {
       logger.error(`[_deployScript] 部署失败: ${error.message}`);
       return false;
     }
   }
+
 
   /**
    * 清空工具箱输出
@@ -1505,7 +1555,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID'];
 
       // 构建自定义字段（从 JSON 配置中读取所有属性）
-      const customFields: any = {};
+      const customFields: Record<string, any> = {};
 
       // 遍历 JSON 配置中的所有属性
       for (const [key, value] of Object.entries(config)) {

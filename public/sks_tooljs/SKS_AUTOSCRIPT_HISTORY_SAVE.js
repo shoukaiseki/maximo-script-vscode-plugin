@@ -1,25 +1,9 @@
-/*
- *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): SKS_AUTOSCRIPT_HISTORY_SAVE
- * 脚本语言(SCRIPTLANGUAGE): nashorn
- * 描述(DESCRIPTION): 存储脚本历史记录
- * 日志级别(LOGLEVEL): ERROR
- * 唯一标识(AUTOSCRIPTID): 268            语言代码(LANGCODE): ZH
- * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
- * 是接口(INTERFACE): N                  活动(ACTIVE): Y
- * 变更人(CHANGEBY): MAXADMIN
- * 日期(CHANGEDATE): 2026/5/20 15:38:49
- *
- * Variables: 无
- *
- * Launch Points: 无
- */
 /* eslint-disable no-redeclare */
 /* eslint-disable indent */
 /* eslint-disable quotes */
 /* eslint-disable no-undef */
 // @ts-nocheck
-
+/// <reference path="/javaapi/global.d.ts" />
 /** @type {psdi.server.MXServer} */
 MXServer = Java.type("psdi.server.MXServer");
 /** @type {psdi.mbo.SqlFormat} */
@@ -30,6 +14,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MaximoLogger} */
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
+logger.info
 main();
 
 function main() {
