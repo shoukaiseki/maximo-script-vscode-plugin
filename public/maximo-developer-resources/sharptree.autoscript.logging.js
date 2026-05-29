@@ -70,7 +70,8 @@ function main() {
 
             timeout = timeout * 1000;
 
-            if (Version.majorVersion == "8") {
+            // Maximo 8 and 9 use file-based logging (WebSphere/Open Liberty)
+            if (Version.majorVersion == "9" || Version.majorVersion == "8") {
                 _handleV8(timeout);
             } else if (Version.majorVersion == "7") {
                 _handleV7(timeout);
