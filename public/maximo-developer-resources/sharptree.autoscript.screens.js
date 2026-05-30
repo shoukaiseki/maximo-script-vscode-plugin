@@ -1,11 +1,16 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
+/// <reference path="/javaapi/global.d.ts" />
 Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
-var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
-logger.setLevel(Level.DEBUG);
-logger.info("----------------Starting execution of script " + service.getScriptName());
-logger.info("-------------webclientsession=" + service.webclientsession())
+var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
+var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
+loggerMX.error("[SHARPTREE.AUTOSCRIPT.SCREENS]----------1");
+/** @type {cn.shoukaiseki.tools.AnsiLogger} */
+var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
+logger.setLevel(Level.INFO);
+logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]----------------Starting execution of script " + service.getScriptName());
+logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]-------------webclientsession=" + service.webclientsession())
 
 RESTRequest = Java.type("com.ibm.tivoli.oslc.RESTRequest");
 
@@ -31,7 +36,7 @@ try {
     PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
 } catch (ignored) {
-    logger.error(ignored);
+    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS]",ignored);
 }
 
 
@@ -55,7 +60,7 @@ try {
 
 StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
-logger.setLevel(Level.DEBUG);
+logger.setLevel(Level.INFO);
 
 main();
 
@@ -86,7 +91,7 @@ function main() {
                         response.screenNames = presentations;
                         responseBody = JSON.stringify(response);
                     } catch (error) {
-                        logger.error(error);
+                        logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS]",error);
                     } finally {
                         _close(presentationSet);
                     }
@@ -140,7 +145,7 @@ function main() {
                     // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
 
-                    logger.info("request.getMXSession()=" + request.getMXSession());
+                    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]request.getMXSession()=" + request.getMXSession());
                     var loader = new PresentationLoader();
                     var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
@@ -166,7 +171,8 @@ function main() {
 
 
                     logger.info("Importing application " + app + " through PresentationLoader.");
-                    loader.importApp(wcs, writer.toString());
+                    // loader.importApp(wcs, writer.toString());
+                    new ImportAppScript(writer.toString())
                 } else {
                     var maxPresentationSet;
                     try {
@@ -243,6 +249,46 @@ function main() {
             return;
         }
     }
+}
+
+function ImportAppScript(xml){
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript")
+    
+    //maximo9.1
+    PresentationParser=Java.type("psdi.webclient.system.controller.PresentationParser");
+    /** @type {psdi.webclient.system.controller.PresentationParser} */
+    var pp = new PresentationParser(xml);
+    this.currentAppID = pp.getApplication();
+    logger.info('\x1b[32m[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID + '\x1b[0m')
+    if (pp.getTrimmedXML().indexOf("<systemlib") < 0) {
+        //应用xml
+        /** @type {psdi.mbo.MboSetRemote} */
+        var maxAppsSet = MXServer.getMXServer().getMboSet("MAXAPPS",userInfo);
+        /** @type {psdi.mbo.MboRemote} */
+        var app = maxAppsSet.moveFirst();
+
+        var exists = false;
+        for (exists = false; app != null; app = maxAppsSet.moveNext()) {
+            var compAppId = app.getString("app");
+            if (compAppId.equalsIgnoreCase(this.currentAppID)) {
+                exists = true;
+                logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.应用存在")
+                break;
+            }
+        }
+
+        if (!exists) {
+            throw new MXApplicationException("designer", "noapp", [ this.currentAppID.toUpperCase() ]);
+        }
+
+    } else if (MXServer.isBotcInstalled() && this.currentAppID != null && (this.currentAppID.equalsIgnoreCase("library") || this.currentAppID.equalsIgnoreCase("lookups") || this.currentAppID.equalsIgnoreCase("menus"))) {
+        throw new MXApplicationException("botc", "nosystempresentataions");
+    }
+    //系统xml
+
+
+
+
 }
 
 function resetControlGroups(app) {
