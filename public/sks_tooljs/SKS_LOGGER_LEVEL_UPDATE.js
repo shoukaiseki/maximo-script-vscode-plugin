@@ -1,3 +1,10 @@
+/* eslint-disable no-redeclare */
+/* eslint-disable indent */
+/* eslint-disable quotes */
+/* eslint-disable no-undef */
+// @ts-nocheck
+/// <reference path="@javaapi/global.d.ts" />
+
 /*
  更新日志级别
  */

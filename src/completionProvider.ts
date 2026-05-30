@@ -11,6 +11,7 @@ interface CompletionConfig {
   serverUrl: string;
   maxauth: string;
   version: string;
+  completionMode: string;  // 补全模式：vscode, default, reflection
   enableCompletion: boolean;
   localApiPath: string;
   enableJSDocParsing: boolean;  // 启用 JSDoc 解析
@@ -78,10 +79,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     this.loadLocalApiData();
     this.log('插件初始化完成');
     
-    // 如果启用了自动生成反射API，初始化反射数据管理器
-    if (this.config.autoGenerateReflectionApi) {
-      this.initializeReflectionManager();
-    }
+    // 总是初始化反射数据管理器（创建目录和元数据文件）
+    // 如果启用了自动生成反射API，则启用后台反射获取功能
+    this.initializeReflectionManager();
   }
 
   /**
@@ -114,6 +114,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       serverUrl: config.get('serverUrl', ''),
       maxauth: config.get('maxauth', ''),
       version: config.get('version', '7.6'),
+      completionMode: config.get('completionMode', 'vscode'),
       enableCompletion: config.get('enableCompletion', true),
       localApiPath: config.get('localApiPath', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
@@ -129,6 +130,112 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     this.config = this.loadConfig();
     this.completionCache.clear();
     this.loadLocalApiData();
+  }
+
+  /**
+   * 检查是否启用了自动生成反射API
+   */
+  public isAutoGenerateReflectionEnabled(): boolean {
+    return this.config.autoGenerateReflectionApi && this.reflectionManager !== null;
+  }
+
+  /**
+   * 扫描文档中的 Java 类并触发后台反射获取
+   * @param document VSCode 文裆对象
+   */
+  public async scanAndFetchJavaClasses(document: vscode.TextDocument): Promise<void> {
+    if (!this.isAutoGenerateReflectionEnabled()) {
+      return;
+    }
+
+    try {
+      const text = document.getText();
+      const javaClasses = this.extractJavaClassesFromText(text);
+      
+      this.log(`[AutoReflection] 从文档中提取到 ${javaClasses.length} 个 Java 类`);
+      
+      // 对每个类触发后台反射获取
+      for (const className of javaClasses) {
+        // 异步触发，不等待完成
+        this.triggerReflectionFetch(className).catch(err => {
+          this.log(`[AutoReflection] 后台反射获取失败: ${className} - ${err}`, 'warn');
+        });
+      }
+    } catch (error: any) {
+      this.log(`[AutoReflection] 扫描 Java 类失败: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * 从文本中提取 Java 类名
+   * 支持的模式：
+   * - MXServer.getMXServer()
+   * - psdi.mbo.MboRemote
+   * - var mbo: psdi.mbo.MboRemote
+   * - @type {psdi.mbo.MboRemote}
+   */
+  private extractJavaClassesFromText(text: string): string[] {
+    const classes = new Set<string>();
+    
+    // 模式1: 匹配完整的 Java 类名（包名.类名），支持内部类（$符号）
+    // 例如: psdi.mbo.MboRemote, com.ibm.tivoli.maximo.script.ScriptService, java.util.Base64$Encoder
+    // 注意：使用负向后顾确保不在 $ 后面开始匹配
+    const fullClassNamePattern = /(?<!\$)([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*\.[A-Z][a-zA-Z0-9]*(?:\$[A-Z][a-zA-Z0-9]*)*)\b/g;
+    let match;
+    while ((match = fullClassNamePattern.exec(text)) !== null) {
+      const className = match[1];
+      // 过滤掉常见的非 Java 类
+      if (!className.startsWith('var ') && 
+          !className.startsWith('let ') && 
+          !className.startsWith('const ') &&
+          !className.includes('function') &&
+          !className.includes('return')) {
+        classes.add(className);
+      }
+    }
+    
+    // 模式2: 匹配 JSDoc 类型注释
+    // 例如: @type {psdi.mbo.MboRemote}, @param {psdi.mbo.MboSetRemote}
+    const jsdocPattern = /@(?:type|param|returns?)\s+\{([^}]+)\}/g;
+    while ((match = jsdocPattern.exec(text)) !== null) {
+      const typeStr = match[1];
+      // 提取可能的 Java 类名（支持内部类）
+      const typeClasses = typeStr.match(/(?<!\$)([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*\.[A-Z][a-zA-Z0-9]*(?:\$[A-Z][a-zA-Z0-9]*)*)\b/g);
+      if (typeClasses) {
+        typeClasses.forEach(cls => classes.add(cls));
+      }
+    }
+    
+    // 模式3: 匹配 TypeScript 类型注解
+    // 例如: : psdi.mbo.MboRemote, as psdi.mbo.MboRemote
+    const tsTypePattern = /(?::|as)\s*(?<!\$)([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*\.[A-Z][a-zA-Z0-9]*(?:\$[A-Z][a-zA-Z0-9]*)*)/g;
+    while ((match = tsTypePattern.exec(text)) !== null) {
+      classes.add(match[1]);
+    }
+    
+    // 转换为数组并过滤
+    const result = Array.from(classes).filter(className => {
+      // 过滤 jscustom 包名
+      if (className.startsWith('jscustom.')) return false;
+      
+      // 过滤 custom 和 global 类名
+      const simpleName = className.split(/[.$]/).pop() || '';  // 支持 $ 分隔
+      if (simpleName === 'custom' || simpleName === 'global') return false;
+      
+      // 过滤明显不合法的类名（包名太短或看起来像截断的，如 e64.Encoder）
+      const parts = className.split('.');
+      if (parts.length >= 2) {
+        const firstPart = parts[0];
+        // 如果第一部分长度小于4，或者以数字结尾（可能是截断的），则过滤
+        if (firstPart.length < 4 || /\d+$/.test(firstPart)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    return result;
   }
 
   private async loadLocalApiData() {
@@ -593,7 +700,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
   /**
    * 根据类型获取补全建议（三层降级策略）
-   * 第1层：实时 JDK 反射（通过配置的 JAR 目录）
+   * 第1层：实时 JDK 反射（通过配置的 JAR 目录，仅在 reflection 模式下）
    * 第2层：预加载的 reflection-data JSON 缓存
    * 第3层：降级到常用 API 静态列表
    */
@@ -603,8 +710,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
   ): Promise<vscode.CompletionItem[]> {
     const startTime = Date.now();
       
-    // 第1层：尝试实时反射（如果配置了 JAR 目录）
-    if (this.config.jarDirectories && this.config.jarDirectories.length > 0) {
+    // 第1层：尝试实时反射（仅在 reflection 模式且配置了 JAR 目录时）
+    if (this.config.completionMode === 'reflection' && this.config.jarDirectories && this.config.jarDirectories.length > 0) {
       this.log(`[Layer 1] 尝试实时反射: ${className}`);
       const realTimeResult = await this.getRealTimeReflection(className);
       if (realTimeResult && realTimeResult.length > 0) {
@@ -651,20 +758,28 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
    * 后台触发反射获取（异步，不阻塞当前补全）
    */
   private async triggerReflectionFetch(className: string): Promise<void> {
+    this.log(`[Debug] triggerReflectionFetch 被调用: ${className}`);
+    this.log(`[Debug] autoGenerateReflectionApi: ${this.config.autoGenerateReflectionApi}`);
+    this.log(`[Debug] reflectionManager: ${this.reflectionManager ? '已初始化' : '未初始化'}`);
+    
     if (!this.reflectionManager) {
+      this.log(`[Debug] ❌ reflectionManager 未初始化，跳过`);
       return;
     }
     
     // 检查是否需要处理
     if (!this.reflectionManager.shouldProcessClass(className)) {
+      this.log(`[Debug] ❌ shouldProcessClass 返回 false，跳过`);
       return;
     }
     
     // 防抖检查
     if (this.reflectionManager.isInDebouncePeriod(className)) {
+      this.log(`[Debug] ❌ 在防抖期内，跳过`);
       return;
     }
     
+    this.log(`[Debug] ✅ 所有检查通过，开始执行反射获取`);
     this.reflectionManager.recordRequestTime(className);
     
     try {
@@ -752,6 +867,71 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     // 保存 .d.ts 文件
     await fs.promises.writeFile(fullPath, dtsContent, 'utf-8');
     this.log(`[Background] 💾 生成 .d.ts: ${dtsFilePath}`);
+    
+    // 自动更新 global.d.ts，添加新的引用
+    try {
+      await this.updateGlobalDts(dtsFilePath);
+      this.log(`[Background] 📝 已更新 global.d.ts`);
+    } catch (error: any) {
+      this.log(`[Background] ⚠️ 更新 global.d.ts 失败: ${error.message}`, 'warn');
+    }
+  }
+
+  /**
+   * 更新 global.d.ts 文件，添加新的引用
+   * @param newDtsFilePath 新生成的 .d.ts 文件相对路径（如：com/ibm/test/TestClass.d.ts）
+   */
+  private async updateGlobalDts(newDtsFilePath: string): Promise<void> {
+    if (!this.reflectionManager) {
+      return;
+    }
+    
+    const javaapiPath = this.reflectionManager.getJavaapiPath();
+    const globalDtsPath = path.join(javaapiPath, 'global.d.ts');
+    
+    let existingContent = '';
+    let existingReferences: string[] = [];
+    let otherContent: string[] = []; // 非 reference 的其他内容
+    
+    // 读取现有文件内容
+    if (fs.existsSync(globalDtsPath)) {
+      existingContent = fs.readFileSync(globalDtsPath, 'utf8');
+      const lines = existingContent.split('\n');
+      
+      // 分离 reference 行和其他内容
+      lines.forEach(line => {
+        const refMatch = line.match(/^\/\/\/\s*<reference\s+path="\.?\/?([^"]+)"\s*\/>/);
+        if (refMatch) {
+          // 标准化路径：移除开头的 ./ 或 /
+          const normalizedPath = refMatch[1].replace(/^\.?\//, '');
+          existingReferences.push(normalizedPath);
+        } else if (line.trim() !== '') {
+          // 保留非空白的非 reference 行
+          otherContent.push(line);
+        }
+      });
+    }
+    
+    // 标准化新引用的路径
+    const normalizedNewRef = newDtsFilePath.replace(/^\.?\//, '').replace(/\\/g, '/');
+    
+    // 合并引用（去重）
+    const allReferences = [...new Set([...existingReferences, normalizedNewRef])];
+    
+    // 构建新的 global.d.ts 内容
+    const referenceLines = allReferences.map(ref => 
+      `/// <reference path="./${ref}" />`
+    );
+    
+    let globalContent = referenceLines.join('\n') + '\n';
+    
+    // 如果有其他内容，添加分隔符后追加
+    if (otherContent.length > 0) {
+      globalContent += '\n' + otherContent.join('\n') + '\n';
+    }
+    
+    // 写入文件
+    fs.writeFileSync(globalDtsPath, globalContent, 'utf8');
   }
 
   /**

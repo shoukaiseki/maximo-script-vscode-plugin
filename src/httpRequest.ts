@@ -482,24 +482,24 @@ export async function fetchClassReflection(
   logger: vscode.LogOutputChannel
 ): Promise<any> {
   try {
-    logger.info(`[Reflection] 开始获取类反射信息: ${className}`);
+    logger.info(`[maximoReflection] 开始获取类反射信息: ${className}`);
     
     const result = await httpRequestToMaximo({
-      url: 'script/SKS_REFLECT_HELPER',
+      url: 'script/SKS_REFLECT_HELPER_ENHANCED',  // 使用增强版脚本
       method: 'POST',
       data: { className },
       logger
     });
     
     if (result.data) {
-      logger.info(`[Reflection] ✅ 成功获取类反射信息: ${className}`);
+      logger.info(`[maximoReflection] ✅ 成功获取类反射信息: ${className}`);
       return result.data;
     } else {
-      logger.warn(`[Reflection] ⚠️ 反射接口返回空数据: ${className}`);
+      logger.warn(`[maximoReflection] ⚠️ 反射接口返回空数据: ${className}`);
       return { status: 'error', message: '反射接口返回空数据' };
     }
   } catch (error: any) {
-    logger.error(`[Reflection] ❌ 获取类反射信息失败: ${className} - ${error.message}`);
+    logger.error(`[maximoReflection] ❌ 获取类反射信息失败: ${className} - ${error.message}`);
     throw error;
   }
 }

@@ -3,6 +3,7 @@
 /* eslint-disable quotes */
 /* eslint-disable no-undef */
 // @ts-nocheck
+/// <reference path="@javaapi/global.d.ts" />
 
 /** @type {psdi.server.MXServer} */
 MXServer = Java.type("psdi.server.MXServer");

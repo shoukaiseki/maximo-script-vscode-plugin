@@ -4,7 +4,7 @@
 /* eslint-disable quotes */
 /* eslint-disable no-undef */
 // @ts-nocheck
-/// <reference path="/javaapi/global.d.ts" />
+/// <reference path="@javaapi/global.d.ts" />
 // commonsUtils=service.invokeScript("SKS_COMMONS_UTILS");
 // load('nashorn:mozilla_compat.js');
 /** @type {psdi.mbo.MboRemote} */

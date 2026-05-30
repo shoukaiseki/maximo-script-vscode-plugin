@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
-/// <reference path="/javaapi/global.d.ts" />
+/// <reference path="@javaapi/global.d.ts" />
 Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());

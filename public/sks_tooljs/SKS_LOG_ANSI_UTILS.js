@@ -3,7 +3,7 @@
 /* eslint-disable quotes */
 /* eslint-disable no-undef */
 // @ts-nocheck
-/// <reference path="/javaapi/global.d.ts" />
+/// <reference path="@javaapi/global.d.ts" />
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init start\x1b[0m")

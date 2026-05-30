@@ -117,6 +117,26 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // 监听 JavaScript 文件打开事件，自动扫描 Java 类并触发后台反射获取
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument(async (document) => {
+      if (document.languageId === 'javascript' && completionProvider.isAutoGenerateReflectionEnabled()) {
+        logger.info(`[AutoReflection] 检测到 JS 文件打开: ${document.fileName}`);
+        await completionProvider.scanAndFetchJavaClasses(document);
+      }
+    })
+  );
+
+  // 监听 JavaScript 文件保存事件，重新扫描 Java 类
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      if (document.languageId === 'javascript' && completionProvider.isAutoGenerateReflectionEnabled()) {
+        logger.info(`[AutoReflection] 检测到 JS 文件保存: ${document.fileName}`);
+        await completionProvider.scanAndFetchJavaClasses(document);
+      }
+    })
+  );
+
   // 注册推送到 Maximo 命令
   const pushToMaximoCommand = vscode.commands.registerCommand('maximoScript.pushToMaximo', async () => {
     try {

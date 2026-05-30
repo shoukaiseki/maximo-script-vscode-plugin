@@ -1,19 +1,9 @@
-/*
- *shoukaiseki this_is_auto_comment_donot_delete:这是导出的自动注释,不要删除,否则下次导出会出现重复注释
- * 脚本(AUTOSCRIPT): SKS_GET_AUTOSCRIPTINFOBYNAME
- * 脚本语言(SCRIPTLANGUAGE): Nashorn
- * 描述(DESCRIPTION): 获取脚本详情
- * 日志级别(LOGLEVEL): ERROR
- * 唯一标识(AUTOSCRIPTID): 116            语言代码(LANGCODE): EN
- * 用户定义(USERDEFINED): Y               状态(STATUS): Draft
- * 是接口(INTERFACE): N                  活动(ACTIVE): Y
- * 变更人(CHANGEBY): MAXADMIN
- * 日期(CHANGEDATE): 2026/5/15 10:7:38
- *
- * Variables: 无
- *
- * Launch Points: 无
- */
+/* eslint-disable no-redeclare */
+/* eslint-disable indent */
+/* eslint-disable quotes */
+/* eslint-disable no-undef */
+// @ts-nocheck
+/// <reference path="@javaapi/global.d.ts" />
 load('nashorn:mozilla_compat.js');
 importClass(Packages.psdi.server.MXServer);
 importClass(Packages.java.time.ZonedDateTime);
