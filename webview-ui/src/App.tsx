@@ -816,23 +816,16 @@ const App: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label>本地 API 文档路径</label>
+              <label>本地 API 文档路径(弃用)</label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   type="text"
                   value={config.localApiPath}
+                  disabled={true}
                   onChange={(e) => updateConfig({ localApiPath: e.target.value })}
                   placeholder="选择包含 API 文档的目录"
                   style={{ flex: 1 }}
                 />
-                <button 
-                  onClick={() => {
-                    getVsCodeApi().postMessage({ command: 'selectDirectory' });
-                  }}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  选择目录
-                </button>
               </div>
               <div className="help-text">
                 用于加载本地 Maximo API 文档以提供更准确的补全建议

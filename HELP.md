@@ -10,6 +10,8 @@
 - [插件配置](#-插件配置)
 - [环境管理](#-环境管理)
 - [补全设置](#-补全设置)
+- [反射 API 自动生成](#-反射-api-自动生成)
+- [手动获取反射信息](#-手动获取反射信息)
 - [手动调用接口](#-手动调用接口)
 - [工具箱功能](#-工具箱功能)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
@@ -230,9 +232,9 @@ MaxAuth 和 API Key 输入框右侧有眼睛图标按钮：
 用于提供离线代码补全功能。
 
 **步骤：**
-1. 下载 reflection-data：
+1. reflection-data：
    ```
-   https://gitee.com/shoukaiseki/maximo-script-editor/tree/master/reflection-data
+
    ```
 2. 将所有 JSON 文件保存到本地目录
 3. 在配置面板中选择该目录
@@ -333,6 +335,152 @@ asset.getString("assetnum");
 ```
 
 📖 **更多示例**：查看 [sks_demo/demo.js](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/blob/master/sks_demo/demo.js)
+
+---
+
+## 🔍 反射 API 自动生成
+
+### 功能简介
+
+插件可以自动扫描 JavaScript 文件中的 Java 类名，调用 Maximo 接口获取反射信息，并生成 TypeScript 声明文件（`.d.ts`），提供精确的代码补全。
+
+### 开启自动生成
+
+**步骤：**
+1. 打开配置面板 → “补全设置”
+2. 勾选 **“自动生成反射API”**
+3. 确保 Maximo 系统中已部署 `SKS_REFLECT_HELPER_ENHANCED` 脚本
+
+**工作流程：**
+```javascript
+// 1. 在 JS 文件中写下 Java 类名
+/** @type {psdi.mbo.MboRemote} */
+var mbo = service.getMboSet("ASSET", userInfo).moveFirst();
+
+// 2. 插件自动检测并后台获取反射信息
+// 3. 自动生成 .d.ts 文件到 javaapi 目录
+// 4. 更新 global.d.ts 添加引用
+// 5. 下次输入 mbo. 时获得精确的智能补全
+```
+
+### 数据存储位置
+
+- **JSON 原始数据**：`~/.sks/maximo-script-helper/reflection-data/`
+- **TypeScript 声明文件**：工作区根目录的 `javaapi/` 文件夹
+- **缓存记录**：`javaapi/.maximoScriptClass.json`
+- **全局索引**：`javaapi/global.d.ts`
+
+### 支持的 Java 包名
+
+插件支持所有合法的 Java 包名，包括：
+
+| 包名前缀 | 说明 | 示例 |
+|---------|------|------|
+| `cn` | 中国域名 | `cn.shoukaiseki.test.TestClass` |
+| `io` | 输入输出 | `io.netty.channel.Channel` |
+| `com` | 商业组织 | `com.ibm.json.java.JSONObject` |
+| `org` | 非营利组织 | `org.apache.log4j.Level` |
+| `java` | Java 标准库 | `java.util.Base64` |
+| `psdi` | Maximo 核心 | `psdi.mbo.MboRemote` |
+| 内部类 | 使用 `$` 符号 | `java.util.Base64$Encoder` |
+
+### 注意事项
+
+- ⚠️ 需要配置 Maximo 服务器地址和认证信息
+- ⚠️ Maximo 系统中必须部署 `SKS_REFLECT_HELPER_ENHANCED` 脚本
+- ⚠️ 首次获取可能需要几秒钟时间
+- ⚠️ 生成的文件保存在工作区根目录的 `javaapi` 文件夹
+
+---
+
+## 👆 手动获取反射信息
+
+### 功能简介
+
+对于特定的 Java 类，您可以手动触发反射获取，无需等待后台自动扫描。此功能无视忽略列表，可以强制获取任何类。
+
+### 使用步骤
+
+**步骤 1：选中类名**
+
+在 `.js` 文件中选中您要获取反射信息的 Java 类名。
+
+**示例：**
+```javascript
+// 选中这一行中的类名
+/** @type {java.util.Base64$Encoder} */
+Base64Encoder = Java.type("java.util.Base64$Encoder");
+```
+
+**步骤 2：右键点击**
+
+在选中的文本上点击鼠标右键。
+
+**步骤 3：选择菜单项**
+
+在弹出的菜单中选择 **“Maximo Script: 获取类反射信息”**。
+
+**步骤 4：等待处理**
+
+插件会：
+1. ✅ 验证类名格式
+2. ✅ 连接 Maximo 服务器
+3. ✅ 调用反射接口获取类信息
+4. ✅ 生成 .d.ts 文件
+5. ✅ 保存到 `javaapi` 目录
+
+**步骤 5：查看结果**
+
+成功后会弹出提示：
+```
+✅ 已成功获取并生成 Encoder.d.ts
+[打开文件]
+```
+
+点击 **“打开文件”** 按钮可以直接查看生成的 .d.ts 文件。
+
+### 生成的文件结构
+
+```
+工作区根目录/
+└── javaapi/                    ← 自动生成
+    ├── global.d.ts            ← 主索引文件（自动更新）
+    ├── .maximoScriptClass.json ← 缓存记录
+    └── java/
+        └── util/
+            └── Base64/
+                ├── Encoder.d.ts    ← 生成的声明文件
+                └── Decoder.d.ts    ← 生成的声明文件
+```
+
+### 优势
+
+- ✅ **无视忽略列表**：不检查 `.ignoreMaximoScriptClass.json`，可以强制获取任何类
+- ✅ **立即生成**：不等待后台扫描，适合调试和快速添加新类
+- ✅ **完整流程**：保存 JSON、生成 .d.ts、更新缓存、更新 global.d.ts
+- ✅ **与自动扫描一致**：使用相同的存储结构和文件格式
+
+### 常见问题
+
+**Q1: 提示 "无法加载类: XXX"？**
+
+A: 
+- 检查类名拼写是否正确
+- 确认该类在 Maximo 环境中存在
+- 对于内部类，使用 `$` 符号（如 `Base64$Encoder`）
+
+**Q2: 右键菜单中没有 "获取类反射信息" 选项？**
+
+A:
+- 确保在 `.js` 文件中操作
+- 确保选中了文本（不能为空）
+
+**Q3: 生成的 .d.ts 文件没有方法？**
+
+A:
+- 查看输出日志确认反射接口是否成功调用
+- 尝试其他类似的类
+- 确认 Maximo 系统中已部署 `SKS_REFLECT_HELPER_ENHANCED` 脚本
 
 ---
 
@@ -732,4 +880,4 @@ graph LR
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-27 | 版本：1.2.7*
+*最后更新：2026-05-30 | 版本：1.2.11*

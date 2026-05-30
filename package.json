@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.2.10",
+  "version": "1.3.1",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -58,6 +58,10 @@
       {
         "command": "maximoScript.pushXmlToMaximo",
         "title": "Maximo Script: 推送 XML 到 Maximo"
+      },
+      {
+        "command": "maximoScript.fetchReflection",
+        "title": "Maximo Script: 获取类反射信息"
       }
     ],
     "menus": {
@@ -71,6 +75,11 @@
           "command": "maximoScript.pushXmlToMaximo",
           "when": "editorLangId == xml",
           "group": "navigation@1"
+        },
+        {
+          "command": "maximoScript.fetchReflection",
+          "when": "editorLangId == javascript && editorHasSelection",
+          "group": "navigation@2"
         }
       ]
     },
@@ -130,7 +139,7 @@
         },
         "maximoScript.localApiPath": {
           "type": "string",
-          "default": "",
+          "default": "~/.sks/maximo-script-helper/reflection-data",
           "description": "本地API反射数据目录路径（JSON文件所在目录）"
         },
         "maximoScript.scriptStoragePath": {

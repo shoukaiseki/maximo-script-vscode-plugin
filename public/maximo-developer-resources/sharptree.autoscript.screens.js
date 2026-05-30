@@ -6,7 +6,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
 loggerMX.error("[SHARPTREE.AUTOSCRIPT.SCREENS]----------1");
-/** @type {cn.shoukaiseki.tools.AnsiLogger} */
+/** @type {jscustom.AnsiLogger} */
 var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
 logger.setLevel(Level.INFO);
 logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]----------------Starting execution of script " + service.getScriptName());
@@ -259,7 +259,7 @@ function ImportAppScript(xml){
     /** @type {psdi.webclient.system.controller.PresentationParser} */
     var pp = new PresentationParser(xml);
     this.currentAppID = pp.getApplication();
-    logger.info('\x1b[32m[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID + '\x1b[0m')
+    logger.info('[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID )
     if (pp.getTrimmedXML().indexOf("<systemlib") < 0) {
         //应用xml
         /** @type {psdi.mbo.MboSetRemote} */

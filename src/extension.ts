@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
-import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse } from './httpRequest';
+import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse, fetchClassReflection } from './httpRequest';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
@@ -250,6 +250,200 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(pushXmlToMaximoCommand);
+
+  // 注册手动获取反射信息命令
+  const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
+    try {
+      const editor = vscode.window.activeTextEditor;
+      
+      if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+      }
+      
+      const document = editor.document;
+      
+      // 只处理 JavaScript 文件
+      if (document.languageId !== 'javascript') {
+        vscode.window.showErrorMessage('只能在 JavaScript 文件中使用此功能');
+        return;
+      }
+      
+      // 获取选中的文本
+      const selection = editor.selection;
+      if (selection.isEmpty) {
+        vscode.window.showErrorMessage('请先选中一个 Java 类名（如：java.util.Base64$Encoder）');
+        return;
+      }
+      
+      const selectedText = document.getText(selection).trim();
+      
+      if (!selectedText) {
+        vscode.window.showErrorMessage('选中的文本为空');
+        return;
+      }
+      
+      logger.info(`[FetchReflection] 用户选中类名: ${selectedText}`);
+      
+      // 验证类名格式（简单的正则检查）
+      const classNamePattern = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)*(\$[A-Z][a-zA-Z0-9]*)*$/;
+      if (!classNamePattern.test(selectedText)) {
+        const confirm = await vscode.window.showWarningMessage(
+          `"${selectedText}" 看起来不是一个合法的 Java 类名。`,
+          { modal: true },
+          '仍然尝试',
+          '取消'
+        );
+        
+        if (confirm !== '仍然尝试') {
+          return;
+        }
+      }
+      
+      // 显示进度提示
+      vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `正在获取反射信息: ${selectedText}`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: '正在连接 Maximo...' });
+          
+          try {
+            // 调用反射接口
+            const reflectionData = await fetchClassReflection(selectedText, logger);
+            
+            if (!reflectionData || reflectionData.status === 'error') {
+              const errorMsg = reflectionData?.message || '未知错误';
+              logger.error(`[FetchReflection] ❌ 获取失败: ${errorMsg}`);
+              vscode.window.showErrorMessage(`获取反射信息失败: ${errorMsg}`);
+              return;
+            }
+            
+            progress.report({ message: '正在保存数据并生成文件...' });
+            
+            // 使用 completionProvider 的私有方法保存数据
+            // 注意：这里需要访问 completionProvider 实例
+            // 由于 triggerReflectionFetch 是私有的，我们需要通过反射管理器直接操作
+            
+            // 获取工作区根目录
+            const path = require('path');
+            const fs = require('fs');
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders || workspaceFolders.length === 0) {
+              vscode.window.showErrorMessage('未检测到工作区，请先打开一个文件夹');
+              return;
+            }
+            
+            const workspaceRoot = workspaceFolders[0].uri.fsPath;
+            const userHome = require('os').homedir();
+            const reflectionDataDir = path.join(userHome, '.sks', 'maximo-script-helper', 'reflection-data');
+            const javaapiDir = path.join(workspaceRoot, 'javaapi');
+            
+            // 1. 保存 JSON 到 reflection-data 目录
+            const jsonRelativePath = selectedText.replace(/\./g, path.sep) + '.json';
+            const jsonFullPath = path.join(reflectionDataDir, jsonRelativePath);
+            const jsonDir = path.dirname(jsonFullPath);
+            if (!fs.existsSync(jsonDir)) {
+              fs.mkdirSync(jsonDir, { recursive: true });
+            }
+            fs.writeFileSync(jsonFullPath, JSON.stringify(reflectionData, null, 2), 'utf-8');
+            logger.info(`[FetchReflection] 💾 保存 JSON: ${jsonRelativePath}`);
+            
+            // 2. 生成 .d.ts 文件到 javaapi 目录
+            const generator = new (require('./dtsGenerator').DtsGenerator)();
+            const dtsContent = generator.generateDtsContent(reflectionData);
+            
+            const parsed = generator.parseClassName(selectedText);
+            const dtsRelativePath = parsed.packageName ? 
+              path.join(parsed.packageName.replace(/\./g, path.sep), `${parsed.simpleClassName}.d.ts`) :
+              `${parsed.simpleClassName}.d.ts`;
+            
+            const dtsFullPath = path.join(javaapiDir, dtsRelativePath);
+            const dtsDir = path.dirname(dtsFullPath);
+            if (!fs.existsSync(dtsDir)) {
+              fs.mkdirSync(dtsDir, { recursive: true });
+            }
+            fs.writeFileSync(dtsFullPath, dtsContent, 'utf-8');
+            logger.info(`[FetchReflection] 💾 生成 .d.ts: ${dtsRelativePath}`);
+            
+            // 3. 更新 .maximoScriptClass 缓存
+            const cacheFilePath = path.join(javaapiDir, '.maximoScriptClass.json');
+            let cacheData: Record<string, any> = {};
+            if (fs.existsSync(cacheFilePath)) {
+              try {
+                cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
+              } catch (e) {
+                cacheData = {};
+              }
+            }
+            cacheData[selectedText] = {
+              lastUpdated: new Date().toISOString(),
+              status: 'success'
+            };
+            fs.writeFileSync(cacheFilePath, JSON.stringify(cacheData, null, 2), 'utf-8');
+            logger.info(`[FetchReflection] 📝 已更新 .maximoScriptClass 缓存`);
+            
+            // 4. 更新 global.d.ts
+            const globalDtsPath = path.join(javaapiDir, 'global.d.ts');
+            let existingContent = '';
+            let existingReferences: string[] = [];
+            let otherContent: string[] = [];
+            
+            if (fs.existsSync(globalDtsPath)) {
+              existingContent = fs.readFileSync(globalDtsPath, 'utf-8');
+              const lines = existingContent.split('\n');
+              lines.forEach(line => {
+                const refMatch = line.match(/^\/\/\/\s*<reference\s+path="\.?\/?([^"]+)"\s*\/>/);
+                if (refMatch) {
+                  const normalizedPath = refMatch[1].replace(/^\.?\//, '');
+                  existingReferences.push(normalizedPath);
+                } else if (line.trim() !== '') {
+                  otherContent.push(line);
+                }
+              });
+            }
+            
+            const normalizedNewRef = dtsRelativePath.replace(/^\.?\//, '').replace(/\\/g, '/');
+            const allReferences = [...new Set([...existingReferences, normalizedNewRef])];
+            const referenceLines = allReferences.map(ref => `/// <reference path="./${ref}" />`);
+            
+            let globalContent = referenceLines.join('\n') + '\n';
+            if (otherContent.length > 0) {
+              globalContent += '\n' + otherContent.join('\n') + '\n';
+            }
+            
+            fs.writeFileSync(globalDtsPath, globalContent, 'utf-8');
+            logger.info(`[FetchReflection] 📝 已更新 global.d.ts`);
+            
+            logger.info(`[FetchReflection] ✅ 成功完成所有操作`);
+            
+            // 显示成功消息
+            vscode.window.showInformationMessage(
+              `✅ 已成功获取并生成 ${parsed.simpleClassName}.d.ts`,
+              '打开文件'
+            ).then(choice => {
+              if (choice === '打开文件') {
+                vscode.workspace.openTextDocument(dtsFullPath).then(doc => {
+                  vscode.window.showTextDocument(doc);
+                });
+              }
+            });
+            
+          } catch (error: any) {
+            logger.error(`[FetchReflection] ❌ 处理失败: ${error.message}`);
+            vscode.window.showErrorMessage(`获取反射信息失败: ${error.message}`);
+          }
+        }
+      );
+    } catch (error: any) {
+      console.log(error);
+      logger.error(`[FetchReflection] ❌ 命令执行失败: ${error.message}`);
+      vscode.window.showErrorMessage(`获取反射信息失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(fetchReflectionCommand);
 }
 
 export function deactivate() {

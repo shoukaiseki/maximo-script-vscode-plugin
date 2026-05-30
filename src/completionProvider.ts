@@ -222,12 +222,13 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       const simpleName = className.split(/[.$]/).pop() || '';  // 支持 $ 分隔
       if (simpleName === 'custom' || simpleName === 'global') return false;
       
-      // 过滤明显不合法的类名（包名太短或看起来像截断的，如 e64.Encoder）
+      // 过滤明显不合法的类名（包名看起来像截断的，如 e64.Encoder）
       const parts = className.split('.');
       if (parts.length >= 2) {
         const firstPart = parts[0];
-        // 如果第一部分长度小于4，或者以数字结尾（可能是截断的），则过滤
-        if (firstPart.length < 4 || /\d+$/.test(firstPart)) {
+        // 如果第一部分长度小于2，或者以数字结尾（可能是截断的），则过滤
+        // 注意：cn、io、org、com 等常见包名长度为2-3，应该保留
+        if (firstPart.length < 2 || /\d+$/.test(firstPart)) {
           return false;
         }
       }

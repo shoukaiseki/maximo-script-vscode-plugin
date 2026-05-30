@@ -5,6 +5,87 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.11] - 2026-05-30
+
+### 新增功能
+
+#### 手动获取反射信息
+- ✨ 新增右键菜单“获取类反射信息”功能
+  - 在 JavaScript 文件中选中 Java 类名
+  - 右键点击 → “Maximo Script: 获取类反射信息”
+  - 自动调用 Maximo 接口获取反射数据
+  - 生成 `.d.ts` 文件到工作区根目录的 `javaapi` 文件夹
+  - 自动更新 `global.d.ts` 添加引用
+  - 自动更新 `.maximoScriptClass.json` 缓存
+
+- ✨ 完整的反射数据处理流程
+  - 保存 JSON 原始数据到 `~/.sks/maximo-script-helper/reflection-data/`
+  - 生成 TypeScript 声明文件到 `javaapi/` 目录
+  - 更新元数据缓存（`.maximoScriptClass.json`）
+  - 更新全局索引文件（`global.d.ts`）
+  - 与自动扫描功能使用相同的存储结构
+
+- ✨ 无视忽略列表
+  - 手动获取功能不检查 `.ignoreMaximoScriptClass.json`
+  - 可以强制获取任何被自动扫描忽略的类
+  - 适合调试和快速添加新类
+
+#### Java 类名识别优化
+- ✨ 支持更短的包名前缀
+  - 之前：只支持长度 ≥ 4 的包名（如 `java`、`psdi`）
+  - 现在：支持长度 ≥ 2 的包名（如 `cn`、`io`、`com`、`org`）
+  - 修复了 `cn.shoukaiseki.*`、`io.netty.*` 等包名被过滤的问题
+
+- ✨ 改进的过滤规则
+  - 保留所有合法的短包名（`cn`、`io`、`com`、`org` 等）
+  - 只过滤明显错误的匹配（如 `e64.Encoder`，这是正则匹配错误产生的）
+  - 过滤以数字结尾的包名（可能是截断的错误匹配）
+
+### 问题修复
+
+#### 类名提取逻辑修正
+- 🐛 修复包名过滤过于严格的问题
+  - **问题描述**：`com.ibm.*`、`org.apache.*`、`cn.shoukaiseki.*` 等合法包名被过滤掉
+  - **根本原因**：过滤条件设置为 `firstPart.length < 4`，导致长度为 3 的包名被误过滤
+  - **解决方案**：将最小长度从 4 改为 2，保留所有常见短包名
+  - **影响范围**：所有包含短包名的 Java 类识别
+
+- 🐛 修复内部类识别问题
+  - **问题描述**：`java.util.Base64$Encoder` 被错误地识别为 `e64.Encoder`
+  - **根本原因**：正则表达式在 `$` 符号处断开，导致部分匹配
+  - **解决方案**：添加负向后顾 `(?<!\$)` 防止在 `$` 后开始匹配
+  - **附加过滤**：过滤以数字结尾的包名，避免 `e64.Encoder` 这类错误匹配
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/completionProvider.ts`
+    - 修改 `extractJavaClassesFromText()` 方法的过滤逻辑
+    - 将包名最小长度从 4 改为 2
+    - 添加详细的注释说明支持的包名类型
+  
+  - `src/extension.ts`
+    - 实现 `maximoScript.fetchReflection` 命令
+    - 完整的反射数据处理流程
+    - 保存 JSON、生成 .d.ts、更新缓存、更新 global.d.ts
+
+### 用户体验优化
+
+- 📝 完善文档说明
+  - README.md 添加“反射 API 自动生成”章节
+  - 详细说明自动和手动两种获取方式
+  - 提供清晰的使用示例和步骤
+  - 列出支持的 Java 包名类型
+
+### 注意事项
+
+- ⚠️ 手动获取功能需要配置 Maximo 服务器地址和认证信息
+- ⚠️ Maximo 系统中必须部署 `SKS_REFLECT_HELPER_ENHANCED` 脚本
+- ⚠️ 生成的文件保存在工作区根目录的 `javaapi` 文件夹
+- ⚠️ 首次获取可能需要几秒钟时间
+
+---
+
 ## [1.2.10] - 2026-05-27
 
 ### 新增功能
