@@ -470,3 +470,36 @@ export function checkResponseHasError(deployResult: any,logger: vscode.LogOutput
 
   return { hasError: hasError, errorMsg: errorMsg, successMsg: '' }
 }
+
+/**
+ * 调用 Maximo 反射接口获取类的详细信息
+ * @param className 完整的类名（如：com.ibm.tivoli.maximo.script.ScriptService）
+ * @param logger VSCode 日志通道
+ * @returns 反射数据对象
+ */
+export async function fetchClassReflection(
+  className: string,
+  logger: vscode.LogOutputChannel
+): Promise<any> {
+  try {
+    logger.info(`[Reflection] 开始获取类反射信息: ${className}`);
+    
+    const result = await httpRequestToMaximo({
+      url: 'script/SKS_REFLECT_HELPER',
+      method: 'POST',
+      data: { className },
+      logger
+    });
+    
+    if (result.data) {
+      logger.info(`[Reflection] ✅ 成功获取类反射信息: ${className}`);
+      return result.data;
+    } else {
+      logger.warn(`[Reflection] ⚠️ 反射接口返回空数据: ${className}`);
+      return { status: 'error', message: '反射接口返回空数据' };
+    }
+  } catch (error: any) {
+    logger.error(`[Reflection] ❌ 获取类反射信息失败: ${className} - ${error.message}`);
+    throw error;
+  }
+}

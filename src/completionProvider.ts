@@ -3,6 +3,9 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
+import { ReflectionDataManager } from './reflectionDataManager';
+import { DtsGenerator } from './dtsGenerator';
+import { fetchClassReflection } from './httpRequest';
 
 interface CompletionConfig {
   serverUrl: string;
@@ -12,6 +15,7 @@ interface CompletionConfig {
   localApiPath: string;
   enableJSDocParsing: boolean;  // 启用 JSDoc 解析
   enableTypeInference: boolean;  // 启用类型推断
+  autoGenerateReflectionApi: boolean;  // 自动生成反射API
   jarDirectories: string[];  // JAR 文件目录列表
   additionalJars: string[];  // 额外的 JAR 文件路径
   jdkPath: string;  // JDK 安装路径
@@ -40,6 +44,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
   private completionCache: Map<string, vscode.CompletionItem[]> = new Map();
   private localApiCache: Map<string, ApiClassData> = new Map();
   private outputChannel: vscode.OutputChannel;
+  private reflectionManager: ReflectionDataManager | null = null;  // 反射数据管理器
+  private dtsGenerator: DtsGenerator;  // .d.ts 生成器
   
   // 隐式变量类型映射（Maximo 脚本中的默认可用变量）
   private readonly implicitVariableTypes: Record<string, string> = {
@@ -68,8 +74,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
   constructor(outputChannel: vscode.OutputChannel) {
     this.outputChannel = outputChannel;
     this.config = this.loadConfig();
+    this.dtsGenerator = new DtsGenerator();
     this.loadLocalApiData();
     this.log('插件初始化完成');
+    
+    // 如果启用了自动生成反射API，初始化反射数据管理器
+    if (this.config.autoGenerateReflectionApi) {
+      this.initializeReflectionManager();
+    }
   }
 
   /**
@@ -83,6 +95,19 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     console.log(logMessage);
   }
 
+  /**
+   * 初始化反射数据管理器
+   */
+  private async initializeReflectionManager(): Promise<void> {
+    try {
+      this.reflectionManager = new ReflectionDataManager(this.outputChannel);
+      await this.reflectionManager.initialize();
+      this.log('✅ 反射数据管理器初始化成功');
+    } catch (error: any) {
+      this.log(`❌ 反射数据管理器初始化失败: ${error.message}`, 'error');
+    }
+  }
+
   private loadConfig(): CompletionConfig {
     const config = vscode.workspace.getConfiguration('maximoScript');
     return {
@@ -93,6 +118,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       localApiPath: config.get('localApiPath', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
+      autoGenerateReflectionApi: config.get('autoGenerateReflectionApi', false),
       jarDirectories: config.get('jarDirectories', []),
       additionalJars: config.get('additionalJars', []),
       jdkPath: config.get('jdkPath', ''),
@@ -594,6 +620,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     if (cacheResult && cacheResult.length > 0) {
       const elapsed = Date.now() - startTime;
       this.log(`[Layer 2] ✅ 使用缓存数据: ${className} (耗时: ${elapsed}ms, 返回 ${cacheResult.length} 个项)`);
+      
+      // 如果启用了自动生成反射API，后台触发反射获取
+      if (this.config.autoGenerateReflectionApi && this.reflectionManager) {
+        this.triggerReflectionFetch(className).catch(err => {
+          this.log(`后台反射获取失败: ${err}`, 'warn');
+        });
+      }
+      
       return cacheResult;
     }
       
@@ -602,7 +636,122 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const commonResult = this.getCommonAPISuggestions(className, position);
     const elapsed = Date.now() - startTime;
     this.log(`[Layer 3] ✅ 使用常用 API: ${className} (耗时: ${elapsed}ms, 返回 ${commonResult.length} 个项)`);
+    
+    // 如果启用了自动生成反射API，后台触发反射获取
+    if (this.config.autoGenerateReflectionApi && this.reflectionManager) {
+      this.triggerReflectionFetch(className).catch(err => {
+        this.log(`后台反射获取失败: ${err}`, 'warn');
+      });
+    }
+    
     return commonResult;
+  }
+
+  /**
+   * 后台触发反射获取（异步，不阻塞当前补全）
+   */
+  private async triggerReflectionFetch(className: string): Promise<void> {
+    if (!this.reflectionManager) {
+      return;
+    }
+    
+    // 检查是否需要处理
+    if (!this.reflectionManager.shouldProcessClass(className)) {
+      return;
+    }
+    
+    // 防抖检查
+    if (this.reflectionManager.isInDebouncePeriod(className)) {
+      return;
+    }
+    
+    this.reflectionManager.recordRequestTime(className);
+    
+    try {
+      this.log(`[Background] 开始后台反射获取: ${className}`);
+      
+      // 调用 Maximo 接口
+      const reflectionData = await fetchClassReflection(className, this.outputChannel as any);
+      
+      if (reflectionData.status === 'error') {
+        // 类不存在，永久忽略
+        await this.reflectionManager.addToIgnoreList(
+          className,
+          reflectionData.message || '未知错误',
+          true
+        );
+        this.log(`[Background] ⚠️ 类不存在，永久忽略: ${className}`);
+        return;
+      }
+      
+      // 保存 JSON 数据到 reflection-data
+      await this.saveReflectionJson(className, reflectionData);
+      
+      // 生成 .d.ts 文件到 javaapi
+      await this.generateDtsFile(className, reflectionData);
+      
+      // 更新元数据
+      await this.reflectionManager.markClassAsProcessed(className);
+      
+      // 重新加载补全缓存
+      this.loadLocalApiData();
+      
+      this.log(`[Background] ✅ 自动生成反射API成功: ${className}`);
+    } catch (error: any) {
+      // 临时失败，增加重试次数
+      if (this.reflectionManager) {
+        await this.reflectionManager.addToIgnoreList(
+          className,
+          error.message || '未知错误',
+          false
+        );
+      }
+      this.log(`[Background] ❌ 自动生成反射API失败: ${className} - ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * 保存反射 JSON 数据到 reflection-data 目录
+   */
+  private async saveReflectionJson(className: string, reflectionData: any): Promise<void> {
+    if (!this.reflectionManager) {
+      return;
+    }
+    
+    const jsonFilePath = this.dtsGenerator.calculateJsonFilePath(className);
+    const fullPath = path.join(this.reflectionManager.getReflectionDataPath(), jsonFilePath);
+    
+    // 创建目录
+    const dirPath = path.dirname(fullPath);
+    await fs.promises.mkdir(dirPath, { recursive: true });
+    
+    // 保存 JSON 文件
+    await fs.promises.writeFile(fullPath, JSON.stringify(reflectionData, null, 2), 'utf-8');
+    this.log(`[Background] 💾 保存 JSON: ${jsonFilePath}`);
+  }
+
+  /**
+   * 生成 .d.ts 文件到 javaapi 目录
+   */
+  private async generateDtsFile(className: string, reflectionData: any): Promise<void> {
+    if (!this.reflectionManager) {
+      return;
+    }
+    
+    // 生成 .d.ts 内容
+    const dtsContent = this.dtsGenerator.generateDtsContent(reflectionData);
+    
+    // 计算文件路径
+    const dtsFilePath = this.dtsGenerator.calculateFilePath(className);
+    const fullPath = path.join(this.reflectionManager.getJavaapiPath(), dtsFilePath);
+    
+    // 创建目录
+    const dirPath = path.dirname(fullPath);
+    await fs.promises.mkdir(dirPath, { recursive: true });
+    
+    // 保存 .d.ts 文件
+    await fs.promises.writeFile(fullPath, dtsContent, 'utf-8');
+    this.log(`[Background] 💾 生成 .d.ts: ${dtsFilePath}`);
   }
 
   /**

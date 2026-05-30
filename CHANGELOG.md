@@ -5,6 +5,80 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.10] - 2026-05-27
+
+### 新增功能
+
+#### Maximo 反射 API 自动生成
+- ✨ 新增“自动生成反射API”配置项
+  - 位置：maximo配置 → 补全设置 → 启用类型推断下方
+  - 默认关闭，需要用户手动开启
+  - 开启后自动检测 Java 类型并调用 Maximo 接口获取反射信息
+
+- ✨ 反射数据管理器（ReflectionDataManager）
+  - 持久化存储已处理的类名列表（`.maximoScriptClass.json`）
+  - 忽略列表管理（`.ignoreMaximoScriptClass.json`）
+    - 永久忽略（retryCount = -1）：类不存在时
+    - 临时失败（retryCount < 10）：网络错误等可重试情况
+    - 达到最大重试次数（retryCount >= 10）：停止重试但保留记录
+  - 防抖机制：同一类 5 秒内只请求一次
+  - 插件启动时自动初始化，复制初始文件到 javaapi 目录
+
+- ✨ TypeScript 声明文件生成器（DtsGenerator）
+  - 将 Maximo 反射 JSON 数据转换为 `.d.ts` 文件
+  - Java 类型到 TypeScript 类型映射
+    - `java.lang.String` → `string`
+    - `int/long/double` → `number`
+    - `boolean` → `boolean`
+    - `void` → `void`
+  - 自动生成 JSDoc 注释
+  - 支持命名空间声明
+  - 按包名创建目录结构，避免单目录文件过多
+
+- ✨ 后台反射获取机制
+  - 异步执行，不阻塞当前补全响应
+  - 自动保存 JSON 数据到 `reflection-data` 目录
+  - 自动生成 `.d.ts` 文件到 `javaapi` 目录
+  - 更新元数据文件
+  - 重新加载补全缓存，使新生成的类型立即可用
+
+### 技术实现
+
+- 📦 新增文件
+  - `src/reflectionDataManager.ts` - 反射数据管理器
+  - `src/dtsGenerator.ts` - .d.ts 文件生成器
+
+- 🔧 修改文件
+  - `src/httpRequest.ts`
+    - 新增 `fetchClassReflection()` 方法，调用 `SKS_REFLECT_HELPER` 接口
+  
+  - `src/completionProvider.ts`
+    - 添加 `autoGenerateReflectionApi` 配置项
+    - 集成 ReflectionDataManager 和 DtsGenerator
+    - 实现 `triggerReflectionFetch()` 后台反射获取方法
+    - 实现 `saveReflectionJson()` 保存 JSON 数据
+    - 实现 `generateDtsFile()` 生成 .d.ts 文件
+    - 在 `getReflectionSuggestions()` 中触发后台反射获取
+  
+  - `webview-ui/src/App.tsx`
+    - 添加“自动生成反射API”勾选框
+    - 添加配置说明和帮助文本
+  
+  - `package.json`
+    - 添加 `maximoScript.autoGenerateReflectionApi` 配置项定义
+
+### 注意事项
+
+- ⚠️ 该功能依赖 Maximo 系统中已部署 `SKS_REFLECT_HELPER` 脚本
+- ⚠️ 默认关闭，不影响现有用户的补全体验
+- ⚠️ 后台反射获取失败不会影响当前补全功能
+- ⚠️ jscustom 包名的类、custom 和 global 类名会被自动跳过
+- ⚠️ **数据存储路径**：
+  - `javaapi/` - 存储在项目根目录（以便 VSCode 识别 `.d.ts` 文件）
+  - `~/.sks/maximo-script-helper/reflection-data/` - 存储 JSON 原始数据
+
+---
+
 ## [1.2.8] - 2026-05-27
 
 ### 新增功能

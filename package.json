@@ -163,6 +163,11 @@
           "default": true,
           "description": "启用返回值类型推断（支持链式调用）"
         },
+        "maximoScript.autoGenerateReflectionApi": {
+          "type": "boolean",
+          "default": false,
+          "description": "自动生成反射API（需要Maximo接口支持，开启后会自动调用 SKS_REFLECT_HELPER 接口获取类信息并生成本地类型定义文件）"
+        },
         "maximoScript.jarDirectories": {
           "type": "array",
           "items": {

@@ -19,6 +19,7 @@ interface ConfigData {
   localApiPath: string;
   enableJSDocParsing: boolean;
   enableTypeInference: boolean;
+  autoGenerateReflectionApi: boolean;  // 自动生成反射API
   enableHttpLog: boolean;
   jdkPath: string;
   jarDirectories: string[];
@@ -59,6 +60,7 @@ const App: React.FC = () => {
     localApiPath: '',
     enableJSDocParsing: true,
     enableTypeInference: true,
+    autoGenerateReflectionApi: false,
     enableHttpLog: false,
     jdkPath: '',
     jarDirectories: [],
@@ -794,6 +796,22 @@ const App: React.FC = () => {
               </div>
               <div className="help-text">
                 自动推断变量和函数的类型
+              </div>
+            </div>
+
+            <div className="form-group">
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="autoGenerateReflectionApi"
+                  checked={config.autoGenerateReflectionApi || false}
+                  onChange={(e) => updateConfig({ autoGenerateReflectionApi: e.target.checked })}
+                />
+                <label htmlFor="autoGenerateReflectionApi" style={{ margin: 0 }}>自动生成反射API</label>
+              </div>
+              <div className="help-text">
+                开启后，当检测到 Java 类型时，会自动调用 Maximo 接口获取反射信息并生成本地类型定义文件
+                （需要 Maximo 系统中已部署 SKS_REFLECT_HELPER 脚本）
               </div>
             </div>
 
