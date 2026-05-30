@@ -24,3 +24,8 @@ public/maximo-developer-resources_bak01.7z
 public/bak/
 AITMP/
 npx_vsce_package.cmd
+#如果是ln/mklink的链接可能会被识别为文件
+reflection-data
+reflection-data/
+javaapi
+javaapi/

@@ -5,4 +5,8 @@ dist/
 .DS_Store
 temp/
 .lingma/skills/
+#如果是ln/mklink的链接可能会被识别为文件
 reflection-data
+reflection-data/
+javaapi
+javaapi/
