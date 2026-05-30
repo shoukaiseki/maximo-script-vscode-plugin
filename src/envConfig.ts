@@ -14,6 +14,7 @@ export interface EnvironmentConfig {
   apiType: string;
   version: string;
   completionMode: string;
+  langcode: string;  // 语言代码，默认 en
 }
 
 /**

@@ -29,6 +29,7 @@ interface ConfigData {
   exportDirectory: string;
   envnum: string;
   envList: string[];
+  langcode: string;  // 语言代码
 }
 
 const App: React.FC = () => {
@@ -69,7 +70,8 @@ const App: React.FC = () => {
     aliasName: '',
     exportDirectory: '',
     envnum: 'default',
-    envList: []
+    envList: [],
+    langcode: ''  // 语言代码，空字符串表示未设置
   });
   
   // 环境配置缓存
@@ -85,6 +87,174 @@ const App: React.FC = () => {
   // 密码显示状态
   const [showMaxauth, setShowMaxauth] = useState<boolean>(false);
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
+  // 用户信息弹窗状态
+  const [showUserInfoDialog, setShowUserInfoDialog] = useState<boolean>(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
+
+  // 语言选项列表 (code, name)
+  const languageOptions: Array<{ code: string; name: string }> = [
+    { code: 'AA', name: 'Afar' },
+    { code: 'AE', name: 'Avestan' },
+    { code: 'AF', name: 'Afrikaans' },
+    { code: 'AM', name: 'Amharic' },
+    { code: 'AR', name: 'عربية' },
+    { code: 'AS', name: 'Assamese' },
+    { code: 'AY', name: 'Aymara' },
+    { code: 'AZ', name: 'Azerbaijani' },
+    { code: 'BA', name: 'Bashkir' },
+    { code: 'BE', name: 'Belarusian' },
+    { code: 'BG', name: 'български' },
+    { code: 'BH', name: 'Bihari' },
+    { code: 'BI', name: 'Bislama' },
+    { code: 'BN', name: 'Bengali' },
+    { code: 'BO', name: 'Tibetan' },
+    { code: 'BR', name: 'Breton' },
+    { code: 'BS', name: 'Bosnian' },
+    { code: 'CA', name: 'Catalan' },
+    { code: 'CE', name: 'Chechen' },
+    { code: 'CH', name: 'Chamorro' },
+    { code: 'CO', name: 'Corsican' },
+    { code: 'CS', name: 'Čeština' },
+    { code: 'CU', name: 'Church Slavic' },
+    { code: 'CV', name: 'Chuvash' },
+    { code: 'CY', name: 'Welsh' },
+    { code: 'DA', name: 'Dansk' },
+    { code: 'DE', name: 'Deutsch' },
+    { code: 'DZ', name: 'Dzongkha' },
+    { code: 'EL', name: 'Ελληνικά' },
+    { code: 'EN', name: 'English' },
+    { code: 'EO', name: 'Esperanto' },
+    { code: 'ES', name: 'Español' },
+    { code: 'ET', name: 'Eesti' },
+    { code: 'EU', name: 'Basque' },
+    { code: 'FA', name: 'Persian' },
+    { code: 'FI', name: 'Suomi' },
+    { code: 'FJ', name: 'Fijian' },
+    { code: 'FO', name: 'Føroyska' },
+    { code: 'FR', name: 'Français' },
+    { code: 'FY', name: 'Frisian' },
+    { code: 'GA', name: 'Irish' },
+    { code: 'GD', name: 'Gaelic (Scots)' },
+    { code: 'GL', name: 'Gallegan' },
+    { code: 'GN', name: 'Guarani' },
+    { code: 'GU', name: 'Gujarati' },
+    { code: 'GV', name: 'Manx' },
+    { code: 'HE', name: 'עברית' },
+    { code: 'HI', name: 'हिन्दी' },
+    { code: 'HO', name: 'Hiri Motu' },
+    { code: 'HR', name: 'Hrvatski' },
+    { code: 'HU', name: 'Magyar' },
+    { code: 'HY', name: 'Armenian' },
+    { code: 'HZ', name: 'Herero' },
+    { code: 'IA', name: 'Interlingua (International Auxiliary Language Association)' },
+    { code: 'ID', name: 'Indonesian' },
+    { code: 'IE', name: 'Interlingue' },
+    { code: 'IK', name: 'Inupiaq' },
+    { code: 'IS', name: 'Íslenska' },
+    { code: 'IT', name: 'Italiano' },
+    { code: 'IU', name: 'Inuktitut' },
+    { code: 'JA', name: '日本語' },
+    { code: 'JW', name: 'Javanese' },
+    { code: 'KA', name: 'ქართული' },
+    { code: 'KI', name: 'Kikuyu' },
+    { code: 'KJ', name: 'Kuanyama' },
+    { code: 'KK', name: 'Kazakh' },
+    { code: 'KL', name: 'Kalaallisut' },
+    { code: 'KM', name: 'Khmer' },
+    { code: 'KN', name: 'Kannada' },
+    { code: 'KO', name: '한국어' },
+    { code: 'KS', name: 'Kashmiri' },
+    { code: 'KU', name: 'Kurdish' },
+    { code: 'KV', name: 'Komi' },
+    { code: 'KW', name: 'Cornish' },
+    { code: 'KY', name: 'Kirghiz' },
+    { code: 'LA', name: 'Latin' },
+    { code: 'LB', name: 'Letzeburgesch' },
+    { code: 'LN', name: 'Lingala' },
+    { code: 'LO', name: 'Lao' },
+    { code: 'LT', name: 'Lietuvių' },
+    { code: 'LV', name: 'Latviešu' },
+    { code: 'MG', name: 'Malagasy' },
+    { code: 'MH', name: 'Marshall' },
+    { code: 'MI', name: 'Maori' },
+    { code: 'MK', name: 'македонски' },
+    { code: 'ML', name: 'Malayalam' },
+    { code: 'MN', name: 'Mongolian' },
+    { code: 'MO', name: 'Moldavian' },
+    { code: 'MR', name: 'Marathi' },
+    { code: 'MS', name: 'Malay' },
+    { code: 'MT', name: 'Maltese' },
+    { code: 'MY', name: 'Burmese' },
+    { code: 'NA', name: 'Nauru' },
+    { code: 'NB', name: 'Norwegian Bokmal' },
+    { code: 'ND', name: 'Ndebele, North' },
+    { code: 'NE', name: 'Nepali' },
+    { code: 'NG', name: 'Ndonga' },
+    { code: 'NL', name: 'Nederlands' },
+    { code: 'NN', name: 'Norwegian Nynorsk' },
+    { code: 'NO', name: 'Norsk' },
+    { code: 'NR', name: 'Ndebele, South' },
+    { code: 'NV', name: 'Navajo' },
+    { code: 'NY', name: 'Chichewa; Nyanja' },
+    { code: 'OC', name: 'Occitan (post 1500); Provencal' },
+    { code: 'OM', name: 'Oromo' },
+    { code: 'OR', name: 'Oriya' },
+    { code: 'OS', name: 'Ossetian; Ossetic' },
+    { code: 'PA', name: 'ਪੰਜਾਬੀ' },
+    { code: 'PI', name: 'Pali' },
+    { code: 'PL', name: 'Polski' },
+    { code: 'PS', name: 'Pushto' },
+    { code: 'PT', name: 'Português' },
+    { code: 'QU', name: 'Quechua' },
+    { code: 'RM', name: 'Raeto-Romance' },
+    { code: 'RN', name: 'Rundi' },
+    { code: 'RO', name: 'Română' },
+    { code: 'RU', name: 'Pyccкий' },
+    { code: 'RW', name: 'Kinyarwanda' },
+    { code: 'SA', name: 'Sanskrit' },
+    { code: 'SC', name: 'Sardinian' },
+    { code: 'SD', name: 'Sindhi' },
+    { code: 'SE', name: 'Northern Sami' },
+    { code: 'SG', name: 'Sango' },
+    { code: 'SI', name: 'Sinhalese' },
+    { code: 'SK', name: 'Slovenčina' },
+    { code: 'SL', name: 'Slovenščina' },
+    { code: 'SM', name: 'Samoan' },
+    { code: 'SN', name: 'Shona' },
+    { code: 'SO', name: 'Somali' },
+    { code: 'SQ', name: 'Albanian' },
+    { code: 'SR', name: 'Srpski' },
+    { code: 'SS', name: 'Swati' },
+    { code: 'ST', name: 'Sotho, Southern' },
+    { code: 'SU', name: 'Sundanese' },
+    { code: 'SV', name: 'Svenska' },
+    { code: 'SW', name: 'Swahili' },
+    { code: 'TA', name: 'Tamil' },
+    { code: 'TE', name: 'Telugu' },
+    { code: 'TG', name: 'Tajik' },
+    { code: 'TH', name: 'ภาษาไทย' },
+    { code: 'TK', name: 'Turkmen' },
+    { code: 'TL', name: 'Tagalog' },
+    { code: 'TN', name: 'Tswana' },
+    { code: 'TR', name: 'Türkçe' },
+    { code: 'TS', name: 'Tsonga' },
+    { code: 'TT', name: 'Tatar' },
+    { code: 'TW', name: 'Twi' },
+    { code: 'TY', name: 'Tahitian' },
+    { code: 'UG', name: 'Uighur' },
+    { code: 'UK', name: 'Українська' },
+    { code: 'UR', name: 'Urdu' },
+    { code: 'UZ', name: 'Uzbek' },
+    { code: 'VI', name: 'Vietnamese' },
+    { code: 'VO', name: 'Volapuk' },
+    { code: 'WO', name: 'Wolof' },
+    { code: 'XH', name: 'Xhosa' },
+    { code: 'YI', name: 'Yiddish' },
+    { code: 'ZA', name: 'Zhuang' },
+    { code: 'ZH', name: '简体中文' },
+    { code: 'ZU', name: 'Zulu' },
+    { code: 'ZHT', name: '繁體中文' }
+  ];
 
   // 使用 useRef 确保只获取一次 VSCode API
   const vscodeRef = React.useRef<any>(null);
@@ -203,7 +373,8 @@ const App: React.FC = () => {
             apiKey: envData.apiKey || '',
             apiType: envData.apiType || 'oslc',
             version: envData.version || '7.6',
-            completionMode: envData.completionMode || 'vscode'
+            completionMode: envData.completionMode || 'vscode',
+            langcode: envData.langcode || ''  // 语言代码，空字符串表示未设置
           }));
           setHasChanges(true); // 标记有未保存的变更
           break;
@@ -239,6 +410,11 @@ const App: React.FC = () => {
           // 设置脚本列表
           setScriptList(message.scripts || []);
           setIsQueryingScripts(false);
+          break;
+        case 'showUserInfo':
+          // 显示用户信息
+          setUserInfo(message.data);
+          setShowUserInfoDialog(true);
           break;
       }
     });
@@ -303,6 +479,14 @@ const App: React.FC = () => {
   const handleTestConnection = () => {
     getVsCodeApi().postMessage({
       command: 'testConnection',
+      data: config
+    });
+  };
+
+  // 查看用户语言信息
+  const handleViewUserInfo = () => {
+    getVsCodeApi().postMessage({
+      command: 'viewUserInfo',
       data: config
     });
   };
@@ -731,6 +915,25 @@ const App: React.FC = () => {
               </select>
             </div>
 
+            <div className="form-group">
+              <label>语言 (Langcode)</label>
+              <select
+                value={config.langcode || ''}
+                onChange={(e) => updateConfig({ langcode: e.target.value })}
+                style={{ width: '100%' }}
+              >
+                <option value="">（未设置）</option>
+                {languageOptions.map(lang => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.name} ({lang.code})
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: 'var(--vscode-descriptionForeground)' }}>
+                💡 选择 Maximo 界面显示语言，默认为 English (EN)，留空则使用服务器默认语言
+              </small>
+            </div>
+
             {connectionResult.type && (
               <div style={{ 
                 padding: '10px', 
@@ -744,7 +947,10 @@ const App: React.FC = () => {
               </div>
             )}
 
-            <button onClick={handleTestConnection}>测试连接</button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleTestConnection} style={{ flex: 1 }}>测试连接</button>
+              <button onClick={handleViewUserInfo} style={{ flex: 1, backgroundColor: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)' }}>查看用户语言信息</button>
+            </div>
           </div>
         )}
 
@@ -1729,6 +1935,183 @@ const App: React.FC = () => {
                 }}
               >
                 删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 用户信息弹窗 */}
+      {showUserInfoDialog && userInfo && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1002
+        }} onClick={() => setShowUserInfoDialog(false)}>
+          <div 
+            style={{
+              backgroundColor: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '6px',
+              padding: '24px',
+              minWidth: '600px',
+              maxWidth: '800px',
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 20px 0', borderBottom: '2px solid var(--vscode-panel-border)', paddingBottom: '10px' }}>
+              👤 用户语言信息
+            </h3>
+            
+            {/* 用户基本信息 */}
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: 'var(--vscode-textLink-foreground)' }}>📋 用户基本信息 (userInfo)</h4>
+              <div style={{ 
+                background: 'var(--vscode-editor-background)',
+                border: '1px solid var(--vscode-panel-border)',
+                borderRadius: '4px',
+                padding: '15px'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div><strong>用户名:</strong> {userInfo.userInfo?.userName || '-'}</div>
+                  <div><strong>显示名称:</strong> {userInfo.userInfo?.displayname || '-'}</div>
+                  <div><strong>人员ID:</strong> {userInfo.userInfo?.personId || '-'}</div>
+                  <div><strong>语言代码:</strong> <span style={{ color: 'var(--vscode-terminal-ansiGreen)', fontWeight: 'bold' }}>{userInfo.userInfo?.langcode || '-'}</span></div>
+                  <div><strong>区域语言:</strong> {userInfo.userInfo?.localeLanguage || '-'}</div>
+                  <div><strong>区域国家:</strong> {userInfo.userInfo?.localeCountry || '-'}</div>
+                  <div style={{ gridColumn: '1 / -1' }}><strong>完整区域设置:</strong> {userInfo.userInfo?.locale || '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 人员详细信息 */}
+            {userInfo.peruser && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: 'var(--vscode-textLink-foreground)' }}>👥 人员详细信息 (PERSON)</h4>
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '15px'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div><strong>人员ID:</strong> {userInfo.peruser.PERSONID || '-'}</div>
+                    <div><strong>显示名称:</strong> {userInfo.peruser.DISPLAYNAME || '-'}</div>
+                    <div><strong>名字:</strong> {userInfo.peruser.FIRSTNAME || '-'}</div>
+                    <div><strong>姓氏:</strong> {userInfo.peruser.LASTNAME || '-'}</div>
+                    <div><strong>部门:</strong> {userInfo.peruser.DEPARTMENT || '-'}</div>
+                    <div><strong>职务代码:</strong> {userInfo.peruser.JOBCODE || '-'}</div>
+                    <div><strong>状态:</strong> {userInfo.peruser.STATUS || '-'}</div>
+                    <div><strong>语言代码:</strong> {userInfo.peruser.LANGCODE || '-'}</div>
+                    <div><strong>语言:</strong> {userInfo.peruser.LANGUAGE || '-'}</div>
+                    <div><strong>区域设置:</strong> {userInfo.peruser.LOCALE || '-'}</div>
+                    <div><strong>缺省应用程序:</strong> {userInfo.peruser.DFLTAPP || '-'}</div>
+                    <div><strong>电子邮件:</strong> {userInfo.peruser.PRIMARYEMAIL || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MaxUser 信息 */}
+            {userInfo.peruser?.MAXUSER && userInfo.peruser.MAXUSER.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: 'var(--vscode-textLink-foreground)' }}>🔐 用户账户信息 (MAXUSER)</h4>
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '15px'
+                }}>
+                  {userInfo.peruser.MAXUSER.map((user: any, index: number) => (
+                    <div key={index} style={{ marginBottom: index < userInfo.peruser.MAXUSER.length - 1 ? '15px' : '0' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div><strong>用户ID:</strong> {user.USERID || '-'}</div>
+                        <div><strong>登录ID:</strong> {user.LOGINID || '-'}</div>
+                        <div><strong>状态:</strong> {user.STATUS || '-'}</div>
+                        <div><strong>类型:</strong> {user.TYPE || '-'}</div>
+                        <div><strong>缺省地点:</strong> {user.DEFSITE || '-'}</div>
+                        <div><strong>所有者:</strong> {user.OWNER || '-'}</div>
+                        <div><strong>系统管理员:</strong> {user.SYSTEMADMIN ? '✅ 是' : '❌ 否'}</div>
+                        <div><strong>系统账号:</strong> {user.SYSUSER ? '✅ 是' : '❌ 否'}</div>
+                        <div><strong>已锁定:</strong> {user.ISLOCKED ? '🔒 是' : '🔓 否'}</div>
+                        <div><strong>登录失败次数:</strong> {user.FAILEDLOGINS || 0}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* MaxApps 应用列表 */}
+            {userInfo.maxapps && userInfo.maxapps.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: 'var(--vscode-textLink-foreground)' }}>📱 可用应用程序 (MaxApps) - 共 {userInfo.maxapps.length} 个</h4>
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '15px',
+                  maxHeight: '300px',
+                  overflow: 'auto'
+                }}>
+                  <table style={{ 
+                    width: '100%', 
+                    borderCollapse: 'collapse',
+                    fontSize: '13px'
+                  }}>
+                    <thead>
+                      <tr style={{ 
+                        borderBottom: '2px solid var(--vscode-panel-border)',
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: 'var(--vscode-editor-background)'
+                      }}>
+                        <th style={{ textAlign: 'left', padding: '8px', fontWeight: 'bold' }}>应用代码</th>
+                        <th style={{ textAlign: 'left', padding: '8px', fontWeight: 'bold' }}>应用名称</th>
+                        <th style={{ textAlign: 'left', padding: '8px', fontWeight: 'bold' }}>类型</th>
+                        <th style={{ textAlign: 'left', padding: '8px', fontWeight: 'bold' }}>主表</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userInfo.maxapps.map((app: any, index: number) => (
+                        <tr key={index} style={{ 
+                          borderBottom: '1px solid var(--vscode-panel-border)',
+                          backgroundColor: index % 2 === 0 ? 'transparent' : 'var(--vscode-list-hoverBackground)'
+                        }}>
+                          <td style={{ padding: '8px', fontFamily: 'monospace', fontWeight: 'bold' }}>{app.APP || '-'}</td>
+                          <td style={{ padding: '8px' }}>{app.DESCRIPTION || '-'}</td>
+                          <td style={{ padding: '8px' }}>{app.APPTYPE || '-'}</td>
+                          <td style={{ padding: '8px', fontFamily: 'monospace' }}>{app.MAINTBNAME || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <div style={{ marginTop: '20px', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowUserInfoDialog(false)}
+                style={{
+                  padding: '8px 24px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--vscode-button-background)',
+                  color: 'var(--vscode-button-foreground)',
+                  border: 'none',
+                  borderRadius: '4px'
+                }}
+              >
+                关闭
               </button>
             </div>
           </div>

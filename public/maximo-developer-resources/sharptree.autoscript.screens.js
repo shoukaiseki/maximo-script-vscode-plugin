@@ -1,8 +1,12 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
 /// <reference path="@javaapi/global.d.ts" />
+/** @type {org.apache.log4j.Level} */
+System = Java.type("java.lang.System");
 Level = Java.type("org.apache.log4j.Level");
+/** @type {psdi.util.logging.MXLoggerFactory} */
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+/** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
 loggerMX.error("[SHARPTREE.AUTOSCRIPT.SCREENS]----------1");
@@ -17,8 +21,16 @@ RESTRequest = Java.type("com.ibm.tivoli.oslc.RESTRequest");
 /** @type {psdi.util.MXSession} */
 MXSession = Java.type("psdi.util.MXSession");
 
+if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
+    var _langcode = request.getQueryParam("_langcode");
+    // uInfo.setLocale(lang);
+    userInfo.setLangCode(_langcode.toLowerCase())
+    if(userInfo.getLocale()){
+        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
+    }
+}
+
 RuntimeException = Java.type("java.lang.RuntimeException");
-System = Java.type("java.lang.System");
 System.out.println("----------------Starting execution of script " + service.getScriptName());
 
 URLDecoder = Java.type("java.net.URLDecoder");
@@ -31,10 +43,18 @@ MXServer = Java.type("psdi.server.MXServer");
 MXException = Java.type("psdi.util.MXException");
 MXAccessException = Java.type("psdi.util.MXAccessException");
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
+/** @type {java.lang.System} */
+System = Java.type("java.lang.System");//59
 
 try {
     PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
+    /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
+    WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime");//53
+    /** @type {psdi.webclient.system.controller.IdProperty} */
+    IdProperty = Java.type("psdi.webclient.system.controller.IdProperty");//51
+    /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
+    LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
 } catch (ignored) {
     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS]",ignored);
 }
@@ -62,8 +82,199 @@ StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
 logger.setLevel(Level.INFO);
 
-main();
+function ImportAppScript(xml){
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript")
+    this.xml = xml;
+    this.currentAppID = null;
+}
 
+
+ImportAppScript.prototype.constructor = ImportAppScript;
+ImportAppScript.prototype.importApp = function(app,saveLabels) {
+    var xml=this.xml
+    //maximo9.1
+    PresentationParser=Java.type("psdi.webclient.system.controller.PresentationParser");
+    /** @type {psdi.webclient.system.controller.PresentationParser} */
+    var pp = new PresentationParser(xml);
+    this.currentAppID = pp.getApplication();
+    logger.info('[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID )
+    if (pp.getTrimmedXML().indexOf("<systemlib") < 0) {
+        //应用xml
+        /** @type {psdi.mbo.MboSetRemote} */
+        var maxAppsSet = MXServer.getMXServer().getMboSet("MAXAPPS",userInfo);
+        /** @type {psdi.mbo.MboRemote} */
+        var app = maxAppsSet.moveFirst();
+
+        var exists = false;
+        for (exists = false; app != null; app = maxAppsSet.moveNext()) {
+            var compAppId = app.getString("app");
+            if (compAppId.equalsIgnoreCase(this.currentAppID)) {
+                exists = true;
+                logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.应用存在")
+                break;
+            }
+        }
+
+        if (!exists) {
+            throw new MXApplicationException("designer", "noapp", [ this.currentAppID.toUpperCase() ]);
+        }
+
+    } else if (MXServer.isBotcInstalled() && this.currentAppID != null && (this.currentAppID.equalsIgnoreCase("library") || this.currentAppID.equalsIgnoreCase("lookups") || this.currentAppID.equalsIgnoreCase("menus"))) {
+        throw new MXApplicationException("botc", "nosystempresentataions");
+    }
+    //系统xml 或者 应用xml存在
+        var labels = pp.getLabels();
+        this.saveXML( this.currentAppID, pp.getTrimmedXML());
+        if (saveLabels) {
+            this.saveLabels( this.currentAppID, labels);
+        }
+
+        this.refreshApp(this.currentAppID);
+        if (this.currentAppID.equalsIgnoreCase("REPLIBRARY")) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("*** Telling the server to reload REPLIBRARY cache");
+            }
+
+            if (WebClientRuntime.isMTEnabled()) {
+                try {
+                    WebClientRuntime.getWebClientRuntime().getPresentationCache().reload("REPLIBRARY_" + MXServer.getTenantContext());
+                } catch (e) {
+                    e.printStackTrace();
+                }
+            }
+
+            MXServer.getMXServer().reloadMaximoCache("PRESENTATION", this.currentAppID, true);
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("*** Telling the server to reload SYSTEM cache");
+            }
+
+            MXServer.getMXServer().reloadMaximoCache("PRESENTATION", true);
+        }
+
+        logger.info("Successfully imported " + this.currentAppID.toUpperCase() + " application");
+
+}
+
+ImportAppScript.prototype.saveXML = function(appID, xml) {
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML")
+            try {
+            /** @type {psdi.mbo.MboSetRemote} */
+            var mboset = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
+            mboset.resetQbe();
+            mboset.setQbeExactMatch(true);
+            mboset.setQbe("app", appID);
+            mboset.reset();
+            /** @type {psdi.mbo.MboRemote} */
+            var mbo = null;
+            if (mboset.isEmpty()) {
+                mbo = mboset.add();
+                mbo.setValue("app", appID, 9);
+            } else {
+                mbo = mboset.getMbo(0);
+            }
+
+            mbo.setValue("presentation", xml);
+            mboset.save();
+            /** @type {WebClientRuntime} */
+            var wcr = WebClientRuntime.getWebClientRuntime();
+            wcr.setAppXML(appID, xml);
+        } catch (var7) {
+            var params = new Array("Unable to save xml definition:  IO Error");
+            throw new MXApplicationException("importApp", "generic", params);
+        }
+        logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML end")
+
+}
+ImportAppScript.prototype.saveLabels = function(appID, labels) {
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")
+            try {
+            var mboset = MXServer.getMXServer().getMboSet("MAXLABELS", userInfo);
+            mboset.resetQbe();
+            mboset.setQbeExactMatch(true);
+            mboset.setQbe("app", appID);
+            mboset.reset();
+            mboset.setLogLargFetchResultDisabled(true);
+            var index = 0;
+
+            while(true) {
+                /** @type {psdi.mbo.MboRemote} */
+                var mbo = mboset.getMbo(index);
+                if (mbo == null) {
+                    for (var entry in labels.entrySet()) {
+                        /** @type {psdi.webclient.system.controller.IdProperty} */
+                        var l = (entry.getKey());
+                        /** @type {java.lang.String} */
+                        var v = (entry.getValue());
+                        var syscache = LabelCacheMgr.getSystemLabelCache(MXServer.getMXServer());
+                        var sysValue = syscache.getString(l.getId(), l.getProperty());
+                        if (!v.equals(sysValue)) {
+
+                            var mbo = mboset.add();
+                            mbo.setValue("app", appID, 9);
+                            mbo.setValue("id", l.getId());
+                            mbo.setValue("property", l.getProperty());
+                            mbo.setValue("value", v);
+                        }
+                    }
+
+                    mboset.save();
+                    return;
+                }
+
+                var existingLabel = new IdProperty(mbo.getString("id"), mbo.getString("property"));
+                var newValue = labels.get(existingLabel);
+                if (newValue == null) {
+                    mbo.delete();
+                } else {
+                    mbo.setValue("app", appID, 11);
+                    mbo.setValue("id", existingLabel.getId(), 11);
+                    mbo.setValue("property", existingLabel.getProperty(), 11);
+                    mbo.setValue("value", newValue, 11);
+                }
+
+                labels.remove(existingLabel);
+                ++index;
+            }
+                System.out.println("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS] saveLabels end\x1b[0m")
+        } catch (x) {
+            System.out.println("Unable to save presentation labels: " + x);
+            var params = new Array("Unable to save presentation labels: IO Error");
+            throw new MXApplicationException("importApp", "generic", params);
+        }
+
+}
+
+ImportAppScript.prototype.refreshApp = function(name) {
+    try{
+        var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
+        var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
+        var wcr = WebClientRuntime.getWebClientRuntime();
+        if (name.equalsIgnoreCase("replibrary")) {
+            wcr.getLibraryDescriptor(name, wcs);
+        } else {
+            LabelCacheMgr.clearCache(name, wcs);
+            LabelCacheMgr.clearSystemCache(wcs);
+            if (wcr.removeAppDescriptor(name) != null) {
+                System.out.println("Refreshed application \"" + name + "\".");
+            } else if (wcr.removeLibraryDescriptor(name) != null) {
+                wcr.getLibraryDescriptor(name, wcs);
+                System.out.println("Refreshed library \"" + name + "\".");
+            } else if (wcr.removeAppXML(name) != null) {
+                System.out.println("Refreshed application \"" + name + "\".");
+            } else {
+                System.out.println("Refresh not necessary for \"" + name.toUpperCase() + "\" application.");
+            }
+        }
+        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS] refreshApp end\x1b[0m")
+    }catch(e){
+        logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] refreshApp error,正常现象,api调用肯定异常,MAXAUTH调用也经常会异常",e)
+    }
+
+
+}
+
+main();
 function main() {
     if (typeof httpMethod !== "undefined") {
         var response = {};
@@ -146,10 +357,10 @@ function main() {
                     // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
 
                     logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]request.getMXSession()=" + request.getMXSession());
-                    var loader = new PresentationLoader();
-                    var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
-                    var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
-
+                    // var loader = new PresentationLoader();
+                    // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
+                    // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
+                    // loader.importApp(wcs, writer.toString());
 
                     // logger.info("-------------webclientsession="+service.webclientsession())
                     // //wcs = service.webclientsession()
@@ -171,12 +382,12 @@ function main() {
 
 
                     logger.info("Importing application " + app + " through PresentationLoader.");
-                    // loader.importApp(wcs, writer.toString());
-                    new ImportAppScript(writer.toString())
+                    var importAppScript = new ImportAppScript(writer.toString());
+                    importAppScript.importApp(app,true)
                 } else {
                     var maxPresentationSet;
                     try {
-                        maxPresentationSet = MXServer.getMXServer().getMboSet("MAXPRESENTATION", MXServer.getMXServer().getSystemUserInfo());
+                        maxPresentationSet = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
 
                         // Query to see if the option has already been assigned to the group.
                         var sqlFormat = new SqlFormat("app = :1 ");
@@ -249,46 +460,6 @@ function main() {
             return;
         }
     }
-}
-
-function ImportAppScript(xml){
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript")
-    
-    //maximo9.1
-    PresentationParser=Java.type("psdi.webclient.system.controller.PresentationParser");
-    /** @type {psdi.webclient.system.controller.PresentationParser} */
-    var pp = new PresentationParser(xml);
-    this.currentAppID = pp.getApplication();
-    logger.info('[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID )
-    if (pp.getTrimmedXML().indexOf("<systemlib") < 0) {
-        //应用xml
-        /** @type {psdi.mbo.MboSetRemote} */
-        var maxAppsSet = MXServer.getMXServer().getMboSet("MAXAPPS",userInfo);
-        /** @type {psdi.mbo.MboRemote} */
-        var app = maxAppsSet.moveFirst();
-
-        var exists = false;
-        for (exists = false; app != null; app = maxAppsSet.moveNext()) {
-            var compAppId = app.getString("app");
-            if (compAppId.equalsIgnoreCase(this.currentAppID)) {
-                exists = true;
-                logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.应用存在")
-                break;
-            }
-        }
-
-        if (!exists) {
-            throw new MXApplicationException("designer", "noapp", [ this.currentAppID.toUpperCase() ]);
-        }
-
-    } else if (MXServer.isBotcInstalled() && this.currentAppID != null && (this.currentAppID.equalsIgnoreCase("library") || this.currentAppID.equalsIgnoreCase("lookups") || this.currentAppID.equalsIgnoreCase("menus"))) {
-        throw new MXApplicationException("botc", "nosystempresentataions");
-    }
-    //系统xml
-
-
-
-
 }
 
 function resetControlGroups(app) {

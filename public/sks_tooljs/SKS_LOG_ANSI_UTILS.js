@@ -75,6 +75,9 @@ AnsiLogger.prototype.constructor = AnsiLogger;
 AnsiLogger.prototype.setLevel = function (level) {
     this.logger.setLevel(level)
 }
+AnsiLogger.prototype.getLogger=function () {
+    return this.logger
+}
 
 AnsiLogger.prototype.debug = function (msg,error) {
     var formattedMsg=formatMsgByLevel(msg,"DEBUG",this.ansiOpen)
@@ -109,4 +112,20 @@ AnsiLogger.prototype.error = function (msg,error) {
     } else {
         this.logger.error(formattedMsg)
     }
+}
+AnsiLogger.prototype.isDebugEnabled = function () {
+    return this.logger.isDebugEnabled()
+}
+
+AnsiLogger.prototype.isInfoEnabled = function () {
+    return this.logger.isInfoEnabled()
+}
+AnsiLogger.prototype.isWarnEnabled = function () {
+    return this.logger.isWarnEnabled()
+}
+AnsiLogger.prototype.isErrorEnabled = function () {
+    return this.logger.isErrorEnabled()
+}
+AnsiLogger.prototype.isTraceEnabled = function () {
+    return this.logger.isTraceEnabled()
 }

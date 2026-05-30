@@ -278,6 +278,7 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     const maxauth = (config.get('maxauth', '') as string);
     const apiKey = (config.get('apiKey', '') as string);
     const apiType =  (config.get('apiType', 'oslc') as string);
+    const langcode = (config.get('langcode', '') as string);  // 语言代码
     
     if (!serverUrl) {
       throw new Error('未配置服务器地址，请先在配置面板中设置');
@@ -337,6 +338,32 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
       requestHeaders['Content-Type'] = 'application/json';
     }
 
+    // 处理 langcode 参数
+    if (langcode && langcode.trim() !== '') {
+      // 先设置两个变量 #前=apiUrl #后=''
+      let beforeHash = apiUrl;
+      let afterHash = '';
+      
+      // 先顺序查找#字符,如果存在,将#之前的赋值给[#前],将 #和后面的部分赋值给 [#后]
+      const hashIndex = apiUrl.indexOf('#');
+      if (hashIndex !== -1) {
+        beforeHash = apiUrl.substring(0, hashIndex);
+        afterHash = apiUrl.substring(hashIndex);  // 包含 # 字符
+      }
+      
+      // 再判断是否存在?,存在就在?后面插入_langcode参数,不存在就加上?和_langcode参数信息
+      const queryIndex = beforeHash.indexOf('?');
+      if (queryIndex !== -1) {
+        // 已存在查询参数，在 ? 后面插入 _langcode
+        beforeHash = beforeHash.substring(0, queryIndex + 1) + '_langcode=' + langcode + '&' + beforeHash.substring(queryIndex + 1);
+      } else {
+        // 不存在查询参数，加上 ? 和 _langcode 参数
+        beforeHash = beforeHash + '?_langcode=' + langcode;
+      }
+      
+      // 重新组合 URL
+      apiUrl = beforeHash + afterHash;
+    }
     
     // console.log(`[HTTP Request] ${method} ${apiUrl}`);
     console.log(`[HTTP Request] Auth Type: ${noAuth ? 'No Auth' : authType}`);

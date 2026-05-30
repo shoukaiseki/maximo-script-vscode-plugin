@@ -51,5 +51,41 @@ declare namespace jscustom {
          * @param error 可选的错误对象
          */
         error(msg: string, error?: any): void;
+        
+        /**
+         * 检查是否启用了调试级别日志
+         * @returns 如果启用了调试级别则返回 true
+         */
+        isDebugEnabled(): boolean;
+        
+        /**
+         * 检查是否启用了信息级别日志
+         * @returns 如果启用了信息级别则返回 true
+         */
+        isInfoEnabled(): boolean;
+        
+        /**
+         * 检查是否启用了警告级别日志
+         * @returns 如果启用了警告级别则返回 true
+         */
+        isWarnEnabled(): boolean;
+        
+        /**
+         * 检查是否启用了错误级别日志
+         * @returns 如果启用了错误级别则返回 true
+         */
+        isErrorEnabled(): boolean;
+        
+        /**
+         * 检查是否启用了跟踪级别日志
+         * @returns 如果启用了跟踪级别则返回 true
+         */
+        isTraceEnabled(): boolean;
+
+        /**
+         * 获取日志记录器实例
+         * @returns 日志记录器实例
+         */
+        getLogger(): psdi.util.logging.MXLogger;
     }
 }

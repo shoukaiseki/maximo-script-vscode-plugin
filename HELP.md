@@ -12,6 +12,8 @@
 - [补全设置](#-补全设置)
 - [反射 API 自动生成](#-反射-api-自动生成)
 - [手动获取反射信息](#-手动获取反射信息)
+- [用户信息查询](#-用户信息查询)
+- [智能语言参数](#-智能语言参数)
 - [手动调用接口](#-手动调用接口)
 - [工具箱功能](#-工具箱功能)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
@@ -838,6 +840,225 @@ graph LR
 
 ---
 
+## 👤 用户信息查询
+
+### 功能简介
+
+插件提供两个功能来查看当前 Maximo 用户的详细信息：
+
+1. **测试连接**：显示基本用户信息和语言配置
+2. **查看用户语言信息**：弹窗展示完整的用户信息，包括可用应用程序列表
+
+### 测试连接
+
+**操作步骤：**
+
+1. 打开配置面板 → “连接配置”
+2. 填写服务器地址和认证信息
+3. 点击 **“测试连接”** 按钮
+4. 如果连接成功，会显示：
+   ```
+   ✅ 连接成功！
+   
+   用户: 超级管理员 (maxadmin)
+   人员ID: MAXADMIN
+   语言代码: ZH_CN
+   区域设置: en_US
+   
+   接口类型: REST, 认证方式: API Key
+   ```
+
+**显示信息：**
+- **用户**：显示名称 (用户名)
+- **人员ID**：人员在系统中的唯一标识
+- **语言代码**：用户当前使用的语言（绿色高亮）
+- **区域设置**：完整的 locale 信息（如 en_US、zh_CN）
+- **接口类型**：OSLC 或 REST
+- **认证方式**：MAXAUTH 或 API Key
+
+### 查看用户语言信息
+
+**操作步骤：**
+
+1. 打开配置面板 → “连接配置”
+2. 点击 **“查看用户语言信息”** 按钮
+3. 弹出对话框，展示四个部分的信息
+
+#### 1. 用户基本信息 (userInfo)
+
+显示当前登录用户的核心信息：
+- 用户名 (userName)
+- 显示名称 (displayname)
+- 人员ID (personId)
+- 语言代码 (langcode) - 绿色高亮
+- 区域语言 (localeLanguage)
+- 区域国家 (localeCountry)
+- 完整区域设置 (locale)
+
+#### 2. 人员详细信息 (PERSON)
+
+显示人员的详细资料：
+- 人员ID (PERSONID)
+- 显示名称 (DISPLAYNAME)
+- 名字 (FIRSTNAME)
+- 姓氏 (LASTNAME)
+- 部门 (DEPARTMENT)
+- 职务代码 (JOBCODE)
+- 状态 (STATUS)
+- 语言代码 (LANGCODE)
+- 缺省应用程序 (DFLTAPP)
+- 电子邮件 (PRIMARYEMAIL)
+
+#### 3. 用户账户信息 (MAXUSER)
+
+显示用户账户的配置信息：
+- 用户ID (USERID)
+- 登录ID (LOGINID)
+- 状态 (STATUS)
+- 类型 (TYPE)
+- 缺省地点 (DEFSITE)
+- 所有者 (OWNER)
+- 系统管理员 (SYSTEMADMIN) - ✅/❌
+- 系统账号 (SYSUSER) - ✅/❌
+- 已锁定 (ISLOCKED) - 🔒/🔓
+- 登录失败次数 (FAILEDLOGINS)
+
+#### 4. 可用应用程序 (MaxApps)
+
+以表格形式展示当前用户有权访问的所有应用程序：
+
+| 应用代码 | 应用名称 | 类型 | 主表 |
+|---------|---------|------|------|
+| AUTOSCRIPT | Automation Scripts | RUN | AUTOSCRIPT |
+| CONFIGUR | Database Configuration | RUN | MAXOBJECTCFG |
+| DESIGNER | Application Designer | RUN | MAXAPPS |
+| SECURGROUP | Security Groups (Manage) | RUN | MAXGROUP |
+| USER | Users (Manage) | RUN | MAXUSER |
+
+**表格特性：**
+- 固定表头，滚动时保持可见
+- 斑马纹样式，提升可读性
+- 最大高度 300px，超出可滚动
+- 等宽字体显示应用代码和主表名
+
+### 注意事项
+
+- ⚠️ 需要 Maximo 系统中部署 `SKS_CURRENT_USER_INFO` 脚本
+- ⚠️ 查看用户信息前需要先配置服务器地址和认证信息
+- ⚠️ MaxApps 列表显示的是当前用户有权限访问的应用
+
+---
+
+## 🌐 智能语言参数
+
+### 功能简介
+
+插件会自动为所有 HTTP 请求添加 `_langcode` 参数，确保 Maximo 返回正确的语言内容。
+
+### 工作原理
+
+**自动注入逻辑：**
+
+1. **读取配置**：从 VSCode 全局配置中获取 `langcode` 值
+2. **检查是否为空**：只有当 `langcode` 存在且不为空字符串时才处理
+3. **处理 URL 结构**：
+   - 先查找 URL 中的 `#` 字符（锚点）
+   - 将 URL 分为两部分：`beforeHash`（# 之前）和 `afterHash`（# 及之后）
+   - 在 `beforeHash` 中查找 `?` 字符（查询参数）
+   - 如果存在 `?`：在 `?` 后面插入 `_langcode=值&`
+   - 如果不存在 `?`：在末尾添加 `?_langcode=值`
+4. **重新组合 URL**：`apiUrl = beforeHash + afterHash`
+
+### 示例场景
+
+**场景 1：无查询参数**
+```javascript
+// 输入
+url = "os/MXAPIPERSON"
+langcode = "ZH_CN"
+
+// 输出
+"os/MXAPIPERSON?_langcode=ZH_CN"
+```
+
+**场景 2：已有查询参数**
+```javascript
+// 输入
+url = "os/MXAPIPERSON?lean=1"
+langcode = "ZH_CN"
+
+// 输出
+"os/MXAPIPERSON?_langcode=ZH_CN&lean=1"
+```
+
+**场景 3：包含锚点**
+```javascript
+// 输入
+url = "os/MXAPIPERSON#section1"
+langcode = "ZH_CN"
+
+// 输出
+"os/MXAPIPERSON?_langcode=ZH_CN#section1"
+```
+
+**场景 4：已有参数 + 锚点**
+```javascript
+// 输入
+url = "os/MXAPIPERSON?lean=1#section1"
+langcode = "ZH_CN"
+
+// 输出
+"os/MXAPIPERSON?_langcode=ZH_CN&lean=1#section1"
+```
+
+**场景 5：langcode 为空**
+```javascript
+// 输入
+url = "os/MXAPIPERSON"
+langcode = ""
+
+// 输出
+"os/MXAPIPERSON" (不添加任何参数)
+```
+
+### 配置方法
+
+**设置 langcode：**
+
+1. 打开配置面板 → “连接配置”
+2. 找到“语言 (Langcode)”下拉框
+3. 选择目标语言（如：简体中文 ZH、English EN、日本語 JA 等）
+4. 或者选择“（未设置）”使用服务器默认语言
+5. 保存配置
+
+**支持的语言：**
+
+插件支持 170+ 种语言，包括：
+- EN - English
+- ZH - 简体中文
+- ZHT - 繁體中文
+- JA - 日本語
+- KO - 한국어
+- FR - Français
+- DE - Deutsch
+- ES - Español
+- ... 等等
+
+### 优势
+
+- ✅ **全局生效**：所有通过 `httpRequestToMaximo` 发送的请求都会自动添加
+- ✅ **无需手动处理**：开发者无需在每个调用处单独添加参数
+- ✅ **智能处理**：正确处理复杂的 URL 结构（含 # 和 ?）
+- ✅ **灵活配置**：可以选择不设置，使用服务器默认语言
+
+### 注意事项
+
+- ⚠️ langcode 参数只在配置了语言代码时才会添加
+- ⚠️ 留空表示使用服务器默认语言
+- ⚠️ 不同环境可以设置不同的 langcode
+
+---
+
 ## ❓ 常见问题
 
 ### Q1: 连接测试失败怎么办？
@@ -880,4 +1101,4 @@ graph LR
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-30 | 版本：1.2.11*
+*最后更新：2026-05-30 | 版本：1.3.2*

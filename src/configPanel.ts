@@ -128,6 +128,10 @@ export class ConfigPanel {
             // 删除指定环境
             await this._deleteEnvironment(message.envnum);
             return;
+          case 'viewUserInfo':
+            // 查看用户语言信息
+            await this._viewUserInfo(message.data);
+            return;
         }
       },
       null,
@@ -293,6 +297,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('aliasName', data.aliasName || '', vscode.ConfigurationTarget.Global);
       await config.update('exportDirectory', data.exportDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('envnum', data.envnum || 'default', vscode.ConfigurationTarget.Global);
+      await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
@@ -322,7 +327,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiKey: data.apiKey,
         apiType: data.apiType,
         version: data.version,
-        completionMode: data.completionMode || 'vscode'
+        completionMode: data.completionMode || 'vscode',
+        langcode: data.langcode || ''  // 语言代码，空字符串表示未设置
       };
       
       const saveResult = envConfig.upsertEnvironment(environmentConfig);
@@ -412,35 +418,74 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       clearJSESSIONID();
       logger.info('[TestConnection] 已清除 JSESSIONID Cookie');
       
+      // 构建请求 URL - 使用 SKS_CURRENT_USER_INFO 接口
+      const userInfoUrl = `script/SKS_CURRENT_USER_INFO`;
+      
+      // 构建请求头
+      const headers: Record<string, string> = {
+        'Accept': '*/*',
+        'x-method-override': 'GET'
+      };
+      
+      // 添加认证信息
+      if (data.authType === 'maxauth' && data.maxauth) {
+        headers['MAXAUTH'] = data.maxauth;
+      } else if (data.authType === 'apikey' && data.apiKey) {
+        headers['apiKey'] = data.apiKey;
+      }
+      
+      logger.info(`[TestConnection] 请求 URL: ${userInfoUrl}`);
+      
+      // 发送请求
       const response = await httpRequestToMaximo({
-        method: 'GET',
-        url: 'os/MXAPIPERSON/_TUFYQURNSU4=?lean=1'
+        method: 'POST',
+        url: userInfoUrl,
+        headers: headers,
+        serverUrl: data.serverUrl,
+        authTypeIn: data.authType,
+        maxauth: data.maxauth,
+        apiKey: data.apiKey,
+        logger: logger
       });
       
       // 检查响应
       if (response.status === 200 && response.data) {
-        let userInfo = '';
+        const responseData = response.data;
         
-        // 根据不同接口类型解析用户信息
-        if (data.apiType === 'oslc') {
-          const displayName = response.data.displayname || '未知用户';
-          const personId = response.data.personid || 'N/A';
-          userInfo = `用户: ${displayName} (${personId})`;
-        } else {
-          const displayName = response.data.displayname || response.data.name || '未知用户';
-          const personId = response.data.personid || response.data.id || 'N/A';
-          userInfo = `用户: ${displayName} (${personId})`;
+        // 检查响应状态
+        if (responseData.status !== 'success') {
+          throw new Error(responseData.message || '获取用户信息失败');
         }
+        
+        // 解析用户信息
+        const userInfo = responseData.data?.userInfo;
+        if (!userInfo) {
+          throw new Error('未找到用户信息');
+        }
+        
+        const userName = userInfo.userName || 'N/A';
+        const displayName = userInfo.displayname || '未知用户';
+        const personId = userInfo.personId || 'N/A';
+        const langcode = userInfo.langcode || 'N/A';
+        const locale = userInfo.locale || 'N/A';
+        
+        // 构建显示信息
+        let resultText = `✅ 连接成功！<br/><br/>`;
+        resultText += `<strong>用户:</strong> ${displayName} (${userName})<br/>`;
+        resultText += `<strong>人员ID:</strong> ${personId}<br/>`;
+        resultText += `<strong>语言代码:</strong> <span style="color: #4ec9b0;">${langcode}</span><br/>`;
+        resultText += `<strong>区域设置:</strong> ${locale}<br/>`;
+        resultText += `<br/>接口类型: ${data.apiType === 'oslc' ? 'OSLC' : 'REST'}, 认证方式: ${data.authType === 'maxauth' ? 'MAXAUTH' : 'API Key'}`;
         
         // 发送成功结果到 webview
         this._panel.webview.postMessage({
           command: 'connectionResult',
           type: 'success',
-          text: `连接成功！<br/>${userInfo}<br/>接口类型: ${data.apiType === 'oslc' ? 'OSLC' : 'REST'}, 认证方式: ${data.authType === 'maxauth' ? 'MAXAUTH' : 'API Key'}`
+          text: resultText
         });
         
-        console.log(`[TestConnection] ✅ 连接成功: ${userInfo}`);
-        logger.info(`[TestConnection] ✅ 连接成功: ${userInfo}`);
+        console.log(`[TestConnection] ✅ 连接成功: ${displayName} (${userName})`);
+        logger.info(`[TestConnection] ✅ 连接成功: ${displayName} (${userName}), 语言: ${langcode}`);
       } else {
         throw new Error(`HTTP ${response.status}: 未知错误`);
       }
@@ -620,7 +665,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       jarDirectories: config.get('jarDirectories', []),
       additionalJars: config.get('additionalJars', []),
       envnum: currentEnvnum,
-      envList: envNames
+      envList: envNames,
+      langcode: config.get('langcode', '')  // 语言代码，空字符串表示未设置
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -635,7 +681,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiKey: envConfigData.apiKey || initialConfigData.apiKey,
         apiType: envConfigData.apiType || initialConfigData.apiType,
         version: envConfigData.version || initialConfigData.version,
-        completionMode: envConfigData.completionMode || initialConfigData.completionMode
+        completionMode: envConfigData.completionMode || initialConfigData.completionMode,
+        langcode: envConfigData.langcode || ''  // 语言代码，空字符串表示未设置
       };
     } else {
       logger.info(`[ConfigPanel] 环境配置不存在，使用 VSCode 配置: ${currentEnvnum}`);
@@ -2566,6 +2613,79 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   private _getLoggerConfigPath(): string {
     const homeDir = require('os').homedir();
     return path.join(homeDir, '.sks', 'maximo-script-helper', 'logger-config.json');
+  }
+
+  /**
+   * 查看用户语言信息
+   */
+  private async _viewUserInfo(data: any) {
+    try {
+      const { serverUrl, authType, maxauth, apiKey, apiType } = data;
+      
+      if (!serverUrl) {
+        vscode.window.showErrorMessage('请先配置服务器地址');
+        return;
+      }
+
+      logger.info('[ViewUserInfo] 开始获取用户信息...');
+      
+      // 构建请求 URL
+      const userInfoUrl = `script/SKS_CURRENT_USER_INFO`;
+      
+      // 构建请求头
+      const headers: Record<string, string> = {
+        'Accept': '*/*',
+        'x-method-override': 'GET'
+      };
+      
+      // 添加认证信息
+      if (authType === 'maxauth' && maxauth) {
+        headers['MAXAUTH'] = maxauth;
+      } else if (authType === 'apikey' && apiKey) {
+        headers['apiKey'] = apiKey;
+      } else {
+        vscode.window.showErrorMessage('请先配置认证信息（MAXAUTH 或 API Key）');
+        return;
+      }
+      
+      logger.info(`[ViewUserInfo] 请求 URL: ${userInfoUrl}`);
+      
+      // 发送请求
+      const response = await httpRequestToMaximo({
+        method: 'POST',
+        url: userInfoUrl,
+        headers: headers,
+        serverUrl: serverUrl,
+        authTypeIn: authType,
+        maxauth: maxauth,
+        apiKey: apiKey,
+        logger: logger
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const responseData = response.data;
+      // logger.info('[ViewUserInfo] 响应数据:', JSON.stringify(responseData, null, 2));
+      
+      // 检查响应状态
+      if (responseData.status !== 'success') {
+        throw new Error(responseData.message || '获取用户信息失败');
+      }
+      
+      // 发送数据到前端显示
+      this._panel.webview.postMessage({
+        command: 'showUserInfo',
+        data: responseData.data
+      });
+      
+      logger.info('[ViewUserInfo] 用户信息已发送到前端');
+      
+    } catch (error: any) {
+      logger.error(`[ViewUserInfo] 获取用户信息失败: ${error.message}`);
+      vscode.window.showErrorMessage(`获取用户信息失败: ${error.message}`);
+    }
   }
 
   public dispose() {
