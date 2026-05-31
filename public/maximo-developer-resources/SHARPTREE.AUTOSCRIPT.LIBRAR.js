@@ -21,6 +21,16 @@ MXServer = Java.type("psdi.server.MXServer");
 var logger = MXLoggerFactory.getLogger("maximo.script.SHARPTREE.AUTOSCRIPT.LIBRARY");
 logger.setLevel(Level.DEBUG);
 
+if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
+    //_langcode=zh
+    var _langcode = request.getQueryParam("_langcode");
+    // uInfo.setLocale(lang);
+    userInfo.setLangCode(_langcode.toLowerCase())
+    if(userInfo.getLocale()){
+        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
+    }
+}
+
 // Array find polyfill.
 if (typeof Array.prototype.find != "function") {
     Array.prototype.find = function (callback) {
@@ -2650,7 +2660,7 @@ function addOrUpdateAction(action) {
     logger.debug("Setting up the " + action.action + " action.");
     var actionSet;
     try {
-        actionSet = MXServer.getMXServer().getMboSet("ACTION", MXServer.getMXServer().getSystemUserInfo());
+        actionSet = MXServer.getMXServer().getMboSet("ACTION", userInfo);
         var actionRecord = new Action(action);
         var sqlf = new SqlFormat("action = :1");
         sqlf.setObject(1, "ACTION", "ACTION", action.action);
@@ -2676,7 +2686,7 @@ function deleteAction(action) {
     logger.debug("Deleting the " + action.action + " action.");
     var actionSet;
     try {
-        actionSet = MXServer.getMXServer().getMboSet("ACTION", MXServer.getMXServer().getSystemUserInfo());
+        actionSet = MXServer.getMXServer().getMboSet("ACTION", userInfo);
         var sqlf = new SqlFormat("action = :1");
         sqlf.setObject(1, "ACTION", "ACTION", action.action);
         actionSet.setWhere(sqlf.format());
@@ -2719,7 +2729,7 @@ function addOrUpdateCommunicationTemplate(communicationTemplate) {
     logger.debug("Setting up the " + communicationTemplate.templateID + " communication template.");
     var commTemplateSet;
     try {
-        commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", MXServer.getMXServer().getSystemUserInfo());
+        commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", userInfo);
         var commTemplate = new CommunicationTemplate(communicationTemplate);
         var sqlf = new SqlFormat("templateid = :1");
         sqlf.setObject(1, "COMMTEMPLATE", "TEMPLATEID", communicationTemplate.templateID);
@@ -2745,7 +2755,7 @@ function deleteCommunicationTemplate(communicationTemplate) {
     logger.debug("Deleting the " + communicationTemplate.ifaceName + " communication template.");
     var commTemplateSet;
     try {
-        commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", MXServer.getMXServer().getSystemUserInfo());
+        commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", userInfo);
         var sqlf = new SqlFormat("templateid = :1");
         sqlf.setObject(1, "COMMTEMPLATE", "TEMPLATEID", communicationTemplate.templateID);
         commTemplateSet.setWhere(sqlf.format());
@@ -2818,7 +2828,7 @@ function deleteMaxObject(maxObject) {
     logger.debug("Deleting the " + maxObject.objectNmae + " Maximo object.");
     var maxObjectSet;
     try {
-        maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECT", MXServer.getMXServer().getSystemUserInfo());
+        maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECT", userInfo);
         var sqlf = new SqlFormat("objectname = :1");
         sqlf.setObject(1, "MAXOBJECT", "OBJECTNAME", maxObject.objectName);
         maxObjectSet.setWhere(sqlf.format());
@@ -2861,7 +2871,7 @@ function addOrUpdateLaunchInContext(launchInContext) {
     logger.debug("Setting up the " + launchInContext.launchEntryName + " launch in context.");
     var launchInContextSet;
     try {
-        launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", MXServer.getMXServer().getSystemUserInfo());
+        launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", userInfo);
         var launchContext = new LaunchInContext(launchInContext);
         var sqlf = new SqlFormat("launchentryname = :1");
         sqlf.setObject(1, "MAXLAUNCHENTRY", "LAUNCHENTRYNAME", launchInContext.launchEntryName);
@@ -2887,7 +2897,7 @@ function deleteLaunchInContext(launchInContext) {
     logger.debug("Deleting the " + launchInContext.ifaceName + " launch in context.");
     var launchInContextSet;
     try {
-        launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", MXServer.getMXServer().getSystemUserInfo());
+        launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", userInfo);
         var sqlf = new SqlFormat("launchentryname = :1");
         sqlf.setObject(1, "MAXLAUNCHENTRY", "LAUNCHENTRYNAME", launchInContext.launchEntryName);
         launchInContextSet.setWhere(sqlf.format());
@@ -2930,7 +2940,7 @@ function addOrUpdateInvocationChannel(invocationChannel) {
     logger.debug("Setting up the " + invocationChannel.ifaceName + " invocation channel.");
     var maxIfaceInvokeSet;
     try {
-        maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", userInfo);
         var invokeChannel = new InvocationChannel(invocationChannel);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEIN", "IFACENAME", invocationChannel.ifaceName);
@@ -2956,7 +2966,7 @@ function deleteInvocationChannel(invocationChannel) {
     logger.debug("Deleting the " + invocationChannel.ifaceName + " invocation channel.");
     var maxIfaceInvokeSet;
     try {
-        maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", userInfo);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEIN", "IFACENAME", invocationChannel.ifaceName);
         maxIfaceInvokeSet.setWhere(sqlf.format());
@@ -2999,7 +3009,7 @@ function addOrUpdateEnterpriseService(enterpriseService) {
     logger.debug("Setting up the " + enterpriseService.ifaceName + " enterprise service.");
     var maxIfaceInSet;
     try {
-        maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", userInfo);
         var entService = new EnterpriseService(enterpriseService);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEIN", "IFACENAME", enterpriseService.ifaceName);
@@ -3007,7 +3017,7 @@ function addOrUpdateEnterpriseService(enterpriseService) {
 
         if (!maxIfaceInSet.isEmpty()) {
             try {
-                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", MXServer.getMXServer().getSystemUserInfo());
+                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", userInfo);
                 maxIfaceProcSet.setWhere(sqlf.format());
                 maxIfaceProcSet.deleteAll();
                 maxIfaceProcSet.save();
@@ -3034,14 +3044,14 @@ function deleteEnterpriseService(enterpriseService) {
     logger.debug("Deleting the " + enterpriseService.ifaceName + " enterprise service.");
     var maxIfaceInSet;
     try {
-        maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", userInfo);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEIN", "IFACENAME", enterpriseService.ifaceName);
         maxIfaceInSet.setWhere(sqlf.format());
 
         if (!maxIfaceInSet.isEmpty()) {
             try {
-                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", MXServer.getMXServer().getSystemUserInfo());
+                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", userInfo);
                 maxIfaceProcSet.setWhere(sqlf.format());
                 maxIfaceProcSet.deleteAll();
                 maxIfaceProcSet.save();
@@ -3086,7 +3096,7 @@ function addOrUpdatePublishChannel(publishChannel) {
     logger.debug("Setting up the " + publishChannel.ifaceName + " publish channel.");
     var maxIfaceOutSet;
     try {
-        maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", userInfo);
         var pubChannel = new PublishChannel(publishChannel);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEOUT", "IFACENAME", publishChannel.ifaceName);
@@ -3097,7 +3107,7 @@ function addOrUpdatePublishChannel(publishChannel) {
             //var maxIfaceProcSet = maxIfaceOutMbo.getMboSet('MAXIFACEPROC');
 
             try {
-                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", MXServer.getMXServer().getSystemUserInfo());
+                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", userInfo);
                 maxIfaceProcSet.setWhere(sqlf.format());
                 maxIfaceProcSet.deleteAll();
                 maxIfaceProcSet.save();
@@ -3124,7 +3134,7 @@ function deletePublishChannel(publishChannel) {
     logger.debug("Deleting the " + publishChannel.ifaceName + " publish channel.");
     var maxIfaceOutSet;
     try {
-        maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", MXServer.getMXServer().getSystemUserInfo());
+        maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", userInfo);
         var pubChannel = new PublishChannel(publishChannel);
         var sqlf = new SqlFormat("ifacename = :1");
         sqlf.setObject(1, "MAXIFACEOUT", "IFACENAME", publishChannel.ifaceName);
@@ -3132,7 +3142,7 @@ function deletePublishChannel(publishChannel) {
 
         if (!maxIfaceOutSet.isEmpty()) {
             try {
-                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", MXServer.getMXServer().getSystemUserInfo());
+                var maxIfaceProcSet = MXServer.getMXServer().getMboSet("MAXIFACEPROC", userInfo);
                 maxIfaceProcSet.setWhere(sqlf.format());
                 maxIfaceProcSet.deleteAll();
                 maxIfaceProcSet.save();
@@ -3311,7 +3321,7 @@ function addOrUpdateEndPoint(endPoint) {
     logger.debug("Setting up the " + endPoint.endPointName + " end point.");
     var maxEndPointSet;
     try {
-        maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", MXServer.getMXServer().getSystemUserInfo());
+        maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", userInfo);
         var endPnt = new EndPoint(endPoint);
         var sqlf = new SqlFormat("endpointname = :1");
         sqlf.setObject(1, "MAXENDPOINT", "ENDPOINTNAME", endPoint.endPointName);
@@ -3337,7 +3347,7 @@ function deleteEndPoint(endPoint) {
     logger.debug("Deleting the " + endPoint.endPointName + " end point.");
     var maxEndPointSet;
     try {
-        maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", MXServer.getMXServer().getSystemUserInfo());
+        maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", userInfo);
         var endPnt = new EndPoint(endPoint);
         var sqlf = new SqlFormat("endpointname = :1");
         sqlf.setObject(1, "MAXENDPOINT", "ENDPOINTNAME", endPoint.endPointName);
@@ -3381,7 +3391,7 @@ function addOrUpdateExternalSystem(externalSystem) {
     logger.debug("Setting up the " + externalSystem.extSysName + " external sytsem.");
     var maxExtSystemSet;
     try {
-        maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", MXServer.getMXServer().getSystemUserInfo());
+        maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", userInfo);
         var extSys = new ExternalSystem(externalSystem);
         var sqlf = new SqlFormat("extsysname = :1");
         sqlf.setObject(1, "MAXEXTSYSTEM", "EXTSYSNAME", externalSystem.extSysName);
@@ -3407,7 +3417,7 @@ function deleteExternalSystem(externalSystem) {
     logger.debug("Deleting the " + externalSystem.extSysName + " external sytsem.");
     var maxExtSystemSet;
     try {
-        maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", MXServer.getMXServer().getSystemUserInfo());
+        maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", userInfo);
         var extSys = new ExternalSystem(externalSystem);
         var sqlf = new SqlFormat("extsysname = :1");
         sqlf.setObject(1, "MAXEXTSYSTEM", "EXTSYSNAME", externalSystem.extSysName);
@@ -3613,7 +3623,7 @@ function addOrUpdateMessage(message) {
 
     var maxMessageSet;
     try {
-        maxMessageSet = MXServer.getMXServer().getMboSet("MAXMESSAGES", MXServer.getMXServer().getSystemUserInfo());
+        maxMessageSet = MXServer.getMXServer().getMboSet("MAXMESSAGES", userInfo);
         var msg = new Message(message);
 
         var sqlf = new SqlFormat("msggroup = :1 and msgkey = :2");
@@ -3657,7 +3667,7 @@ function deleteMessage(message) {
 
     var messageSet;
     try {
-        messageSet = MXServer.getMXServer().getMboSet("MAXMESSAGES", MXServer.getMXServer().getSystemUserInfo());
+        messageSet = MXServer.getMXServer().getMboSet("MAXMESSAGES", userInfo);
 
         messageSet.setWhere(sqlf.format());
 
@@ -3699,7 +3709,7 @@ function addOrUpdateProperty(property) {
     try {
         var propertyObj = new Property(property);
 
-        maxPropertySet = MXServer.getMXServer().getMboSet("MAXPROP", MXServer.getMXServer().getSystemUserInfo());
+        maxPropertySet = MXServer.getMXServer().getMboSet("MAXPROP", userInfo);
 
         var sqlf = new SqlFormat("propname = :1");
         sqlf.setObject(1, "MAXPROP", "PROPNAME", propertyObj.propName);
@@ -3736,7 +3746,7 @@ function deleteProperty(property) {
 
     var maxPropSet;
     try {
-        maxPropSet = MXServer.getMXServer().getMboSet("MAXPROP", MXServer.getMXServer().getSystemUserInfo());
+        maxPropSet = MXServer.getMXServer().getMboSet("MAXPROP", userInfo);
         var sqlf = new SqlFormat("propname = :1");
         sqlf.setObject(1, "MAXPROP", "PROPNAME", property.propName);
         maxPropSet.setWhere(sqlf.format());
@@ -3768,7 +3778,7 @@ function __addLoggerIfDoesNotExist(loggerName, level, parent) {
     logger.debug("Adding or updating the logger " + loggerName + " and setting the level to " + level + ".");
     var loggerSet;
     try {
-        loggerSet = MXServer.getMXServer().getMboSet("MAXLOGGER", MXServer.getMXServer().getSystemUserInfo());
+        loggerSet = MXServer.getMXServer().getMboSet("MAXLOGGER", userInfo);
 
         // Query for the log key
         var sqlFormat = new SqlFormat("logkey = :1");
@@ -3801,7 +3811,7 @@ function __addMenu(app, optionName, below, visible, tabDisplay) {
     var maxMenuSet;
     var maxMenu;
     try {
-        maxMenuSet = MXServer.getMXServer().getMboSet("MAXMENU", MXServer.getMXServer().getSystemUserInfo());
+        maxMenuSet = MXServer.getMXServer().getMboSet("MAXMENU", userInfo);
 
         var position = 0;
         var subPosition = 0;
@@ -3878,7 +3888,7 @@ function __addAppOption(app, optionName, description, esigEnabled, visible, also
     var sigOptionSet;
 
     try {
-        sigOptionSet = MXServer.getMXServer().getMboSet("SIGOPTION", MXServer.getMXServer().getSystemUserInfo());
+        sigOptionSet = MXServer.getMXServer().getMboSet("SIGOPTION", userInfo);
         var sqlf = new SqlFormat("app = :1 and optionname = :2");
         sqlf.setObject(1, "SIGOPTION", "APP", app);
         sqlf.setObject(2, "SIGOPTION", "OPTIONNAME", optionName);
@@ -3925,7 +3935,7 @@ function __grantOptionToGroup(group, app, option) {
         var sqlf = new SqlFormat("groupname = :1");
         sqlf.setObject(1, "MAXGROUP", "GROUPNAME", group);
 
-        groupSet = MXServer.getMXServer().getMboSet("MAXGROUP", MXServer.getMXServer().getSystemUserInfo());
+        groupSet = MXServer.getMXServer().getMboSet("MAXGROUP", userInfo);
         groupSet.setWhere(sqlf.format());
         var groupMbo;
         if (!groupSet.isEmpty()) {
@@ -3960,7 +3970,7 @@ function __grantOptionToGroup(group, app, option) {
 function addOrReplaceRelationship(name, parent, child, whereclause, remarks) {
     var maxRelationshipSet;
     try {
-        maxRelationshipSet = MXServer.getMXServer().getMboSet("MAXRELATIONSHIP", MXServer.getMXServer().getSystemUserInfo());
+        maxRelationshipSet = MXServer.getMXServer().getMboSet("MAXRELATIONSHIP", userInfo);
         var sqlf = new SqlFormat("parent = :1 and child = :2 and name = :3");
         sqlf.setObject(1, "MAXRELATIONSHIP", "PARENT", parent);
         sqlf.setObject(2, "MAXRELATIONSHIP", "CHILD", child);
