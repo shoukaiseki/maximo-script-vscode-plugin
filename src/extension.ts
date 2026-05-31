@@ -236,6 +236,10 @@ export function activate(context: vscode.ExtensionContext) {
           if (result.success) {
             logger.info(`[PushXmlToMaximo] ✅ XML 推送成功`);
             vscode.window.showInformationMessage(`XML 已成功推送到 Maximo`);
+            // logger.error(`maxauth用户`)
+            logger.error(`如果没有生效,则 Maximo配置,连接选择 MAXAUTH之后测试连接,再切回APIKey模式(这时候不要点测试),或者重新初始化`)
+            logger.error(`或者web先登录一次应用程序设计器`)
+            logger.error(`或者再初始化以下工具箱`)
           } else {
             logger.error(`[PushXmlToMaximo] ❌ 推送失败`);
             const errorMsg = result.errorMessage || '未知错误';

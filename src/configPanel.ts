@@ -1698,7 +1698,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 部署并执行 bootstrap 脚本（install）
       this._sendToolboxOutput('\n📦 步骤 1/2: 部署并执行 bootstrap 脚本...');
       
-      const installFilePath = path.join(scriptsDir, 'sharptree.autoscript.install.js');
+      const installFilePath = path.join(scriptsDir, 'SHARPTREE.AUTOSCRIPT.INSTALL.js');
       if (!fs.existsSync(installFilePath)) {
         this._sendToolboxOutput(`❌ install 脚本不存在: ${installFilePath}`);
         return;
@@ -1724,7 +1724,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       // 执行 bootstrap 脚本
       this._sendToolboxOutput('⚙️ 正在执行 bootstrap 脚本...');
-      const execUrl = `${serverUrl}/api/script/sharptree.autoscript.install`;
+      const execUrl = `${serverUrl}/api/script/SHARPTREE.AUTOSCRIPT.INSTALL`;
       
       const execResult = await httpRequestToMaximo({
         url: execUrl,

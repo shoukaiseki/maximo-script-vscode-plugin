@@ -118,5 +118,12 @@
 			"var ${2:variableName} = ${3:mbo};"
 		],
 		"description": "Declare variable with JSDoc type annotation"
+	},
+	"JSDoc Custom Type": {
+		"prefix": ["jsdoctype"],
+		"body": [
+			"/** @type {${1:psdi}} */"
+		],
+		"description": "Add JSDoc type annotation with custom class name"
 	}
 }
