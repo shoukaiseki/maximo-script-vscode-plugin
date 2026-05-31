@@ -191,6 +191,11 @@
           "default": false,
           "description": "自动生成反射API（需要Maximo接口支持，开启后会自动调用 SKS_REFLECT_HELPER 接口获取类信息并生成本地类型定义文件）"
         },
+        "maximoScript.autoGenerateReflectionApiLocal": {
+          "type": "boolean",
+          "default": false,
+          "description": "自动通过本地jar生成反射API（当Maximo接口失败时作为降级方案，使用本地JAR包反射获取类信息）"
+        },
         "maximoScript.jarDirectories": {
           "type": "array",
           "items": {

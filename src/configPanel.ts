@@ -301,6 +301,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
+      await config.update('autoGenerateReflectionApiLocal', data.autoGenerateReflectionApiLocal || false, vscode.ConfigurationTarget.Global);
       await config.update('enableHttpLog', Boolean(data.enableHttpLog), vscode.ConfigurationTarget.Global);
       await config.update('jdkPath', data.jdkPath, vscode.ConfigurationTarget.Global);
       await config.update('jarDirectories', data.jarDirectories || [], vscode.ConfigurationTarget.Global);
@@ -660,6 +661,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       autoGenerateReflectionApi: config.get('autoGenerateReflectionApi', false),
+      autoGenerateReflectionApiLocal: config.get('autoGenerateReflectionApiLocal', false),
       enableHttpLog: config.get('enableHttpLog', false),
       jdkPath: config.get('jdkPath', ''),
       jarDirectories: config.get('jarDirectories', []),

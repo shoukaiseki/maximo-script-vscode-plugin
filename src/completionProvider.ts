@@ -5,7 +5,7 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import { ReflectionDataManager } from './reflectionDataManager';
 import { DtsGenerator } from './dtsGenerator';
-import { fetchClassReflection } from './httpRequest';
+import { fetchClassReflection, fetchClassReflectionLocal } from './httpRequest';
 
 interface CompletionConfig {
   serverUrl: string;
@@ -17,6 +17,7 @@ interface CompletionConfig {
   enableJSDocParsing: boolean;  // 启用 JSDoc 解析
   enableTypeInference: boolean;  // 启用类型推断
   autoGenerateReflectionApi: boolean;  // 自动生成反射API
+  autoGenerateReflectionApiLocal: boolean;  // 自动通过本地jar生成反射API（降级方案）
   jarDirectories: string[];  // JAR 文件目录列表
   additionalJars: string[];  // 额外的 JAR 文件路径
   jdkPath: string;  // JDK 安装路径
@@ -120,6 +121,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       autoGenerateReflectionApi: config.get('autoGenerateReflectionApi', false),
+      autoGenerateReflectionApiLocal: config.get('autoGenerateReflectionApiLocal', false),
       jarDirectories: config.get('jarDirectories', []),
       additionalJars: config.get('additionalJars', []),
       jdkPath: config.get('jdkPath', ''),
@@ -786,17 +788,53 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     try {
       this.log(`[Background] 开始后台反射获取: ${className}`);
       
-      // 调用 Maximo 接口
-      const reflectionData = await fetchClassReflection(className, this.outputChannel as any);
+      let reflectionData: any = null;
+      let usedLocalFallback = false;
       
-      if (reflectionData.status === 'error') {
+      // 尝试 1: 调用 Maximo 接口
+      try {
+        this.log(`[Background] 尝试通过 Maximo 接口获取: ${className}`);
+        reflectionData = await fetchClassReflection(className, this.outputChannel as any);
+        
+        if (reflectionData.status === 'error') {
+          this.log(`[Background] ⚠️ Maximo 接口失败: ${reflectionData.message}`);
+          reflectionData = null;
+        }
+      } catch (maximoError: any) {
+        this.log(`[Background] ⚠️ Maximo 接口异常: ${maximoError.message}`);
+        reflectionData = null;
+      }
+      
+      // 尝试 2: 如果 Maximo 接口失败且启用了本地反射降级，则使用本地反射
+      if (!reflectionData && this.config.autoGenerateReflectionApiLocal) {
+        this.log(`[Background] 尝试通过本地 JAR 反射获取: ${className}`);
+        try {
+          reflectionData = await fetchClassReflectionLocal(className, this.outputChannel as any);
+          
+          if (reflectionData && reflectionData.status !== 'error') {
+            usedLocalFallback = true;
+            this.log(`[Background] ✅ 本地反射成功`);
+          } else {
+            this.log(`[Background] ⚠️ 本地反射失败: ${reflectionData?.message}`);
+            reflectionData = null;
+          }
+        } catch (localError: any) {
+          this.log(`[Background] ⚠️ 本地反射异常: ${localError.message}`);
+          reflectionData = null;
+        }
+      }
+      
+      // 两种方式都失败
+      if (!reflectionData || reflectionData.status === 'error') {
+        const errorMsg = reflectionData?.message || 'Maximo 接口和本地反射均失败';
+        
         // 类不存在，永久忽略
         await this.reflectionManager.addToIgnoreList(
           className,
-          reflectionData.message || '未知错误',
+          errorMsg,
           true
         );
-        this.log(`[Background] ⚠️ 类不存在，永久忽略: ${className}`);
+        this.log(`[Background] ❌ 类获取失败，永久忽略: ${className}`);
         return;
       }
       
@@ -812,7 +850,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       // 重新加载补全缓存
       this.loadLocalApiData();
       
-      this.log(`[Background] ✅ 自动生成反射API成功: ${className}`);
+      const source = usedLocalFallback ? '本地JAR' : 'Maximo接口';
+      this.log(`[Background] ✅ 自动生成反射API成功 (${source}): ${className}`);
     } catch (error: any) {
       // 临时失败，增加重试次数
       if (this.reflectionManager) {

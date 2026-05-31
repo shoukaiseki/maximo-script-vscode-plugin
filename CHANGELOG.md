@@ -5,6 +5,133 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.3] - 2026-05-25
+
+### 新增功能
+
+#### 本地反射获取功能
+- ✨ 新增右键菜单“通过本地反射获取类反射信息”
+  - 创建 LocalReflectHelper.java 类
+  - 使用 JDK 8 (D:\usr\java\jdk1.8.0_491x64) 编译
+  - 返回与 SKS_REFLECT_HELPER_ENHANCED 相同的 JSON 格式
+  - 支持 jarDirectories 和 additionalJars 两种配置方式
+  - 正确遍历 JAR 目录中的所有 .jar 文件
+  - 添加单个 JAR 文件到 classpath
+
+- ✨ 重命名原有菜单项
+  - “获取类反射信息” → “通过maximo接口获取类反射信息”
+  - 更清晰地说明功能来源
+
+#### 自动生成反射 API 降级策略
+- ✨ 新增“自动通过本地jar生成反射API”配置项
+  - 位置：maximo配置 → 补全设置 → “自动生成反射API”下方
+  - 默认关闭，需要用户手动开启
+  - 当 Maximo 接口调用失败时作为降级方案
+
+- ✨ 智能降级逻辑
+  - 首先尝试调用 Maximo 接口（SKS_REFLECT_HELPER_ENHANCED）
+  - 如果失败且启用了本地反射降级，则使用本地 JAR 反射
+  - 两种方式都失败才计入失败次数
+  - 日志清楚显示数据来源（Maximo接口 或 本地JAR）
+
+### 修复问题
+
+#### Classpath 构建逻辑修正
+- 🐛 修复 classpath 构建不完整的问题
+  - **问题描述**：只处理了 jarDirectories 目录路径，没有遍历其中的 .jar 文件
+  - **根本原因**：未参考 completionProvider.ts 的 buildClasspath() 方法
+  - **解决方案**：
+    - 遍历 jarDirectories 中的每个目录，读取所有 .jar 文件
+    - 添加 additionalJars 中的单个 JAR 文件
+    - 包含 LocalReflectHelper.class 所在目录
+  - **影响范围**：本地反射获取功能
+
+#### 程序无法正常退出
+- 🐛 修复 LocalReflectHelper 输出 JSON 后不退出的问题
+  - **问题描述**：有数据输出但程序似乎死循环
+  - **根本原因**：没有显式调用 System.exit(0)
+  - **解决方案**：在输出 JSON 后添加 System.exit(0)
+  - **效果**：程序正常退出，Exit code: 0
+
+#### 超时处理优化
+- 🐛 修复加载大量 JAR 包时的超时问题
+  - **问题描述**：30 秒超时对于加载大量 JAR 包不够
+  - **解决方案**：
+    - 增加超时时间从 30 秒到 60 秒
+    - 增加 maxBuffer 到 10MB (10 * 1024 * 1024)
+    - 区分超时错误（error.killed）和其他错误
+    - 提供专门的超时错误提示和优化建议
+
+### 改进优化
+
+#### 错误处理和日志增强
+- 🔧 完善 classpath 构建日志
+  - 显示 classpath 包含的部分数量
+  - 显示 LocalReflectHelper.class 目录
+  - 显示 JAR 目录数和单个 JAR 文件数
+  - 提供 JAR 包配置优化提示
+
+- 🔧 优化错误分类
+  - 区分 Maximo 接口失败和本地反射失败
+  - 区分超时错误和其他执行错误
+  - 提供清晰的错误信息和解决建议
+
+#### 代码质量提升
+- 🔧 参考现有实现
+  - 参考 completionProvider.ts 的 buildClasspath() 方法
+  - 保持代码风格和逻辑一致性
+  - 复用已有的配置项和工具函数
+
+### 技术实现
+
+- 📦 新增文件
+  - `src/LocalReflectHelper.java` - 本地反射辅助类
+  - `dist/LocalReflectHelper.class` - 编译后的字节码文件
+
+- 🔧 修改文件
+  - `src/httpRequest.ts`
+    - 新增 `fetchClassReflectionLocal()` 方法
+    - 添加 fs 模块导入
+    - 实现完整的 classpath 构建逻辑
+    - 增加超时时间和缓冲区大小
+    - 区分超时和其他错误类型
+  
+  - `src/extension.ts`
+    - 注册新命令 `maximoScript.fetchReflectionLocal`
+    - 绑定到右键菜单“通过本地反射获取类反射信息”
+  
+  - `src/completionProvider.ts`
+    - 新增 `autoGenerateReflectionApiLocal` 配置项
+    - 修改 `triggerReflectionFetch()` 方法添加降级逻辑
+    - 导入 `fetchClassReflectionLocal` 函数
+  
+  - `package.json`
+    - 新增 `maximoScript.autoGenerateReflectionApiLocal` 配置项定义
+    - 修改右键菜单名称
+    - 新增右键菜单项
+  
+  - `src/configPanel.ts`
+    - 添加新配置项的保存逻辑
+    - 在发送初始配置时包含新字段
+  
+  - `webview-ui/src/App.tsx`
+    - 在 ConfigData 接口中添加新字段
+    - 在初始状态中添加新字段
+    - 在 UI 中添加新的勾选框和帮助文本
+  
+  - `webpack.config.js`
+    - 配置复制 LocalReflectHelper.class 文件到 dist 目录
+
+### 注意事项
+
+- ⚠️ 本地反射功能需要配置 JDK 路径和 JAR 包目录
+- ⚠️ 使用 JDK 8 编译 LocalReflectHelper.java
+- ⚠️ 加载大量 JAR 包可能需要较长时间（最多 60 秒）
+- ⚠️ 降级策略只在启用“自动生成反射API”时才生效
+- ⚠️ 两种方式都失败才会计入失败次数
+
+---
+
 ## [1.3.2] - 2026-05-30
 
 ### 新增功能

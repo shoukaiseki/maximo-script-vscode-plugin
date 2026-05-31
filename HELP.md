@@ -12,6 +12,8 @@
 - [补全设置](#-补全设置)
 - [反射 API 自动生成](#-反射-api-自动生成)
 - [手动获取反射信息](#-手动获取反射信息)
+  - [通过 Maximo 接口获取](#通过-maximo-接口获取)
+  - [通过本地 JAR 反射获取](#通过本地-jar-反射获取)
 - [用户信息查询](#-用户信息查询)
 - [智能语言参数](#-智能语言参数)
 - [手动调用接口](#-手动调用接口)
@@ -403,6 +405,8 @@ var mbo = service.getMboSet("ASSET", userInfo).moveFirst();
 
 ### 使用步骤
 
+#### 通过 Maximo 接口获取
+
 **步骤 1：选中类名**
 
 在 `.js` 文件中选中您要获取反射信息的 Java 类名。
@@ -420,14 +424,14 @@ Base64Encoder = Java.type("java.util.Base64$Encoder");
 
 **步骤 3：选择菜单项**
 
-在弹出的菜单中选择 **“Maximo Script: 获取类反射信息”**。
+在弹出的菜单中选择 **“Maximo Script: 通过maximo接口获取类反射信息”**。
 
 **步骤 4：等待处理**
 
 插件会：
 1. ✅ 验证类名格式
 2. ✅ 连接 Maximo 服务器
-3. ✅ 调用反射接口获取类信息
+3. ✅ 调用 `SKS_REFLECT_HELPER_ENHANCED` 接口获取类信息
 4. ✅ 生成 .d.ts 文件
 5. ✅ 保存到 `javaapi` 目录
 
@@ -440,6 +444,40 @@ Base64Encoder = Java.type("java.util.Base64$Encoder");
 ```
 
 点击 **“打开文件”** 按钮可以直接查看生成的 .d.ts 文件。
+
+---
+
+#### 通过本地 JAR 反射获取
+
+**前提条件：**
+- 已配置 JDK 路径（`maximoScript.jdkPath`）
+- 已配置 JAR 包目录（`maximoScript.jarDirectories`）或单个 JAR 文件（`maximoScript.additionalJars`）
+
+**步骤 1：选中类名**
+
+与上述相同，在 `.js` 文件中选中 Java 类名。
+
+**步骤 2：右键点击**
+
+在选中的文本上点击鼠标右键。
+
+**步骤 3：选择菜单项**
+
+在弹出的菜单中选择 **“Maximo Script: 通过本地反射获取类反射信息”**。
+
+**步骤 4：等待处理**
+
+插件会：
+1. ✅ 验证类名格式
+2. ✅ 构建 classpath（包含所有配置的 JAR 文件）
+3. ✅ 使用 JDK 8 执行 LocalReflectHelper.class
+4. ✅ 通过 Java 反射获取类信息
+5. ✅ 生成 .d.ts 文件
+6. ✅ 保存到 `javaapi` 目录
+
+**步骤 5：查看结果**
+
+与 Maximo 接口方式相同，成功后会弹出提示并可以打开文件。
 
 ### 生成的文件结构
 
@@ -471,11 +509,12 @@ A:
 - 确认该类在 Maximo 环境中存在
 - 对于内部类，使用 `$` 符号（如 `Base64$Encoder`）
 
-**Q2: 右键菜单中没有 "获取类反射信息" 选项？**
+**Q2: 右键菜单中没有相关选项？**
 
 A:
 - 确保在 `.js` 文件中操作
 - 确保选中了文本（不能为空）
+- 检查是否安装了最新版本的插件
 
 **Q3: 生成的 .d.ts 文件没有方法？**
 
@@ -1101,4 +1140,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-30 | 版本：1.3.2*
+*最后更新：2026-05-25 | 版本：1.3.3*
