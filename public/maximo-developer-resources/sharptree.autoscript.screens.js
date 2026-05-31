@@ -1,8 +1,10 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
 /// <reference path="@javaapi/global.d.ts" />
-/** @type {org.apache.log4j.Level} */
+scriptName=service.getScriptName()
+/** @type {java.lang.System} */
 System = Java.type("java.lang.System");
+/** @type {org.apache.log4j.Level} */
 Level = Java.type("org.apache.log4j.Level");
 /** @type {psdi.util.logging.MXLoggerFactory} */
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
@@ -560,6 +562,7 @@ function createOrUpdateCondition(conditionInfo) {
 }
 
 function createOrUpdateSigOption(sigOptionInfo) {
+    logger.info("["+scriptName+"]"+ "createOrUpdateSigOption")
     if (sigOptionInfo) {
         var sigOptionSet;
         try {
@@ -568,7 +571,10 @@ function createOrUpdateSigOption(sigOptionInfo) {
             sqlf.setObject(1, "SIGOPTION", "OPTIONNAME", sigOptionInfo.getAttributeValue("optionname"));
             sqlf.setObject(2, "SIGOPTION", "APP", sigOptionInfo.getAttributeValue("app"));
 
-            sigOptionSet.setWhere(sqlf.format());
+            var sqlWhere = sqlf.format()
+            sigOptionSet.setWhere(sqlWhere);
+            sigOptionSet.reset()
+            logger.info("[" + scriptName + "]" + " createOrUpdateSigOption.sql=" + sqlWhere)
             var sigOption;
             var sigOptFlag;
             var sigOptFlagSet;
@@ -622,6 +628,7 @@ function createOrUpdateSigOption(sigOptionInfo) {
                         sigOptFlagSet.deleteAll();
                     }
                 }
+                sigOptionSet.save();
             }
         } catch (error) {
             logger.error(error);

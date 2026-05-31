@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 
 // 全局 JSESSIONID 缓存
 let globalJSESSIONID: string | null = null;
@@ -552,28 +553,59 @@ export async function fetchClassReflectionLocal(
     const config = vscode.workspace.getConfiguration('maximoScript');
     const jdkPath = config.get('jdkPath', '') as string;
     const jarDirectories = config.get('jarDirectories', []) as string[];
+    const additionalJars = config.get('additionalJars', []) as string[];
     
     if (!jdkPath) {
       throw new Error('未配置 JDK 路径，请在配置面板中设置');
     }
     
-    // 构建 classpath
-    let classpath = '';
-    if (jarDirectories && jarDirectories.length > 0) {
-      classpath = jarDirectories.join(path.delimiter);
-    }
-    
     // LocalReflectHelper.class 的路径
-    const helperClassPath = path.join(__dirname, 'LocalReflectHelper.class');
     const helperDir = __dirname;  // .class 文件所在目录
     
     // 构建 Java 命令
     const javaCmd = path.join(jdkPath, 'bin', 'java');
     
-    // 构建 classpath：包含 LocalReflectHelper.class 所在目录和 Maximo JAR 包
-    let fullClasspath = helperDir;
+    // 构建 classpath：包含 LocalReflectHelper.class 所在目录、JAR 目录中的所有 .jar 文件和单个 JAR 文件
+    const classpathParts: string[] = [helperDir];
+    
+    // 添加 JAR 目录中的所有 .jar 文件
     if (jarDirectories && jarDirectories.length > 0) {
-      fullClasspath += path.delimiter + jarDirectories.join(path.delimiter);
+      for (const dir of jarDirectories) {
+        try {
+          if (fs.existsSync(dir)) {
+            const files = fs.readdirSync(dir);
+            for (const file of files) {
+              if (file.endsWith('.jar')) {
+                classpathParts.push(path.join(dir, file));
+              }
+            }
+          }
+        } catch (e: any) {
+          logger.warn(`[localReflection] ⚠️ 读取目录失败: ${dir} - ${e.message}`);
+        }
+      }
+    }
+    
+    // 添加单个 JAR 文件
+    if (additionalJars && additionalJars.length > 0) {
+      for (const jar of additionalJars) {
+        if (fs.existsSync(jar)) {
+          classpathParts.push(jar);
+        } else {
+          logger.warn(`[localReflection] ⚠️ JAR 文件不存在: ${jar}`);
+        }
+      }
+    }
+    
+    const fullClasspath = classpathParts.join(path.delimiter);
+    
+    logger.info(`[localReflection] Classpath 包含 ${classpathParts.length} 个部分`);
+    logger.info(`[localReflection]   - LocalReflectHelper.class 目录: ${helperDir}`);
+    if (jarDirectories && jarDirectories.length > 0) {
+      logger.info(`[localReflection]   - JAR 目录数: ${jarDirectories.length}`);
+    }
+    if (additionalJars && additionalJars.length > 0) {
+      logger.info(`[localReflection]   - 单个 JAR 文件数: ${additionalJars.length}`);
     }
     
     const cmd = `"${javaCmd}" -cp "${fullClasspath}" LocalReflectHelper "${className}"`;
