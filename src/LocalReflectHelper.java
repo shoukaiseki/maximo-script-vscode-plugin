@@ -109,6 +109,7 @@ public class LocalReflectHelper {
             
             // 输出 JSON
             System.out.println(json.toString());
+            System.exit(0);  // 确保程序正常退出
             
         } catch (ClassNotFoundException e) {
             System.err.println("{\"error\": \"Class not found: " + escapeJson(className) + "\"}");

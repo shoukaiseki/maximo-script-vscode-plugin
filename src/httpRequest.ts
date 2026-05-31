@@ -607,16 +607,23 @@ export async function fetchClassReflectionLocal(
     if (additionalJars && additionalJars.length > 0) {
       logger.info(`[localReflection]   - 单个 JAR 文件数: ${additionalJars.length}`);
     }
+    logger.info(`[localReflection] 💡 提示：如果执行超时，请检查是否配置了过多不必要的 JAR 包`);
     
     const cmd = `"${javaCmd}" -cp "${fullClasspath}" LocalReflectHelper "${className}"`;
     
     logger.info(`[localReflection] 执行命令: ${cmd}`);
     
     return new Promise((resolve, reject) => {
-      exec(cmd, { timeout: 30000 }, (error: any, stdout: string, stderr: string) => {
+      // 增加超时时间到 60 秒，因为加载大量 JAR 包可能需要更多时间
+      exec(cmd, { timeout: 60000, maxBuffer: 10 * 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
         if (error) {
           logger.error(`[localReflection] ❌ 执行 Java 命令失败: ${error.message}`);
-          reject(new Error(`本地反射执行失败: ${error.message}`));
+          if (error.killed) {
+            logger.error(`[localReflection] ⏱️ 命令执行超时（60秒），请检查 classpath 是否包含过多 JAR 文件`);
+            reject(new Error(`本地反射执行超时（60秒），建议减少 JAR 包数量或优化 classpath`));
+          } else {
+            reject(new Error(`本地反射执行失败: ${error.message}`));
+          }
           return;
         }
         
