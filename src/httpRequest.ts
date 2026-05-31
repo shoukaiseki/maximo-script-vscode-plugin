@@ -530,3 +530,90 @@ export async function fetchClassReflection(
     throw error;
   }
 }
+
+/**
+ * 通过本地 Java 反射获取类的详细信息
+ * @param className 完整的类名
+ * @param logger VSCode 日志通道
+ * @returns 反射数据对象
+ */
+export async function fetchClassReflectionLocal(
+  className: string,
+  logger: vscode.LogOutputChannel
+): Promise<any> {
+  try {
+    logger.info(`[localReflection] 开始通过本地反射获取类信息: ${className}`);
+    
+    const { exec } = require('child_process');
+    const path = require('path');
+    const os = require('os');
+    
+    // 获取配置
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    const jdkPath = config.get('jdkPath', '') as string;
+    const jarDirectories = config.get('jarDirectories', []) as string[];
+    
+    if (!jdkPath) {
+      throw new Error('未配置 JDK 路径，请在配置面板中设置');
+    }
+    
+    // 构建 classpath
+    let classpath = '';
+    if (jarDirectories && jarDirectories.length > 0) {
+      classpath = jarDirectories.join(path.delimiter);
+    }
+    
+    // LocalReflectHelper.class 的路径
+    const helperClassPath = path.join(__dirname, 'LocalReflectHelper.class');
+    const helperDir = __dirname;  // .class 文件所在目录
+    
+    // 构建 Java 命令
+    const javaCmd = path.join(jdkPath, 'bin', 'java');
+    
+    // 构建 classpath：包含 LocalReflectHelper.class 所在目录和 Maximo JAR 包
+    let fullClasspath = helperDir;
+    if (jarDirectories && jarDirectories.length > 0) {
+      fullClasspath += path.delimiter + jarDirectories.join(path.delimiter);
+    }
+    
+    const cmd = `"${javaCmd}" -cp "${fullClasspath}" LocalReflectHelper "${className}"`;
+    
+    logger.info(`[localReflection] 执行命令: ${cmd}`);
+    
+    return new Promise((resolve, reject) => {
+      exec(cmd, { timeout: 30000 }, (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          logger.error(`[localReflection] ❌ 执行 Java 命令失败: ${error.message}`);
+          reject(new Error(`本地反射执行失败: ${error.message}`));
+          return;
+        }
+        
+        if (stderr) {
+          logger.warn(`[localReflection] ⚠️ Java 命令警告: ${stderr}`);
+        }
+        
+        try {
+          // 解析 JSON 输出
+          const jsonData = JSON.parse(stdout);
+          
+          // 检查是否有 error 字段（LocalReflectHelper 的错误格式）
+          if (jsonData.error) {
+            logger.error(`[localReflection] ❌ 反射失败: ${jsonData.error}`);
+            resolve({ status: 'error', message: jsonData.error });
+          } else {
+            // 成功，直接返回数据
+            logger.info(`[localReflection] ✅ 成功获取类反射信息: ${className}`);
+            resolve(jsonData);
+          }
+        } catch (parseError: any) {
+          logger.error(`[localReflection] ❌ JSON 解析失败: ${parseError.message}`);
+          logger.error(`[localReflection] 原始输出: ${stdout}`);
+          reject(new Error(`JSON 解析失败: ${parseError.message}`));
+        }
+      });
+    });
+  } catch (error: any) {
+    logger.error(`[localReflection] ❌ 获取类反射信息失败: ${className} - ${error.message}`);
+    throw error;
+  }
+}

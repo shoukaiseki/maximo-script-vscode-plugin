@@ -61,7 +61,11 @@
       },
       {
         "command": "maximoScript.fetchReflection",
-        "title": "Maximo Script: 获取类反射信息"
+        "title": "Maximo Script: 通过maximo接口获取类反射信息"
+      },
+      {
+        "command": "maximoScript.fetchReflectionLocal",
+        "title": "Maximo Script: 通过本地反射获取类反射信息"
       }
     ],
     "menus": {
@@ -80,6 +84,11 @@
           "command": "maximoScript.fetchReflection",
           "when": "editorLangId == javascript && editorHasSelection",
           "group": "navigation@2"
+        },
+        {
+          "command": "maximoScript.fetchReflectionLocal",
+          "when": "editorLangId == javascript && editorHasSelection",
+          "group": "navigation@3"
         }
       ]
     },

@@ -29,6 +29,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/ReflectHelper.class', to: 'ReflectHelper.class' },
+        { from: 'src/LocalReflectHelper.class', to: 'LocalReflectHelper.class' },
         { from: 'dist/webview/index.js', to: 'webview/index.js' },
         { from: 'dist/webview/style.css', to: 'webview/style.css' },
         { from: 'dist/webview/index.html', to: 'webview/index.html' }
