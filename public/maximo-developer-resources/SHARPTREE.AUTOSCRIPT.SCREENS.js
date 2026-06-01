@@ -354,7 +354,9 @@ function main() {
 
                 new XMLOutputter(Format.getPrettyFormat()).output(screen, writer);
 
-                if (typeof PresentationLoader !== "undefined" && typeof WebClientSessionFactory !== "undefined") {
+                // if (typeof PresentationLoader !== "undefined" && typeof WebClientSessionFactory !== "undefined") 
+                if (typeof PresentationLoader !== "undefined" && typeof WebClientSessionFactory !== "undefined") 
+                    {
                     // var loader = new PresentationLoader();
                     // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());

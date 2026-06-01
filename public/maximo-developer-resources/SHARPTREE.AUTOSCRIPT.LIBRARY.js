@@ -2537,7 +2537,8 @@ MaxObject.prototype.setMboValues = function (mbo) {
             var relationshipSet = mbo.getMboSet("MAXRELATIONSHIP");
 
             this.relationships.forEach(function (relationshipConfig) {
-                relationship = relationshipSet.moveFirst();
+                /** @type {psdi.mbo.MboRemote} */
+                var relationship = relationshipSet.moveFirst();
                 while (relationship) {
                     if (relationship.getString("NAME").equalsIgnoreCase(relationshipConfig.relationship)) {
                         break;
@@ -2553,6 +2554,14 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         relationship = relationshipSet.add();
                         relationship.setValue("NAME", relationshipConfig.relationship);
                         relationship.setValue("CHILD", relationshipConfig.child);
+                    }
+                    try {
+                        if (relationshipConfig.cardinality!=="undefined"&&relationshipConfig.cardinality) {
+                            //cardinality SINGLE/UNDEFINED/MULTIPLE
+                            relationship.setValue("CARDINALITY", relationshipConfig.cardinality)
+                        }
+                    } catch (eee) { 
+                        logger.info("老版本maximo不存在CARDINALITY字段,属于正常现象:"+eee.getMessage() )
                     }
 
                     typeof relationshipConfig.remarks === "undefined" || relationshipConfig.remarks == null
