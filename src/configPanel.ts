@@ -2029,9 +2029,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
             data: { 'AUTOSCRIPT': scriptName }
           });
 
-          if (exportResult.status === 200 && exportResult.data) {
-            // 获取源代码
-            let sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+          if (exportResult.status === 200 ) {
+            var sourceCode = ""
+            if( exportResult.data){
+              // 获取源代码
+              sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+            }
 
             // 确定文件扩展名
             const scriptLanguage = (scriptData.SCRIPTLANGUAGE || 'javascript').toLowerCase();
