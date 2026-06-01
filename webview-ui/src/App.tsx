@@ -31,6 +31,7 @@ interface ConfigData {
   envnum: string;
   envList: string[];
   langcode: string;  // 语言代码
+  pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
 }
 
 const App: React.FC = () => {
@@ -73,7 +74,8 @@ const App: React.FC = () => {
     exportDirectory: '',
     envnum: 'default',
     envList: [],
-    langcode: ''  // 语言代码，空字符串表示未设置
+    langcode: '',  // 语言代码，空字符串表示未设置
+    pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
   });
   
   // 环境配置缓存
@@ -376,7 +378,8 @@ const App: React.FC = () => {
             apiType: envData.apiType || 'oslc',
             version: envData.version || '7.6',
             completionMode: envData.completionMode || 'vscode',
-            langcode: envData.langcode || ''  // 语言代码，空字符串表示未设置
+            langcode: envData.langcode || '',  // 语言代码，空字符串表示未设置
+            pushXmlAlwaysUseMaxauth: envData.pushXmlAlwaysUseMaxauth !== undefined ? envData.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH，默认为 true
           }));
           setHasChanges(true); // 标记有未保存的变更
           break;
@@ -934,6 +937,21 @@ const App: React.FC = () => {
               <small style={{ color: 'var(--vscode-descriptionForeground)' }}>
                 💡 选择 Maximo 界面显示语言，默认为 English (EN)，留空则使用服务器默认语言
               </small>
+            </div>
+
+            <div className="form-group">
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="pushXmlAlwaysUseMaxauth"
+                  checked={config.pushXmlAlwaysUseMaxauth !== false}  // 默认为 true
+                  onChange={(e) => updateConfig({ pushXmlAlwaysUseMaxauth: e.target.checked })}
+                />
+                <label htmlFor="pushXmlAlwaysUseMaxauth" style={{ margin: 0 }}>推送 XML 到 Maximo 时始终使用 MAXAUTH 认证方式</label>
+              </div>
+              <div className="help-text">
+                开启后，推送 XML 文件时将强制使用 MAXAUTH 认证，避免 API Key 权限不足导致的问题（推荐开启）
+              </div>
             </div>
 
             {connectionResult.type && (

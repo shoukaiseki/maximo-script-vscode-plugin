@@ -74,6 +74,11 @@
 #### 其他配置
 - **别名（Alias Name）**：用于推送脚本时标识操作者
 - **脚本存放目录**：默认 `masscript`，可自定义
+- **推送 XML 时始终使用 MAXAUTH 认证方式**：
+  - 默认开启（推荐）
+  - 开启后，推送 XML 文件时将强制使用 MAXAUTH 认证
+  - 避免 API Key 权限不足导致的问题
+  - 不同环境可独立配置
 
 ### 测试连接
 
@@ -1140,4 +1145,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-25 | 版本：1.3.3*
+*最后更新：2026-05-25 | 版本：1.3.5*

@@ -298,6 +298,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('exportDirectory', data.exportDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('envnum', data.envnum || 'default', vscode.ConfigurationTarget.Global);
       await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
+      await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
@@ -329,7 +330,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiType: data.apiType,
         version: data.version,
         completionMode: data.completionMode || 'vscode',
-        langcode: data.langcode || ''  // 语言代码，空字符串表示未设置
+        langcode: data.langcode || '',  // 语言代码，空字符串表示未设置
+        pushXmlAlwaysUseMaxauth: data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH
       };
       
       const saveResult = envConfig.upsertEnvironment(environmentConfig);
@@ -668,7 +670,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       additionalJars: config.get('additionalJars', []),
       envnum: currentEnvnum,
       envList: envNames,
-      langcode: config.get('langcode', '')  // 语言代码，空字符串表示未设置
+      langcode: config.get('langcode', ''),  // 语言代码，空字符串表示未设置
+      pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true)  // 推送 XML 时始终使用 MAXAUTH，默认为 true
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -684,7 +687,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiType: envConfigData.apiType || initialConfigData.apiType,
         version: envConfigData.version || initialConfigData.version,
         completionMode: envConfigData.completionMode || initialConfigData.completionMode,
-        langcode: envConfigData.langcode || ''  // 语言代码，空字符串表示未设置
+        langcode: envConfigData.langcode || '',  // 语言代码，空字符串表示未设置
+        pushXmlAlwaysUseMaxauth: envConfigData.pushXmlAlwaysUseMaxauth !== undefined ? envConfigData.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH，默认为 true
       };
     } else {
       logger.info(`[ConfigPanel] 环境配置不存在，使用 VSCode 配置: ${currentEnvnum}`);
@@ -1074,6 +1078,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const apiKey = config.get<string>('apiKey', '');
       const aliasName = config.get<string>('aliasName', '');
       const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
+      const pushXmlAlwaysUseMaxauth = config.get<boolean>('pushXmlAlwaysUseMaxauth', true);  // 获取配置，默认为 true
       
       if (!serverUrl) {
         logger.error('[checkConfig] 服务器地址未配置');
@@ -1082,7 +1087,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return { success: false, errorMessage: errorMsg };
       }
       
-      if (!maxauth) {
+      if (!maxauth && pushXmlAlwaysUseMaxauth) {
         logger.error('[checkConfig] MAXAUTH 未配置');
         const errorMsg = 'MAXAUTH 未配置,推送应用xml需要使用MAXAUTH';
         ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
@@ -1095,17 +1100,28 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 直接调用 SHARPTREE.AUTOSCRIPT.SCREENS API
       const deployUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
       
-      const deployResult = await httpRequestToMaximo({
+      // 根据配置决定是否强制使用 MAXAUTH
+      const requestOptions: any = {
         url: deployUrl,
         method: 'POST',
         noAuth: true,
-        authTypeIn: 'maxauth',
         headers: {
           'Content-Type': 'application/xml',
         },
         data: xmlContent,
         logger: logger
-      });
+      };
+      
+      // 如果启用了“始终使用 MAXAUTH”，则强制指定认证类型
+      if (pushXmlAlwaysUseMaxauth) {
+        requestOptions.authTypeIn = 'maxauth';
+        logger.info('[pushXmlToMaximo] 已启用“始终使用 MAXAUTH”配置');
+      } else {
+        requestOptions.noAuth = false
+        logger.info('[pushXmlToMaximo] 未启用“始终使用 MAXAUTH”配置，将使用当前认证方式');
+      }
+      
+      const deployResult = await httpRequestToMaximo(requestOptions);
       if(deployResult.data&&deployResult.data.status&&deployResult.data.status==='error'){
         const errorMsgHtml = [`[pushXmlToMaximo] ❌ 部署失败: ${deployResult.data.status} ${JSON.stringify(deployResult.data.message)}
 `,`
@@ -1404,10 +1420,6 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
             continue;
           }
           
-          // 如果是 source 字段，需要处理换行符
-          if (key === 'source') {
-            value = String(value).replace(/\r\n/g, '\n');
-          }
           
           deployBody[prefixedKey] = value;
         }
@@ -1426,8 +1438,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       if (deployBody['spi:active'] === undefined) {
         deployBody['spi:active'] = true;
       }
-      if (!deployBody['spi:source']) {
+      if (source){
         deployBody['spi:source'] = source.replace(/\r\n/g, '\n');
+      }else{
+        deployBody['spi:source'] = ""
       }
       
       // 步骤4: 发送请求
@@ -1635,6 +1649,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         customFields.active = config.active === true || config.active === 1 || config.active === '1';
       } else {
         customFields.active = true; // 默认为 true
+      }
+      if(!customFields.source){
+        this._sendToolboxOutput(`❌ 源代码为空: ${autoScript}`);
       }
 
       // 调用通用部署方法
@@ -2045,9 +2062,15 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
               'jython': 'py',
               'py': 'py',
               'json': 'json',
-              'nashorn': 'js'
+              'nashorn': 'js',
+              'ecmascript': 'js',
+              'Nashorn': 'js',
+              'MBR': 'py',
+              'JavaScript': 'js',
+              'JS': 'js',
+              'ECMAScript': 'js'
             };
-            const ext = extMap[scriptLanguage] || 'txt';
+            const ext = extMap[scriptLanguage] || 'js';
 
             // 保存配置文件（JSON格式）
             const configFileName = `${scriptName}.json`;
@@ -2302,9 +2325,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         vscode.window.showErrorMessage(`导出源代码失败: ${scriptName}`);
         return;
       }
-
-      // 获取源代码
-      let sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+      var sourceCode:string=""
+      if(exportResult.data){
+        // 获取源代码
+        sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+      }
 
       // 确定文件扩展名
       const scriptLanguage = (scriptData.SCRIPTLANGUAGE || 'javascript').toLowerCase();
@@ -2315,9 +2340,15 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         'jython': 'py',
         'py': 'py',
         'json': 'json',
-        'nashorn': 'js'
+        'nashorn': 'js',
+        'ecmascript': 'js',
+        'Nashorn': 'js',
+        'MBR': 'py',
+        'JavaScript': 'js',
+        'JS': 'js',
+        'ECMAScript': 'js'
       };
-      const ext = extMap[scriptLanguage] || 'txt';
+      const ext = extMap[scriptLanguage] || 'js';
 
       // 保存配置文件（JSON格式）
       const configFileName = `${scriptName}.json`;
@@ -2329,7 +2360,16 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const codeFilePath = path.join(targetDir, codeFileName);
       fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
 
-      vscode.window.showInformationMessage(`✅ 脚本已导出: ${configFileName}, ${codeFileName}`);
+      // 显示成功消息并提供打开源代码文件的选项
+      const action = await vscode.window.showInformationMessage(
+        `✅ 脚本已导出: ${configFileName}, ${codeFileName}`,
+        '打开源代码文件'
+      );
+
+      if (action === '打开源代码文件') {
+        const doc = await vscode.workspace.openTextDocument(codeFilePath);
+        await vscode.window.showTextDocument(doc);
+      }
 
     } catch (error: any) {
       logger.error(`[_pullScript] 导出失败: ${error.message}`);

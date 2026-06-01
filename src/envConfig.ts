@@ -15,6 +15,7 @@ export interface EnvironmentConfig {
   version: string;
   completionMode: string;
   langcode: string;  // 语言代码，默认 en
+  pushXmlAlwaysUseMaxauth?: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
 }
 
 /**

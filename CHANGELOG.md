@@ -5,6 +5,72 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.5] - 2026-05-25
+
+### 新增功能
+
+#### XML 推送认证配置
+- ✨ 新增"推送 XML 到 Maximo 时始终使用 MAXAUTH 认证方式"配置项
+  - 位置：Maximo配置 → 连接配置 → 语言下拉框下方
+  - 默认值为 true（推荐开启）
+  - 支持 VSCode 全局配置和环境配置双重持久化
+  - 不同环境可独立配置
+
+- ✨ 智能认证选择机制
+  - 根据配置动态选择认证方式
+  - 开启时：强制使用 MAXAUTH 认证（`authTypeIn: 'maxauth'`）
+  - 关闭时：使用当前配置的认证方式（MAXAUTH 或 API Key）
+  - 避免 API Key 权限不足导致的 XML 推送失败问题
+
+### 改进优化
+
+#### 用户体验优化
+- 🔧 简化导出后提示
+  - 导出脚本后只显示"打开源代码文件"一个按钮
+  - 移除"打开配置文件"按钮，简化界面
+  - 用户通常更需要查看源代码文件
+
+-  扩展脚本语言类型映射
+  - 新增支持的脚本语言类型：
+    - `ecmascript` → `.js`
+    - `JavaScript` → `.js`
+    - `JS` → `.js`
+    - `Nashorn` → `.js`
+    - `MBR` → `.js`
+    - `ECMAScript` → `.js`
+  - 统一所有 JavaScript 相关命名格式到 `.js` 扩展名
+  - 提高导出功能的兼容性
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.pushXmlAlwaysUseMaxauth` 配置项定义
+    - 类型为 boolean，默认值为 true
+  
+  - `src/envConfig.ts`
+    - EnvironmentConfig 接口添加 `pushXmlAlwaysUseMaxauth?: boolean` 字段
+  
+  - `src/configPanel.ts`
+    - `_saveConfig()` 方法添加配置保存逻辑
+    - `_sendInitialConfig()` 方法添加配置加载逻辑
+    - `pushXmlToMaximo()` 方法实现动态认证选择
+    - 简化导出后提示，只保留打开源代码文件选项
+    - 扩展脚本语言类型映射表
+  
+  - `webview-ui/src/App.tsx`
+    - ConfigData 接口添加 `pushXmlAlwaysUseMaxauth` 字段
+    - 初始状态添加字段（默认 true）
+    - 在语言下拉框下方添加勾选框和帮助文本
+
+### 注意事项
+
+- ️ 新环境默认启用"始终使用 MAXAUTH"配置
+- ⚠️ 旧环境如果没有此配置项，会自动设置为 true
+- ⚠️ XML 推送失败时，建议检查是否开启了此配置并确保 MAXAUTH 已正确配置
+
+---
+
 ## [1.3.3] - 2026-05-25
 
 ### 新增功能
