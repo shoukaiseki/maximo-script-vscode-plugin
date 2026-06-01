@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable no-undef */
 /// <reference path="@javaapi/global.d.ts" />
+load('nashorn:mozilla_compat.js');
 scriptName=service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
@@ -457,6 +458,13 @@ function main() {
                 throw new MXApplicationException("", response.message)
             }
             if (typeof httpMethod !== "undefined") {
+
+                try{
+                    PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
+                } catch (error) {
+                    response.noPresentationLoader=true
+                }
+
                 responseBody = JSON.stringify(response);
             }
 
