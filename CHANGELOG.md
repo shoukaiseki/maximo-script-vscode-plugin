@@ -5,6 +5,37 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.6] - 2026-05-25
+
+### 问题修复
+
+#### 启动点虚拟字段过滤
+- 🐛 修复工具箱导入带启动点的脚本时的错误
+  - **问题描述**：使用工具箱的"导入脚本"功能时，`launchpoints` 中包含的虚拟字段（如 `eventtype`、`sks:` 开头的自定义字段）导致 API 调用失败
+  - **根本原因**：构建请求体时未过滤这些不应该发送到 Maximo 的虚拟字段
+  - **解决方案**：在遍历 `launchpoints` 数组时添加字段过滤逻辑
+    - 忽略 `eventtype` 等虚拟字段
+    - 忽略 `sks:` 开头的自定义字段
+    - 只保留应该发送到 Maximo 的有效字段
+  - **影响范围**：工具箱中的"导入脚本"功能
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/configPanel.ts`
+    - 在 `_deployScript()` 方法的 `launchpoints` 循环中添加字段过滤
+    - 定义 `ignoreFieldsLaunchpoints` 数组包含需要忽略的字段名
+    - 使用 `lpKey.toLowerCase()` 进行大小写不敏感的比较
+    - 使用 `lpKey.startsWith("sks:")` 过滤自定义前缀字段
+
+### 注意事项
+
+- ⚠️ 此修复确保导入脚本时不会包含虚拟字段
+- ⚠️ `variables` 字段暂时不需要类似的过滤
+- ⚠️ 如果后续发现其他字段也需要过滤，可以扩展 `ignoreFieldsLaunchpoints` 数组
+
+---
+
 ## [1.3.5] - 2026-05-25
 
 ### 新增功能

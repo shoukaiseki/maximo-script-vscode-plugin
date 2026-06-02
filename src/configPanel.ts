@@ -1388,11 +1388,18 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           // 其他字段都添加 spi: 前缀
           const prefixedKey = `spi:${key.toLowerCase()}`;
           let value = (customFields as any)[key];
+          var ignoreFieldsLaunchpoints = ['eventtype']
           if(key.toLowerCase() === 'launchpoints'){
             const launchPointsTmp = []
             for(const launchPoint of value){
               const launchPointTmp: any = {}
               for (const lpKey in launchPoint) {
+                if(ignoreFieldsLaunchpoints.includes(lpKey.toLowerCase())){
+                  continue;
+                }
+                if(lpKey.startsWith("sks:")){
+                  continue;
+                }
                 if (launchPoint.hasOwnProperty(lpKey)) {
                   const prefixedKey = `spi:${lpKey.toLowerCase()}`;
                   launchPointTmp[prefixedKey] = (launchPoint as any)[lpKey];
