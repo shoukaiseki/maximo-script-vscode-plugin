@@ -66,9 +66,6 @@ export class ConfigPanel {
           case 'initScripts':
             await this._initScripts();
             return;
-          case 'clearScripts':
-            await this._clearScripts();
-            return;
           case 'deployScript':
             await this._deploySingleFile(message.filePath);
             return;
@@ -786,9 +783,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     );
     
     if (result === '确定') {
-      // 用户点击了确定，通知前端执行清除操作
+      // 用户点击了确定，通知前端执行清除操作，同时传递 jsonPath
       this._panel.webview.postMessage({
-        command: 'executeClearScripts'
+        command: 'executeClearScripts',
+        jsonPath: jsonPath
       });
     }
   }
@@ -2440,19 +2438,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           return;
         }
       } else {
-        this._sendToolboxOutput('⚠️ 未提供 JSON 文件，使用默认脚本列表');
-        // 默认脚本列表（保留作为备选）
-        scriptsToDelete = [
-          'SHARPTREE.AUTOSCRIPT.INSTALL',
-          'SHARPTREE.AUTOSCRIPT.STORE',
-          'SHARPTREE.AUTOSCRIPT.EXTRACT',
-          'SHARPTREE.AUTOSCRIPT.LOGGING',
-          'SHARPTREE.AUTOSCRIPT.DEPLOY',
-          'SHARPTREE.AUTOSCRIPT.SCREENS',
-          'SHARPTREE.AUTOSCRIPT.FORM',
-          'SHARPTREE.AUTOSCRIPT.LIBRARY',
-          'SHARPTREE.AUTOSCRIPT.ADMIN'
-        ];
+        this._sendToolboxOutput('❌ 请先选择包含脚本名称列表的 JSON 文件');
+        vscode.window.showErrorMessage('请先选择包含脚本名称列表的 JSON 文件');
+        return;
       }
       
       if (scriptsToDelete.length === 0) {

@@ -48,114 +48,25 @@ declare var value: any;
 /** 属性的旧值 */
 declare var oldValue: any;
 
-/**
- * Java 常用类型声明
- */
-declare namespace java {
-    namespace lang {
-        class String {
-            constructor(value: string);
-            toString(): string;
-        }
-        
-        class Integer {
-            constructor(value: number);
-            intValue(): number;
-        }
-        
-        class Boolean {
-            constructor(value: boolean);
-            booleanValue(): boolean;
-        }
-        
-        class Class<T> {
-            getName(): string;
-            getSimpleName(): string;
-            getPackage(): Package;
-        }
-        
-        interface Package {
-            getName(): string;
-        }
-    }
-}
+var mbovalue: psdi.mbo.MboValue;
 
-/**
- * Maximo 核心类型声明
- */
-declare namespace psdi {
-    namespace mbo {
-        interface MboRemote {
-            getString(attribute: string): string;
-            getInt(attribute: string): number;
-            setValue(attribute: string, value: any): void;
-            setValue(attribute: string, value: any, accessModifier: number): void;
-            delete(): void;
-            getThisMboSet(): MboSetRemote;
-            getOwner(): MboRemote;
-            getMboValueData(attribute: string): MboValueData;
-        }
-        
-        interface MboSetRemote {
-            add(): MboRemote;
-            getMbo(index: number): MboRemote;
-            moveFirst(): MboRemote;
-            moveNext(): MboRemote;
-            isEmpty(): boolean;
-            count(): number;
-            setWhere(whereClause: string): void;
-            reset(): void;
-            save(): void;
-            cleanup(): void;
-            close(): void;
-        }
-        
-        interface MboValueData {
-            isReadOnly(): boolean;
-        }
-        
-        class SqlFormat {
-            constructor(sql: string);
-            setObject(position: number, objectName: string, attributeName: string, value: any): void;
-            format(): string;
-        }
-    }
-    
-    namespace server {
-        class MXServer {
-            static getMXServer(): MXServer;
-            getMboSet(objectName: string, userInfo: psdi.security.UserInfo): psdi.mbo.MboSetRemote;
-            getSystemUserInfo(): psdi.security.UserInfo;
-        }
-    }
-    
-    namespace security {
-        interface UserInfo {
-            getUserName(): string;
-            getInsertSite(): string;
-            getInsertOrg(): string;
-        }
-    }
-    
-    namespace util {
-        namespace logging {
-            class MXLoggerFactory {
-                static getLogger(name: string): MaximoLogger;
-            }
-            
-            interface MaximoLogger {
-                debug(message: string): void;
-                info(message: string): void;
-                warn(message: string): void;
-                error(message: string): void;
-            }
-        }
-        
-        class MXApplicationException extends Error {
-            constructor(errorGroup: string, errorKey: string);
-        }
-    }
-}
+//不推荐使用,子表获取会为null
+//推荐使用以下方式获取
+// var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
+var app: string
+
+/** MBO 属性名称 */
+var mboattr: string
+
+/** 脚本名称 */
+var scriptName: string
+
+/** 启动点名称 */
+var launchPoint: string
+
+/** MBO 名称 */
+var mboname: string
+
 
 /**
  * Nashorn Java 互操作

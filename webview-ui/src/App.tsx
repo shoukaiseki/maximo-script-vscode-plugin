@@ -400,8 +400,8 @@ const App: React.FC = () => {
           setIsClearRunning(false);
           break;
         case 'executeClearScripts':
-          // 后端确认后，执行清除操作
-          executeClearScripts();
+          // 后端确认后，执行清除操作，使用后端传递的 jsonPath
+          executeClearScripts(message.jsonPath);
           break;
         case 'deployScriptComplete':
           // 部署脚本完成
@@ -535,12 +535,12 @@ const App: React.FC = () => {
   };
 
   // 处理确认后的清除操作
-  const executeClearScripts = () => {
+  const executeClearScripts = (jsonPath?: string) => {
     setIsClearRunning(true);
     setToolboxOutput(''); // 清空之前的输出
     getVsCodeApi().postMessage({
       command: 'clearScripts',
-      jsonPath: deleteJsonPath
+      jsonPath: jsonPath || deleteJsonPath  // 优先使用参数，如果没有则使用 state
     });
   };
 
