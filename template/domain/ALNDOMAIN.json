@@ -1,0 +1,42 @@
+[
+  {
+    "domainid": "TESTSTATUS",
+    "domaintype": "ALN",
+    "description": "测试状态",
+    "maxtype": "ALN",
+    "internal": 0,
+    "length": 20,
+    "nevercache": false,
+    "alndomain": [
+      {
+        "value": "DRAFT",
+        "description": "草稿"
+      },
+      {
+        "value": "WAPPR",
+        "description": "待审核"
+      },
+      {
+        "value": "APPR",
+        "description": "已核准"
+      },
+      {
+        "value": "CANCEL",
+        "description": "已作废"
+      },
+      {
+        "value": "COMP",
+        "description": "已完成"
+      },
+      {
+        "value": "HISTEDIT",
+        "description": "编辑历史记录"
+      },
+      {
+        "value": "CLOSE",
+        "description": "关闭"
+      }
+
+    ]
+  }
+]
