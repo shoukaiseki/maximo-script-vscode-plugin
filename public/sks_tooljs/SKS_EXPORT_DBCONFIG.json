@@ -2,16 +2,6 @@
   "owneremail": "",
   "createdbyid": "",
   "description": "导出数据库配置对象信息为JSON格式",
-  "launchPoints": [
-    {
-      "launchPointName": "HTTP_EXPORT_DBCONFIG",
-      "launchPointType": "HTTP",
-      "active": true,
-      "urlAlias": "export-dbconfig",
-      "httpMethod": "POST",
-      "requiresAuth": true
-    }
-  ],
   "createdbyemail": "",
   "interface": 0,
   "scriptlanguage": "nashorn",

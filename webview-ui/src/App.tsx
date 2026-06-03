@@ -32,6 +32,7 @@ interface ConfigData {
   envList: string[];
   langcode: string;  // 语言代码
   pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
+  autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
 }
 
 const App: React.FC = () => {
@@ -76,6 +77,7 @@ const App: React.FC = () => {
     envList: [],
     langcode: '',  // 语言代码，空字符串表示未设置
     pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
+    autoCreateExportDir: true,  // 默认自动生成导出目录
   });
   
   // 环境配置缓存
@@ -646,7 +648,8 @@ const App: React.FC = () => {
     setToolboxOutput('');
     getVsCodeApi().postMessage({
       command: 'extractScripts',
-      directoryPath: extractDirectoryPath
+      directoryPath: extractDirectoryPath,
+      autoCreateExportDir: config.autoCreateExportDir
     });
   };
 
@@ -1623,6 +1626,24 @@ const App: React.FC = () => {
                     />
                     <button onClick={handleSelectExtractDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
                   </div>
+                </div>
+
+                {/* 选项配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!config.autoCreateExportDir}
+                      onChange={(e) => updateConfig({ autoCreateExportDir: !e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>不自动生成导出目录（直接保存到选择的目录）</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {!config.autoCreateExportDir 
+                      ? '✅ 直接保存到选择的目录，按包名结构组织（如：com/example/）'
+                      : '⚠️ 将创建时间戳子目录 + 按包名结构组织（如：autoscript_backup_20260523_143025/com/example/）'}
+                  </p>
                 </div>
 
                 <button 

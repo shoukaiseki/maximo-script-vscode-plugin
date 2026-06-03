@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "SKS_REFLECT_TS_GENERATOR - TypeScript Definition Generator",
+  "description": " TypeScript Definition Generator",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -14,7 +14,7 @@
   "scheduledstatus": "",
   "owner": "MAXADMIN",
   "variables": [],
-  "comments": "Generate TypeScript .d.ts definition from Java class via reflection",
+  "comments": "生成 TypeScript.d.ts文件，通过java反射",
   "autoscript": "SKS_REFLECT_TS_GENERATOR",
   "ownername": "",
   "changeby": "MAXADMIN",

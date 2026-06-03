@@ -85,7 +85,7 @@ export class ConfigPanel {
             await this._selectDirectoryForExtract();
             return;
           case 'extractScripts':
-            await this._extractScripts(message.directoryPath);
+            await this._extractScripts(message.directoryPath, message.autoCreateExportDir);
             return;
           case 'queryScripts':
             await this._queryScripts();
@@ -296,6 +296,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('envnum', data.envnum || 'default', vscode.ConfigurationTarget.Global);
       await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
       await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
+      await config.update('autoCreateExportDir', data.autoCreateExportDir !== undefined ? data.autoCreateExportDir : true, vscode.ConfigurationTarget.Global);  // 导出脚本时自动生成目录
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
@@ -668,7 +669,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       envnum: currentEnvnum,
       envList: envNames,
       langcode: config.get('langcode', ''),  // 语言代码，空字符串表示未设置
-      pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true)  // 推送 XML 时始终使用 MAXAUTH，默认为 true
+      pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true),  // 推送 XML 时始终使用 MAXAUTH，默认为 true
+      autoCreateExportDir: config.get('autoCreateExportDir', true)  // 导出脚本时自动生成目录，默认为 true
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -1570,14 +1572,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 内部部署方法（不发送完成消息）
    */
-  private async _deploySingleFileInternal(filePath: string): Promise<void> {
+  private async _deploySingleFileInternal(filePath: string): Promise<boolean> {
     try {
       this._sendToolboxOutput(`🔄 开始导入脚本: ${filePath}`);
 
       // 读取 JSON 配置文件
       if (!fs.existsSync(filePath)) {
         this._sendToolboxOutput(`❌ 配置文件不存在: ${filePath}`);
-        return;
+        return false;
       }
 
       const jsonContent = fs.readFileSync(filePath, 'utf-8');
@@ -1587,7 +1589,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         config = JSON.parse(jsonContent);
       } catch (e: any) {
         this._sendToolboxOutput(`❌ JSON 解析失败: ${e.message}`);
-        return;
+        return false;
       }
 
       // 检查必需字段
@@ -1595,7 +1597,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const missingFields = requiredFields.filter((field: string) => !config[field]);
       if (missingFields.length > 0) {
         this._sendToolboxOutput(`❌ 配置文件缺少必需字段: ${missingFields.join(', ')}`);
-        return;
+        return false;
       }
 
       // 获取脚本名和语言
@@ -1614,7 +1616,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 检查脚本文件是否存在
       if (!fs.existsSync(scriptFilePath)) {
         this._sendToolboxOutput(`❌ 未找到脚本文件: ${scriptFileName}`);
-        return;
+        return false;
       }
 
       const scriptContent = fs.readFileSync(scriptFilePath, 'utf-8');
@@ -1664,18 +1666,22 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       if (deployResult) {
         this._sendToolboxOutput(`✅ 导入成功: ${autoScript}`);
+        return true
       } else {
         this._sendToolboxOutput(`❌ 导入失败: ${autoScript}`);
+        return false
       }
 
     } catch (error: any) {
       logger.error(`[_deploySingleFileInternal] 部署失败: ${error.message}`);
       this._sendToolboxOutput(`❌ 部署出错: ${error.message}`);
+      return false
     }
   }
 
+
   /**
-   * 初始化工具脚本（简化版）
+   * 初始化工具脚本（简化版2）
    */
   /**
    * 初始化 Maximo 开发工具脚本
@@ -1720,22 +1726,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 部署并执行 bootstrap 脚本（install）
       this._sendToolboxOutput('\n📦 步骤 1/2: 部署并执行 bootstrap 脚本...');
       
-      const installFilePath = path.join(scriptsDir, 'SHARPTREE.AUTOSCRIPT.INSTALL.js');
+      const installFilePath = path.join(scriptsDir, 'SHARPTREE.AUTOSCRIPT.INSTALL.json');
       if (!fs.existsSync(installFilePath)) {
         this._sendToolboxOutput(`❌ install 脚本不存在: ${installFilePath}`);
         return;
       }
-      
       const installScriptContent = fs.readFileSync(installFilePath, 'utf-8');
-      
       // 使用通用方法部署脚本
-      const deploySuccess = await this._deployScript({
-        autoscript: 'SHARPTREE.AUTOSCRIPT.INSTALL',
-        description: 'Sharptree Automation Script Install Script',
-        source: installScriptContent,
-        scriptlanguage: 'nashorn',
-        active: true
-      });
+     const deploySuccess=await this._deploySingleFileInternal(installFilePath) 
       
       if (!deploySuccess) {
         this._sendToolboxOutput('❌ Bootstrap 脚本部署失败');
@@ -1777,7 +1775,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         _sourceDir: string;  // 记录脚本来源目录
       }
       
-      const otherScripts: ScriptInfo[] = [];
+      const okJsonFiles = [];
+
       
       // 定义要扫描的目录列表
       const scanDirs = [
@@ -1787,7 +1786,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       
       for (const dir of scanDirs) {
-      this._sendToolboxOutput(`📂 脚本目录: ${dir.path}`);
+        this._sendToolboxOutput(`📂 脚本目录: ${dir.path}`);
         try {
           // 检查目录是否存在
           if (!fs.existsSync(dir.path)) {
@@ -1810,13 +1809,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
                 // 对应的 .js 文件名
                 const jsFileName = jsonFile.replace('.json', '.js');
                 
-                otherScripts.push({
-                  _fileName: jsFileName,
-                  autoscript: jsonData.autoscript,
-                  description: jsonData.description,
-                  version: jsonData.version,
-                  scriptlanguage: jsonData.scriptlanguage,
-                  _sourceDir: dir.path
+                okJsonFiles.push({
+                  jsFileName: jsFileName,
+                  _sourceDir: dir.path,
+                  jsonFileName: jsonFile,
+                  autoscript:jsonData
                 });
               }
             } catch (error: any) {
@@ -1828,53 +1825,44 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         }
       }
       
-      if (otherScripts.length === 0) {
+      if (okJsonFiles.length === 0) {
         this._sendToolboxOutput('  ⚠️ 未找到有效的脚本配置');
         return;
       }
       
-      this._sendToolboxOutput(`  ✅ 共准备部署 ${otherScripts.length} 个脚本\n`);
+      this._sendToolboxOutput(`  ✅ 共准备部署 ${okJsonFiles.length} 个脚本\n`);
       
       let successCount = 0;
       let failCount = 0;
-      const totalFiles = otherScripts.length;
+      const totalFiles = okJsonFiles.length;
       
-      for (let i = 0; i < otherScripts.length; i++) {
-        const script = otherScripts[i];
+      for (let i = 0; i < okJsonFiles.length; i++) {
+          const jsonConfig = okJsonFiles[i];
+          var jsFileName = jsonConfig._sourceDir + path.sep + jsonConfig.jsonFileName;
         // 使用脚本来源目录构建完整路径
-        const filePath = path.join(script._sourceDir, script._fileName);
         
         try {
-          this._sendToolboxOutput(`  [${i + 1}/${totalFiles}] 正在部署: ${script._fileName}`);
+          this._sendToolboxOutput(`  [${i + 1}/${totalFiles}] 正在部署: ${jsFileName}`);
           
-          if (!fs.existsSync(filePath)) {
-            this._sendToolboxOutput(`  ⚠️ 文件不存在，跳过: ${script._fileName}`);
+          if (!fs.existsSync(jsFileName)) {
+            this._sendToolboxOutput(`  ⚠️ 文件不存在，跳过: ${jsFileName}`);
             failCount++;
             continue;
           }
           
-          const scriptContent = fs.readFileSync(filePath, 'utf-8');
-          
           // 使用通用方法部署脚本
-          const deployResult = await this._deployScript({
-            autoscript: script.autoscript,
-            description: script.description,
-            version: script.version,
-            scriptlanguage: script.scriptlanguage,
-            source: scriptContent,
-            active: true
-          });
+          const deployResult = await this._deploySingleFileInternal(jsFileName) 
           
           if (deployResult) {
             successCount++;
-            this._sendToolboxOutput(`  ✅ 部署成功: ${script._fileName}`);
+            this._sendToolboxOutput(`  ✅ 部署成功: ${jsFileName}`);
           } else {
             failCount++;
-            this._sendToolboxOutput(`  ❌ 部署失败: ${script._fileName}`);
+            this._sendToolboxOutput(`  ❌ 部署失败: ${jsFileName}`);
           }
         } catch (error: any) {
           failCount++;
-          this._sendToolboxOutput(`  ❌ 处理 ${script._fileName} 时出错: ${error.message}`);
+          this._sendToolboxOutput(`  ❌ 处理 ${jsFileName} 时出错: ${error.message}`);
         }
       }
       
@@ -1924,7 +1912,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 导出 Maximo 脚本
    */
-  private async _extractScripts(directoryPath: string) {
+  private async _extractScripts(directoryPath: string, autoCreateExportDir: boolean = true) {
     try {
       this._sendToolboxOutput('📦 开始导出所有脚本...');
 
@@ -1950,18 +1938,25 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return;
       }
 
-      // 创建带日期时间的导出目录
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-      const backupDirName = `autoscript_backup_${dateStr}`;
-      const backupDir = path.join(directoryPath, backupDirName);
-
-      // 检查目录是否存在，不存在则创建
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
+      // 创建导出目录
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        // 自动生成带时间戳的子目录
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `autoscript_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        // 直接使用选择的目录
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（按包名结构组织）`);
       }
 
-      this._sendToolboxOutput(`📁 导出目录: ${backupDir}`);
+      // 检查目录是否存在，不存在则创建
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
 
       // 获取所有脚本名称
       const scriptsUrl = `script/SKS_GET_AUTOSCRIPTNAMES`;
@@ -2077,14 +2072,40 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
             };
             const ext = extMap[scriptLanguage] || 'js';
 
+            // 根据是否自动生成目录决定保存路径
+            let scriptExportDir: string;
+            
+            // 按包名创建目录结构（如：com/example/script）- 永久生效
+            // 使用 ibm_packagepath 字段（与 pull 脚本保持一致）
+            const packagePathValue = scriptData.ibm_packagepath || scriptData.PACKAGEPATH;
+            if (packagePathValue && packagePathValue.trim() !== '') {
+              const packagePath = packagePathValue.replace(/\./g, path.sep);
+              
+              if (autoCreateExportDir) {
+                // 未勾选：创建时间戳子目录 + 按包名组织
+                scriptExportDir = path.join(exportDir, packagePath);
+              } else {
+                // 勾选：直接保存到选择的目录 + 按包名组织
+                scriptExportDir = path.join(directoryPath, packagePath);
+              }
+              
+              // 创建包目录
+              if (!fs.existsSync(scriptExportDir)) {
+                fs.mkdirSync(scriptExportDir, { recursive: true });
+              }
+            } else {
+              // 没有包名，直接保存到导出目录
+              scriptExportDir = exportDir;
+            }
+
             // 保存配置文件（JSON格式）
             const configFileName = `${scriptName}.json`;
-            const configFilePath = path.join(backupDir, configFileName);
+            const configFilePath = path.join(scriptExportDir, configFileName);
             fs.writeFileSync(configFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
 
             // 保存源代码文件
             const codeFileName = `${scriptName}.${ext}`;
-            const codeFilePath = path.join(backupDir, codeFileName);
+            const codeFilePath = path.join(scriptExportDir, codeFileName);
             fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
 
             successCount++;
@@ -2100,7 +2121,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
-      this._sendToolboxOutput(`📁 保存位置: ${backupDir}`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
 
     } catch (error: any) {
       logger.error(`[_extractScripts] 导出失败: ${error.message}`);
