@@ -5,6 +5,76 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.9] - 2026-06-05
+
+### 新增功能
+
+#### 导出脚本功能增强
+- ✨ 新增"自动生成带时间戳的子目录"配置项
+  - 位置：Maximo配置 → 工具箱 → 导出脚本标签页
+  - 默认开启（勾选状态）
+  - 支持 VSCode 全局配置持久化
+  - 不同环境可独立配置
+
+- ✨ 按包名组织脚本目录结构（永久生效）
+  - 根据 `ibm_packagepath` 字段自动创建目录层级
+  - 点号转换为路径分隔符（如：`com.example.script` → `com/example/script`）
+  - 递归创建多级目录
+  - 与 Pull 脚本功能保持一致的目录结构
+
+- ✨ 两种导出模式
+  - **未勾选**（默认）：创建时间戳子目录 + 按包名组织
+    ```
+    autoscript_backup_20260523_143025/
+      ├─ com/example/script/SCRIPT_A.js
+      └─ org/maximo/autoscript/SCRIPT_B.js
+    ```
+  - **勾选**：直接保存到选择的目录 + 按包名组织
+    ```
+    com/example/script/SCRIPT_A.js
+    org/maximo/autoscript/SCRIPT_B.js
+    ```
+
+### 问题修复
+
+#### 包名字段识别修正
+- 🐛 修复导出脚本时无法识别 `ibm_packagepath` 字段的问题
+  - **问题描述**：导出的脚本未按包名创建目录结构，全部平铺在根目录
+  - **根本原因**：代码使用的是 `scriptData.PACKAGEPATH`（大写），但 Maximo API 返回的实际字段名是 `ibm_packagepath`（小写）
+  - **解决方案**：
+    - 优先使用 `ibm_packagepath` 字段
+    - 兼容 `PACKAGEPATH` 作为降级方案
+    - 添加空值检查，确保字段存在且不为空字符串
+  - **影响范围**：工具箱中的"导出所有脚本"功能
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.autoCreateExportDir` 配置项定义
+    - 类型为 boolean，默认值为 true
+  
+  - `src/configPanel.ts`
+    - `_extractScripts()` 方法添加 `autoCreateExportDir` 参数
+    - 修改目录创建逻辑，支持两种模式
+    - 修正包名字段识别，使用 `ibm_packagepath || PACKAGEPATH`
+    - 按包名创建目录结构并递归创建
+  
+  - `webview-ui/src/App.tsx`
+    - ConfigData 接口添加 `autoCreateExportDir` 字段
+    - 初始状态添加字段（默认 true）
+    - 在导出脚本标签页添加勾选框和帮助文本
+    - 实时显示当前模式的提示信息
+
+### 注意事项
+
+- ⚠️ 新环境默认启用"自动生成带时间戳的子目录"配置
+- ⚠️ 旧环境如果没有此配置项，会自动设置为 true
+- ⚠️ 按包名组织功能永久生效，不受勾选框影响
+- ⚠️ 需要 Maximo 系统中 `AUTOSCRIPT` 表包含 `IBM_PACKAGEPATH` 字段
+
+---
+
 ## [1.3.7] - 2026-06-03
 
 ### 问题修复

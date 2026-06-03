@@ -751,23 +751,60 @@ curl --request POST \
 **功能**：备份 Maximo 系统中所有自动化脚本
 
 **操作步骤**：
-1. 点击 **"导出所有脚本"**
+1. 点击 **“导出所有脚本”**
 2. 选择备份目录
-3. 等待导出完成
+3. （可选）勾选“不自动生成导出目录”选项
+4. 等待导出完成
+
+**配置选项**：
+
+- **☑️ 自动生成带时间戳的子目录**（默认开启）
+  - 创建格式：`autoscript_backup_YYYYMMDD_HHMMSS`
+  - 适用场景：定期备份、版本管理、避免覆盖
+  
+- **☐ 不自动生成导出目录**（勾选后）
+  - 直接保存到选择的目录
+  - 适用场景：项目结构管理、与 Maximo 保持一致
+
+**按包名组织**（永久生效）：
+- 根据 `ibm_packagepath` 字段自动创建目录层级
+- 点号转换为路径分隔符（如：`com.example.script` → `com/example/script`）
+- 递归创建多级目录
 
 **输出格式**：
 每个脚本生成两个文件：
 - `<脚本名>.json` - AUTOSCRIPT 表属性信息（不包含 SOURCE）
 - `<脚本名>.js` - 脚本源代码（SOURCE 内容）
 
-**目录结构**：
+**目录结构示例**：
+
+**模式 1：未勾选（默认）**
 ```
-autoscript_backup_20260521_143000/
-├── SCRIPT1.json
-├── SCRIPT1.js
-├── SCRIPT2.json
-├── SCRIPT2.js
-└── ...
+autoscript_backup_20260523_143025/
+  ├─ com/
+  │   └─ example/
+  │       └─ script/
+  │           ├─ SCRIPT_A.js
+  │           └─ SCRIPT_A.json
+  └─ org/
+      └─ maximo/
+          └─ autoscript/
+              ├─ SCRIPT_B.js
+              └─ SCRIPT_B.json
+```
+
+**模式 2：勾选“不自动生成导出目录”**
+```
+com/
+  └─ example/
+      └─ script/
+          ├─ SCRIPT_A.js
+          └─ SCRIPT_A.json
+org/
+  └─ maximo/
+      └─ autoscript/
+          ├─ SCRIPT_B.js
+          └─ SCRIPT_B.json
 ```
 
 ### 导入脚本
@@ -1145,4 +1182,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-06-03 | 版本：1.3.7*
+*最后更新：2026-06-05 | 版本：1.3.9*
