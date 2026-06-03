@@ -5,6 +5,48 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.7] - 2026-06-03
+
+### 问题修复
+
+#### 清除脚本功能优化
+- 🐛 修复清除脚本时 JSON 文件路径传递问题
+  - **问题描述**：用户在工具箱中选择 JSON 文件后点击"清除脚本",但 `_clearScripts` 方法收到的 `jsonPath` 为空
+  - **根本原因**：React State 异步更新导致数据丢失,`executeClearScripts()` 调用时 `deleteJsonPath` state 可能还未更新完成
+  - **解决方案**：
+    - 后端在发送 `executeClearScripts` 消息时直接传递 `jsonPath` 参数
+    - 前端接收参数并优先使用,如果没有则 fallback 到 state
+    - 避免依赖 React State 的异步更新
+  - **影响范围**：工具箱中的"清除脚本"功能
+
+- 🐛 修复确认对话框重复弹出的问题
+  - **问题描述**：点击"清除脚本"按钮后,确认警告对话框弹出多次(3次)
+  - **根本原因**：React `useEffect` 中事件监听器重复添加,清理函数传入了新的匿名函数而非相同引用,导致旧监听器未被移除
+  - **解决方案**：
+    - 将事件处理函数提取为有名称的函数 `handleClick`
+    - 在 `addEventListener` 和 `removeEventListener` 中使用相同的函数引用
+    - 确保组件重新渲染时正确清理旧监听器
+  - **影响范围**：工具箱中的所有按钮点击事件
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/configPanel.ts`
+    - `_confirmClearScripts()` 方法在发送 `executeClearScripts` 消息时传递 `jsonPath` 参数
+  - `webview-ui/src/App.tsx`
+    - `executeClearScripts()` 函数接收可选的 `jsonPath` 参数
+    - 优先使用参数值,如果没有则使用 `deleteJsonPath` state
+    - 修复 `useEffect` 中的事件监听器清理逻辑
+    - 定义 `handleClick` 函数并在添加/移除时使用相同引用
+
+### 注意事项
+
+- ⚠️ 此修复确保清除脚本时能正确获取 JSON 文件路径
+- ⚠️ 修复后确认对话框只会弹出一次
+- ⚠️ 如果后续发现其他按钮也有类似问题,需要检查事件监听器的清理逻辑
+
+---
+
 ## [1.3.6] - 2026-05-25
 
 ### 问题修复

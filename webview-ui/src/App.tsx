@@ -550,14 +550,20 @@ const App: React.FC = () => {
     
     const clearButton = document.getElementById('clearScriptsButton');
     
+    // 定义事件处理函数
+    const handleClick = (e: Event) => {
+      console.log('[App] clearScriptsButton 被点击（原生事件）');
+      e.preventDefault();
+      e.stopPropagation();
+      handleClearScripts();
+    };
+    
     if (clearButton) {
       console.log('[App] 找到 clearScriptsButton');
-      clearButton.addEventListener('click', (e) => {
-        console.log('[App] clearScriptsButton 被点击（原生事件）');
-        e.preventDefault();
-        e.stopPropagation();
-        handleClearScripts();
-      });
+      // 先移除旧的事件监听器（如果存在）
+      clearButton.removeEventListener('click', handleClick);
+      // 添加新的事件监听器
+      clearButton.addEventListener('click', handleClick);
     } else {
       console.log('[App] 未找到 clearScriptsButton');
     }
@@ -565,7 +571,8 @@ const App: React.FC = () => {
     // 清理函数
     return () => {
       if (clearButton) {
-        clearButton.removeEventListener('click', () => {});
+        // 正确移除事件监听器
+        clearButton.removeEventListener('click', handleClick);
       }
     };
   }, [deleteJsonPath, isInitRunning, isClearRunning, isDeployRunning]);
