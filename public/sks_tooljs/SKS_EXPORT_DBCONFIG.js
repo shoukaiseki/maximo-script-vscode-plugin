@@ -12,22 +12,28 @@ SqlFormat = Java.type("psdi.mbo.SqlFormat");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
+/** @type {psdi.util.MXException} */
+MXException = Java.type("psdi.util.MXException");
 /** @type {com.ibm.json.java.JSONObject} */
 JSONObject = Java.type("com.ibm.json.java.JSONObject");
 /** @type {com.ibm.json.java.JSONArray} */
 JSONArray = Java.type("com.ibm.json.java.JSONArray");
 /** @type {java.util.Locale} */
 Locale = Java.type("java.util.Locale");
+var scriptName = service.getScriptName();
 
 /** @type {psdi.util.logging.MaximoLogger} */
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
-/** @type {psdi.webclient.system.session.WebClientSession} */
-WebClientSession = Java.type("psdi.webclient.system.session.WebClientSession");
+try{
+    // /** @type {psdi.webclient.system.session.WebClientSession} */
+    // WebClientSession = Java.type("psdi.webclient.system.session.WebClientSession");
 
-//脚本中获取webclientsession为null
-// /** @type {psdi.webclient.system.session.WebClientSession} */
-// var masSession = service.webclientsession();
+    //脚本中获取webclientsession为null
+    // /** @type {psdi.webclient.system.session.WebClientSession} */
+    // var masSession = service.webclientsession();
+}catch(ignored){}
+
 commonsUtils=service.invokeScript("SKS_COMMONS_UTILS");
 
 /** @type {psdi.security.UserInfo} */
@@ -98,13 +104,25 @@ function main() {
         logger.info("数据库配置导出完成，共导出 " + ((config.get("maxObjects") != null) ? config.get("maxObjects").size() : 0) + " 个对象");
         
     } catch (error) {
+        var errorData = new JSONObject();
+        errorData.put("status", "error");
+        var errorMessage;
+        if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+            logger.info("\x1b[31m[" + scriptName + "]Nashorn NativeTypeError \x1b[0m")
+            // 打印堆栈跟踪
+            errorMessage = error.getStackTrace();
+            logger.error("Nashorn NativeTypeError: " + errorMessage);
+            errorData.put("message", errorMessage);
+            responseBody = errorData.serialize();
+            return responseBody
+        }
         logger.error(error)
         logger.error("导出数据库配置失败: " + error.message);
         
         /** @type {com.ibm.json.java.JSONObject} */
-        var errorData = new JSONObject();
-        errorData.put("status", "error");
-        errorData.put("message", error.message);
+        try{
+            errorData.put("message", error.message);
+        }catch(e){}
         responseBody = errorData.serialize();
     }
     return responseBody
@@ -134,7 +152,7 @@ function exportDatabaseConfig(objectNames) {
         maxObjectCfgSet.setWhere(whereClause);
         maxObjectCfgSet.reset();
         
-        logger.info("查询到 " + maxObjectCfgSet.count() + " 个对象需要导出");
+        logger.info("\x1b[32m查询到 " + maxObjectCfgSet.count() + " 个对象需要导出\x1b[0m");
         
         /** @type {com.ibm.json.java.JSONArray} */
         var maxObjects = new JSONArray();
@@ -169,7 +187,8 @@ function exportDatabaseConfig(objectNames) {
         
     } catch (error) {
         logger.error(error)
-        logger.error("导出数据库配置失败: " + error.message, error);
+        logger.error("导出数据库配置失败: " );
+        throw error
     } finally {
         __mboSetClose(maxObjectCfgSet);
     }
@@ -210,7 +229,6 @@ function exportMaxObject(objectName) {
 
         
         // 字符串类型字段
-        objectConfig.put("addRowstamp", true);
         logger.info("OBJECTNAME--------------------")
         // logger.info(commonsUtils)
         var objName = commonsUtils.getMboStringValue(service, maxObjectCfg, "OBJECTNAME")
@@ -239,10 +257,17 @@ function exportMaxObject(objectName) {
         objectConfig.put("hasLD", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "HASLD"));
         objectConfig.put("imported", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "IMPORTED"));
         objectConfig.put("userDefined", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "USERDEFINED"));
-        
+       //        ScriptUtil.getValueFromMaxType(mbo.getMboValue("STATUS").getMaxType());
+
+ 
         // 导出属性
         /** @type {com.ibm.json.java.JSONArray} */
         var attributes = exportAttributes(objectName,maxObjectCfg);
+        attributes.forEach(function(attribute) {
+            if(attribute=="ROWSTAMP") {
+                objectConfig.put("addRowstamp", true);
+            }
+        });
         if (attributes.size() > 0) {
             objectConfig.put("attributes", attributes);
         }
@@ -264,7 +289,10 @@ function exportMaxObject(objectName) {
         return objectConfig;
         
     } catch (error) {
-        logger.error("导出对象 " + objectName + " 失败: " + error.message,error);
+        logger.error("导出对象 " + objectName + " 失败 " );
+        
+        
+        throw error;
     } finally {
         __mboSetClose(maxObjectCfgSet);
         __mboSetClose(maxAttributeCfgSet);
@@ -285,11 +313,12 @@ function exportAttributes(objectName,maxObjectCfg) {
         maxAttributeCfgSet = MXServer.getMXServer().getMboSet("MAXATTRIBUTECFG",uInfo);
         
         /** @type {psdi.mbo.SqlFormat} */
-        var sqlf = new SqlFormat("objectname = :1 AND persistent = 1");
+        var sqlf = new SqlFormat("objectname = :1 ");
+        //AND persistent = 1  -- 去掉临时字段
         sqlf.setObject(1, "MAXATTRIBUTECFG", "OBJECTNAME", objectName);
         maxAttributeCfgSet.setWhere(sqlf.format());
         maxAttributeCfgSet.reset();
-        
+        logger.info("\x1b[32m查询到 " + maxAttributeCfgSet.count() + " 个属性\x1b[0m");
         /** @type {com.ibm.json.java.JSONArray} */
         var attributes = new JSONArray();
         
@@ -360,12 +389,17 @@ function exportAttributes(objectName,maxObjectCfg) {
             attribute.put("restricted", commonsUtils.getMboBooleanValue(service, attributeCfg, "RESTRICTED"));
             
             attributes.add(attribute);
+            logger.info("\x1b[32m导出属性 " + attributeName + "\x1b[0m");
             
             attributeCfg = maxAttributeCfgSet.moveNext();
         }
+            logger.info("\x1b[32m导出属性OK\x1b[0m");
         
         return attributes;
         
+    }catch(e) {
+        logger.error("导出对象 " + objectName + " 失败: " + e.message,e);
+        throw e
     } finally {
         __mboSetClose(maxAttributeCfgSet);
     }
