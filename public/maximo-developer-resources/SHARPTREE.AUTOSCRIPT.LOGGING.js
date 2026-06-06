@@ -103,6 +103,11 @@ function _handleV8(timeout) {
             // Last known position, starting with the length of the file.
             var lkp = logFile.length();
 
+            var encoding = request.getQueryParam("encoding");
+            if (!encoding) {
+                encoding = "UTF-8";
+            }
+
             var response = request.getHttpServletResponse();
             var output = response.getOutputStream();
             response.setBufferSize(0);
@@ -126,7 +131,9 @@ function _handleV8(timeout) {
                 rfa.seek(lkp);
 
                 while ((line = rfa.readLine()) && System.currentTimeMillis() < end) {
-                    output.println(line);
+                    var rawBytes = java.lang.String.valueOf(line).getBytes("ISO-8859-1");
+                    var decodedLine = new java.lang.String(rawBytes, encoding);
+                    output.println(decodedLine);
                 }
 
                 lkp = rfa.getFilePointer();
