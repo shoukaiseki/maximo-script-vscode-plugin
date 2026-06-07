@@ -15,6 +15,66 @@ export class ConfigPanel {
   private _disposables: vscode.Disposable[] = [];
   private readonly _extensionUri: vscode.Uri;
 
+  // 版本警告状态栏（左下角）
+  private static _versionStatusBar: vscode.StatusBarItem | undefined;
+  private static _versionStatusBarFilePath: string | undefined;
+  private static _versionStatusBarTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /**
+   * 初始化版本警告状态栏（由 extension.ts 调用）
+   */
+  public static initVersionStatusBar(context: vscode.ExtensionContext) {
+    ConfigPanel._versionStatusBar = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
+    ConfigPanel._versionStatusBar.command = 'maximoScript.openVersionWarningFile';
+    ConfigPanel._versionStatusBar.tooltip = '点击查看服务器版本脚本';
+    context.subscriptions.push(ConfigPanel._versionStatusBar);
+
+    // 注册点击命令：打开服务器版本文件
+    const openCmd = vscode.commands.registerCommand('maximoScript.openVersionWarningFile', async () => {
+      if (ConfigPanel._versionStatusBarFilePath && fs.existsSync(ConfigPanel._versionStatusBarFilePath)) {
+        const doc = await vscode.workspace.openTextDocument(ConfigPanel._versionStatusBarFilePath);
+        await vscode.window.showTextDocument(doc, { preview: true });
+      }
+      ConfigPanel.hideVersionWarning();
+    });
+    context.subscriptions.push(openCmd);
+  }
+
+  /**
+   * 在左下角显示版本警告
+   */
+  public static showVersionWarning(message: string, filePath: string) {
+    if (!ConfigPanel._versionStatusBar) { return; }
+    // 清除旧的自动隐藏定时器
+    if (ConfigPanel._versionStatusBarTimer) {
+      clearTimeout(ConfigPanel._versionStatusBarTimer);
+    }
+    ConfigPanel._versionStatusBarFilePath = filePath;
+    ConfigPanel._versionStatusBar.text = `$(warning) ${message}`;
+    ConfigPanel._versionStatusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    ConfigPanel._versionStatusBar.show();
+    // 30 秒后自动隐藏
+    ConfigPanel._versionStatusBarTimer = setTimeout(() => {
+      ConfigPanel.hideVersionWarning();
+    }, 30000);
+  }
+
+  /**
+   * 隐藏版本警告
+   */
+  public static hideVersionWarning() {
+    if (ConfigPanel._versionStatusBar) {
+      ConfigPanel._versionStatusBar.hide();
+    }
+    if (ConfigPanel._versionStatusBarTimer) {
+      clearTimeout(ConfigPanel._versionStatusBarTimer);
+      ConfigPanel._versionStatusBarTimer = undefined;
+    }
+  }
+
   /**
    * 向 Webview 发送消息（静态方法）
    */
@@ -960,8 +1020,123 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         ConfigPanel.sendMessageToWebview('pushScriptError', { error: errorMsg });
         return { success: false, errorMessage: errorMsg };
       }
+
+      // 步骤0: 推送前版本检查 - 对比服务器版本与本地版本
+      try {
+        logger.info(`[pushScriptToMaximo] 正在检查服务器版本: ${autoscript}`);
+        
+        // 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取服务器脚本信息
+        const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
+        const metadataResult = await httpRequestToMaximo({
+          url: metadataUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { 'AUTOSCRIPT': autoscript }
+        });
+
+        if (metadataResult.status === 200 && metadataResult.data) {
+          let serverMetadata: any;
+          try {
+            serverMetadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
+          } catch (parseErr) {
+            logger.warn(`[pushScriptToMaximo] 解析服务器元数据失败: ${parseErr}`);
+          }
+
+          if (serverMetadata && serverMetadata.code === 200 && serverMetadata.data) {
+            const serverVersion = serverMetadata.data.version || '';
+            
+            // 读取本地版本号
+            let localVersion = '';
+            let jsonFilePath: string;
+            if (filePath) {
+              const fileDir = path.dirname(filePath);
+              jsonFilePath = path.join(fileDir, `${autoscript}.json`);
+            } else {
+              const workspaceFolders = vscode.workspace.workspaceFolders;
+              if (workspaceFolders && workspaceFolders.length > 0) {
+                jsonFilePath = path.join(workspaceFolders[0].uri.fsPath, scriptStoragePath || 'masscript', `${autoscript}.json`);
+              } else {
+                jsonFilePath = '';
+              }
+            }
+            
+            if (jsonFilePath && fs.existsSync(jsonFilePath)) {
+              try {
+                const localJson = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
+                localVersion = localJson.version || '';
+              } catch (e) {
+                logger.warn(`[pushScriptToMaximo] 读取本地 JSON 文件失败: ${e}`);
+              }
+            }
+
+            logger.info(`[pushScriptToMaximo] 版本对比 - 服务器: ${serverVersion || '(无)'}, 本地: ${localVersion || '(无)'}`);
+
+            // 比较版本号
+            if (serverVersion && ConfigPanel._compareVersions(serverVersion, localVersion) > 0) {
+              logger.info(`[pushScriptToMaximo] ⚠️ 服务器版本 (${serverVersion}) 高于本地版本 (${localVersion || '无'})`);
+
+              // 拉取服务器脚本源代码
+              const exportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;
+              const exportResult = await httpRequestToMaximo({
+                url: exportUrl,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: { 'AUTOSCRIPT': autoscript }
+              });
+
+              if (exportResult.status === 200 && exportResult.data) {
+                const serverSourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+                
+                // 确定文件保存目录
+                let saveDir: string;
+                if (filePath) {
+                  saveDir = path.dirname(filePath);
+                } else {
+                  const workspaceFolders = vscode.workspace.workspaceFolders;
+                  saveDir = workspaceFolders ? path.join(workspaceFolders[0].uri.fsPath, scriptStoragePath || 'masscript') : '';
+                }
+
+                if (saveDir) {
+                  // 确定文件扩展名
+                  const scriptLanguage = (serverMetadata.data.SCRIPTLANGUAGE || 'javascript').toLowerCase();
+                  const extMap: Record<string, string> = {
+                    'javascript': 'js', 'js': 'js', 'python': 'py', 'jython': 'py',
+                    'py': 'py', 'nashorn': 'js', 'ecmascript': 'js', 'mbr': 'py'
+                  };
+                  const ext = extMap[scriptLanguage] || 'js';
+                  
+                  // 保存为 脚本名-版本号.ext
+                  const serverFileName = `${autoscript}-${serverVersion}.${ext}`;
+                  const serverFilePath = path.join(saveDir, serverFileName);
+                  fs.writeFileSync(serverFilePath, serverSourceCode, 'utf-8');
+                  logger.info(`[pushScriptToMaximo] 已保存服务器脚本: ${serverFilePath}`);
+
+                  // 左下角状态栏提示用户
+                  ConfigPanel.showVersionWarning(
+                    `服务器有更新: ${autoscript} (服务器:${serverVersion} 本地:${localVersion || '无'}) 点击查看`,
+                    serverFilePath
+                  );
+                  vscode.window.showErrorMessage(
+                    `⚠️ 服务器版本(${serverVersion})高于本地版本(${localVersion || '无'})，已生成服务器版本文件: ${serverFileName}，推送已取消`
+                  );
+                  logger.info(`[pushScriptToMaximo] 服务器版本高于本地版本，已生成服务器版本文件，阻止推送避免覆盖`);
+                  // 服务器版本高于本地版本，阻止推送，直接返回
+                  return { success: false, errorMessage: `服务器版本(${serverVersion})高于本地(${localVersion || '无'})，推送已取消，请查看左下角状态栏` };
+                }
+              } else {
+                logger.warn(`[pushScriptToMaximo] 拉取服务器脚本源代码失败，状态码: ${exportResult.status}`);
+                // 拉取失败不影响推送流程，继续执行
+              }
+            }
+          }
+        }
+      } catch (versionCheckError: any) {
+        // 版本检查失败只记录日志，不阻止推送流程
+        logger.warn(`[pushScriptToMaximo] 版本检查失败: ${versionCheckError.message}，继续推送`);
+      }
+
       var historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
-      // 步骤0: 保存历史记录（失败只记录日志，继续执行）
+      // 步骤1: 保存历史记录（失败只记录日志，继续执行）
       let version: string | undefined;
       try {
         logger.debug(`[pushScriptToMaximo] 正在保存历史记录: ${autoscript}, filePath: ${filePath || '未提供'}, storagePath: ${scriptStoragePath}`);
@@ -1167,6 +1342,26 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       ConfigPanel.sendMessageToWebview('pushXmlError', { error: errorMsg });
       return { success: false, errorMessage: errorMsg };
     }
+  }
+
+  /**
+   * 比较两个语义化版本号 (如 "1.0.1" vs "1.0.2")
+   * @returns 正数表示 v1 > v2，负数表示 v1 < v2，0 表示相等
+   */
+  private static _compareVersions(v1: string, v2: string): number {
+    if (!v2) return 1;  // v2 为空，v1 视为更大
+    if (!v1) return -1; // v1 为空，v2 视为更大
+    
+    const parts1 = v1.split('.').map(p => parseInt(p) || 0);
+    const parts2 = v2.split('.').map(p => parseInt(p) || 0);
+    const maxLen = Math.max(parts1.length, parts2.length);
+    
+    for (let i = 0; i < maxLen; i++) {
+      const p1 = parts1[i] || 0;
+      const p2 = parts2[i] || 0;
+      if (p1 !== p2) return p1 - p2;
+    }
+    return 0;
   }
 
   /**
@@ -2296,6 +2491,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       const scriptData = metadata.data;
 
+      // 获取服务器版本号
+      const serverVersion = scriptData.version || '';
+      
+
       // 如果 ibm_packagepath 存在且不为空，则追加到目标目录
       const packagePath = scriptData.ibm_packagepath;
       if (packagePath && packagePath.trim() !== '') {
@@ -2303,6 +2502,67 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         const packageDir = packagePath.replace(/\./g, '/');
         targetDir = path.join(targetDir, packageDir);
         logger.info(`[_pullScript] 使用 ibm_packagepath: ${packagePath}, 目标目录: ${targetDir}`);
+      }
+
+      // 读取本地版本号
+      let localVersion = '';
+      const localJsonFilePath = path.join(targetDir, `${scriptName}.json`);
+      logger.debug(`[_pullScript] 本地 JSON 文件路径: ${localJsonFilePath}`)
+      if (fs.existsSync(localJsonFilePath)) {
+        try {
+          const localJson = JSON.parse(fs.readFileSync(localJsonFilePath, 'utf-8'));
+          localVersion = localJson.version || '';
+        } catch (e) {
+          logger.warn(`[_pullScript] 读取本地 JSON 文件失败: ${e}`);
+        }
+      }
+      
+      logger.info(`[_pullScript] 版本对比 - 服务器: ${serverVersion || '(无)'}, 本地: ${localVersion || '(无)'}`);
+
+      // 检查服务器版本是否低于本地版本
+      if (serverVersion && localVersion && ConfigPanel._compareVersions(serverVersion, localVersion) < 0) {
+        logger.warn(`[_pullScript] ⚠️ 服务器版本 (${serverVersion}) 低于本地版本 (${localVersion})，本地可能有更新的修改`);
+
+        // 拉取服务器脚本源代码（用于生成版本化文件）
+        const srvExportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;
+        const srvExportResult = await httpRequestToMaximo({
+          url: srvExportUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { 'AUTOSCRIPT': scriptName }
+        });
+
+        if (srvExportResult.status === 200 && srvExportResult.data) {
+          const srvSourceCode = typeof srvExportResult.data === 'string' ? srvExportResult.data : JSON.stringify(srvExportResult.data);
+          
+          // 确定文件扩展名
+          const srvLang = (scriptData.SCRIPTLANGUAGE || 'javascript').toLowerCase();
+          const srvExtMap: Record<string, string> = {
+            'javascript': 'js', 'js': 'js', 'python': 'py', 'jython': 'py',
+            'py': 'py', 'nashorn': 'js', 'ecmascript': 'js', 'mbr': 'py'
+          };
+          const srvExt = srvExtMap[srvLang] || 'js';
+          
+          // 保存为 脚本名-版本号.ext（服务器版本）
+          const versionedFileName = `${scriptName}-${serverVersion}.${srvExt}`;
+          const versionedFilePath = path.join(targetDir, versionedFileName);
+          fs.writeFileSync(versionedFilePath, srvSourceCode, 'utf-8');
+          logger.info(`[_pullScript] 已保存服务器版本脚本: ${versionedFilePath}`);
+
+          // 左下角状态栏提示用户
+          ConfigPanel.showVersionWarning(
+            `服务器版本(${serverVersion})低于本地(${localVersion}) 已生成: ${versionedFileName} 点击查看`,
+            versionedFilePath
+          );
+          vscode.window.showErrorMessage(
+            `⚠️ 服务器版本(${serverVersion})低于本地版本(${localVersion})，已生成服务器版本文件: ${versionedFileName}，本地文件未被覆盖`
+          );
+          logger.info(`[_pullScript] 服务器版本低于本地版本，已生成版本化文件，跳过覆盖本地 JSON 和脚本文件`);
+          // 服务器版本低于本地版本，不覆盖本地文件，直接返回
+          return;
+        } else {
+          logger.warn(`[_pullScript] 拉取服务器脚本源代码失败，状态码: ${srvExportResult.status}`);
+        }
       }
 
       // 确保目标目录存在

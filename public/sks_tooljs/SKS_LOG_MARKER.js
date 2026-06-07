@@ -93,14 +93,63 @@ function handleGet() {
     if (!logFolder.trim().endsWith(File.separator)) {
         logFolder = logFolder + File.separator;
     }
+    var lfn = null
+    try{
 
-    var logFile = new File(logFolder + "messages.log");
-    if (!logFile.exists()) {
-        responseBody = JSON.stringify({ "status": "error", "message": "无法打开日志文件: " + logFile.getPath() });
+        /** @type {java.net.InetAddress} */
+        InetAddress = Java.type("java.net.InetAddress");
+        /** @type {psdi.server.MXServer} */
+        MXServer = Java.type("psdi.server.MXServer");//13
+        var serverName = MXServer.getMXServer().getName();
+        var i = InetAddress.getLocalHost();
+        var lfn = i.getHostName() + "_" + serverName + "_maximo.log"
+        
+    }catch(e){ 
+        logger.error(e)
+        logger.error("获取主机名/服务器名失败 " ); 
+    }
+
+    var logFileCandidates
+
+    var logfileIndex = request.getQueryParam("logfileIndex");
+    if(lfn){
+        if(logfileIndex && logfileIndex>0){
+            logFileCandidates = [lfn, "messages.log"];
+        } else{
+            logFileCandidates = [ "messages.log",lfn];
+        }
+    }else{
+        if(logfileIndex && logfileIndex>0){
+            logFileCandidates = ["maximo.log", "messages.log"];
+        }else{
+            logFileCandidates = ["messages.log","maximo.log"];
+        }
+    }
+    var logFile = null;
+    for (var fi = 0; fi < logFileCandidates.length; fi++) {
+        var candidate = new File(logFolder + logFileCandidates[fi]);
+        if (candidate.exists()) {
+            logFile = candidate;
+            break;
+        }
+    }
+
+    if (!logFile) {
+        responseBody = JSON.stringify({
+            "status": "error",
+            "message": "无法找到日志文件，尝试了: " + logFileCandidates.join(", ") + "，路径: " + logFolder
+        });
         return;
     }
 
-    var collectedLines = [];
+    // SSE 流式输出
+    var res = request.getHttpServletResponse();
+    var output = res.getOutputStream();
+    res.setBufferSize(0);
+    res.setContentType("text/event-stream");
+    res.flushBuffer();
+
+    var collectedLines = 0;
     var inRange = false;
     var foundStart = false;
     var foundEnd = false;
@@ -112,16 +161,18 @@ function handleGet() {
             var rawBytes = java.lang.String.valueOf(line).getBytes("ISO-8859-1");
             var decodedLine = new java.lang.String(rawBytes, encoding);
 
-            if (decodedLine.indexOf(startuuid) !== -1) {
+            if (decodedLine.indexOf(MARKER_PREFIX_START + startuuid) !== -1) {
                 inRange = true;
                 foundStart = true;
             }
 
             if (inRange) {
-                collectedLines.push(decodedLine);
+                collectedLines++;
+                output.println("data: " + decodedLine);
+                output.println("");
             }
 
-            if (inRange && decodedLine.indexOf(enduuid) !== -1) {
+            if (inRange && decodedLine.indexOf(MARKER_PREFIX_END + enduuid) !== -1) {
                 foundEnd = true;
                 break;
             }
@@ -130,23 +181,26 @@ function handleGet() {
         rfa.close();
     }
 
-    if (!foundStart) {
-        responseBody = JSON.stringify({ "status": "error", "message": "未在日志中找到起始标记，UUID: '" + startuuid + "'" });
-        return;
-    }
-
-    if (!foundEnd) {
-        responseBody = JSON.stringify({ "status": "error", "message": "在起始标记之后未找到结束标记，UUID: '" + enduuid + "'" });
-        return;
-    }
-
-    var logContent = collectedLines.join("\n");
-    responseBody = JSON.stringify({
-        "status": "success",
-        "action": "get",
+    // 发送结束事件（包含结果信息）
+    var endEvent = {
+        "event": "end",
         "startuuid": startuuid,
         "enduuid": enduuid,
-        "lines": collectedLines.length,
-        "content": logContent
-    });
+        "lines": collectedLines,
+        "logFile": logFile.getPath()
+    };
+
+    if (!foundStart) {
+        endEvent.status = "error";
+        endEvent.message = "未在日志文件中找到起始标记，UUID: '" + startuuid + "'";
+    } else if (!foundEnd) {
+        endEvent.status = "error";
+        endEvent.message = "在起始标记之后未找到结束标记，UUID: '" + enduuid + "'";
+    } else {
+        endEvent.status = "success";
+    }
+
+    output.println("data: " + JSON.stringify(endEvent));
+    output.println("");
+    res.flushBuffer();
 }

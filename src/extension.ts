@@ -62,6 +62,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(configCommand);
 
+  // 初始化版本警告状态栏
+  ConfigPanel.initVersionStatusBar(context);
+
   // 创建状态栏按钮 - 配置
   const configStatusItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,

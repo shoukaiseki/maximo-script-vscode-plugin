@@ -5,6 +5,50 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.0] - 2026-06-08
+
+### 新增功能
+
+#### Push/Pull 版本检查
+- ✨ 推送脚本前自动对比服务器与本地版本号
+  - 调用 `SKS_GET_AUTOSCRIPTINFOBYNAME` 接口获取服务器版本号
+  - 读取本地 JSON 文件中的版本号进行对比
+  - 服务器版本高于本地时：拉取服务器脚本保存为 `{脚本名}-{版本号}.ext`
+  - 左下角状态栏显示警告，点击可打开服务器版本文件
+  - 同时弹出右下角错误提示，告知用户推送已取消
+  - 阻止推送避免覆盖服务器上的更新版本
+
+- ✨ 拉取脚本时自动对比版本号
+  - 服务器版本低于本地时：拉取服务器脚本保存为 `{脚本名}-{版本号}.ext`
+  - 左下角状态栏显示警告，点击可打开服务器版本文件
+  - 同时弹出右下角错误提示，告知用户本地文件未被覆盖
+  - 不覆盖本地 JSON 和脚本文件，保护本地更新
+
+- ✨ 版本号语义化比较
+  - 支持 `x.y.z` 格式的版本号比较（如 `1.0.1` vs `1.0.2`）
+  - 正确处理不同长度的版本号（如 `1.0` vs `1.0.1`）
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/configPanel.ts`
+    - 新增 `_compareVersions()` 静态方法：语义化版本号比较
+    - 新增状态栏管理（`initVersionStatusBar`/`showVersionWarning`/`hideVersionWarning`）
+    - `pushScriptToMaximo` 方法添加版本检查逻辑
+    - `_pullScript` 方法添加版本检查逻辑
+    - 状态栏 30 秒自动隐藏，点击打开文件
+
+  - `src/extension.ts`
+    - 添加 `ConfigPanel.initVersionStatusBar(context)` 初始化调用
+
+### 注意事项
+
+- ⚠️ 服务器版本高于本地时推送会被阻止，请先拉取服务器版本查看后再决定
+- ⚠️ 服务器版本低于本地时拉取不会覆盖本地文件，服务器版本文件仅供查看对比
+- ⚠️ 需要 Maximo 系统中部署 `SKS_GET_AUTOSCRIPTINFOBYNAME` 脚本
+
+---
+
 ## [1.3.9] - 2026-06-05
 
 ### 新增功能

@@ -147,14 +147,48 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
     if (!(axios.interceptors.response as any)._maximoScriptHelperConfigured) {
       axios.interceptors.response.use(
         (response: any) => {
-          // 对响应数据做点什么
-          const logMessage = `[Axios Response] ${response.status} ${response.config.url}`;
-          console.log(logMessage);
-          logger.info(logMessage);
-          const { truncated, data } = limitLogOutput(response.data);
-          console.log(data)
-          logger.info(data);
-          return response;
+          try {
+
+            // 检查是否启用了 HTTP 请求日志保存
+            const vscodeConfig = vscode.workspace.getConfiguration('maximoScript');
+            const enableHttpLog = vscodeConfig.get('enableHttpLog', false);
+
+
+            // 对响应数据做点什么
+            const logMessage = `[Axios Response] ${response.status} ${response.config.url}`;
+            console.log(logMessage);
+            logger.info(logMessage);
+            const { truncated, data } = limitLogOutput(response.data);
+            console.log(data)
+            logger.info(data);
+            if (!enableHttpLog) {
+              return response;
+            }
+            // 保存到临时文件
+            const fs = require('fs');
+            const path = require('path');
+            const tmpDir = path.join(require('os').tmpdir(), 'maximo-script-helper');
+
+            // 确保目录存在
+            if (!fs.existsSync(tmpDir)) {
+              fs.mkdirSync(tmpDir, { recursive: true });
+            }
+
+            // 生成文件名（使用时间戳避免冲突）
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `response-${response.config.method?.toUpperCase()}-${timestamp}.http`;
+            const filePath = path.join(tmpDir, fileName);
+
+            // 写入文件
+            fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2), 'utf-8');
+
+            console.log(`[HTTP Client File] 已保存: ${filePath}`);
+            logger.info(`[HTTP Client File] 已保存: ${filePath}`);
+            return response;
+          } catch (error: any) {
+            console.error('[HTTP Client File] 生成失败:', error.message);
+          }
+            return response;
         },
         (error: any) => {
           // 对响应错误做点什么
