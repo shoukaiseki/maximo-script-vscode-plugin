@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.1] - 2026-06-10
+
+### 问题修复
+
+#### 导入时启动点配置不正确
+- 🐛 修复工具箱导入脚本时启动点（Launch Point）配置错误的问题
+  - **问题描述**：导出的 JSON 中启动点缺少系统虚拟属性的原始值（如 `add`、`update`、`delete`、`eventtype`、`evcontext`、`attributeevent`、`objectevent`、`active`），导致重新导入后启动点行为与原始不一致
+  - **根本原因**：`SKS_GET_AUTOSCRIPTINFOBYNAME` 脚本在导出启动点时，只输出了 `sks:` 前缀的自定义显示字段，未包含 Maximo 系统虚拟属性的原始 MaxType 值
+  - **解决方案**：
+    - 在导出脚本中通过 `ScriptUtil.getValueFromMaxType()` 获取虚拟属性的原始值
+    - 补充导出 `add`、`update`、`delete`、`attributeevent`、`eventtype`、`evcontext`、`objectevent`、`active` 等字段
+    - 确保导入时这些字段能正确还原启动点的完整配置
+  - **影响范围**：工具箱中的"导入脚本"功能、Pull 拉取脚本
+
+### 注意事项
+
+- ⚠️ 此修复需要重新部署 `SKS_GET_AUTOSCRIPTINFOBYNAME` 脚本到 Maximo 系统
+- ⚠️ 修复前导出的 JSON 文件缺少虚拟属性字段，建议重新 Pull 获取完整数据
+
+---
+
 ## [1.4.0] - 2026-06-08
 
 ### 新增功能

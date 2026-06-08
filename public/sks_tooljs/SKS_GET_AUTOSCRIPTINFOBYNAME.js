@@ -14,6 +14,8 @@ importClass(Packages.java.util.TimeZone);
 importClass(Packages.com.ibm.json.java.JSONObject);
 importClass(Packages.com.ibm.json.java.JSONArray);
 
+/** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
+ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
 
 
 try {
@@ -127,18 +129,28 @@ try {
         }
         
         var lpObj = new JSONObject();
+         
+        //自己加的字段，用于前端显示
+        lpObj.put("sks:eventtype", EVENTTYPE);
+        lpObj.put("sks:evcontext", EVCONTEXT);
+        lpObj.put("sks:addupdatedelete", ADDUPDATEDELETE.join(","));
+        //系统虚拟属性,要加上,否则导入时启动点不对
+        lpObj.put("add", ScriptUtil.getValueFromMaxType(lp.getMboValue("ADD").getMaxType()));
+        lpObj.put("update", ScriptUtil.getValueFromMaxType(lp.getMboValue("UPDATE").getMaxType()));
+        lpObj.put("delete", ScriptUtil.getValueFromMaxType(lp.getMboValue("DELETE").getMaxType()));
+        lpObj.put("attributeevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("ATTRIBUTEEVENT").getMaxType()));
+        lpObj.put("eventtype", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVENTTYPE").getMaxType()));
+        lpObj.put("evcontext", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVCONTEXT").getMaxType()));
+
         lpObj.put("launchpointname", lp.getString("LAUNCHPOINTNAME"));
         lpObj.put("description", lp.getString("DESCRIPTION"));
         lpObj.put("launchpointtype", lp.getString("LAUNCHPOINTTYPE"));
         lpObj.put("objectname", lp.getString("OBJECTNAME"));
         lpObj.put("attributename", lp.getString("ATTRIBUTENAME"));
-        lpObj.put("objectevent", lp.getString("OBJECTEVENT"));
-        lpObj.put("eventtype", EVENTTYPE);
-        lpObj.put("sks:evcontext", EVCONTEXT);
-        lpObj.put("addupdatedelete", ADDUPDATEDELETE.join(","));
+        lpObj.put("objectevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("OBJECTEVENT").getMaxType()));
         lpObj.put("condition", lp.getString("CONDITION"));
         lpObj.put("attributeevent", lp.getString("ATTRIBUTEEVENT"));
-        lpObj.put("active", lp.getString("ACTIVE"));
+        lpObj.put("active", ScriptUtil.getValueFromMaxType(lp.getMboValue("ACTIVE").getMaxType()));
 
         lpArr.add(lpObj);
         lp = lpSet.moveNext();
