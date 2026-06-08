@@ -65,6 +65,8 @@ function AnsiLogger(config) {
     this.logger = config.logger;
     // 是否开启ANSI
     this.ansiOpen=config.ansiOpen||false;
+    // 是否开启打印模式,在mxlogger无效的时候启用
+    this.printModel=config.printModel||false;
     logger.info("[SKS_LOG_ANSI_UTILS] AnsiLogger ansiOpen="+this.ansiOpen)
 }
 
@@ -80,6 +82,10 @@ AnsiLogger.prototype.getLogger=function () {
 }
 
 AnsiLogger.prototype.debug = function (msg,error) {
+    if(this.printModel){
+        java.lang.System.out.println("\x1b[34m[DEBUG] "+ msg + "\x1b[0m")
+        return 
+    }
     var formattedMsg=formatMsgByLevel(msg,"DEBUG",this.ansiOpen)
     if(error){
         this.logger.debug(formattedMsg,error)
@@ -88,6 +94,10 @@ AnsiLogger.prototype.debug = function (msg,error) {
     }
 }
 AnsiLogger.prototype.info = function (msg,error) {
+    if(this.printModel){
+        java.lang.System.out.println("\x1b[32m[INFO] "+ msg + "\x1b[0m")
+        return 
+    }
     var formattedMsg=formatMsgByLevel(msg,"INFO",this.ansiOpen)
     if(error){
         this.logger.info(formattedMsg,error)
@@ -97,6 +107,10 @@ AnsiLogger.prototype.info = function (msg,error) {
 }
 
 AnsiLogger.prototype.warn = function (msg,error) {
+    if(this.printModel){
+        java.lang.System.out.println("\x1b[33m[WARN] "+ msg + "\x1b[0m")
+        return 
+    }
     var formattedMsg=formatMsgByLevel(msg,"WARN",this.ansiOpen)
     if(error){
         this.logger.warn(formattedMsg,error)
@@ -106,6 +120,10 @@ AnsiLogger.prototype.warn = function (msg,error) {
 }
 
 AnsiLogger.prototype.error = function (msg,error) {
+    if(this.printModel){
+        java.lang.System.out.println("\x1b[31m[ERROR] "+ msg + "\x1b[0m")
+        return 
+    }
     var formattedMsg=formatMsgByLevel(msg,"ERROR",this.ansiOpen)
     if(error){
         this.logger.error(formattedMsg,error)
