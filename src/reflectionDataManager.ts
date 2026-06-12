@@ -93,11 +93,49 @@ export class ReflectionDataManager {
     
     try {
       await this.copyDirectory(sourceDir, this.javaapiPath);
+
       this.log(`✅ 初始文件复制完成`);
     } catch (error: any) {
       this.log(`⚠️ 初始文件复制失败: ${error.message}`, 'warn');
     }
   }
+
+  private async copyVscodeConfigFiles(): Promise<void> {
+    const sourceDir = path.join(__dirname, '..', 'public', 'vscode-config');
+    if (!fs.existsSync(sourceDir)) {
+      this.log(`⚠️ 源目录不存在，跳过 VSCode 配置文件复制: ${sourceDir}`, 'warn');
+      return;
+    }
+    await this.copyConfigDirectory(sourceDir, __dirname);
+    this.log(`✅ VSCode 配置文件复制完成`);
+  }
+
+  private async copyConfigDirectory(src: string, dest: string): Promise<void> {
+    const entries = await fs.promises.readdir(src, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      
+      if (entry.isDirectory()) {
+        await fs.promises.mkdir(destPath, { recursive: true });
+        await this.copyConfigDirectory(srcPath, destPath);
+      } else {
+        if(!fs.existsSync(destPath)){
+          await fs.promises.copyFile(srcPath, destPath);
+        }else{
+          this.log(`跳过已存在的文件: ${destPath}`);
+          const selection = await vscode.window.showInformationMessage(`跳过已存在的文件: ${path.basename(destPath)}`, '查看源文件');
+          if (selection === '查看源文件') {
+            const uri = vscode.Uri.file(srcPath);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await vscode.window.showTextDocument(doc);
+          }
+        }
+      }
+    }
+  }
+
   
   /**
    * 递归复制目录
@@ -135,6 +173,10 @@ export class ReflectionDataManager {
         this.cachedClasses = new Set();
       }
     } else {
+      if(this.cachedClasses){
+        this.cachedClasses = new Set()
+      }
+      this.cachedClasses.add("psdi.mbo.MboConstants")
       // 创建空文件
       await this.saveClassList();
       this.log(`创建空的 .maximoScriptClass.json`);

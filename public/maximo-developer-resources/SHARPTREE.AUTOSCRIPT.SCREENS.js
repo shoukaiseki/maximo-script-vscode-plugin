@@ -51,6 +51,9 @@ System = Java.type("java.lang.System");//59
 
 var PresentationLoader = null
 try {
+    importClass(Packages.psdi.webclient.system.controller.PresentationLoader);
+    importClass(Packages.psdi.webclient.system.session.WebClientSessionFactory);
+    importClass(Packages.psdi.webclient.system.runtime.WebClientRuntime);
     PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
     /** @type {psdi.webclient.system.runtime.WebClientRuntime} */

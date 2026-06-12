@@ -37,7 +37,7 @@ interface ConfigData {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState('connection');
-  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear', 'deploy' or 'extract'
+  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear', 'deploy', 'extract' or 'initProject'
   const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
   const [toolboxOutput, setToolboxOutput] = useState<string>('');
   const [deployFilePath, setDeployFilePath] = useState<string>('');
@@ -1289,7 +1289,96 @@ const App: React.FC = () => {
               >
                 📥 导出脚本
               </button>
+              <button
+                onClick={() => setActiveToolboxTab('initProject')}
+                style={{
+                  padding: '8px 16px',
+                  background: activeToolboxTab === 'initProject' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'initProject' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'initProject' ? 'bold' : 'normal'
+                }}
+              >
+                🛠️ 初始化当前项目
+              </button>
             </div>
+
+            {/* 初始化当前项目标签页 */}
+            {activeToolboxTab === 'initProject' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-terminal-ansiGreen)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🛠️ 初始化当前项目 TypeScript 配置</p>
+                  <p style={{ margin: '0 0 10px 0' }}>
+                    为当前工作区初始化 TypeScript 开发环境配置文件（如 <code>tsconfig.json</code>、<code>.vscode/settings.json</code> 等）。
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                    💡 <strong>说明：</strong>如果项目中已存在相关配置文件，将<strong>跳过</strong>（不会覆盖或修改）；仅当配置文件不存在时才会自动创建。
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                  <button 
+                    onClick={() => {
+                      getVsCodeApi().postMessage({ command: 'initProject' });
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🛠️ 初始化项目配置
+                  </button>
+                  <button 
+                    onClick={() => {
+                      getVsCodeApi().postMessage({ command: 'openConfigDir' });
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      cursor: 'pointer',
+                      background: 'var(--vscode-button-secondaryBackground)',
+                      color: 'var(--vscode-button-secondaryForeground)',
+                      border: 'none',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    📂 查看配置模板
+                  </button>
+                </div>
+
+                <div style={{ 
+                  padding: '15px',
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px'
+                }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '0.95em' }}>📋 配置模板目录结构</p>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+{`public/config/
+├── .vscode/
+│   └── settings.json    # VSCode 编辑器配置
+└── tsconfig.json        # TypeScript 编译配置`}
+                  </pre>
+                </div>
+              </div>
+            )}
 
             {/* 初始化脚本标签页 */}
             {activeToolboxTab === 'init' && (

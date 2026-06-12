@@ -70,6 +70,7 @@ function handleEnd() {
 }
 
 function handleGet() {
+    var logFile = null;
     var startuuid = request.getQueryParam("startuuid");
     var enduuid = request.getQueryParam("enduuid");
 
@@ -82,19 +83,10 @@ function handleGet() {
     if (!encoding) {
         encoding = "UTF-8";
     }
+    var logfileIndex = request.getQueryParam("logfileIndex");
 
-    var logFolder = System.getenv("LOG_DIR");
-    if (!logFolder) {
-        logFolder = System.getProperty("com.ibm.ws.logging.log.directory");
-    }
-    if (!logFolder) {
-        logFolder = "/logs";
-    }
-    if (!logFolder.trim().endsWith(File.separator)) {
-        logFolder = logFolder + File.separator;
-    }
-    var lfn = null
-    try{
+    var lfn = "maximo.log"
+    try {
 
         /** @type {java.net.InetAddress} */
         InetAddress = Java.type("java.net.InetAddress");
@@ -103,35 +95,61 @@ function handleGet() {
         var serverName = MXServer.getMXServer().getName();
         var i = InetAddress.getLocalHost();
         var lfn = i.getHostName() + "_" + serverName + "_maximo.log"
-        
-    }catch(e){ 
+
+    } catch (e) {
         logger.error(e)
-        logger.error("获取主机名/服务器名失败 " ); 
+        logger.error("获取主机名/服务器名失败 ");
     }
 
-    var logFileCandidates
+    if (logfileIndex && logfileIndex > 0) {
+        //maximo.log
+        var rootfolder=MXServer.getMXServer().getProperty("mxe.logging.rootfolder")
+        if(rootfolder){
+            var candidate = new File(rootfolder +  "/"+ lfn);
+            if (candidate.exists()) {
+                logFile = candidate;
+            }else{
+                candidate = new File(rootfolder +"/maximo/logs/" + lfn);
+                if (candidate.exists()) {
+                    logFile = candidate;
+                }else{
+                    candidate = new File("/opt/ibm/wlp/output/defaultServer/maximo/logs/" + lfn);
+                    if (candidate.exists()) {
+                        logFile = candidate;
+                    }
+                }
+            }
+        }
 
-    var logfileIndex = request.getQueryParam("logfileIndex");
-    if(lfn){
-        if(logfileIndex && logfileIndex>0){
+    } 
+    if (logFile == null) {
+
+        var logFolder = System.getenv("LOG_DIR");
+        if (!logFolder) {
+            logFolder = System.getProperty("com.ibm.ws.logging.log.directory");
+        }
+        if (!logFolder) {
+            logFolder = "/logs";
+        }
+        if (!logFolder.trim().endsWith(File.separator)) {
+            logFolder = logFolder + File.separator;
+        }
+
+        var logFileCandidates
+
+        if (logfileIndex && logfileIndex > 0) {
             logFileCandidates = [lfn, "messages.log"];
-        } else{
-            logFileCandidates = [ "messages.log",lfn];
+        } else {
+            logFileCandidates = ["messages.log", lfn];
         }
-    }else{
-        if(logfileIndex && logfileIndex>0){
-            logFileCandidates = ["maximo.log", "messages.log"];
-        }else{
-            logFileCandidates = ["messages.log","maximo.log"];
+        for (var fi = 0; fi < logFileCandidates.length; fi++) {
+            var candidate = new File(logFolder + logFileCandidates[fi]);
+            if (candidate.exists()) {
+                logFile = candidate;
+                break;
+            }
         }
-    }
-    var logFile = null;
-    for (var fi = 0; fi < logFileCandidates.length; fi++) {
-        var candidate = new File(logFolder + logFileCandidates[fi]);
-        if (candidate.exists()) {
-            logFile = candidate;
-            break;
-        }
+
     }
 
     if (!logFile) {

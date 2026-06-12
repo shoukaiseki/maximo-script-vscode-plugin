@@ -189,6 +189,14 @@ export class ConfigPanel {
             // 查看用户语言信息
             await this._viewUserInfo(message.data);
             return;
+          case 'initProject':
+            // 初始化当前项目配置
+            await this._initProject();
+            return;
+          case 'openConfigDir':
+            // 打开配置模板目录
+            await this._openConfigDir();
+            return;
         }
       },
       null,
@@ -2068,6 +2076,108 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[InitScripts] 初始化失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'initScriptsComplete' });
+    }
+  }
+
+  /**
+   * 初始化当前项目配置：复制 public/config 到工作区根目录，跳过已存在的文件
+   */
+  private async _initProject() {
+    try {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('未检测到工作区，请先打开一个文件夹');
+        return;
+      }
+
+      const sourceDir = path.join(this._extensionUri.fsPath, 'public', 'config');
+      if (!fs.existsSync(sourceDir)) {
+        vscode.window.showErrorMessage(`配置模板目录不存在: ${sourceDir}`);
+        return;
+      }
+
+      const destDir = workspaceFolders[0].uri.fsPath;
+      logger.info(`[InitProject] 从 ${sourceDir} 复制到 ${destDir}`);
+
+      const result = await this._copyConfigFiles(sourceDir, destDir);
+
+      if (result.copied === 0 && result.skipped === 0) {
+        vscode.window.showWarningMessage('未找到任何配置文件');
+        return;
+      }
+
+      if (result.copied > 0) {
+        vscode.window.showInformationMessage(
+          `✅ 项目配置初始化完成！新建 ${result.copied} 个文件，跳过 ${result.skipped} 个已存在文件`
+        );
+      } else {
+        vscode.window.showInformationMessage(
+          `ℹ️ 所有配置文件已存在（${result.skipped} 个），无需操作`
+        );
+      }
+
+      logger.info(`[InitProject] 完成: 新建 ${result.copied}, 跳过 ${result.skipped}`);
+    } catch (error: any) {
+      logger.error(`[InitProject] 初始化失败: ${error.message}`);
+      vscode.window.showErrorMessage(`初始化项目配置失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 递归复制配置文件，跳过已存在的文件
+   */
+  private async _copyConfigFiles(src: string, dest: string): Promise<{ copied: number; skipped: number }> {
+    let copied = 0;
+    let skipped = 0;
+
+    const entries = await fs.promises.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await fs.promises.mkdir(destPath, { recursive: true });
+        const sub = await this._copyConfigFiles(srcPath, destPath);
+        copied += sub.copied;
+        skipped += sub.skipped;
+      } else {
+        if (fs.existsSync(destPath)) {
+          logger.info(`[InitProject] 跳过已存在文件: ${destPath}`);
+          const selection = await vscode.window.showInformationMessage(`跳过已存在的文件: ${path.basename(destPath)}`, '查看源文件');
+          if (selection === '查看源文件') {
+            const uri = vscode.Uri.file(srcPath);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await vscode.window.showTextDocument(doc);
+          }
+          skipped++;
+        } else {
+          await fs.promises.copyFile(srcPath, destPath);
+          logger.info(`[InitProject] 已复制: ${destPath}`);
+          copied++;
+        }
+      }
+    }
+
+    return { copied, skipped };
+  }
+
+  /**
+   * 打开配置模板目录
+   */
+  private async _openConfigDir() {
+    try {
+      const configDir = path.join(this._extensionUri.fsPath, 'public', 'config');
+      if (!fs.existsSync(configDir)) {
+        vscode.window.showErrorMessage(`配置模板目录不存在: ${configDir}`);
+        return;
+      }
+      const uri = vscode.Uri.file(configDir);
+      await vscode.env.openExternal(uri);
+      logger.info(`[OpenConfigDir] 已打开配置目录: ${configDir}`);
+    } catch (error: any) {
+      logger.error(`[OpenConfigDir] 打开配置目录失败: ${error.message}`);
+      vscode.window.showErrorMessage(`打开配置目录失败: ${error.message}`);
     }
   }
 

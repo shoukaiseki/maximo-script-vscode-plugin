@@ -13,16 +13,31 @@
   "createdbyphone": "",
   "scheduledstatus": "",
   "owner": "MAXZHCN",
-  "variables": [],
+  "variables": [
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "varbindingvalue": "DESIGNER",
+      "varname": "beanapp"
+    },
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "varbindingvalue": "results_showlist",
+      "varname": "beanid"
+    }
+  ],
   "comments": "",
-  "autoscript": "APPBEAN.DESIGNER",
+  "autoscript": "DATABEAN.DESIGNER_RESULTS_SHOWLIST",
   "ownername": "",
   "changeby": "MAXADMIN",
-  "autoscriptid": 260,
+  "autoscriptid": 263,
   "active": 1,
   "changedate": "2026-05-29T00:24:30+08:00",
   "ownerid": "",
-  "version": "1.0.193",
+  "version": "1.0.26",
   "orgid": "",
   "statusdate": "2026-05-29T00:23:34+08:00",
   "hasld": 0,

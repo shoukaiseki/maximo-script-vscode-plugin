@@ -9,7 +9,7 @@
     importPackage(Packages.javax.management);
     importPackage(Packages.java.lang.management);
 //直接调用方法的脚本,无任何隐式变量可以使用
-var scriptName="APPBEAN.DESIGNER"//service.getScriptName()
+var scriptName="DATABEAN_DESIGNER_RESULTS_SHOWLIST"//service.getScriptName()
 /** @type {org.apache.log4j.Level} */
 Level = Java.type("org.apache.log4j.Level");
 /** @type {psdi.util.logging.MXLoggerFactory} */
@@ -82,62 +82,60 @@ function initializeApp(dbctx){
 /**
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function reloadcache(dbctx){
+function refreshmaxapp(dbctx){
     initLogger(dbctx);
     logger.debug("[" + scriptName + "] reloadcache")
     logger.info("[" + scriptName + "] reloadcache")
     logger.warn("[" + scriptName + "] reloadcache")
     logger.error("[" + scriptName + "] reloadcache")
-
-    /** @type {psdi.security.SecurityService} */
-    SecurityService = Java.type("psdi.security.SecurityService")
-    var securityService = new SecurityService(MXServer.getMXServer());
-
-    // 通过反射获取 users 字段
-    /** @type {java.lang.reflect.Field} */
-    var Field = Java.type("java.lang.reflect.Field");
-    var usersField = SecurityService.class.getDeclaredField("users");
-    usersField.setAccessible(true);
-    var users = usersField.get(securityService);
-    loggerMX.error("[" + scriptName + "]users: " + users);
-    var userMap = users.get();
-
-    loggerMX.error("[" + scriptName + "]当前登录用户数: " + userMap);
-
-    var profile=securityService.getProfile(dbctx.getUserInfo())
-    loggerMX.error("[" + scriptName + "]profile: " + profile);
-    var appInfo = profile.getAppInfo("IBM_RLFC8", dbctx.getUserInfo());
-
-    logger.info("[" + scriptName + "]appInfo.sks=" + appInfo.get("SKS"));
-    logger.info("[" + scriptName + "]appInfo.INSERT=" + appInfo.get("INSERT"));
-    logger.info("[" + scriptName + "]appInfo.READ=" + appInfo.get("READ"));
-    logger.info("[" + scriptName + "]appInfo.SAVE=" + appInfo.get("SAVE"));
-    appInfo = profile.getAppInfo("DESIGNER", dbctx.getUserInfo());
-    logger.info("[" + scriptName + "]appInfo.DESIGNER.INSERT=" + appInfo.get("INSERT"));
-    logger.info("[" + scriptName + "]appInfo.DESIGNER.READ=" + appInfo.get("READ"));
-    logger.info("[" + scriptName + "]appInfo.DESIGNER.SAVE=" + appInfo.get("SAVE"));
-
-    MXServer.getMXServer().reloadMaximoCache("SECURITY", null, true)
-    logger.info("[" + scriptName + "] reloadMaximoCache")
-    // var clientsession = dbctx.webclientsession();
-    // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp!!!", 1);
-
-
-    var mbeanServer = ManagementFactory.getPlatformMBeanServer();
-    var queryName = new ObjectName("WebSphere:type=SessionStats,*");
-    var mbeans = mbeanServer.queryNames(queryName, null);
-
-    var totalLiveSessions = 0;
-    var iterator = mbeans.iterator();
-    while (iterator.hasNext()) {
-        var name = iterator.next();
-        var liveCount = mbeanServer.getAttribute(name, "LiveCount");
-        if (liveCount != null) {
-            totalLiveSessions += parseInt(liveCount);
-        }
+    var mbo = dbctx.getMbo()
+    logger.info("[" + scriptName + "] mbo= " + mbo)
+    logger.info("[" + scriptName + "] dbctx.getEvent().getType()= " + dbctx.getEvent().getType())
+    if(!mbo){
+        var appInstance = dbctx.getAppInstance()
+        logger.info("[" + scriptName + "] appInstance= " + appInstance)
+        var appBean = appInstance.getAppBean()
+        logger.info("[" + scriptName + "] appBean= " + appBean)
+        mbo = appBean.getMbo()
+        logger.info("[" + scriptName + "] mbo= " + mbo)
+        var appName=mbo.getString("app")
+        logger.info("[" + scriptName + "] appName= " + appName)
     }
-
-    print("当前总会话数: " + totalLiveSessions);
+    var name = mbo.getString("app")
+    logger.info("[" + scriptName + "] reloadcache " + name)
+    try {
+        /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
+        WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
+        /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
+        WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime");//53
+        var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
+        var wcs=dbctx.getEvent().getWebClientSession()
+        // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
+        var wcr = WebClientRuntime.getWebClientRuntime();
+        if (name.equalsIgnoreCase("replibrary")) {
+            wcr.getLibraryDescriptor(name, wcs);
+        } else {
+            /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
+            LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
+            System = Java.type("java.lang.System")
+            LabelCacheMgr.clearCache(name, wcs);
+            LabelCacheMgr.clearSystemCache(wcs);
+            if (wcr.removeAppDescriptor(name) != null) {
+                System.out.println("Refreshed application \"" + name + "\".");
+            } else if (wcr.removeLibraryDescriptor(name) != null) {
+                wcr.getLibraryDescriptor(name, wcs);
+                System.out.println("Refreshed library \"" + name + "\".");
+            } else if (wcr.removeAppXML(name) != null) {
+                System.out.println("Refreshed application \"" + name + "\".");
+            } else {
+                System.out.println("Refresh not necessary for \"" + name.toUpperCase() + "\" application.");
+            }
+        }
+        logger.error("\x1b[35;40m[" + scriptName + "] refreshApp end\x1b[0m")
+    } catch (e) {
+        logger.warn(e)
+        logger.warn("[" + scriptName + "] refreshApp error,正常现象", e)
+    }
 
 }
 
@@ -151,3 +149,11 @@ function _close(set) {
         } catch (ignore) { }
     }
 }
+
+/**
+ * 主要用于vscode插件等方式push的xml文件,刷新应用
+  DESIGNER 应用程序设计器,通过数据查询 select *from MAXPRESENTATION  where app='DESIGNER'
+  复制里面的xml内容,去网上找xml在线格式化,之后保存到 DESIGNER.xml
+  主表列中增加以下按钮
+     <tablecol mxevent="refreshmaxapp" mxevent_desc="刷新应用" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_8"  type="event"/>
+ */

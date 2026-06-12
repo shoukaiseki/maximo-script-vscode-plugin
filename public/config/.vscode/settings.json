@@ -1,0 +1,13 @@
+{
+    "javascript.validate.enable": true,
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "typescript.tsserver.experimental.useVsCodeWatcher": false,
+    "files.watcherExclude": {
+        "**/.lingma/**": true,
+        "**/xmltmp/**": true
+    },
+    "search.exclude": {
+        "**/.lingma": true,
+        "**/xmltmp": true
+    }
+}

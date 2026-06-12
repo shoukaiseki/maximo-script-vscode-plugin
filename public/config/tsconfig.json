@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "lib": ["ES5"],
+    "baseUrl": ".",
+    "paths": {
+      "@javaapi/*": ["./javaapi/*"]
+    },
+    "typeRoots": ["./javaapi"],
+    "types": ["global"],
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true
+  },
+  "include": [
+    "**/*.js",
+    "**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".lingma",
+    "xmltmp"
+  ]
+}
