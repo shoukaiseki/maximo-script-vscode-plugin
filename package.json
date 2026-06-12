@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -165,6 +165,11 @@
           "type": "string",
           "default": "",
           "description": "导出脚本目录（用于存储导出的 Maximo 脚本，持久化保存）"
+        },
+        "maximoScript.exportXmlDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "导出应用XML目录（用于存储导出的 Maximo 应用 XML，持久化保存）"
         },
         "maximoScript.envnum": {
           "type": "string",

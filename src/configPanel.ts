@@ -147,6 +147,12 @@ export class ConfigPanel {
           case 'extractScripts':
             await this._extractScripts(message.directoryPath, message.autoCreateExportDir);
             return;
+          case 'selectDirectoryForExtractXml':
+            await this._selectDirectoryForExtractXml();
+            return;
+          case 'extractAppXml':
+            await this._extractAppXml(message.directoryPath, message.autoCreateExportDir);
+            return;
           case 'queryScripts':
             await this._queryScripts();
             return;
@@ -361,6 +367,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('scriptStoragePath', data.scriptStoragePath, vscode.ConfigurationTarget.Global);
       await config.update('aliasName', data.aliasName || '', vscode.ConfigurationTarget.Global);
       await config.update('exportDirectory', data.exportDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportXmlDirectory', data.exportXmlDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('envnum', data.envnum || 'default', vscode.ConfigurationTarget.Global);
       await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
       await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
@@ -726,6 +733,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       scriptStoragePath: config.get('scriptStoragePath', 'masscript'),
       aliasName: config.get('aliasName', ''),
       exportDirectory: config.get('exportDirectory', ''),
+      exportXmlDirectory: config.get('exportXmlDirectory', ''),
       enableJSDocParsing: config.get('enableJSDocParsing', true),
       enableTypeInference: config.get('enableTypeInference', true),
       autoGenerateReflectionApi: config.get('autoGenerateReflectionApi', false),
@@ -2211,6 +2219,154 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         type: 'success',
         text: '导出目录已保存'
       });
+    }
+  }
+
+  /**
+   * 选择导出应用XML目录
+   */
+  private async _selectDirectoryForExtractXml() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      // 保存到 VSCode 配置（持久化）
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportXmlDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportXmlDirectory] 导出应用XML目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractXmlDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '导出目录已保存'
+      });
+    }
+  }
+
+  /**
+   * 导出 Maximo 应用 XML
+   */
+  private async _extractAppXml(directoryPath: string, autoCreateExportDir: boolean = true) {
+    try {
+      this._sendToolboxOutput('📦 开始导出所有应用 XML...');
+
+      // 获取配置
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      // 创建导出目录
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `app_xml_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      // 步骤1: 获取所有应用名称
+      this._sendToolboxOutput('\n📋 正在获取应用列表...');
+      const screensUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      
+      const screensResult = await httpRequestToMaximo({
+        url: screensUrl,
+        method: 'GET'
+      });
+
+      if (screensResult.status !== 200 || !screensResult.data) {
+        this._sendToolboxOutput(`❌ 获取应用列表失败: HTTP ${screensResult.status}`);
+        return;
+      }
+
+      let screenNames: string[];
+      if (Array.isArray(screensResult.data.screenNames)) {
+        screenNames = screensResult.data.screenNames;
+      } else {
+        this._sendToolboxOutput('❌ 应用列表格式不正确');
+        return;
+      }
+
+      this._sendToolboxOutput(`✅ 共找到 ${screenNames.length} 个应用`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // 步骤2: 逐个获取每个应用的 Presentation XML
+      for (let i = 0; i < screenNames.length; i++) {
+        const screenName = screenNames[i];
+
+        try {
+          this._sendToolboxOutput(`[${i + 1}/${screenNames.length}] 正在导出: ${screenName}`);
+
+          const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}`;
+          const screenResult = await httpRequestToMaximo({
+            url: screenUrl,
+            method: 'GET'
+          });
+
+          if (screenResult.status !== 200 || !screenResult.data) {
+            failCount++;
+            this._sendToolboxOutput(`  ❌ 获取失败: HTTP ${screenResult.status}`);
+            continue;
+          }
+
+          const presentation = screenResult.data.presentation;
+          if (!presentation) {
+            failCount++;
+            this._sendToolboxOutput(`  ⚠️ 应用 ${screenName} 没有 Presentation XML`);
+            continue;
+          }
+
+          // 保存 XML 文件
+          const xmlFilePath = path.join(exportDir, `${screenName}.xml`);
+          fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
+          successCount++;
+          this._sendToolboxOutput(`  ✅ 已保存: ${screenName}.xml`);
+
+        } catch (error: any) {
+          failCount++;
+          this._sendToolboxOutput(`  ❌ 导出失败: ${error.message}`);
+          logger.error(`[ExtractAppXml] 导出 ${screenName} 失败: ${error.message}`);
+        }
+      }
+
+      this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractAppXml] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractAppXmlComplete' });
     }
   }
 

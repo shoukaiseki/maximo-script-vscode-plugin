@@ -28,6 +28,7 @@ interface ConfigData {
   scriptStoragePath: string;
   aliasName: string;
   exportDirectory: string;
+  exportXmlDirectory: string;
   envnum: string;
   envList: string[];
   langcode: string;  // 语言代码
@@ -37,7 +38,7 @@ interface ConfigData {
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState('connection');
-  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear', 'deploy', 'extract' or 'initProject'
+  const [activeToolboxTab, setActiveToolboxTab] = useState('init'); // 'init', 'clear', 'deploy', 'extract', 'extractXml' or 'initProject'
   const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
   const [toolboxOutput, setToolboxOutput] = useState<string>('');
   const [deployFilePath, setDeployFilePath] = useState<string>('');
@@ -49,6 +50,8 @@ const App: React.FC = () => {
   const [isDeployRunning, setIsDeployRunning] = useState<boolean>(false);
   const [isExtractRunning, setIsExtractRunning] = useState<boolean>(false);
   const [extractDirectoryPath, setExtractDirectoryPath] = useState<string>('');
+  const [extractXmlDirectoryPath, setExtractXmlDirectoryPath] = useState<string>('');
+  const [isExtractXmlRunning, setIsExtractXmlRunning] = useState<boolean>(false);
   const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
   const [scriptList, setScriptList] = useState<any[]>([]);
   const [isQueryingScripts, setIsQueryingScripts] = useState<boolean>(false);
@@ -73,6 +76,7 @@ const App: React.FC = () => {
     scriptStoragePath: 'masscript',
     aliasName: '',
     exportDirectory: '',
+    exportXmlDirectory: '',
     envnum: 'default',
     envList: [],
     langcode: '',  // 语言代码，空字符串表示未设置
@@ -291,6 +295,9 @@ const App: React.FC = () => {
           if (message.data.exportDirectory) {
             setExtractDirectoryPath(message.data.exportDirectory);
           }
+          if (message.data.exportXmlDirectory) {
+            setExtractXmlDirectoryPath(message.data.exportXmlDirectory);
+          }
           break;
         case 'setDirectoryPath':
           setConfig(prev => ({ ...prev, localApiPath: message.path }));
@@ -412,6 +419,16 @@ const App: React.FC = () => {
         case 'extractScriptsComplete':
           // 导出脚本完成
           setIsExtractRunning(false);
+          break;
+        case 'setExtractXmlDirectoryPath':
+          // 设置导出应用XML目录路径
+          setExtractXmlDirectoryPath(message.path);
+          // 同时更新 config 中的 exportXmlDirectory
+          setConfig(prev => ({ ...prev, exportXmlDirectory: message.path }));
+          break;
+        case 'extractAppXmlComplete':
+          // 导出应用XML完成
+          setIsExtractXmlRunning(false);
           break;
         case 'setScriptList':
           // 设置脚本列表
@@ -649,6 +666,31 @@ const App: React.FC = () => {
     getVsCodeApi().postMessage({
       command: 'extractScripts',
       directoryPath: extractDirectoryPath,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
+
+  // 工具箱 - 选择导出应用XML目录
+  const handleSelectExtractXmlDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractXml'
+    });
+  };
+
+  // 工具箱 - 开始导出应用XML
+  const handleStartExtractXml = () => {
+    if (!extractXmlDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractXmlRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractAppXml',
+      directoryPath: extractXmlDirectoryPath,
       autoCreateExportDir: config.autoCreateExportDir
     });
   };
@@ -1232,11 +1274,12 @@ const App: React.FC = () => {
             <h2>工具箱</h2>
             
             {/* 标签页导航 */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid var(--vscode-panel-border)', paddingBottom: '10px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px', borderBottom: '2px solid var(--vscode-panel-border)', paddingBottom: '10px' }}>
               <button
                 onClick={() => setActiveToolboxTab('init')}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
                   background: activeToolboxTab === 'init' ? 'var(--vscode-button-background)' : 'transparent',
                   color: activeToolboxTab === 'init' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
                   border: 'none',
@@ -1250,7 +1293,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setActiveToolboxTab('clear')}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
                   background: activeToolboxTab === 'clear' ? 'var(--vscode-button-background)' : 'transparent',
                   color: activeToolboxTab === 'clear' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
                   border: 'none',
@@ -1259,12 +1303,13 @@ const App: React.FC = () => {
                   fontWeight: activeToolboxTab === 'clear' ? 'bold' : 'normal'
                 }}
               >
-                🗑️ 清除脚本
+                🗑️ 清理脚本
               </button>
               <button
                 onClick={() => setActiveToolboxTab('deploy')}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
                   background: activeToolboxTab === 'deploy' ? 'var(--vscode-button-background)' : 'transparent',
                   color: activeToolboxTab === 'deploy' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
                   border: 'none',
@@ -1278,7 +1323,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setActiveToolboxTab('extract')}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
                   background: activeToolboxTab === 'extract' ? 'var(--vscode-button-background)' : 'transparent',
                   color: activeToolboxTab === 'extract' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
                   border: 'none',
@@ -1290,9 +1336,25 @@ const App: React.FC = () => {
                 📥 导出脚本
               </button>
               <button
+                onClick={() => setActiveToolboxTab('extractXml')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractXml' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractXml' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractXml' ? 'bold' : 'normal'
+                }}
+              >
+                📦 导出应用XML
+              </button>
+              <button
                 onClick={() => setActiveToolboxTab('initProject')}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
                   background: activeToolboxTab === 'initProject' ? 'var(--vscode-button-background)' : 'transparent',
                   color: activeToolboxTab === 'initProject' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
                   border: 'none',
@@ -1747,6 +1809,109 @@ const App: React.FC = () => {
                   }}
                 >
                   {!extractDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractRunning ? '⏳ 正在导出...' : '📥 开始导出')}
+                </button>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，请选择导出目录并点击“开始导出”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* 导出应用XML标签页 */}
+            {activeToolboxTab === 'extractXml' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-terminal-ansiYellow)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📦 导出 Maximo 应用 XML</p>
+                  <p style={{ margin: '0 0 10px 0' }}>
+                    此功能将从 Maximo 服务器导出应用界面配置（Presentation XML），保存到本地目录。
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                    📌 <strong>使用说明：</strong><br/>
+                    1. 选择要保存 XML 的本地目录<br/>
+                    2. 可选勾选“生成备份目录”以创建带时间戳的子目录<br/>
+                    3. 点击“开始导出”按钮<br/>
+                    4. 等待导出完成，所有应用配置将保存为 .xml 文件
+                  </p>
+                </div>
+
+                {/* 导出目录选择 */}
+                <div className="form-group">
+                  <label>选择导出目录：</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={extractXmlDirectoryPath}
+                      readOnly
+                      placeholder="选择要保存应用 XML 的目录"
+                      style={{ flex: 1 }}
+                    />
+                    <button onClick={handleSelectExtractXmlDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+                  </div>
+                </div>
+
+                {/* 选项配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!config.autoCreateExportDir}
+                      onChange={(e) => updateConfig({ autoCreateExportDir: !e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>不自动生成导出目录（直接保存到选择的目录）</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {!config.autoCreateExportDir 
+                      ? '✅ 直接保存到选择的目录'
+                      : '⚠️ 将创建时间戳子目录（如：app_xml_backup_20260523_143025/）'}
+                  </p>
+                </div>
+
+                <button 
+                  onClick={handleStartExtractXml}
+                  disabled={!extractXmlDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    opacity: (!extractXmlDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning) ? 0.6 : 1,
+                    cursor: (!extractXmlDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!extractXmlDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractXmlRunning ? '⏳ 正在导出...' : '📦 开始导出')}
                 </button>
 
                 {/* 输出日志区域 */}

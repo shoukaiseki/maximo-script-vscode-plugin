@@ -5,6 +5,76 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.2] - 2026-06-10
+
+### 新增功能
+
+#### 工具箱“初始化当前项目”标签页
+- ✨ 新增项目配置初始化功能
+  - 从插件 `public/config` 目录复制配置文件到当前工作区
+  - 已存在的文件自动跳过，不会覆盖
+  - 跳过时弹出通知提示，提供“查看源文件”按钮
+  - 新增 `openConfigDir` 命令，可快速打开配置模板目录
+
+#### 工具箱“导出应用XML”标签页
+- ✨ 新增导出所有应用 Presentation XML 功能
+  - 调用 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本获取应用列表和 XML
+  - 支持自动生成带时间戳的备份目录
+  - 导出目录独立持久化配置（`exportXmlDirectory`）
+  - 逐个导出每个应用的 XML 文件（`{APP_NAME}.xml`）
+  - 实时显示导出进度和统计信息
+
+### 改进优化
+
+#### 导出目录配置分离
+- 🔧 导出应用XML与导出脚本使用独立的持久化目录配置
+  - 新增 `maximoScript.exportXmlDirectory` 配置项
+  - 与原有的 `maximoScript.exportDirectory` 互不干扰
+
+#### 工具箱标签页布局优化
+- 🔧 标签页选项卡支持多行显示（`flexWrap: wrap`）
+  - 单个标签文字不换行（`whiteSpace: nowrap`）
+  - 缩小按钮内边距，适配更多标签
+
+#### 通知弹出问题修复
+- 🐛 修复初始化项目配置时跳过文件通知未弹出的问题
+  - 将 `.then()` 回调改为 `await`，确保通知同步显示
+  - 同样修复 reflectionDataManager.ts 中的通知弹出问题
+
+#### 其他改进
+- 🔧 AnsiLoggerConfig.d.ts 新增 `printModel` 参数
+  - 用于在 MXLogger 无效时启用打印模式
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.exportXmlDirectory` 配置项定义
+  - `src/configPanel.ts`
+    - 新增 `_initProject()` 方法：初始化当前项目配置
+    - 新增 `_copyConfigFiles()` 方法：递归复制配置文件并跳过已存在文件
+    - 新增 `_openConfigDir()` 方法：打开配置模板目录
+    - 新增 `_selectDirectoryForExtractXml()` 方法：选择并持久化导出 XML 目录
+    - 新增 `_extractAppXml()` 方法：调用 SCREENS 脚本导出应用 XML
+    - `_sendInitialConfig()` 和 `_saveConfig()` 添加 `exportXmlDirectory` 字段
+  - `webview-ui/src/App.tsx`
+    - 新增“初始化当前项目”标签页 UI
+    - 新增“导出应用XML”标签页 UI
+    - ConfigData 接口添加 `exportXmlDirectory` 字段
+    - 工具箱标签页布局优化（多行显示 + 不换行）
+  - `src/reflectionDataManager.ts`
+    - 修复通知弹出问题，将 `.then()` 改为 `await`
+  - `public/javaapisource/jscustom/AnsiLoggerConfig.d.ts`
+    - 新增 `printModel` 参数
+
+### 注意事项
+
+- ⚠️ 导出应用XML功能需要 Maximo 系统中部署 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本
+- ⚠️ 初始化项目配置从插件目录的 `public/config` 复制，请确保该目录存在
+- ⚠️ 导出应用XML与导出脚本使用独立的目录配置，互不影响
+
+---
+
 ## [1.4.1] - 2026-06-10
 
 ### 问题修复
