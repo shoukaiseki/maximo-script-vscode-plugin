@@ -62,6 +62,8 @@ if(orderunit != null){
 main()
 
 function main(){
+    var clientsession = dbctx.webclientsession();
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.initialize触发了!!!", 1);
 
 }
 

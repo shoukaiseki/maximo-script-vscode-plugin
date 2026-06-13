@@ -6,7 +6,8 @@
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
 // load('nashorn:mozilla_compat.js');
-//无任何变量可以使用
+//-------------------------------------------
+// 直接调用方法的脚本,无任何隐式变量可以使用
 var scriptName="APPBEAN.IBM_ADDITEMAPPLY"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
@@ -23,7 +24,7 @@ var logger=null
 
 
 /**
- * 初始化日志记录器
+ * 初始化日志记录器,在bean脚本中,每次都需要调用该方法以初始化logger
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function initLogger(dbctx){
@@ -43,6 +44,8 @@ function initLogger(dbctx){
  */
 function initializeApp(dbctx){
     initLogger(dbctx);
+    var clientsession = dbctx.webclientsession();
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
 
 
     logger.info("[" + scriptName + "] initializeApp")
@@ -53,7 +56,7 @@ function initializeApp(dbctx){
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function MKITEM(dbctx) {
-    initLogger(dbctx)
+    initLogger(dbctx);
     logger.info("[" + scriptName + "] MKITEM")
 }
 
@@ -62,7 +65,7 @@ function MKITEM(dbctx) {
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function setFocus(dbctx) {
-    initLogger(dbctx)
+    initLogger(dbctx);
     logger.info("[" + scriptName + "] setFocus")
 }
 
@@ -72,7 +75,7 @@ function setFocus(dbctx) {
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function selectrecord(dbctx) {
-    initLogger(dbctx)
+    initLogger(dbctx);
     logger.info("[" + scriptName + "] selectrecord")
 }
 
@@ -81,13 +84,13 @@ function selectrecord(dbctx) {
 
 /**
  * 无需配置其它信息, APPBEAN.应用名
- * 
 {
   "owneremail": "",
   "createdbyid": "",
   "description": "测试",
   "launchPoints": [],
   "createdbyemail": "",
+  "sks:interface": "interface的值一定要=1",
   "interface": 1,
   "scriptlanguage": "JavaScript",
   "langcode": "ZH",

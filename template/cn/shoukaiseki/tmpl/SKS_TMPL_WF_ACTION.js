@@ -40,7 +40,6 @@ action表
 //params[1] WFInstance
 //params[2] WFAction
  */
-main()
 /** @type {com.ibm.tivoli.maximo.script.ScriptService} */
 var serviceTmp=service
 
@@ -69,8 +68,13 @@ var wfInstance=params[1]
 /** @type {psdi.workflow.WFAction} */
 var wfAction=params[2]
 
+main()
 function main(){
-
+  var clientsession = service.webclientsession();
+  //clientsession这个没法多语言
+  // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+  //工作流中使用异常提示用户信息,需要使用errgroup=workflow,不然会显示嵌套异常
+  throw new MXApplicationException("workflow", "ibm_item_notdraftnostartwf")
     // throw new MXApplicationException("ibm_test","ok")
 }
 
@@ -79,6 +83,7 @@ function main(){
 action
     action: SKS_TMPL_WF_ACTION
     PARAMETER: SKS_TMPL_WF_ACTION.SKS_TMPL_WF_ACTION.ABC
+    class: com.ibm.tivoli.maximo.script.ScriptAction
 
 {
   "owneremail": "",

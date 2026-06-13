@@ -6,7 +6,7 @@
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
 // load('nashorn:mozilla_compat.js');
-//无任何变量可以使用
+// 直接调用方法的脚本,无任何隐式变量可以使用
 var scriptName="DATABEAN.IBM_ADDITEMAPPLY.RESULTS_SHOWLIST"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
@@ -30,6 +30,7 @@ SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
 /** @type {jscustom.AnsiLogger} */
 var logger=null
 
+clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.加载了!!!", 1);
 
 /**
  * 初始化日志记录器
@@ -52,6 +53,8 @@ function initLogger(dbctx){
  */
 function initialize(dbctx){
     initLogger(dbctx);
+    var clientsession = dbctx.webclientsession();
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp!!!", 1);
 
     /** @type {psdi.webclient.system.controller.AppInstance} */
     var appInstance = dbctx.getAppInstance();
@@ -68,9 +71,24 @@ function initialize(dbctx){
 /**
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function sendemail(dbctx){
+function test(dbctx){
     initLogger(dbctx);
-    logger.info("[" + scriptName + "] sendemail")
+    logger.info("[" + scriptName + "] test")
+
+    var mbo = dbctx.getMbo()
+    logger.info("[" + scriptName + "] mbo= " + mbo)
+    logger.info("[" + scriptName + "] dbctx.getEvent().getType()= " + dbctx.getEvent().getType())
+    if(!mbo){
+        var appInstance = dbctx.getAppInstance()
+        logger.info("[" + scriptName + "] appInstance= " + appInstance)
+        var appBean = appInstance.getAppBean()
+        logger.info("[" + scriptName + "] appBean= " + appBean)
+      //应用主列表按钮的mbo获取
+        mbo = appBean.getMbo()
+        logger.info("[" + scriptName + "] mbo= " + mbo)
+        var appName=mbo.getString("app")
+        logger.info("[" + scriptName + "] appName= " + appName)
+    }
 }
 
 /**
@@ -84,13 +102,15 @@ function addrow(dbctx){
 
 
 /**
-  
+ * 一定要DATABEAN. 开头
+ * 
 {
   "owneremail": "",
   "createdbyid": "",
   "description": "零件申请主表",
   "launchPoints": [],
   "createdbyemail": "",
+  "sks:interface": "interface的值一定要=1",
   "interface": 1,
   "scriptlanguage": "JavaScript",
   "langcode": "ZH",

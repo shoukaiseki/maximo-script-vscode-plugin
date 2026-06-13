@@ -51,6 +51,8 @@ if(appName=="IBM_ITEM"){
     }
 }
 
+var clientsession = service.webclientsession();
+clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
 
 
 /**

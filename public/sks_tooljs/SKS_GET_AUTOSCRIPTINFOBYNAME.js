@@ -102,31 +102,51 @@ try {
           ADDUPDATEDELETE.push("删除")
         }
         var EVENTTYPE=""
-        if(lp.getString("EVENTTYPE")==="0"){
-          EVENTTYPE="初始化值"
+        var EVCONTEXT = ""
+        if(lp.getString("LAUNCHPOINTTYPE")==="OBJECT"){
+          if (lp.getString("EVENTTYPE") === "0") {
+            EVENTTYPE = "初始化值"
+          }
+          if (lp.getString("EVENTTYPE") === "1") {
+            EVENTTYPE = "验证应用程序"
+          }
+          if (lp.getString("EVENTTYPE") === "2") {
+            EVENTTYPE = "允许创建对象"
+          }
+          if (lp.getString("EVENTTYPE") === "3") {
+            EVENTTYPE = "允许删除对象"
+          }
+          if (lp.getString("EVENTTYPE") === "4") {
+            EVENTTYPE = "保存"
+          }
+          if (lp.getString("EVCONTEXT") === "0") {
+            EVCONTEXT = "保存前"
+          }
+          if (lp.getString("EVCONTEXT") === "1") {
+            EVCONTEXT = "保存后"
+          }
+          if (lp.getString("EVCONTEXT") === "2") {
+            EVCONTEXT = "落实后"
+          }
+        }else{
+          var objectevent=lp.getInt("OBJECTEVENT")
+          if (objectevent === 0) {
+            EVENTTYPE = "验证"
+          }
+          if ((objectevent & 1) === 1) {
+            EVENTTYPE = "运行操作"
+          }
+          if ((objectevent & 2) === 2) {
+            EVENTTYPE = "初始化值"
+          }
+          if ((objectevent & 8) === 8) {
+            EVENTTYPE = "初始化访问限制"
+          }
+          if ((objectevent & 64) === 64) {
+            EVENTTYPE = "检索列表"
+          }
         }
-        if(lp.getString("EVENTTYPE")==="1"){
-          EVENTTYPE="验证应用程序"
-        }
-        if(lp.getString("EVENTTYPE")==="2"){
-          EVENTTYPE="允许创建对象"
-        }
-        if(lp.getString("EVENTTYPE")==="3"){
-          EVENTTYPE="允许删除对象"
-        }
-        if(lp.getString("EVENTTYPE")==="4"){
-          EVENTTYPE="保存"
-        }
-        var EVCONTEXT=""
-        if(lp.getString("EVCONTEXT")==="0"){
-          EVCONTEXT="保存前"
-        }
-        if(lp.getString("EVCONTEXT")==="1"){
-          EVCONTEXT="保存后"
-        }
-        if(lp.getString("EVCONTEXT")==="2"){
-          EVCONTEXT="落实后"
-        }
+
         
         var lpObj = new JSONObject();
          
@@ -149,7 +169,6 @@ try {
         lpObj.put("attributename", lp.getString("ATTRIBUTENAME"));
         lpObj.put("objectevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("OBJECTEVENT").getMaxType()));
         lpObj.put("condition", lp.getString("CONDITION"));
-        lpObj.put("attributeevent", lp.getString("ATTRIBUTEEVENT"));
         lpObj.put("active", ScriptUtil.getValueFromMaxType(lp.getMboValue("ACTIVE").getMaxType()));
 
         lpArr.add(lpObj);

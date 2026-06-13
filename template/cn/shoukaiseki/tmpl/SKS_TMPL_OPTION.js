@@ -27,4 +27,6 @@ main()
 
 function main(){
 
+var clientsession = service.webclientsession();
+clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
 }

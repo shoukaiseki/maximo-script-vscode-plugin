@@ -24,6 +24,8 @@ srcKeys = Arrays.asList(["LOCATION"]);
 //存到当前对象的哪个字段
 targetKeys= Arrays.asList(["IBM_STOREROOM"]);
 
+var clientsession = service.webclientsession();
+clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
 
 
 /**
