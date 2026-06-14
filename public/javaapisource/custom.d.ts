@@ -7,10 +7,18 @@
 /** HTTP 请求对象 */
 declare var request: com.ibm.tivoli.maximo.oslc.provider.OslcRequest;
 
+/** HTTP 响应头对象
+ * 返回的header使用responseHeaders变量设置,默认是"application/json"
+ * responseHeaders.put("content-type", "application/json");
+ */
+declare var responseHeaders: java.util.HashMap;
+
 /** HTTP 请求体字符串 */
 declare var requestBody: string;
 
-/** HTTP 响应体字符串（用于设置返回值） */
+/** HTTP 响应体字符串（用于设置返回值）
+ * 返回的设置到responseBody变量,String类型或者 byte[]类型
+ */
 declare var responseBody: string;
 
 /** HTTP 方法 (GET, POST, PUT, DELETE) */
@@ -48,24 +56,24 @@ declare var value: any;
 /** 属性的旧值 */
 declare var oldValue: any;
 
-var mbovalue: psdi.mbo.MboValue;
+declare var mbovalue: psdi.mbo.MboValue;
 
 //不推荐使用,子表获取会为null
 //推荐使用以下方式获取
 // var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
-var app: string
+declare var app: string
 
 /** MBO 属性名称 */
-var mboattr: string
+declare var mboattr: string
 
 /** 脚本名称 */
-var scriptName: string
+declare var scriptName: string
 
 /** 启动点名称 */
-var launchPoint: string
+declare var launchPoint: string
 
 /** MBO 名称 */
-var mboname: string
+declare var mboname: string
 
 
 /**

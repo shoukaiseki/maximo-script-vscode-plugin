@@ -48,13 +48,14 @@ MXAccessException = Java.type("psdi.util.MXAccessException");
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");//59
+logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------001" );
 
 var PresentationLoader = null
 try {
+    PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     importClass(Packages.psdi.webclient.system.controller.PresentationLoader);
     importClass(Packages.psdi.webclient.system.session.WebClientSessionFactory);
     importClass(Packages.psdi.webclient.system.runtime.WebClientRuntime);
-    PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
     /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
     WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime");//53
@@ -63,7 +64,8 @@ try {
     /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
     LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
 } catch (ignored) {
-    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS]",ignored);
+    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SHARPTREE.AUTOSCRIPT.SCREENS 应该就可以了"+ignored);
+    logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------002");
 }
 
 
@@ -84,11 +86,13 @@ try {
         throw error;
     }
 }
+logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------003" );
 
 StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
 logger.setLevel(Level.INFO);
 
+logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------004" );
 function ImportAppScript(xml){
     logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript")
     this.xml = xml;
