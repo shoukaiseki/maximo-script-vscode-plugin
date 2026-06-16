@@ -5,6 +5,8 @@
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+StringWriter = Java.type("java.io.StringWriter")
+PrintWriter = Java.type("java.io.PrintWriter")
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init start\x1b[0m")
 logger.info('\x1b[31m红色文本\x1b[0m'); // 红色文本，\x1b[0m重置颜色
@@ -19,6 +21,49 @@ if(logger.isInfoEnabled()){
     logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init debug\x1b[0m")
     logger.info(formatMsgByAnsiCode("[SKS_LOG_ANSI_UTILS] formatMsgByAnsiCode","31"))
     logger.info(formatMsgByLevel("[SKS_LOG_ANSI_UTILS] formatMsgByLevel","DEBUG"))
+}
+
+function getErrorStackTrace(error){
+    scriptName="[SKS_LOG_ANSI_UTILS]";
+    logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace\x1b[0m");
+    var errorMessage;
+    if(!error){
+        logger.error("\x1b[31m[" + scriptName + "] getErrorStackTrace error is null\x1b[0m");
+        return "error is null"
+    }
+    try{
+        logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace 001\x1b[0m");
+        if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+            logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace 002\x1b[0m");
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError \x1b[0m")
+            // 打印堆栈跟踪
+            errorMessage = error.getStackTrace();
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError: " + errorMessage);
+        } else if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError \x1b[0m")
+            errorMessage = error.getStackTrace();
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError: " + errorMessage);
+        } else if (error instanceof org.openjdk.nashorn.api.scripting.ScriptObjectMirror) {
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror2 \x1b[0m"+error);
+            // logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror 002\x1b[0m");
+            errorMessage = error.stack
+            //error.message
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror: " + errorMessage);
+        }else{
+            logger.warn("\x1b[31m[" + scriptName + "] " , error);
+            // logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror 002\x1b[0m");
+            var sw=new StringWriter();
+            var pw=new PrintWriter(sw);
+            error.printStackTrace(pw);
+            errorMessage = sw.toString();
+        }
+        return errorMessage
+    }catch(ignored){
+        try{
+            logger.error("\x1b[31m[" + scriptName + "] getErrorStackTrace error!!"+ ignored)
+        }catch(ignored2){}
+        return error.toString();
+    }
 }
 
  function formatMsgByAnsiCode (msg,ansiCode) {
@@ -112,10 +157,10 @@ AnsiLogger.prototype.warn = function (msg,error) {
         return 
     }
     var formattedMsg=formatMsgByLevel(msg,"WARN",this.ansiOpen)
-    if(error){
-        this.logger.warn(formattedMsg,error)
-    } else {
+    if(typeof error === "undefined" || error == null || !error){
         this.logger.warn(formattedMsg)
+    } else {
+        this.logger.warn(formattedMsg+"\n"+getErrorStackTrace(error))
     }
 }
 
@@ -125,10 +170,10 @@ AnsiLogger.prototype.error = function (msg,error) {
         return 
     }
     var formattedMsg=formatMsgByLevel(msg,"ERROR",this.ansiOpen)
-    if(error){
-        this.logger.error(formattedMsg,error)
-    } else {
+    if(typeof error === "undefined" || error == null || !error){
         this.logger.error(formattedMsg)
+    } else {
+        this.logger.error(formattedMsg+"\n"+getErrorStackTrace(error))
     }
 }
 AnsiLogger.prototype.isDebugEnabled = function () {

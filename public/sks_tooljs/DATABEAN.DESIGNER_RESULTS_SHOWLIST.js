@@ -144,7 +144,21 @@ function refreshmaxapp(dbctx){
 
 }
 
-/**
+/**刷新所有应用权限
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ */
+function refreshallauth(dbctx){
+    initLogger(dbctx);
+    var userInfo = dbctx.getUserInfo()
+    var securityService = MXServer.getMXServer().lookup("SECURITY");
+    // 获取 Profile
+    var profile = securityService.getProfile(userInfo);
+    profile.dumpAppAuth();//刷新所有应用权限
+    var clientsession = dbctx.webclientsession();
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----应用权限已刷新OK----" , 1);
+}
+
+/**刷新应用权限
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function refreshauth(dbctx){
@@ -167,24 +181,23 @@ function refreshauth(dbctx){
     // 获取 Profile
     var profile = securityService.getProfile(userInfo);
     // profile.dumpAppAuth();//刷新所有应用权限
-
-
-
+    //刷新应用权限
     profile.updateAppMaps(app,userInfo)
 
-    /** @type {java.util.TreeMap<java.lang.Integer, java.util.Hashtable<string, string>>} */
-    var appMenu=profile.getAppMenu(app, userInfo);
+    // /** @type {java.util.TreeMap<java.lang.Integer, java.util.Hashtable<string, string>>} */
+    // var appMenu=profile.getAppMenu(app, userInfo);
     // JSONObject = Java.type("com.ibm.json.java.JSONObject");
-    var moduleMapJS = javaMapToJS(appMenu);
-    logger.info("[" + scriptName + "]-------------getAppMenu keys=" + JSON.stringify((moduleMapJS)));
 
-    appMenu=profile.getAppTools(app,userInfo)
-    moduleMapJS = javaMapToJS(appMenu);
-    logger.info("[" + scriptName + "]-------------getAppTools keys=" + JSON.stringify((moduleMapJS)));
+    // var moduleMapJS = javaMapToJS(appMenu);
+    // logger.info("[" + scriptName + "]-------------getAppMenu keys=" + JSON.stringify((moduleMapJS)));
 
-    appMenu=profile.getAppSearch(app,userInfo)
-    moduleMapJS = javaMapToJS(appMenu);
-    logger.info("[" + scriptName + "]-------------getAppSearch keys=" + JSON.stringify((moduleMapJS)));
+    // appMenu=profile.getAppTools(app,userInfo)
+    // moduleMapJS = javaMapToJS(appMenu);
+    // logger.info("[" + scriptName + "]-------------getAppTools keys=" + JSON.stringify((moduleMapJS)));
+
+    // appMenu=profile.getAppSearch(app,userInfo)
+    // moduleMapJS = javaMapToJS(appMenu);
+    // logger.info("[" + scriptName + "]-------------getAppSearch keys=" + JSON.stringify((moduleMapJS)));
 
 
     var clientsession = dbctx.webclientsession();
@@ -271,10 +284,23 @@ function javaMapToJS(javaMap) {
 }
 
 /**
- * 主要用于vscode插件等方式push的xml文件,刷新应用
-  DESIGNER 应用程序设计器,通过数据查询 select *from MAXPRESENTATION  where app='DESIGNER'
-  复制里面的xml内容,去网上找xml在线格式化,之后保存到 DESIGNER.xml
+  1.安全组授权后权限刷新
+ 2.用于vscode插件等方式push的xml文件,刷新应用(不一定有效)
+ 
+ DESIGNER 应用程序设计器,随便找个应用导出(例如ITEM),然后在导出的url上将targetid改成dedesigner
+  maximo/ui/item.xml?event=exportxml&designmode=true&targetid=designer
+
   主表列中增加以下按钮
-            <tablecol mxevent="refreshauth" mxevent_desc="刷新应用权限" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_8"  type="event"/>
-              <tablecol mxevent="refreshmaxapp" mxevent_desc="刷新应用" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_9"  type="event"/>
+<tablecol mxevent="refreshauth" mxevent_desc="刷新应用权限" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_8"  type="event"/>
+<tablecol mxevent="refreshmaxapp" mxevent_desc="刷新应用" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_9"  type="event"/>
+
+
+放到table里面
+<table>
+<tablebody>
+</tablebody>
+<buttongroup id="resultsButtongroup">
+    <pushbutton disabledonclick="true" id="results_btn_po_bottom" label="重载所有应用权限" mxevent="refreshallauth"/>
+</buttongroup>
+</table>
  */

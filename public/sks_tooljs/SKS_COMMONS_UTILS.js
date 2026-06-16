@@ -14,22 +14,11 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 
+var scriptName = "SKS_COMMONS_UTILS"
+
 /** @type {psdi.util.logging.MaximoLogger} */
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
-// function getErrorStackTrace(error){
-//     var errorMessage;
-//     if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
-//         logger.warn("\x1b[31m[" + scriptName + "]Nashorn NativeTypeError \x1b[0m")
-//         // 打印堆栈跟踪
-//         errorMessage = error.getStackTrace();
-//         logger.error("Nashorn NativeTypeError: " + errorMessage);
-//         return false
-//     }
-//     return {
-//         message: errorMessage,
-//     }
-// }
 
 /**
  * 获取MBO的布尔值
