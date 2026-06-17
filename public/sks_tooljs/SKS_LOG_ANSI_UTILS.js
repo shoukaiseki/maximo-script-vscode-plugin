@@ -5,8 +5,6 @@
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
-StringWriter = Java.type("java.io.StringWriter")
-PrintWriter = Java.type("java.io.PrintWriter")
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init start\x1b[0m")
 logger.info('\x1b[31m红色文本\x1b[0m'); // 红色文本，\x1b[0m重置颜色
@@ -23,6 +21,13 @@ if(logger.isInfoEnabled()){
     logger.info(formatMsgByLevel("[SKS_LOG_ANSI_UTILS] formatMsgByLevel","DEBUG"))
 }
 
+/**
+ *  获取错误堆栈跟踪
+    var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+    sksLogAnsiUtils.getErrorStackTrace(error)
+ * @param {*} error 
+ * @returns 
+ */
 function getErrorStackTrace(error){
     scriptName="[SKS_LOG_ANSI_UTILS]";
     logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace\x1b[0m");
@@ -52,6 +57,8 @@ function getErrorStackTrace(error){
         }else{
             logger.warn("\x1b[31m[" + scriptName + "] " , error);
             // logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror 002\x1b[0m");
+            StringWriter = Java.type("java.io.StringWriter")
+            PrintWriter = Java.type("java.io.PrintWriter")
             var sw=new StringWriter();
             var pw=new PrintWriter(sw);
             error.printStackTrace(pw);
@@ -96,6 +103,13 @@ function formatMsgByLevel(msg,levelStr,ansiOpen) {
     return stmp
 }
 
+/**
+ * 
+    var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+    logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+ * @param {*} config 
+ * @returns 
+ */
 function newAnsiLogger(config) {
     return new AnsiLogger(config)
 }
