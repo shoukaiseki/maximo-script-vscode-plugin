@@ -785,11 +785,13 @@ function createOrUpdateMaxVar(maxvar) {
                 maxvarType = maxvarTypeSet.moveFirst();
             }
 
-            if (typeof maxvar.defaultValue !== "undefined" && maxvar.defaultValue) {
-                maxvarType.setValue("DEFAULTVALUE", maxvar.defaultValue);
-            } else {
-                maxvarType.setValueNull("DEFAULTVALUE");
-            }
+            try{
+                if (typeof maxvar.defaultValue !== "undefined" && maxvar.defaultValue) {
+                    maxvarType.setValue("DEFAULTVALUE", maxvar.defaultValue);
+                } else {
+                    maxvarType.setValueNull("DEFAULTVALUE");
+                }
+            }catch(eignore){}
 
             if (typeof maxvar.description !== "undefined" && maxvar.description) {
                 maxvarType.setValue("DESCRIPTION", maxvar.description);

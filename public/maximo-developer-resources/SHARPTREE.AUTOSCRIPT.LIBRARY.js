@@ -2161,12 +2161,14 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
         mbo.setValue("DESCRIPTION", this.description);
 
+        if(mbo.toBeAdded()){
+
+            if (this.entity != null) {
+                mbo.setValue("ENTITYNAME", this.entity);
+            }
+        }
         if (this.service != null) {
             mbo.setValue("SERVICENAME", this.service);
-        }
-
-        if (this.entity != null) {
-            mbo.setValue("ENTITYNAME", this.entity);
         }
 
         if (this.class != null) {
@@ -2307,6 +2309,8 @@ MaxObject.prototype.setMboValues = function (mbo) {
               if (attribute != null) {
                   attribute.delete();
               }
+          }else if(attribute&&attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))){
+            //不是新增的就忽略主键ID
           } else {
               if (!attribute) {
                   attribute = attributeSet.add();
@@ -2319,22 +2323,22 @@ MaxObject.prototype.setMboValues = function (mbo) {
                   attribute.setValue("REMARKS", attributeConfig.description);
                   attribute.setValue("TITLE", attributeConfig.title);
 
-                  if (typeof attributeConfig.class !== "undefined") {
+                  if (typeof attributeConfig.class !== "undefined"&&!attribute.getMboValueData("CLASSNAME").isReadOnly()) {
                       attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
                   }
 
                   //只有等同对象为空的时候才会设置type和length
                   if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
                       if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
-                          attributeConfig.type == null ? attribute.setValueNull("MAXTYPE") : attribute.setValue("MAXTYPE", attributeConfig.type);
+                          attributeConfig.type == null ? attribute.setValueNull("MAXTYPE",2) : attribute.setValue("MAXTYPE", attributeConfig.type,2);
                       }
 
                       if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
-                          attribute.setValue("LENGTH", attributeConfig.length);
+                          attribute.setValue("LENGTH", attributeConfig.length,2);
                       }
 
                       if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
-                          attribute.setValue("SCALE", attributeConfig.scale);
+                          attribute.setValue("SCALE", attributeConfig.scale,2);
                       }
                   }
 
@@ -2342,22 +2346,24 @@ MaxObject.prototype.setMboValues = function (mbo) {
                       attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
                   }
 
-                  if (typeof attributeConfig.defaultValue !== "undefined") {
-                      if (attributeConfig.defaultValue == null) {
-                          attribute.setValueNull("DEFAULTVALUE")
-                          logger.debug("attributeConfig.defaultValue=null")
-                      } else {
-                          attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-                          logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                  try{
+                      if (typeof attributeConfig.defaultValue !== "undefined") {
+                          if (attributeConfig.defaultValue == null) {
+                              attribute.setValueNull("DEFAULTVALUE")
+                              logger.debug("attributeConfig.defaultValue=null")
+                          } else {
+                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                          }
                       }
-                  }
+                  }catch(ei){}
 
-                  if (typeof attributeConfig.domain !== "undefined") {
+                  if (typeof attributeConfig.domain !== "undefined"&&!attribute.getMboValueData("DOMAINID").isReadOnly()) {
                       attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
                   }
 
                   if (typeof attributeConfig.alias !== "undefined") {
-                      attributeConfig.alias == null ? attribute.setValueNull("ALIAS") : attribute.setValue("ALIAS", attributeConfig.alias);
+                      attributeConfig.alias == null ? attribute.setValueNull("ALIAS",2) : attribute.setValue("ALIAS", attributeConfig.alias,2);
                   }
 
                   if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
@@ -2374,13 +2380,13 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
                   if (typeof attributeConfig.sameAsObject !== "undefined") {
                       attributeConfig.sameAsObject == null
-                          ? attribute.setValueNull("SAMEASOBJECT")
-                          : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject);
+                          ? attribute.setValueNull("SAMEASOBJECT",2)
+                          : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject,2);
                   }
                   if (typeof attributeConfig.sameAsAttribute !== "undefined") {
                       attributeConfig.sameAsAttribute == null
-                          ? attribute.setValueNull("SAMEASATTRIBUTE")
-                          : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute);
+                          ? attribute.setValueNull("SAMEASATTRIBUTE",2)
+                          : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute,2);
                   }
 
                   if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
