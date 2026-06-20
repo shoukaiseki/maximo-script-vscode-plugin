@@ -95,13 +95,13 @@ function getCompleteReflectInfo(className) {
                 logger.info("成功加载内部类: " + possibleInnerClass);
                 className = possibleInnerClass;  // 更新类名
             } catch (innerError) {
-                logger.error("无法加载类 " + className + ": " + classError.message);
+                logger.warn("无法加载类 " + className + ": " + classError.message);
                 /** @type {psdi.util.MXApplicationException} */
                 var MXApplicationException = Java.type("psdi.util.MXApplicationException");
                 throw new MXApplicationException("error", "无法加载类: " + className + " - " + classError.message);
             }
         } else {
-            logger.error("无法加载类 " + className + ": " + classError.message);
+            logger.warn("无法加载类 " + className + ": " + classError.message);
             /** @type {psdi.util.MXApplicationException} */
             var MXApplicationException = Java.type("psdi.util.MXApplicationException");
             throw new MXApplicationException("error", "无法加载类: " + className + " - " + classError.message);
@@ -187,7 +187,7 @@ function getCompleteReflectInfo(className) {
         };
         
     } catch (error) {
-        logger.error("获取类信息失败: " + error.message);
+        logger.warn("获取类信息失败: " + error.message);
         
         /** @type {psdi.util.MXApplicationException} */
         var MXApplicationException = Java.type("psdi.util.MXApplicationException");

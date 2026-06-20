@@ -24,6 +24,7 @@
   - [导入脚本](#导入脚本)
   - [导出应用XML](#导出应用xml)
   - [清除脚本](#清除脚本)
+  - [修复应用XML重复ID](#修复应用xml重复id)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
   - [版本检查](#版本检查)
 
@@ -902,6 +903,45 @@ app_xml_backup_20260610_143025/
 
 ---
 
+### 修复应用XML重复ID
+
+**功能**：自动检测并修复 XML 文件中重复的 `id` 属性值，保留注释内容不被修改。
+
+**使用方式**：
+1. 在编辑器中打开 XML 文件
+2. 右键菜单 → **"Maximo Script: 修复应用XML重复ID"**
+
+**处理逻辑**：
+- 扫描文件中所有带 `id="..."` 属性的元素
+- 自动跳过 `<!-- ... -->` 注释区域内的 id，不做任何修改
+- 保留每个 id 值的第一次出现，后续重复的自动生成新 ID 替换
+- 新 ID 格式：16 位随机字母数字混合字符串，确保不与现有 id 冲突
+- 修复完成后提示修复了多少个重复的 id
+
+**示例**：
+```xml
+<!-- 原始 XML -->
+<presentation id="abc123">
+  <textbox id="field1" />
+  <textbox id="field1" />  <!-- 重复 -->
+  <!-- <textbox id="field1" /> -->  <!-- 注释内，不处理 -->
+</presentation>
+
+<!-- 修复后 -->
+<presentation id="abc123">
+  <textbox id="field1" />
+  <textbox id="x7Kp2mN9qR4w" />  <!-- 已生成新 ID -->
+  <!-- <textbox id="field1" /> -->  <!-- 注释保持不变 -->
+</presentation>
+```
+
+**注意事项**：
+- ⚠️ 不会处理没有 id 属性的元素
+- ⚠️ 不会修改注释内的任何内容
+- ⚠️ 如果没有重复的 id，会提示“没有重复的 id”
+
+---
+
 ## 📥 脚本 Pull 和 Push
 
 ### 前置配置
@@ -1274,4 +1314,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-06-10 | 版本：1.4.2*
+*最后更新：2026-05-20 | 版本：1.4.3*

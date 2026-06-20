@@ -53,7 +53,7 @@ function main() {
         responseBody = tsContent;
         
     } catch (error) {
-        logger.error("反射分析失败: " + error.message);
+        logger.warn("反射分析失败: " + error.message);
         
         /** @type {Object} */
         var errorData = {
@@ -102,7 +102,7 @@ function generateTypeScript(className) {
         clazz = Class.forName(className);
         logger.info("成功加载类: " + className);
     } catch (classError) {
-        logger.error("无法加载类 " + className + ": " + classError.message);
+        logger.warn("无法加载类 " + className + ": " + classError.message);
         /** @type {psdi.util.MXApplicationException} */
         var MXApplicationException = Java.type("psdi.util.MXApplicationException");
         throw new MXApplicationException("error", "无法加载类: " + className + " - " + classError.message);

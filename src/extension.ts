@@ -643,6 +643,167 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(fetchReflectionLocalCommand);
+
+  // 注册修复XML重复ID命令
+  const fixXmlIdsCommand = vscode.commands.registerCommand('maximoScript.fixXmlIds', async () => {
+    try {
+      const editor = vscode.window.activeTextEditor;
+      
+      if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+      }
+      
+      const document = editor.document;
+      
+      // 只处理 XML 文件
+      if (document.languageId !== 'xml') {
+        vscode.window.showErrorMessage('只能在 XML 文件中使用此功能');
+        return;
+      }
+      
+      const fullText = document.getText();
+      
+      // 1. 找出所有注释区域，避免修改注释内的 id
+      const commentRanges: Array<{start: number, end: number}> = [];
+      const commentRegex = /<!--[\s\S]*?-->/g;
+      let commentMatch;
+      while ((commentMatch = commentRegex.exec(fullText)) !== null) {
+        commentRanges.push({ start: commentMatch.index, end: commentMatch.index + commentMatch[0].length });
+      }
+      
+      // 判断某个位置是否在注释内
+      const isInComment = (pos: number): boolean => {
+        return commentRanges.some(r => pos >= r.start && pos < r.end);
+      };
+      
+      // 2. 找出所有 id="..." 属性（匹配 id="value" 或 id='value'）
+      const idAttrRegex = /\bid\s*=\s*"([^"]*)"/g;
+      const idOccurrences: Array<{matchStart: number, matchEnd: number, valueStart: number, valueEnd: number, value: string}> = [];
+      let idMatch;
+      while ((idMatch = idAttrRegex.exec(fullText)) !== null) {
+        if (!isInComment(idMatch.index)) {
+          idOccurrences.push({
+            matchStart: idMatch.index,
+            matchEnd: idMatch.index + idMatch[0].length,
+            valueStart: idMatch.index + idMatch[0].indexOf(idMatch[1]),
+            valueEnd: idMatch.index + idMatch[0].indexOf(idMatch[1]) + idMatch[1].length,
+            value: idMatch[1]
+          });
+        }
+      }
+      
+      if (idOccurrences.length === 0) {
+        vscode.window.showInformationMessage('未找到任何 id 属性');
+        return;
+      }
+      
+      // 3. 找出重复的 id
+      const seenIds = new Map<string, number>(); // id value -> first occurrence index
+      const duplicates: Array<{index: number, oldValue: string}> = [];
+      
+      for (let i = 0; i < idOccurrences.length; i++) {
+        const occ = idOccurrences[i];
+        if (seenIds.has(occ.value)) {
+          duplicates.push({ index: i, oldValue: occ.value });
+        } else {
+          seenIds.set(occ.value, i);
+        }
+      }
+      
+      if (duplicates.length === 0) {
+        vscode.window.showInformationMessage(`共找到 ${idOccurrences.length} 个 id 属性，没有重复的 id`);
+        return;
+      }
+      
+      // 4. 生成新的唯一 ID
+      // const generateNewId = (): string => {
+      //   const chars = '0123456789abcdef';
+      //   let result = 'crea';
+      //   for (let i = 0; i < 8; i++) {
+      //     result += chars[Math.floor(Math.random() * chars.length)];
+      //   }
+      //   result = 'tach_id_'+result;
+      //   for (let i = 0; i < 8; i++) {
+      //     result += chars[Math.floor(Math.random() * chars.length)];
+      //   }
+      //   return result;
+      // };
+      const generateNewId = (): string => {
+        const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        // 提取一个生成指定长度随机字符串的辅助函数
+        const getRandomString = (length: number): string => {
+          let res = "";
+          for (let i = 0; i < length; i++) {
+            res += chars[Math.floor(Math.random() * chars.length)];
+          }
+          return res;
+        };
+
+        // 使用模板字符串直接拼接最终结果
+        // let newId = `tach_id_crea${getRandomString(8)}${getRandomString(8)}`;
+        let newId = `${getRandomString(8)}${getRandomString(8)}`;
+        return newId;
+      };
+
+      
+      // 确保新ID不会与现有的重复
+      const allExistingIds = new Set(idOccurrences.map(o => o.value));
+      const newIdSet = new Set<string>();
+      
+      const getUniqueId = (): string => {
+        let newId = generateNewId();
+        let attempts = 0;
+        while ((allExistingIds.has(newId) || newIdSet.has(newId)) && attempts < 100) {
+          newId = generateNewId();
+          attempts++;
+        }
+        newIdSet.add(newId);
+        return newId;
+      };
+      
+      // 5. 从后往前替换（避免偏移变化）
+      const edits: Array<{range: vscode.Range, newText: string}> = [];
+      for (const dup of duplicates) {
+        const occ = idOccurrences[dup.index];
+        const newId = getUniqueId();
+        const startPos = document.positionAt(occ.valueStart);
+        const endPos = document.positionAt(occ.valueEnd);
+        edits.push({
+          range: new vscode.Range(startPos, endPos),
+          newText: newId
+        });
+      }
+      
+      // 按位置倒序排列
+      edits.sort((a, b) => {
+        const lineDiff = b.range.start.line - a.range.start.line;
+        if (lineDiff !== 0) { return lineDiff; }
+        return b.range.start.character - a.range.start.character;
+      });
+      
+      // 应用编辑
+      const success = await editor.edit(editBuilder => {
+        for (const edit of edits) {
+          editBuilder.replace(edit.range, edit.newText);
+        }
+      });
+      
+      if (success) {
+        logger.info(`[FixXmlIds] ✅ 修复了 ${duplicates.length} 个重复的 id`);
+        vscode.window.showInformationMessage(`修复完成！共修复了 ${duplicates.length} 个重复的 id 属性`);
+      } else {
+        logger.error('[FixXmlIds] ❌ 编辑失败');
+        vscode.window.showErrorMessage('修复失败，请重试');
+      }
+    } catch (error: any) {
+      console.log(error);
+      logger.error(`[FixXmlIds] ❌ 执行失败: ${error.message}`);
+      vscode.window.showErrorMessage(`修复失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(fixXmlIdsCommand);
 }
 
 export function deactivate() {

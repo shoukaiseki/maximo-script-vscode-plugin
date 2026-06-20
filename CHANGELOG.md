@@ -5,6 +5,29 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.3] - 2026-05-20
+
+### 新增功能
+
+#### 修复应用XML重复ID
+- ✨ 新增 XML 文件右键菜单「修复应用XML重复ID」功能
+  - 扫描 XML 文件中所有带 `id` 属性的元素
+  - 自动检测重复 ID，保留第一个，后续重复的随机生成新 ID
+  - 保留原有 XML 注释内容（跳过注释内的 id 属性）
+  - 修复完成后提示修复了多少个重复的 ID
+  - 新生成的 ID 格式：16 位随机字母数字混合字符串
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.fixXmlIds` 命令定义
+    - `editor/context` 菜单为 XML 文件添加入口
+  - `src/extension.ts`
+    - 新增 `fixXmlIds` 命令实现：注释区域识别、id 属性扫描、重复检测、随机 ID 生成、倒序编辑替换
+
+---
+
 ## [1.4.2] - 2026-06-10
 
 ### 新增功能

@@ -57,7 +57,7 @@ function main() {
         responseBody = JSON.stringify(result, null, 4);
         
     } catch (error) {
-        logger.error("反射分析失败: " + error.message);
+        logger.warn("反射分析失败: " + error.message);
         
         /** @type {Object} */
         var errorData = {
@@ -83,7 +83,7 @@ function getReflectInfo(className) {
         logger.info("成功加载类: " + className);
         
     } catch (classError) {
-        logger.error("无法加载类 " + className + ": " + classError.message);
+        logger.warn("无法加载类 " + className + ": " + classError.message);
         /** @type {psdi.util.MXApplicationException} */
         var MXApplicationException = Java.type("psdi.util.MXApplicationException");
         throw new MXApplicationException("error", "无法加载类: " + className + " - " + classError.message);
@@ -140,7 +140,7 @@ function getReflectInfo(className) {
         };
         
     } catch (error) {
-        logger.error("获取类信息失败: " + error.message);
+        logger.warn("获取类信息失败: " + error.message);
         
         /** @type {psdi.util.MXApplicationException} */
         var MXApplicationException = Java.type("psdi.util.MXApplicationException");

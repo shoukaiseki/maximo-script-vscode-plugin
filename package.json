@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -66,6 +66,10 @@
       {
         "command": "maximoScript.fetchReflectionLocal",
         "title": "Maximo Script: 通过本地反射获取类反射信息"
+      },
+      {
+        "command": "maximoScript.fixXmlIds",
+        "title": "Maximo Script: 修复应用XML重复ID"
       }
     ],
     "menus": {
@@ -89,6 +93,11 @@
           "command": "maximoScript.fetchReflectionLocal",
           "when": "editorLangId == javascript && editorHasSelection",
           "group": "navigation@3"
+        },
+        {
+          "command": "maximoScript.fixXmlIds",
+          "when": "editorLangId == xml",
+          "group": "navigation@2"
         }
       ]
     },
