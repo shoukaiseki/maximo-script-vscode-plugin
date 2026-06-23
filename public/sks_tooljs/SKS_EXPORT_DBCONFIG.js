@@ -419,7 +419,7 @@ function exportRelationships(objectName) {
         
         /** @type {psdi.mbo.SqlFormat} */
         var sqlf = new SqlFormat("parent = :1");
-        sqlf.setObject(1, "MAXRELATIONSHIP", "PARENT", objectName);
+        sqlf.setString(1, objectName);
         maxRelationshipSet.setWhere(sqlf.format());
         maxRelationshipSet.reset();
         

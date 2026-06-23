@@ -57,7 +57,7 @@ function main() {
         responseBody = JSON.stringify(result, null, 4);
         
     } catch (error) {
-        logger.error("反射分析失败: " + error.message);
+        logger.warn("反射分析失败: " + error.message);
         
         /** @type {Object} */
         var errorData = {
