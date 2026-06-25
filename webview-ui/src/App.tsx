@@ -34,6 +34,7 @@ interface ConfigData {
   langcode: string;  // 语言代码
   pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
   autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
+  exportMaxobjectDirectory: string;
 }
 
 const App: React.FC = () => {
@@ -52,6 +53,8 @@ const App: React.FC = () => {
   const [extractDirectoryPath, setExtractDirectoryPath] = useState<string>('');
   const [extractXmlDirectoryPath, setExtractXmlDirectoryPath] = useState<string>('');
   const [isExtractXmlRunning, setIsExtractXmlRunning] = useState<boolean>(false);
+  const [extractMaxobjectDirectoryPath, setExtractMaxobjectDirectoryPath] = useState<string>('');
+  const [isExtractMaxobjectRunning, setIsExtractMaxobjectRunning] = useState<boolean>(false);
   const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
   const [scriptList, setScriptList] = useState<any[]>([]);
   const [isQueryingScripts, setIsQueryingScripts] = useState<boolean>(false);
@@ -82,6 +85,7 @@ const App: React.FC = () => {
     langcode: '',  // 语言代码，空字符串表示未设置
     pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
     autoCreateExportDir: true,  // 默认自动生成导出目录
+    exportMaxobjectDirectory: '',
   });
   
   // 环境配置缓存
@@ -298,6 +302,9 @@ const App: React.FC = () => {
           if (message.data.exportXmlDirectory) {
             setExtractXmlDirectoryPath(message.data.exportXmlDirectory);
           }
+          if (message.data.exportMaxobjectDirectory) {
+            setExtractMaxobjectDirectoryPath(message.data.exportMaxobjectDirectory);
+          }
           break;
         case 'setDirectoryPath':
           setConfig(prev => ({ ...prev, localApiPath: message.path }));
@@ -429,6 +436,15 @@ const App: React.FC = () => {
         case 'extractAppXmlComplete':
           // 导出应用XML完成
           setIsExtractXmlRunning(false);
+          break;
+        case 'setExtractMaxobjectDirectoryPath':
+          // 设置导出MAXOBJECT目录路径
+          setExtractMaxobjectDirectoryPath(message.path);
+          setConfig(prev => ({ ...prev, exportMaxobjectDirectory: message.path }));
+          break;
+        case 'extractMaxobjectComplete':
+          // 导出MAXOBJECT完成
+          setIsExtractMaxobjectRunning(false);
           break;
         case 'setScriptList':
           // 设置脚本列表
@@ -691,6 +707,38 @@ const App: React.FC = () => {
     getVsCodeApi().postMessage({
       command: 'extractAppXml',
       directoryPath: extractXmlDirectoryPath,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
+
+  // 工具箱 - 选择导出MAXOBJECT目录
+  const handleSelectExtractMaxobjectDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractMaxobject'
+    });
+  };
+
+  // 工具箱 - 打开MAXOBJECT配置文件
+  const handleOpenMaxobjectConfig = () => {
+    getVsCodeApi().postMessage({
+      command: 'openMaxobjectConfig'
+    });
+  };
+
+  // 工具箱 - 开始导出MAXOBJECT
+  const handleStartExtractMaxobject = () => {
+    if (!extractMaxobjectDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractMaxobjectRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractMaxobject',
+      directoryPath: extractMaxobjectDirectoryPath,
       autoCreateExportDir: config.autoCreateExportDir
     });
   };
@@ -1351,6 +1399,21 @@ const App: React.FC = () => {
                 📦 导出应用XML
               </button>
               <button
+                onClick={() => setActiveToolboxTab('extractMaxobject')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractMaxobject' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractMaxobject' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractMaxobject' ? 'bold' : 'normal'
+                }}
+              >
+                🗄️ 导出MAXOBJECT
+              </button>
+              <button
                 onClick={() => setActiveToolboxTab('initProject')}
                 style={{
                   padding: '6px 10px',
@@ -1912,6 +1975,130 @@ const App: React.FC = () => {
                   }}
                 >
                   {!extractXmlDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractXmlRunning ? '⏳ 正在导出...' : '📦 开始导出')}
+                </button>
+
+                {/* 输出日志区域 */}
+                <div style={{ 
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '4px',
+                  padding: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                    <button 
+                      onClick={handleClearToolboxOutput}
+                      style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <pre style={{ 
+                    margin: 0,
+                    padding: '10px',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9em'
+                  }}>
+                    {toolboxOutput || '准备就绪，请选择导出目录并点击“开始导出”按钮...'}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* 导出MAXOBJECT标签页 */}
+            {activeToolboxTab === 'extractMaxobject' && (
+              <div>
+                <div style={{ 
+                  padding: '15px', 
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderLeft: '4px solid var(--vscode-terminal-ansiCyan)',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🗄️ 导出 MAXOBJECT</p>
+                  <p style={{ margin: '0 0 10px 0' }}>
+                    此功能将从 Maximo 服务器导出数据库对象配置（DBCONFIG），保存为 JSON 文件到本地目录。
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                    📌 <strong>使用说明：</strong><br/>
+                    1. 选择要保存 JSON 的本地目录<br/>
+                    2. 可选勾选“不自动生成导出目录”<br/>
+                    3. 点击“打开配置文件”可编辑导出过滤配置<br/>
+                    4. 点击“开始导出”按钮，使用多线程并发导出
+                  </p>
+                </div>
+
+                {/* 导出目录选择 */}
+                <div className="form-group">
+                  <label>选择导出目录：</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={extractMaxobjectDirectoryPath}
+                      readOnly
+                      placeholder="选择要保存 MAXOBJECT JSON 的目录"
+                      style={{ flex: 1 }}
+                    />
+                    <button onClick={handleSelectExtractMaxobjectDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+                  </div>
+                </div>
+
+                {/* 选项配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!config.autoCreateExportDir}
+                      onChange={(e) => updateConfig({ autoCreateExportDir: !e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>不自动生成导出目录（直接保存到选择的目录）</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {!config.autoCreateExportDir 
+                      ? '✅ 直接保存到选择的目录'
+                      : '⚠️ 将创建时间戳子目录（如：maxobject_backup_20260523_143025/）'}
+                  </p>
+                </div>
+
+                {/* 打开配置文件按钮 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <button 
+                    onClick={handleOpenMaxobjectConfig}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                      color: 'var(--vscode-button-secondaryForeground)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📝 打开导出配置文件
+                  </button>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    编辑配置文件可设置 onlyInclude、includeMaxobjects、ignoreMaxobjects 等过滤选项
+                  </p>
+                </div>
+
+                <button 
+                  onClick={handleStartExtractMaxobject}
+                  disabled={!extractMaxobjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '20px',
+                    opacity: (!extractMaxobjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning) ? 0.6 : 1,
+                    cursor: (!extractMaxobjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!extractMaxobjectDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractMaxobjectRunning ? '⏳ 正在导出...' : '🗄️ 开始导出')}
                 </button>
 
                 {/* 输出日志区域 */}

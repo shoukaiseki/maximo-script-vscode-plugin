@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -70,6 +70,10 @@
       {
         "command": "maximoScript.fixXmlIds",
         "title": "Maximo Script: 修复应用XML重复ID"
+      },
+      {
+        "command": "maximoScript.pullAppXml",
+        "title": "Maximo Script: Pull 应用 XML"
       }
     ],
     "menus": {
@@ -98,6 +102,18 @@
           "command": "maximoScript.fixXmlIds",
           "when": "editorLangId == xml",
           "group": "navigation@2"
+        },
+        {
+          "command": "maximoScript.pullAppXml",
+          "when": "editorLangId == xml",
+          "group": "navigation@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "maximoScript.pullAppXml",
+          "when": "resourceLangId == xml",
+          "group": "navigation@1"
         }
       ]
     },
@@ -179,6 +195,11 @@
           "type": "string",
           "default": "",
           "description": "导出应用XML目录（用于存储导出的 Maximo 应用 XML，持久化保存）"
+        },
+        "maximoScript.exportMaxobjectDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "导出MAXOBJECT目录（用于存储导出的 MAXOBJECT DBCONFIG JSON，持久化保存）"
         },
         "maximoScript.envnum": {
           "type": "string",

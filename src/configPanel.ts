@@ -203,6 +203,15 @@ export class ConfigPanel {
             // 打开配置模板目录
             await this._openConfigDir();
             return;
+          case 'selectDirectoryForExtractMaxobject':
+            await this._selectDirectoryForExtractMaxobject();
+            return;
+          case 'extractMaxobject':
+            await this._extractMaxobject(message.directoryPath, message.autoCreateExportDir);
+            return;
+          case 'openMaxobjectConfig':
+            await this._openMaxobjectConfig();
+            return;
         }
       },
       null,
@@ -372,6 +381,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
       await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
       await config.update('autoCreateExportDir', data.autoCreateExportDir !== undefined ? data.autoCreateExportDir : true, vscode.ConfigurationTarget.Global);  // 导出脚本时自动生成目录
+      await config.update('exportMaxobjectDirectory', data.exportMaxobjectDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
@@ -746,7 +756,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       envList: envNames,
       langcode: config.get('langcode', ''),  // 语言代码，空字符串表示未设置
       pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true),  // 推送 XML 时始终使用 MAXAUTH，默认为 true
-      autoCreateExportDir: config.get('autoCreateExportDir', true)  // 导出脚本时自动生成目录，默认为 true
+      autoCreateExportDir: config.get('autoCreateExportDir', true),  // 导出脚本时自动生成目录，默认为 true
+      exportMaxobjectDirectory: config.get('exportMaxobjectDirectory', '')
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -3272,6 +3283,275 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     } catch (error: any) {
       logger.error(`[ViewUserInfo] 获取用户信息失败: ${error.message}`);
       vscode.window.showErrorMessage(`获取用户信息失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取 MAXOBJECT 配置文件路径
+   */
+  private _getMaxobjectConfigPath(): string {
+    const homeDir = require('os').homedir();
+    return path.join(homeDir, '.sks', 'maximo-script-helper', 'exp_maxobject_config.json');
+  }
+
+  /**
+   * 确保 MAXOBJECT 配置文件存在，不存在则从模板复制
+   */
+  private _ensureMaxobjectConfig(): string {
+    const configPath = this._getMaxobjectConfigPath();
+    const configDir = path.dirname(configPath);
+
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(configPath)) {
+      const templatePath = path.join(this._extensionUri.fsPath, 'template', 'plguin', 'exp_maxobject_config.json');
+      if (fs.existsSync(templatePath)) {
+        fs.copyFileSync(templatePath, configPath);
+        logger.info(`[MaxobjectConfig] 已从模板复制配置文件: ${configPath}`);
+      } else {
+        const defaultConfig = {
+          onlyInclude: false,
+          includeMaxobjects: [],
+          ignoreMaxobjects: []
+        };
+        fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');
+        logger.info(`[MaxobjectConfig] 已创建默认配置文件: ${configPath}`);
+      }
+    }
+
+    return configPath;
+  }
+
+  /**
+   * 读取 MAXOBJECT 配置
+   */
+  private _readMaxobjectConfig(): any {
+    const configPath = this._ensureMaxobjectConfig();
+    try {
+      const content = fs.readFileSync(configPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error: any) {
+      logger.error(`[MaxobjectConfig] 读取配置失败: ${error.message}`);
+      return { onlyInclude: false, includeMaxobjects: [], ignoreMaxobjects: [] };
+    }
+  }
+
+  /**
+   * 打开 MAXOBJECT 配置文件
+   */
+  private async _openMaxobjectConfig() {
+    try {
+      const configPath = this._ensureMaxobjectConfig();
+      const uri = vscode.Uri.file(configPath);
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, { preview: false });
+      logger.info(`[OpenMaxobjectConfig] 已打开配置文件: ${configPath}`);
+    } catch (error: any) {
+      logger.error(`[OpenMaxobjectConfig] 打开配置文件失败: ${error.message}`);
+      vscode.window.showErrorMessage(`打开配置文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 选择导出 MAXOBJECT 目录
+   */
+  private async _selectDirectoryForExtractMaxobject() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportMaxobjectDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportMaxobjectDirectory] 导出MAXOBJECT目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractMaxobjectDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '导出目录已保存'
+      });
+    }
+  }
+
+  /**
+   * 导出 MAXOBJECT
+   */
+  private async _extractMaxobject(directoryPath: string, autoCreateExportDir: boolean = true) {
+    try {
+      this._sendToolboxOutput('📦 开始导出 MAXOBJECT...');
+
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `maxobject_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      this._sendToolboxOutput('\n📋 正在获取 MAXOBJECT 列表...');
+      const maxobjectUrl = `script/SKS_GET_MAXOBJECTNAMES`;
+      
+      const maxobjectResult = await httpRequestToMaximo({
+        url: maxobjectUrl,
+        method: 'GET'
+      });
+
+      if (maxobjectResult.status !== 200 || !maxobjectResult.data) {
+        this._sendToolboxOutput(`❌ 获取 MAXOBJECT 列表失败: HTTP ${maxobjectResult.status}`);
+        return;
+      }
+
+      let allObjects: any[];
+      if (Array.isArray(maxobjectResult.data)) {
+        allObjects = maxobjectResult.data;
+      } else if (maxobjectResult.data.member && Array.isArray(maxobjectResult.data.member)) {
+        allObjects = maxobjectResult.data.member;
+      } else {
+        this._sendToolboxOutput('❌ MAXOBJECT 列表格式不正确');
+        return;
+      }
+
+      this._sendToolboxOutput(`✅ 共获取到 ${allObjects.length} 个 MAXOBJECT`);
+
+      const maxobjectConfig = this._readMaxobjectConfig();
+      const onlyInclude = maxobjectConfig.onlyInclude || false;
+      const includeMaxobjects = maxobjectConfig.includeMaxobjects || [];
+      const ignoreMaxobjects = new Set(maxobjectConfig.ignoreMaxobjects || []);
+
+      let targetObjects: any[];
+      
+      if (onlyInclude) {
+        const includeSet = new Set(includeMaxobjects.map((n: string) => n.toUpperCase()));
+        targetObjects = allObjects.filter(obj => {
+          const name = obj.objectName || obj.OBJECTNAME || '';
+          return includeSet.has(name.toUpperCase()) && !ignoreMaxobjects.has(name.toUpperCase());
+        });
+        this._sendToolboxOutput(`📌 模式: 仅包含 includeMaxobjects 中的对象，过滤后共 ${targetObjects.length} 个`);
+      } else {
+        targetObjects = allObjects.filter(obj => {
+          const name = obj.objectName || obj.OBJECTNAME || '';
+          return !ignoreMaxobjects.has(name.toUpperCase());
+        });
+        this._sendToolboxOutput(`📌 模式: 全部导出（排除 ignoreMaxobjects 中的），过滤后共 ${targetObjects.length} 个`);
+      }
+
+      if (targetObjects.length === 0) {
+        this._sendToolboxOutput('⚠️ 没有需要导出的对象');
+        return;
+      }
+
+      const concurrency = 5;
+      let successCount = 0;
+      let failCount = 0;
+      let currentIndex = 0;
+      const total = targetObjects.length;
+
+      this._sendToolboxOutput(`\n🚀 开始导出，并发数: ${concurrency}`);
+
+      const exportSingle = async (obj: any, index: number): Promise<boolean> => {
+        const objectName = obj.objectName || obj.OBJECTNAME || '';
+        const description = obj.description || obj.DESCRIPTION || '';
+
+        try {
+          this._sendToolboxOutput(`[${index + 1}/${total}] 正在导出: ${objectName}${description ? ` (${description})` : ''}`);
+
+          const exportUrl = `script/SKS_EXPORT_DBCONFIG`;
+          const exportResult = await httpRequestToMaximo({
+            url: exportUrl,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            data: { objectNames: [objectName] }
+          });
+
+          if (exportResult.status !== 200 || !exportResult.data) {
+            this._sendToolboxOutput(`  ❌ 导出失败: ${objectName} - HTTP ${exportResult.status}`);
+            return false;
+          }
+
+          let responseData = exportResult.data;
+          if (typeof responseData === 'string') {
+            try {
+              responseData = JSON.parse(responseData);
+            } catch (e) {
+              this._sendToolboxOutput(`  ⚠️ ${objectName} 返回数据不是 JSON，跳过`);
+              return false;
+            }
+          }
+
+          const fileName = `DBCONFIG_${objectName}.json`;
+          const filePath = path.join(exportDir, fileName);
+          fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+          
+          this._sendToolboxOutput(`  ✅ 已保存: ${fileName}`);
+          return true;
+
+        } catch (error: any) {
+          this._sendToolboxOutput(`  ❌ 导出异常: ${objectName} - ${error.message}`);
+          logger.error(`[ExtractMaxobject] 导出 ${objectName} 失败: ${error.message}`);
+          return false;
+        }
+      };
+
+      const workers = Array.from({ length: Math.min(concurrency, total) }, async (_, workerId) => {
+        while (true) {
+          const index = currentIndex++;
+          if (index >= total) break;
+          
+          const success = await exportSingle(targetObjects[index], index);
+          if (success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        }
+      });
+
+      await Promise.all(workers);
+
+      this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractMaxobject] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractMaxobjectComplete' });
     }
   }
 

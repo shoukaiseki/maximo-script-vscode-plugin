@@ -258,6 +258,132 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(pushXmlToMaximoCommand);
 
+  // 注册 Pull 应用 XML 命令
+  const pullAppXmlCommand = vscode.commands.registerCommand('maximoScript.pullAppXml', async (uri?: vscode.Uri) => {
+    try {
+      let filePath: string | undefined;
+      let fileContent: string | undefined;
+
+      if (uri) {
+        filePath = uri.fsPath;
+        fileContent = require('fs').readFileSync(filePath, 'utf-8');
+        logger.info(`[PullAppXml] 从资源管理器右键菜单触发: ${filePath}`);
+      } else {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showErrorMessage('没有打开的编辑器');
+          return;
+        }
+        const document = editor.document;
+        if (document.languageId !== 'xml') {
+          vscode.window.showErrorMessage('只能在 XML 文件中使用此功能');
+          return;
+        }
+        filePath = document.fileName;
+        fileContent = document.getText();
+        logger.info(`[PullAppXml] 从编辑器右键菜单触发: ${filePath}`);
+      }
+
+      if (!filePath || !fileContent) {
+        vscode.window.showErrorMessage('无法获取文件内容');
+        return;
+      }
+
+      const path = require('path');
+      const fs = require('fs');
+      const fileName = path.basename(filePath, '.xml');
+
+      const idMatch = fileContent.match(/<presentation[^>]*\sid=["']([^"']+)["']/i);
+      if (!idMatch) {
+        vscode.window.showErrorMessage('未找到 presentation 元素的 id 属性');
+        return;
+      }
+
+      const presentationId = idMatch[1];
+      logger.info(`[PullAppXml] 文件名: ${fileName}, presentation id: ${presentationId}`);
+
+      if (fileName !== presentationId) {
+        const choice = await vscode.window.showWarningMessage(
+          `文件名与 id 属性值不同，是否继续？\n文件名: ${fileName}\nid属性: ${presentationId}`,
+          { modal: true },
+          '确定',
+          '取消'
+        );
+        if (choice !== '确定') {
+          logger.info(`[PullAppXml] 用户取消操作`);
+          return;
+        }
+      }
+
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      if (!serverUrl) {
+        vscode.window.showErrorMessage('请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        vscode.window.showErrorMessage('配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `正在 Pull 应用 XML: ${presentationId}`,
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: '正在从 Maximo 获取应用 XML...' });
+
+          const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
+          const screenResult = await httpRequestToMaximo({
+            url: screenUrl,
+            method: 'GET'
+          });
+
+          if (screenResult.status !== 200 || !screenResult.data) {
+            throw new Error(`获取应用 XML 失败: HTTP ${screenResult.status}`);
+          }
+
+          const presentation = screenResult.data.presentation;
+          if (!presentation) {
+            throw new Error(`应用 ${presentationId} 没有 Presentation XML`);
+          }
+
+          progress.report({ message: '正在备份原文件...' });
+
+          const os = require('os');
+          const backupDir = path.join(os.homedir(), '.sks', 'maxbackup', 'maxappxmlbackup', 'maxappxml');
+          if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir, { recursive: true });
+          }
+
+          const now = new Date();
+          const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+          const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+          const backupFileName = `${presentationId}_${timestamp}.xml`;
+          const backupFilePath = path.join(backupDir, backupFileName);
+
+          fs.copyFileSync(filePath, backupFilePath);
+          logger.info(`[PullAppXml] 原文件已备份: ${backupFilePath}`);
+
+          progress.report({ message: '正在写入新文件...' });
+
+          fs.writeFileSync(filePath, presentation, 'utf-8');
+          logger.info(`[PullAppXml] ✅ ${presentationId}.xml 已更新`);
+
+          vscode.window.showInformationMessage(`应用 XML 已更新: ${presentationId}`);
+        }
+      );
+
+    } catch (error: any) {
+      logger.error(`[PullAppXml] ❌ Pull 失败: ${error.message}`);
+      vscode.window.showErrorMessage(`Pull 应用 XML 失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(pullAppXmlCommand);
+
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
     try {

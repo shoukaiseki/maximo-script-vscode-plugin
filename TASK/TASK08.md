@@ -54,3 +54,19 @@ curl --request POST \
 	"objectNames": ["ITEM"]
 }'
 ```
+
+# 03
+右键点击资源管理器中的xml文件名的时候,加个右键菜单,pull应用xml
+然后读取文件内容,解析 文件中 presentation 元素的 id 属性
+```
+<presentation id="ibm_crl" ismobile="false" mboname="IBM_RLLINE" version="6.0.0">
+```
+如果属性值跟文件名不同,则提示 "文件名跟id属性值不同,是否继续?"
+
+提示框加个取消按钮,取消则不处理,确定则继续处理
+
+使用工具箱中导出应用xml的接口功能,导出单个应用xml,应用名称取 id属性值
+
+获取xml内容之后,更改原来的文件复制到 ~/.sks/maxbackup/maxappxmlbackup/maxappxml/<应用名称>_<yyyyMMdd_HHmmssSSS>.xml
+
+之后再将接口获取的xml内容写入当时右键点击的文件中

@@ -5,6 +5,74 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.5] - 2026-06-25
+
+### 新增功能
+
+#### 工具箱“导出MAXOBJECT”标签页
+- ✨ 新增批量导出 Maximo 数据库对象配置功能
+  - 调用 `SKS_GET_MAXOBJECTNAMES` 接口获取所有 MAXOBJECT 列表
+  - 支持配置文件过滤（`onlyInclude`、`includeMaxobjects`、`ignoreMaxobjects`）
+  - 多线程并发导出（默认5个并发）
+  - 导出结果保存为 `DBCONFIG_${objectName}.json`
+  - 支持自动生成带时间戳的备份目录
+  - 导出目录独立持久化配置（`exportMaxobjectDirectory`）
+  - 提供“打开导出配置文件”按钮，快速编辑过滤规则
+
+#### Pull 应用 XML 右键菜单
+- ✨ 新增 XML 文件右键菜单「Pull 应用 XML」功能
+  - 支持编辑器右键菜单和资源管理器右键菜单
+  - 解析 XML 文件中 `presentation` 元素的 `id` 属性
+  - 文件名与 id 不一致时弹出确认提示（含取消按钮）
+  - 调用 `SHARPTREE.AUTOSCRIPT.SCREENS` 接口获取单个应用 XML
+  - 自动备份原文件到 `~/.sks/maxbackup/maxappxmlbackup/maxappxml/`
+  - 备份文件名格式：`<应用名称>_<yyyyMMdd_HHmmssSSS>.xml`
+  - 用从 Maximo 获取的内容覆盖原文件
+
+### 改进优化
+
+#### 导出目录配置增强
+- 🔧 新增 `maximoScript.exportMaxobjectDirectory` 配置项
+  - 与导出脚本、导出应用XML目录相互独立
+  - 持久化保存，重新加载窗口后自动恢复
+
+### 技术实现
+
+- 📦 新增文件
+  - `template/plguin/exp_maxobject_config.json` - MAXOBJECT 导出配置模板
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.pullAppXml` 命令定义
+    - 新增 `maximoScript.exportMaxobjectDirectory` 配置项定义
+    - `editor/context` 和 `explorer/context` 菜单添加 Pull 应用 XML 入口
+    - 版本号更新为 1.4.5
+  - `src/configPanel.ts`
+    - 新增 `_getMaxobjectConfigPath()` 方法
+    - 新增 `_ensureMaxobjectConfig()` 方法
+    - 新增 `_readMaxobjectConfig()` 方法
+    - 新增 `_openMaxobjectConfig()` 方法
+    - 新增 `_selectDirectoryForExtractMaxobject()` 方法
+    - 新增 `_extractMaxobject()` 方法（多线程导出）
+    - `_sendInitialConfig()` 和 `_saveConfig()` 添加 `exportMaxobjectDirectory` 字段
+    - 消息处理添加 `extractMaxobject`、`openMaxobjectConfig` 等 case
+  - `src/extension.ts`
+    - 新增 `maximoScript.pullAppXml` 命令实现
+    - 实现 XML 解析、文件名校验、确认提示、备份、写入等完整流程
+  - `webview-ui/src/App.tsx`
+    - 新增“导出MAXOBJECT”标签页 UI
+    - 新增导出目录选择、配置文件打开、开始导出等交互
+    - ConfigData 接口添加 `exportMaxobjectDirectory` 字段
+    - 新增 `extractMaxobjectDirectoryPath` 和 `isExtractMaxobjectRunning` 状态
+
+### 注意事项
+
+- ⚠️ 导出MAXOBJECT功能需要 Maximo 系统中部署 `SKS_GET_MAXOBJECTNAMES` 和 `SKS_EXPORT_DBCONFIG` 脚本
+- ⚠️ Pull 应用 XML 功能需要 Maximo 系统中部署 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本
+- ⚠️ 配置文件 `~/.sks/maximo-script-helper/exp_maxobject_config.json` 首次使用时从模板复制
+
+---
+
 ## [1.4.3] - 2026-05-20
 
 ### 新增功能

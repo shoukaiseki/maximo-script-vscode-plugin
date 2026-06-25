@@ -23,8 +23,10 @@
   - [导出脚本](#导出脚本)
   - [导入脚本](#导入脚本)
   - [导出应用XML](#导出应用xml)
+  - [导出MAXOBJECT](#导出maxobject)
   - [清除脚本](#清除脚本)
   - [修复应用XML重复ID](#修复应用xml重复id)
+- [Pull 应用 XML](#pull-应用-xml)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
   - [版本检查](#版本检查)
 
@@ -877,6 +879,54 @@ app_xml_backup_20260610_143025/
 - 调用 `GET /script/SHARPTREE.AUTOSCRIPT.SCREENS` 获取所有应用名称
 - 调用 `GET /script/SHARPTREE.AUTOSCRIPT.SCREENS/{screenName}` 获取每个应用的 Presentation XML
 
+### 导出MAXOBJECT
+
+**功能**：批量导出 Maximo 数据库对象配置（DBCONFIG）
+
+**操作步骤**：
+1. 点击 **"导出MAXOBJECT"** 标签页
+2. 点击"选择目录"按钮，选择导出目录（自动保存）
+3. 可选勾选"不自动生成导出目录"
+4. 点击 **"打开导出配置文件"** 按钮可编辑过滤规则
+5. 点击 **"开始导出"** 按钮
+6. 等待导出完成
+
+**配置选项**：
+
+- **☑️ 自动生成带时间戳的子目录**（默认开启）
+  - 创建格式：`maxobject_backup_YYYYMMDD_HHMMSS`
+
+- **☐ 不自动生成导出目录**（勾选后）
+  - 直接保存到选择的目录
+
+**配置文件说明**：
+
+配置文件路径：`~/.sks/maximo-script-helper/exp_maxobject_config.json`
+
+首次使用时，如果不存在则从模板复制创建。
+
+```json
+{
+  "onlyInclude": false,
+  "includeMaxobjects": [],
+  "ignoreMaxobjects": []
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `onlyInclude` | Boolean | `false`=导出所有(排除ignore)，`true`=仅导出include中的 |
+| `includeMaxobjects` | Array | 当 onlyInclude=true 时，包含的 MAXOBJECT 列表 |
+| `ignoreMaxobjects` | Array | 忽略导出的 MAXOBJECT 列表 |
+
+**输出格式**：
+每个对象生成一个 JSON 文件：`DBCONFIG_${OBJECT_NAME}.json`
+
+**导出特点**：
+- 多线程并发导出（默认5个并发线程）
+- 自动验证返回数据是否为 JSON 格式
+- 实时显示导出进度和统计信息
+
 ### 清除脚本
 
 **⚠️ 警告**：此操作不可逆，请务必先备份！
@@ -938,7 +988,51 @@ app_xml_backup_20260610_143025/
 **注意事项**：
 - ⚠️ 不会处理没有 id 属性的元素
 - ⚠️ 不会修改注释内的任何内容
-- ⚠️ 如果没有重复的 id，会提示“没有重复的 id”
+- ⚠️ 如果没有重复的 id，会提示"没有重复的 id"
+
+---
+
+## Pull 应用 XML
+
+**功能**：从 Maximo 服务器拉取单个应用的 Presentation XML，并自动备份原文件。
+
+**使用方式**：
+1. 在编辑器中打开 XML 文件，右键点击 → **"Maximo Script: Pull 应用 XML"**
+2. 或在资源管理器中右键点击 XML 文件 → **"Maximo Script: Pull 应用 XML"**
+
+**处理流程**：
+
+1. **解析 presentation id**
+   - 读取 XML 文件内容
+   - 正则匹配 `<presentation id="xxx">` 中的 id 属性
+
+2. **文件名校验**
+   - 比较文件名（不含 .xml 后缀）与 presentation id
+   - 如果不一致，弹出确认提示：
+     ```
+     文件名与 id 属性值不同，是否继续？
+     文件名: xxx
+     id属性: yyy
+     [确定] [取消]
+     ```
+   - 点击"取消"则终止操作
+
+3. **获取应用 XML**
+   - 调用 `GET /script/SHARPTREE.AUTOSCRIPT.SCREENS/{appName}`
+   - 获取单个应用的 Presentation XML
+
+4. **备份原文件**
+   - 备份目录：`~/.sks/maxbackup/maxappxmlbackup/maxappxml/`
+   - 备份文件名：`<应用名称>_<yyyyMMdd_HHmmssSSS>.xml`
+   - 精确到毫秒级时间戳
+
+5. **写入新内容**
+   - 用从 Maximo 获取的 XML 内容覆盖原文件
+
+**注意事项**：
+- ⚠️ 需要 Maximo 系统中部署 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本
+- ⚠️ 备份文件按时间戳命名，不会覆盖已有备份
+- ⚠️ 原文件会被直接覆盖，请确保已正确备份
 
 ---
 
@@ -1314,4 +1408,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-05-20 | 版本：1.4.3*
+*最后更新：2026-06-25 | 版本：1.4.5*
