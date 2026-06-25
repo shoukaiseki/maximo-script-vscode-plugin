@@ -160,65 +160,110 @@ function handleGet() {
         return;
     }
 
-    // SSE 流式输出
-    var res = request.getHttpServletResponse();
-    var output = res.getOutputStream();
-    res.setBufferSize(0);
-    res.setContentType("text/event-stream");
-    res.flushBuffer();
-
-    var collectedLines = 0;
-    var inRange = false;
-    var foundStart = false;
-    var foundEnd = false;
-    var line;
-
+    // 从文件末尾向前分块查找标记（避免大文件从头扫描）
     var rfa = new RandomAccessFile(logFile, "r");
     try {
-        while ((line = rfa.readLine()) !== null) {
-            var rawBytes = java.lang.String.valueOf(line).getBytes("ISO-8859-1");
-            var decodedLine = new java.lang.String(rawBytes, encoding);
+        var fileLength = rfa.length();
+        var CHUNK_SIZE = 65536; // 64KB/块
+        var buffer = "";
+        var readPos = fileLength;
+        var startMarker = MARKER_PREFIX_START + startuuid;
+        var endMarker = MARKER_PREFIX_END + enduuid;
+        var startIdx = -1;
+        var endIdx = -1;
+        var startLinePos = -1; // 开始标记所在行的行首位置
 
-            if (decodedLine.indexOf(MARKER_PREFIX_START + startuuid) !== -1) {
-                inRange = true;
-                foundStart = true;
+        // 从文件末尾向前分块读取
+        while (readPos > 0 && (endIdx === -1 || startIdx === -1 || (startIdx > -1 && startLinePos === -1))) {
+            var chunkSize = Math.min(CHUNK_SIZE, readPos);
+            readPos -= chunkSize;
+            rfa.seek(readPos);
+
+            var rawBytes = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, chunkSize);
+            rfa.readFully(rawBytes);
+            var chunk = new java.lang.String(rawBytes, 0, chunkSize, "ISO-8859-1");
+            chunk = new java.lang.String(chunk.getBytes("ISO-8859-1"), encoding);
+
+            buffer = chunk + buffer;
+
+            if (endIdx === -1) {
+                endIdx = buffer.lastIndexOf(endMarker);
             }
 
-            if (inRange) {
-                collectedLines++;
-                output.println("data: " + decodedLine);
-                output.println("");
+            if (startIdx === -1) {
+                startIdx = buffer.lastIndexOf(startMarker);
             }
 
-            if (inRange && decodedLine.indexOf(MARKER_PREFIX_END + enduuid) !== -1) {
-                foundEnd = true;
-                break;
+            // 找到开始标记后，继续向前查找其行首
+            if (startIdx > -1 && startLinePos === -1) {
+                var lineStart = buffer.lastIndexOf("\n", startIdx - 1);
+                if (lineStart > -1) {
+                    startLinePos = lineStart + 1;
+                } else if (readPos <= 0) {
+                    // 已到文件开头，没有换行符，行首就是 buffer 开头
+                    startLinePos = 0;
+                }
+                // 未找到换行符且还有数据可读，继续向前读取
             }
         }
+
+        // SSE 流式输出
+        var res = request.getHttpServletResponse();
+        var output = res.getOutputStream();
+        res.setBufferSize(0);
+        res.setContentType("text/event-stream");
+        res.flushBuffer();
+
+        var collectedLines = 0;
+
+        if (startIdx === -1) {
+            output.println("data: " + JSON.stringify({
+                "event": "end", "status": "error",
+                "message": "未在日志文件中找到起始标记，UUID: '" + startuuid + "'",
+                "startuuid": startuuid, "enduuid": enduuid,
+                "lines": 0, "logFile": logFile.getPath()
+            }));
+            output.println("");
+        } else if (endIdx === -1) {
+            output.println("data: " + JSON.stringify({
+                "event": "end", "status": "error",
+                "message": "未在日志文件中找到结束标记，UUID: '" + enduuid + "'",
+                "startuuid": startuuid, "enduuid": enduuid,
+                "lines": 0, "logFile": logFile.getPath()
+            }));
+            output.println("");
+        } else if (startIdx > endIdx) {
+            output.println("data: " + JSON.stringify({
+                "event": "end", "status": "error",
+                "message": "起始标记在结束标记之后，请检查UUID对应关系",
+                "startuuid": startuuid, "enduuid": enduuid,
+                "lines": 0, "logFile": logFile.getPath()
+            }));
+            output.println("");
+        } else {
+            // 提取起止标记间的内容
+            var content = buffer.substring(startLinePos, endIdx + endMarker.length);
+            var lines = content.split("\n");
+
+            for (var li = 0; li < lines.length; li++) {
+                if (lines[li]) {
+                    collectedLines++;
+                    output.println("data: " + lines[li]);
+                    output.println("");
+                }
+            }
+
+            output.println("data: " + JSON.stringify({
+                "event": "end", "status": "success",
+                "startuuid": startuuid, "enduuid": enduuid,
+                "lines": collectedLines, "logFile": logFile.getPath()
+            }));
+            output.println("");
+        }
+
+        res.flushBuffer();
+
     } finally {
         rfa.close();
     }
-
-    // 发送结束事件（包含结果信息）
-    var endEvent = {
-        "event": "end",
-        "startuuid": startuuid,
-        "enduuid": enduuid,
-        "lines": collectedLines,
-        "logFile": logFile.getPath()
-    };
-
-    if (!foundStart) {
-        endEvent.status = "error";
-        endEvent.message = "未在日志文件中找到起始标记，UUID: '" + startuuid + "'";
-    } else if (!foundEnd) {
-        endEvent.status = "error";
-        endEvent.message = "在起始标记之后未找到结束标记，UUID: '" + enduuid + "'";
-    } else {
-        endEvent.status = "success";
-    }
-
-    output.println("data: " + JSON.stringify(endEvent));
-    output.println("");
-    res.flushBuffer();
 }
