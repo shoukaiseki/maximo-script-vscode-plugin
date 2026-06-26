@@ -14,6 +14,7 @@ MboConstants = Java.type("psdi.mbo.MboConstants");
 MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
 /** @type {psdi.util.MXException} */
 MXException = Java.type("psdi.util.MXException");
+// var scriptName=scriptName
 
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
@@ -71,23 +72,24 @@ main()
 
 function main(){
     var clientsession = service.webclientsession();
-    //VALIDATE不会有提示
+    //ACTION不会有提示
     // clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
     //抛出异常会在字段中提示输入的值无效
-    // throw new MXApplicationException("ibm_system", "option_ok")
+  // throw new MXApplicationException("ibm_system", "option_ok")
 
 }
 
 /**
- *  验证字段
+变更值后触发
 AttributeLaunchPoint 类中
+ 
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "ITEMNUM验证",
+  "description": "ITEMNUM变更值触发",
   "sks:autoscript:remark": "脚本名无特殊要求",
-  "sks:autoscript:suggested: "建议命名<表名>.<字段名>.VALIDATE",
-  "autoscript": "ITEM.ITEMNUM.VALIDATE",
+  "sks:autoscript:suggested: "建议命名<表名>.<字段名>.ACTION",
+  "autoscript": "ITEM.ITEMNUM.ACTION",
   "launchPoints": [
     {
       "add": false,
@@ -97,15 +99,15 @@ AttributeLaunchPoint 类中
       "objectname": "ITEM",
       "sks:attributename:remark": "字段名称",
       "attributename": "ITEMNUM",
+      "launchpointname": "ITEMNUM.ACTION",
+      "description": "ITEM.ITEMNUM.ACTION",
       "update": false,
-      "description": "ITEM.ITEMNUM.VALIDATE",
       "active": true,
-      "launchpointname": "VALIDATE",
       "delete": false,
-      "objectevent": 0,
+      "objectevent": 1,
       "launchpointtype": "ATTRIBUTE",
       "condition": "",
-      "attributeevent": "2",
+      "attributeevent": "4",
       "eventtype": "",
       "sks:eventtype": "",
       "evcontext": ""
@@ -115,19 +117,19 @@ AttributeLaunchPoint 类中
   "interface": 0,
   "scriptlanguage": "JavaScript",
   "langcode": "ZH",
-  "createdby": "MAXZHCN",
+  "createdby": "MAXADMIN",
   "siteid": "",
   "action": "",
   "createdbyphone": "",
   "scheduledstatus": "",
-  "owner": "MAXZHCN",
+  "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
   "ownername": "",
   "changeby": "MAXADMIN",
   "active": 1,
   "ownerid": "",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.attrlist",

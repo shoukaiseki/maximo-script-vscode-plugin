@@ -70,3 +70,4 @@ curl --request POST \
 获取xml内容之后,更改原来的文件复制到 ~/.sks/maxbackup/maxappxmlbackup/maxappxml/<应用名称>_<yyyyMMdd_HHmmssSSS>.xml
 
 之后再将接口获取的xml内容写入当时右键点击的文件中
+

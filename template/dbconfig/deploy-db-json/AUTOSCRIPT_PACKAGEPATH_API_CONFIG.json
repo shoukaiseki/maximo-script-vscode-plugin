@@ -1,0 +1,17 @@
+{
+  "maxObjects": [
+    {
+      "object": "AUTOSCRIPT",
+      "internal": false,
+      "ignoreObjectMain": true,
+      "attributes": [
+        {"attribute": "IBM_PACKAGEPATH", "description": "maximo script vscode plugin中使用,会根据该字段包路径创建层级目录", "title": "包路径", "type": "ALN", "length": 200, "required": false, "persistent": true, "searchType": "WILDCARD"}
+      ]
+    },
+    {
+      "object": "AUTOSCRIPT",
+      "internal": true,
+      "ignoreObjectMain": true
+    }
+  ]
+}

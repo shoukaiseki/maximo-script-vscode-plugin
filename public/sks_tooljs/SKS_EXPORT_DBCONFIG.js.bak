@@ -56,11 +56,6 @@ if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_lan
 //         uInfo = masSession.getUserInfo();
 //     }
 // }
-//忽略默认字段,导出时候忽略导入时候一些默认的字段,简化json,适合于单表迁移,复制表信息
-var ignoreDefVal = false
-if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryParam("ignoreDefVal")) {
-    ignoreDefVal = true
-}
 
 
 responseBody=main();
@@ -239,73 +234,35 @@ function exportMaxObject(objectName) {
         var objName = commonsUtils.getMboStringValue(service, maxObjectCfg, "OBJECTNAME")
         logger.info("OBJECTNAME--------------------objName="+objName)
         // logger.info("OBJECTNAME="+commonsUtils.getMboStringValue( service,maxObjectCfg, "OBJECTNAME"))
-        objectConfig.put("object", objName);
+        objectConfig.put("object", commonsUtils.getMboStringValue(service, maxObjectCfg, "OBJECTNAME"));
         objectConfig.put("description", commonsUtils.getMboStringValue(service, maxObjectCfg, "DESCRIPTION"));
-        //系统默认必填
+        objectConfig.put("service", commonsUtils.getMboStringValue(service, maxObjectCfg, "SERVICENAME"));
+        objectConfig.put("entity", commonsUtils.getMboStringValue(service, maxObjectCfg, "ENTITYNAME"));
+        objectConfig.put("className", commonsUtils.getMboStringValue(service, maxObjectCfg, "CLASSNAME"));
+        objectConfig.put("extendsObject", commonsUtils.getMboStringValue(service, maxObjectCfg, "EXTENDSOBJECT"));
         objectConfig.put("level", commonsUtils.getMboStringValue(service, maxObjectCfg, "SITEORGTYPE"));
-        var entity = commonsUtils.getMboStringValue(service, maxObjectCfg, "ENTITYNAME")
-        if(!ignoreDefVal||objName!==entity){
-            objectConfig.put("entity", entity);
-        }
-        var serviceName = commonsUtils.getMboStringValue(service, maxObjectCfg, "SERVICENAME")
-        //默认是 CUSTAPP
-        if(!ignoreDefVal||serviceName!=="CUSTAPP"){
-            objectConfig.put("service", serviceName);
-        }
+        objectConfig.put("textDirection", commonsUtils.getMboStringValue(service, maxObjectCfg, "TEXTDIRECTION"));
+        objectConfig.put("resourceType", commonsUtils.getMboStringValue(service, maxObjectCfg, "RESOURCETYPE"));
+        objectConfig.put("langCode", commonsUtils.getMboStringValue(service, maxObjectCfg, "LANGCODE"));
         
-        if (!ignoreDefVal) {
-            objectConfig.put("extendsObject", commonsUtils.getMboStringValue(service, maxObjectCfg, "EXTENDSOBJECT"));
-            objectConfig.put("textDirection", commonsUtils.getMboStringValue(service, maxObjectCfg, "TEXTDIRECTION"));
-            objectConfig.put("resourceType", commonsUtils.getMboStringValue(service, maxObjectCfg, "RESOURCETYPE"));
-            objectConfig.put("langCode", commonsUtils.getMboStringValue(service, maxObjectCfg, "LANGCODE"));
-            // 长整型字段
-            objectConfig.put("maxObjectId", commonsUtils.getMboLongValue(service, maxObjectCfg, "MAXOBJECTID"));
-            objectConfig.put("userDefined", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "USERDEFINED"));
-        } else {
-            var vClassName = commonsUtils.getMboStringValue(service, maxObjectCfg, "CLASSNAME");
-            if (vClassName&&vClassName!="psdi.mbo.custapp.CustomMboSet"&&vClassName!="psdi.mbo.custapp.NonPersistentCustomMboSet") { objectConfig.put("className", vClassName); }
-            var vExtendsObject = commonsUtils.getMboStringValue(service, maxObjectCfg, "EXTENDSOBJECT");
-            if (vExtendsObject) { objectConfig.put("extendsObject", vExtendsObject); }
-            var vTextDirection = commonsUtils.getMboStringValue(service, maxObjectCfg, "TEXTDIRECTION");
-            if (vTextDirection) { objectConfig.put("textDirection", vTextDirection); }
-            var vResourceType = commonsUtils.getMboStringValue(service, maxObjectCfg, "RESOURCETYPE");
-            if (vResourceType) { objectConfig.put("resourceType", vResourceType); }
-            var vLangCode = commonsUtils.getMboStringValue(service, maxObjectCfg, "LANGCODE");
-            if (vLangCode) { objectConfig.put("langCode", vLangCode); }
-            var vUserDefined = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "USERDEFINED");
-            if (vUserDefined) { objectConfig.put("userDefined", vUserDefined); }
-        }
+        // 长整型字段
+        objectConfig.put("maxObjectId", commonsUtils.getMboLongValue(service, maxObjectCfg, "MAXOBJECTID"));
+        
         // 布尔类型字段
-        if (!ignoreDefVal) {
-            objectConfig.put("persistent", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "PERSISTENT"));
-            objectConfig.put("mainObject", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "MAINOBJECT"));
-            objectConfig.put("auditEnabled", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "EAUDITENABLED"));
-            objectConfig.put("internal", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "INTERNAL"));
-            objectConfig.put("isView", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "ISVIEW"));
-            objectConfig.put("hasLD", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "HASLD"));
-            objectConfig.put("imported", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "IMPORTED"));
-        } else {
-            var vPersistent = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "PERSISTENT");
-            if (!vPersistent) { objectConfig.put("persistent", vPersistent); }
-            var vMainObject = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "MAINOBJECT");
-            if (!vMainObject) { objectConfig.put("mainObject", vMainObject); }
-            var vAuditEnabled = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "EAUDITENABLED");
-            if (vAuditEnabled) { objectConfig.put("auditEnabled", vAuditEnabled); }
-            var vInternal = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "INTERNAL");
-            if (vInternal) { objectConfig.put("internal", vInternal); }
-            var vIsView = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "ISVIEW");
-            if (vIsView) { objectConfig.put("isView", vIsView); }
-            var vHasLD = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "HASLD");
-            if (vHasLD) { objectConfig.put("hasLD", vHasLD); }
-            var vImported = commonsUtils.getMboBooleanValue(service, maxObjectCfg, "IMPORTED");
-            if (vImported) { objectConfig.put("imported", vImported); }
-        }
+        objectConfig.put("persistent", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "PERSISTENT"));
+        objectConfig.put("mainObject", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "MAINOBJECT"));
+        objectConfig.put("auditEnabled", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "EAUDITENABLED"));
+        objectConfig.put("internal", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "INTERNAL"));
+        objectConfig.put("isView", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "ISVIEW"));
+        objectConfig.put("hasLD", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "HASLD"));
+        objectConfig.put("imported", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "IMPORTED"));
+        objectConfig.put("userDefined", commonsUtils.getMboBooleanValue(service, maxObjectCfg, "USERDEFINED"));
        //        ScriptUtil.getValueFromMaxType(mbo.getMboValue("STATUS").getMaxType());
 
  
         // 导出属性
         /** @type {com.ibm.json.java.JSONArray} */
-        var attributes = exportAttributes(objectName,entity,maxObjectCfg);
+        var attributes = exportAttributes(objectName,maxObjectCfg);
         attributes.forEach(function(attribute) {
             if(attribute=="ROWSTAMP") {
                 objectConfig.put("addRowstamp", true);
@@ -345,11 +302,10 @@ function exportMaxObject(objectName) {
 
 /**
  * 导出对象的所有属性
- * @param {java.lang.String} objectName     - 对象名称
- * @param {java.lang.String} objectEntity   - 对象实体表名称
+ * @param {java.lang.String} objectName - 对象名称
  * @returns {com.ibm.json.java.JSONArray} 属性数组
  */
-function exportAttributes(objectName,objectEntity,maxObjectCfg) {
+function exportAttributes(objectName,maxObjectCfg) {
     /** @type {psdi.mbo.MboSetRemote} */
     var maxAttributeCfgSet = null;
     
@@ -385,9 +341,8 @@ function exportAttributes(objectName,objectEntity,maxObjectCfg) {
             
             /** @type {com.ibm.json.java.JSONObject} */
             var attribute = new JSONObject();
-            var attributeName = commonsUtils.getMboStringValue(service, attributeCfg, "ATTRIBUTENAME");
             // 字符串类型字段
-            attribute.put("attribute", attributeName);
+            attribute.put("attribute", commonsUtils.getMboStringValue(service, attributeCfg, "ATTRIBUTENAME"));
             attribute.put("description", commonsUtils.getMboStringValue(service, attributeCfg, "REMARKS"));
             attribute.put("title", commonsUtils.getMboStringValue(service, attributeCfg, "TITLE"));
             attribute.put("type", commonsUtils.getMboStringValue(service, attributeCfg, "MAXTYPE"));
@@ -398,105 +353,40 @@ function exportAttributes(objectName,objectEntity,maxObjectCfg) {
             }
             attribute.put("defaultValue", commonsUtils.getMboStringValue(service, attributeCfg, "DEFAULTVALUE"));
             attribute.put("domain", commonsUtils.getMboStringValue(service, attributeCfg, "DOMAINID"));
-            var autonumber = commonsUtils.getMboStringValue(service, attributeCfg, "AUTOKEYNAME")
-            if(!ignoreDefVal||autonumber){
-                attribute.put("autonumber", autonumber);
-            }
-            var vEntityName = commonsUtils.getMboStringValue(service, attributeCfg, "ENTITYNAME");
-            if (!ignoreDefVal||(vEntityName&&(vEntityName !== objectEntity))) {
-                 attribute.put("entityName", vEntityName); 
-            }
-
-            if (!ignoreDefVal) {
-                attribute.put("typeOfComplexExpression", commonsUtils.getMboStringValue(service, attributeCfg, "COMPLEXEXPRESSION"));
-                attribute.put("handleColumnName", commonsUtils.getMboStringValue(service, attributeCfg, "HANDLECOLUMNNAME"));
-                attribute.put("textDirection", commonsUtils.getMboStringValue(service, attributeCfg, "TEXTDIRECTION"));
-                attribute.put("class", commonsUtils.getMboStringValue(service, attributeCfg, "CLASSNAME"));
-            } else {
-                var vTypeOfComplexExpression = commonsUtils.getMboStringValue(service, attributeCfg, "COMPLEXEXPRESSION");
-                if (vTypeOfComplexExpression) { attribute.put("typeOfComplexExpression", vTypeOfComplexExpression); }
-                var vHandleColumnName = commonsUtils.getMboStringValue(service, attributeCfg, "HANDLECOLUMNNAME");
-                if (vHandleColumnName) { attribute.put("handleColumnName", vHandleColumnName); }
-                var textDirection = commonsUtils.getMboStringValue(service, attributeCfg, "TEXTDIRECTION")
-                if (textDirection) { attribute.put("textDirection", textDirection); }
-                var vClass = commonsUtils.getMboStringValue(service, attributeCfg, "CLASSNAME")
-                if(vClass){ attribute.put("class", vClass); }
-            }
-            var columnName = commonsUtils.getMboStringValue(service, attributeCfg, "COLUMNNAME");
-            if(!ignoreDefVal||columnName!==attributeName){
-                attribute.put("column", columnName);
-            }
-            var alias = commonsUtils.getMboStringValue(service, attributeCfg, "ALIAS");
-            if(!ignoreDefVal||alias!==attributeName){
-                attribute.put("alias", alias);
-            }
+            attribute.put("class", commonsUtils.getMboStringValue(service, attributeCfg, "CLASSNAME"));
+            attribute.put("alias", commonsUtils.getMboStringValue(service, attributeCfg, "ALIAS"));
+            attribute.put("column", commonsUtils.getMboStringValue(service, attributeCfg, "COLUMNNAME"));
+            attribute.put("autonumber", commonsUtils.getMboStringValue(service, attributeCfg, "AUTOKEYNAME"));
+            attribute.put("textDirection", commonsUtils.getMboStringValue(service, attributeCfg, "TEXTDIRECTION"));
+            attribute.put("typeOfComplexExpression", commonsUtils.getMboStringValue(service, attributeCfg, "COMPLEXEXPRESSION"));
+            attribute.put("entityName", commonsUtils.getMboStringValue(service, attributeCfg, "ENTITYNAME"));
+            attribute.put("handleColumnName", commonsUtils.getMboStringValue(service, attributeCfg, "HANDLECOLUMNNAME"));
             
             // 整数类型字段
             attribute.put("length", commonsUtils.getMboIntValue(service, attributeCfg, "LENGTH"));
             attribute.put("scale", commonsUtils.getMboIntValue(service, attributeCfg, "SCALE"));
-            if (!ignoreDefVal) {
-                attribute.put("attributeNo", commonsUtils.getMboIntValue(service, attributeCfg, "ATTRIBUTENO"));
-                attribute.put("extended", commonsUtils.getMboIntValue(service, attributeCfg, "EXTENDED"));
-            } else {
-                // var vAttributeNo = commonsUtils.getMboIntValue(service, attributeCfg, "ATTRIBUTENO");
-                // if (vAttributeNo) { attribute.put("attributeNo", vAttributeNo); }
-                var vExtended = commonsUtils.getMboIntValue(service, attributeCfg, "EXTENDED");
-                if (vExtended) { attribute.put("extended", vExtended); }
-            }
-            var vPrimaryKeyColSeq = commonsUtils.getMboIntValue(service, attributeCfg, "PRIMARYKEYCOLSEQ");
-            if (!ignoreDefVal||vPrimaryKeyColSeq) {
-                attribute.put("primaryColumn", vPrimaryKeyColSeq);
-            }
+            attribute.put("attributeNo", commonsUtils.getMboIntValue(service, attributeCfg, "ATTRIBUTENO"));
+            attribute.put("extended", commonsUtils.getMboIntValue(service, attributeCfg, "EXTENDED"));
+            attribute.put("primaryColumn", commonsUtils.getMboIntValue(service, attributeCfg, "PRIMARYKEYCOLSEQ"));
             
-            if (!ignoreDefVal) {
-                // 长整型字段
-                attribute.put("maxAttributeId", commonsUtils.getMboLongValue(service, attributeCfg, "MAXATTRIBUTEID"));
-            }
+            // 长整型字段
+            attribute.put("maxAttributeId", commonsUtils.getMboLongValue(service, attributeCfg, "MAXATTRIBUTEID"));
             
             // 布尔类型字段
             attribute.put("required", commonsUtils.getMboBooleanValue(service, attributeCfg, "REQUIRED"));
-            var persistent = commonsUtils.getMboBooleanValue(service, attributeCfg, "PERSISTENT")
-            if (!ignoreDefVal||!persistent) {
-                attribute.put("persistent", persistent);
-            }
-            var mustbe = commonsUtils.getMboBooleanValue(service, attributeCfg, "MUSTBE")
-            if (!ignoreDefVal||mustbe) {
-                attribute.put("mustBe", mustbe);
-            }
+            attribute.put("persistent", commonsUtils.getMboBooleanValue(service, attributeCfg, "PERSISTENT"));
+            attribute.put("canAutonumber", commonsUtils.getMboBooleanValue(service, attributeCfg, "CANAUTONUM"));
+            attribute.put("mustBe", commonsUtils.getMboBooleanValue(service, attributeCfg, "MUSTBE"));
+            attribute.put("localizable", commonsUtils.getMboBooleanValue(service, attributeCfg, "LOCALIZABLE"));
             attribute.put("positive", commonsUtils.getMboBooleanValue(service, attributeCfg, "ISPOSITIVE"));
-            if (!ignoreDefVal) {
-                attribute.put("eAuditEnabled", commonsUtils.getMboBooleanValue(service, attributeCfg, "EAUDITENABLED"));
-                attribute.put("multiLanguageInUse", commonsUtils.getMboBooleanValue(service, attributeCfg, "MLINUSE"));
-                attribute.put("mlSupported", commonsUtils.getMboBooleanValue(service, attributeCfg, "MLSUPPORTED"));
-                attribute.put("eSignatureEnabled", commonsUtils.getMboBooleanValue(service, attributeCfg, "ESIGENABLED"));
-                attribute.put("userDefined", commonsUtils.getMboBooleanValue(service, attributeCfg, "USERDEFINED"));
-                attribute.put("changed", commonsUtils.getMboStringValue(service, attributeCfg, "CHANGED"));
-                attribute.put("localizable", commonsUtils.getMboBooleanValue(service, attributeCfg, "LOCALIZABLE"));
-                attribute.put("canAutonumber", commonsUtils.getMboBooleanValue(service, attributeCfg, "CANAUTONUM"));
-                attribute.put("longDescriptionOwner", commonsUtils.getMboBooleanValue(service, attributeCfg, "ISLDOWNER"));
-                attribute.put("restricted", commonsUtils.getMboBooleanValue(service, attributeCfg, "RESTRICTED"));
-            } else {
-                var vMLInUse = commonsUtils.getMboBooleanValue(service, attributeCfg, "MLINUSE");
-                if (vMLInUse) { attribute.put("multiLanguageInUse", vMLInUse); }
-                var vMLSupported = commonsUtils.getMboBooleanValue(service, attributeCfg, "MLSUPPORTED");
-                if (vMLSupported) { attribute.put("mlSupported", vMLSupported); }
-                var vESigEnabled = commonsUtils.getMboBooleanValue(service, attributeCfg, "ESIGENABLED");
-                if (vESigEnabled) { attribute.put("eSignatureEnabled", vESigEnabled); }
-                var vUserDefined = commonsUtils.getMboBooleanValue(service, attributeCfg, "USERDEFINED");
-                if (!vUserDefined) { attribute.put("userDefined", vUserDefined); }
-                // var vChanged = commonsUtils.getMboStringValue(service, attributeCfg, "CHANGED");
-                // if (vChanged) { attribute.put("changed", vChanged); }
-                var localizable = commonsUtils.getMboBooleanValue(service, attributeCfg, "LOCALIZABLE")
-                if (localizable) { attribute.put("localizable", localizable); }
-                var canAutonumber = commonsUtils.getMboBooleanValue(service, attributeCfg, "CANAUTONUM")
-                if (canAutonumber) { attribute.put("canAutonumber", canAutonumber); }
-                var eAuditEnabled = commonsUtils.getMboBooleanValue(service, attributeCfg, "EAUDITENABLED")
-                if(eAuditEnabled){attribute.put("eAuditEnabled",eAuditEnabled)};
-                var longDescriptionOwner = commonsUtils.getMboBooleanValue(service, attributeCfg, "ISLDOWNER")
-                if(longDescriptionOwner){attribute.put("longDescriptionOwner", longDescriptionOwner);}
-                var restricted = commonsUtils.getMboBooleanValue(service, attributeCfg, "RESTRICTED")
-                if (restricted) { attribute.put("restricted", restricted); }
-            }
+            attribute.put("longDescriptionOwner", commonsUtils.getMboBooleanValue(service, attributeCfg, "ISLDOWNER"));
+            attribute.put("eAuditEnabled", commonsUtils.getMboBooleanValue(service, attributeCfg, "EAUDITENABLED"));
+            attribute.put("multiLanguageInUse", commonsUtils.getMboBooleanValue(service, attributeCfg, "MLINUSE"));
+            attribute.put("mlSupported", commonsUtils.getMboBooleanValue(service, attributeCfg, "MLSUPPORTED"));
+            attribute.put("eSignatureEnabled", commonsUtils.getMboBooleanValue(service, attributeCfg, "ESIGENABLED"));
+            attribute.put("userDefined", commonsUtils.getMboBooleanValue(service, attributeCfg, "USERDEFINED"));
+            attribute.put("changed", commonsUtils.getMboStringValue(service, attributeCfg, "CHANGED"));
+            attribute.put("restricted", commonsUtils.getMboBooleanValue(service, attributeCfg, "RESTRICTED"));
             
             attributes.add(attribute);
             logger.info("\x1b[32m导出属性 " + attributeName + "\x1b[0m");
@@ -550,13 +440,11 @@ function exportRelationships(objectName) {
             relConfig.put("remarks", commonsUtils.getMboStringValue(service, relationship, "REMARKS"));
             relConfig.put("cardinality", commonsUtils.getMboStringValue(service, relationship, "CARDINALITY"));
             
+            // 整数类型字段
+            relConfig.put("dbJoinRequired", commonsUtils.getMboIntValue(service, relationship, "DBJOINREQUIRED"));
             
             // 长整型字段
-            if (!ignoreDefVal) {
-                // 必需数据库连接吗？
-                relConfig.put("dbJoinRequired", commonsUtils.getMboIntValue(service, relationship, "DBJOINREQUIRED"));
-                relConfig.put("maxRelationshipId", commonsUtils.getMboLongValue(service, relationship, "MAXRELATIONSHIPID"));
-            }
+            relConfig.put("maxRelationshipId", commonsUtils.getMboLongValue(service, relationship, "MAXRELATIONSHIPID"));
             
             // 布尔类型字段
             relConfig.put("isDefault", commonsUtils.getMboBooleanValue(service, relationship, "ISDEFAULT"));
@@ -617,30 +505,16 @@ function exportIndexes(objectName,maxObjectCfg) {
             indexConfig.put("index", commonsUtils.getMboStringValue(service, index, "NAME"));
             indexConfig.put("table", commonsUtils.getMboStringValue(service, index, "TBNAME"));
             indexConfig.put("storagePartition", commonsUtils.getMboStringValue(service, index, "STORAGEPARTITION"));
-            if (!ignoreDefVal) {
-                indexConfig.put("changed", commonsUtils.getMboStringValue(service, index, "CHANGED"));
-            } else {
-                var vChanged = commonsUtils.getMboStringValue(service, index, "CHANGED");
-                if (vChanged) { indexConfig.put("changed", vChanged); }
-            }
+            indexConfig.put("changed", commonsUtils.getMboStringValue(service, index, "CHANGED"));
             
             // 长整型字段
-            if (!ignoreDefVal) {
-                indexConfig.put("maxSysIndexesId", commonsUtils.getMboLongValue(service, index, "MAXSYSINDEXESID"));
-            }
+            indexConfig.put("maxSysIndexesId", commonsUtils.getMboLongValue(service, index, "MAXSYSINDEXESID"));
             
             // 布尔类型字段
             indexConfig.put("enforceUniqueness", commonsUtils.getMboBooleanValue(service, index, "UNIQUE"));
             indexConfig.put("clusteredIndex", commonsUtils.getMboBooleanValue(service, index, "CLUSTERRULE"));
-            if (!ignoreDefVal) {
-                indexConfig.put("textSearchIndex", commonsUtils.getMboBooleanValue(service, index, "TEXTSEARCH"));
-                indexConfig.put("internal", commonsUtils.getMboBooleanValue(service, index, "REQUIRED"));
-            } else {
-                var vTextSearch = commonsUtils.getMboBooleanValue(service, index, "TEXTSEARCH");
-                if (vTextSearch) { indexConfig.put("textSearchIndex", vTextSearch); }
-                var vInternal = commonsUtils.getMboBooleanValue(service, index, "REQUIRED");
-                if (vInternal) { indexConfig.put("internal", vInternal); }
-            }
+            indexConfig.put("textSearchIndex", commonsUtils.getMboBooleanValue(service, index, "TEXTSEARCH"));
+            indexConfig.put("internal", commonsUtils.getMboBooleanValue(service, index, "REQUIRED"));
             
             // 获取索引列
             maxSysIndexColsSet = index.getMboSet("MAXSYSKEYS");
@@ -657,20 +531,13 @@ function exportIndexes(objectName,maxObjectCfg) {
                 // 字符串类型字段
                 colConfig.put("column", commonsUtils.getMboStringValue(service, indexCol, "COLNAME"));
                 colConfig.put("ordering", commonsUtils.getMboStringValue(service, indexCol, "ORDERING"));
-                if (!ignoreDefVal) {
-                    colConfig.put("changed", commonsUtils.getMboStringValue(service, indexCol, "CHANGED"));
-                } else {
-                    var vChanged = commonsUtils.getMboStringValue(service, indexCol, "CHANGED");
-                    if (vChanged) { colConfig.put("changed", vChanged); }
-                }
+                colConfig.put("changed", commonsUtils.getMboStringValue(service, indexCol, "CHANGED"));
                 
                 // 整数类型字段
                 colConfig.put("colSeq", commonsUtils.getMboIntValue(service, indexCol, "COLSEQ"));
                 
-                 // 长整型字段
-                if (!ignoreDefVal) {
-                    colConfig.put("maxSysKeysId", commonsUtils.getMboLongValue(service, indexCol, "MAXSYSKEYSID"));
-                }
+                // 长整型字段
+                colConfig.put("maxSysKeysId", commonsUtils.getMboLongValue(service, indexCol, "MAXSYSKEYSID"));
 
                 
                 columns.add(colConfig);

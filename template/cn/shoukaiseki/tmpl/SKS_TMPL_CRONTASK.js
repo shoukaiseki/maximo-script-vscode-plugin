@@ -1,61 +1,125 @@
+// @ts-check
 /* eslint-disable no-redeclare */
 /* eslint-disable indent */
 /* eslint-disable quotes */
 /* eslint-disable no-undef */
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
-load('nashorn:mozilla_compat.js');
-importClass(Packages.psdi.server.MXServer);
-importClass(Packages.java.time.ZonedDateTime);
-importClass(Packages.java.time.format.DateTimeFormatter);
-importClass(Packages.java.util.HashMap);
-importClass(Packages.java.text.SimpleDateFormat);
-importClass(Packages.java.util.TimeZone);
-importClass(Packages.com.ibm.json.java.JSONObject);
-importClass(Packages.com.ibm.json.java.JSONArray);
+// load('nashorn:mozilla_compat.js');
+var scriptName=service.getScriptName()
 
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
 ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
+/** @type {psdi.mbo.MboConstants} */
+MboConstants = Java.type("psdi.mbo.MboConstants");
+/** @type {psdi.util.MXApplicationException} */
+MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
+/** @type {psdi.util.MXException} */
+MXException = Java.type("psdi.util.MXException");
+// var scriptName=scriptName
+/** @type {psdi.server.MXServer} */
+MXServer = Java.type("psdi.server.MXServer")
+/** @type {psdi.mbo.SqlFormat} */
+SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
+
+/** @type {psdi.util.MXSession} */
+MXSession = Java.type("psdi.util.MXSession");
+/** @type {com.ibm.json.java.JSONArray} */
+JSONArray = Java.type("com.ibm.json.java.JSONArray");
+/** @type {com.ibm.json.java.JSONObject} */
+JSONObject = Java.type("com.ibm.json.java.JSONObject");
+/** @type {java.text.SimpleDateFormat} */
+SimpleDateFormat = Java.type("java.text.SimpleDateFormat")
 
 
-try {
-  var mxserver = MXServer.getMXServer();
-  var msr = mxserver.getMboSet("AUTOSCRIPT", userInfo);
-  var reqBody = JSON.parse(requestBody);
+/** @type {java.lang.System} */
+System = Java.type("java.lang.System");
+/** @type {org.apache.log4j.Level} */
+Level = Java.type("org.apache.log4j.Level");
+/** @type {psdi.util.logging.MXLoggerFactory} */
+MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+/** @type {psdi.util.logging.MXLogger} */
+var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
+loggerMX.error("["+scriptName+"]----------1");
+/** @type {jscustom.AnsiLogger} */
+var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
+// logger.setLevel(Level.INFO);
+logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
+logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
-  // 验证输入
-  if (!reqBody.AUTOSCRIPT) {
-    responseBody = JSON.stringify({"code": 400, "message": "缺少脚本名称参数"});
-    exit;
-  }
 
-  msr.setWhere("AUTOSCRIPT='" + reqBody.AUTOSCRIPT + "'");
-  msr.reset();
+/** @type {java.lang.String} */
+var scriptNameTmp=scriptName
 
-  var responseBodyStr = "";
+/** @type {java.lang.String} */
+var instanceNameTmp=instanceName
 
+/** @type {psdi.security.UserInfo} */
+var runAsUserInfoTmp=runAsUserInfo
 
-  if (!msr.isEmpty()) {
-    var tmpMbo = msr.moveFirst();
-    var dataMap = getAutoScriptInfo(tmpMbo)
+/** @type {java.lang.String} */
+var argTmp=arg
 
-    // 构建返回的JSON对象
-    var result = new JSONObject();
-    result.put("code",200);
-    result.put("message","success");
-    result.put("data",dataMap);
+/** @type {psdi.mbo.MboSet} */
+var scriptSet=null
+var scriptHistorySet=null
 
-    responseBodyStr = service.jsonToString(result);
-  } else {
-    responseBodyStr = JSON.stringify({"code": 404, "message": "未找到脚本: " + reqBody.AUTOSCRIPT});
-  }
+try{
 
-  responseBody = responseBodyStr;
+    scriptSet = MXServer.getMXServer().getMboSet("AUTOSCRIPT", runAsUserInfo)
+    scriptSet.setWhere("1=1")
+    scriptSet.reset()
 
-} catch (e) {
-  responseBody = JSON.stringify({"code": 500, "message": "导出失败: " + e.message});
+    scriptHistorySet = MXServer.getMXServer().getMboSet("IBM_AUTOSCRIPT_HISTORY", runAsUserInfo)
+    scriptHistorySet.setWhere("1=2")
+    scriptHistorySet.reset()
+
+    var i=0
+    for(var script=scriptSet.moveFirst(); script; script = scriptSet.moveNext()){
+        logger.info("["+scriptName+"]----------------开始处理脚本: " + script.getString("AUTOSCRIPT"));
+        var scriptHistory = scriptHistorySet.add()
+        var scriptInfoDataMap = getAutoScriptInfo(script)
+        var scriptInfoStr = service.jsonToString(scriptInfoDataMap);
+        logger.info("["+scriptName+"]----------------脚本信息: " + scriptInfoStr)
+        scriptHistory.setValue("DESCRIPTION_LONGDESCRIPTION", scriptInfoStr, MboConstants.NOACCESSCHECK);
+        scriptHistory.setValue("HOSTNAME", "MAXADMIN", MboConstants.NOACCESSCHECK);
+        var source = ""
+        if(!script.isNull("SOURCE")){
+            var source = script.getString("SOURCE")
+        }
+        scriptHistory.setValue("SOURCE", source, MboConstants.NOACCESSCHECK);
+        var version="1.0.1"
+        if (!script.isNull("VERSION")) {
+            version = script.getString("VERSION")
+        }
+        scriptHistory.setValue("VERSION", version, MboConstants.NOACCESSCHECK);
+        scriptHistory.setValue("AUTOSCRIPT", script.getString("AUTOSCRIPT"), MboConstants.NOACCESSCHECK);
+        scriptHistory.setValue("ALIASNAME", "_crontask_", MboConstants.NOACCESSCHECK);
+        if(i%10==0){
+            scriptHistorySet.save()
+        }
+        i++
+    }
+    scriptHistorySet.save()
+    logger.error("\x1b[32m["+scriptName+"]----------------备份脚本定时任务完成------------------\x1b[0m");
+}catch(e){
+    logger.error("["+scriptName+"]----------------Error: " , e);
 }finally{
-    _close(msr)
+    _close(scriptSet)
+    _close(scriptHistorySet)
+}
+
+
+function _close(set){
+    if (set) {
+        try {
+            set.cleanup()
+        } catch (ignore) { }
+        try {
+            set.close()
+        } catch (ignore) { }
+    }
 }
 
 function getAutoScriptInfo(scriptMbo) {
@@ -256,23 +320,44 @@ function formatDateTime(date) {
   }
 }
 
-function _close(set){
-    if (set) {
-        try {
-            set.cleanup()
-        } catch (ignore) { }
-        try {
-            set.close()
-        } catch (ignore) { }
-    }
+
+
+
+
+/**
+ * 
+
+{
+  "owneremail": "",
+  "createdbyid": "",
+  "description": "备份自动化脚本",
+  "sks:autoscript:enable:remark":"定时任务绑定类 com.ibm.tivoli.maximo.script.ScriptCrontask,会有参数 SCRIPTARG和SCRIPTNAME",
+  "sks:autoscript:remark": "脚本名没有特殊要求,是在定时任务的参数SCRIPTNAME中声明",
+  "sks:autoscript:suggested: "建议命名: <objectname>.CRONTASK.<任务作用>",
+  "autoscript": "AUTOSCRIPT.CRONTASK.BACKUP",
+  "launchPoints": [],
+  "createdbyemail": "",
+  "interface": 0,
+  "scriptlanguage": "JavaScript",
+  "langcode": "ZH",
+  "siteid": "",
+  "action": "",
+  "createdbyphone": "",
+  "scheduledstatus": "",
+  "variables": [],
+  "comments": "",
+  "ownername": "",
+  "active": 1,
+  "ownerid": "",
+  "version": "1.0.1",
+  "orgid": "",
+  "hasld": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools",
+  "loglevel": "INFO",
+  "ownerphone": "",
+  "category": "",
+  "userdefined": 1,
+  "status": "Draft",
+  "createdbyname": ""
 }
-
-
-// eslint-disable-next-line no-unused-vars
-var scriptConfig = {
-  autoscript: "SKS_EXP_AUTOSCRIPTBYNAME",
-  description: "导出脚本.",
-  version: "1.0.2",
-  active: true,
-  logLevel: "ERROR"
-};
+*/

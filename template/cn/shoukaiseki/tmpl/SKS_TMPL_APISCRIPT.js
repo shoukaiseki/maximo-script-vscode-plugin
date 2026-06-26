@@ -69,6 +69,7 @@ var httpMethodTmp=httpMethod
 // var clientsession = service.webclientsession();
 //接口中获取不到的
 // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+// clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 
 
 // service.
@@ -93,6 +94,8 @@ responseBody = JSON.stringify(data);
   "owneremail": "",
   "createdbyid": "",
   "description": "测试接口脚本",
+  "sks:autoscript:suggested: "建议命名: <TABLE_NAME>API",
+  "autoscript": "SKS_TMPL_APISCRIPT",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -106,7 +109,6 @@ responseBody = JSON.stringify(data);
   "owner": "MAXZHCN",
   "variables": [],
   "comments": "",
-  "autoscript": "SKS_TMPL_APISCRIPT",
   "ownername": "",
   "changeby": "MAXZHCN",
   "autoscriptid": 253,

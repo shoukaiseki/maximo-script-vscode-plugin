@@ -1,0 +1,49 @@
+{
+  "maxObjects": [
+    {
+      "object": "IBM_AUTOSCRIPT_HISTORY",
+      "description": "自动化脚本历史记录",
+      "persistent": true,
+      "addRowstamp": true,
+      "level": "SYSTEM",
+      "serverName": "SCRIPT",
+      "attributes": [
+        {"attribute": "AUTOSCRIPT", "description": "自动化脚本名称", "title": "Script Name", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "AUTOSCRIPT", "searchType": "WILDCARD"},
+        {"attribute": "SOURCE", "description": "脚本的源代码", "title": "Source Code"},
+        {"attribute": "VERSION", "description": "Script Version", "title": "Version", "sameAsObject": "AUTOSCRIPT", "sameAsAttribute": "VERSION", "searchType": "WILDCARD"},
+        {"attribute": "ALIASNAME", "description": "推送人别名", "title": "Alias Name", "searchType": "WILDCARD"},
+        {"attribute": "HOSTNAME", "description": "主机名", "title": "Host Name", "type": "UPPER", "length": 50, "required": false, "persistent": true, "searchType": "WILDCARD"},
+        {"attribute": "CREATEPERSON", "description": "创建人", "title": "创建人", "sameAsObject": "PERSON", "sameAsAttribute": "PERSONID", "maximoDefault": "&PERSONID&", "searchType": "WILDCARD"},
+        {"attribute": "CREATETIME", "description": "创建时间", "title": "创建时间", "type": "DATETIME", "length": 10, "maximoDefault": "%SYSDATE%"}
+      ]
+    },
+    {
+      "object": "AUTOSCRIPT",
+      "ignoreObjectMain": true,
+	   "relationships": [
+        {
+          "relationship": "IBM_AUTOSCRIPT_HISTORY",
+          "child": "IBM_AUTOSCRIPT_HISTORY",
+          "whereClause": "AUTOSCRIPT=:AUTOSCRIPT",
+          "remarks": "历史记录,以及备份",
+          "cardinality": "MULTIPLE"
+        },
+        {
+          "relationship": "IBM_AUTOSCRIPT_HISTORY_CRON",
+          "child": "IBM_AUTOSCRIPT_HISTORY",
+          "whereClause": "AUTOSCRIPT=:AUTOSCRIPT",
+          "remarks": "定时任务备份",
+          "cardinality": "MULTIPLE"
+        },
+        {
+          "relationship": "IBM_AUTOSCRIPT_HISTORY_BACKUP",
+          "child": "IBM_AUTOSCRIPT_HISTORY",
+          "whereClause": "AUTOSCRIPT=:AUTOSCRIPT",
+          "remarks": "保存时备份",
+          "cardinality": "MULTIPLE"
+        }
+      ]
+	  
+    }
+  ]
+}

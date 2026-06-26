@@ -13,6 +13,8 @@ MboRemote = Java.type("psdi.mbo.MboRemote");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
+/** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
+ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
 
 var scriptName = "SKS_COMMONS_UTILS"
 
@@ -82,4 +84,15 @@ function getMboStringValue(service, mbo, attributeName)
         return null
     }
     return mbo.getString(attributeName);
+}
+
+/**
+ * 获取MBO的属性值，自动转换为Java类型
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemotea} mbo - MBO对象
+ * @param {java.lang.String} attributeName - 属性名称
+ * @returns {java.lang.Object} 属性值
+ */
+function getValueAutoType(service,mbo,attributeName){
+    return ScriptUtil.getValueFromMaxType(mbo.getMboValue(attributeName).getMaxType())
 }

@@ -2072,7 +2072,7 @@ function MaxObject(maxobject) {
     this.triggerRoot = typeof maxobject.triggerRoot === "undefined" ? null : maxobject.triggerRoot;
     this.textDirection = typeof maxobject.textDirection === "undefined" ? null : maxobject.textDirection;
     this.mainObject = typeof maxobject.mainObject === "undefined" ? false : maxobject.mainObject;
-    this.presistent = typeof maxobject.presistent === "undefined" ? true : maxobject.presistent;
+    // this.presistent = typeof maxobject.presistent === "undefined" ? true : maxobject.presistent;
     this.storagePartition = typeof maxobject.storagePartition === "undefined" ? null : maxobject.storagePartition;
     this.unqiueColumn = typeof maxobject.unqiueColumn === "undefined" ? null : maxobject.unqiueColumn;
     this.languageTable = typeof maxobject.languageTable === "undefined" ? null : maxobject.languageTable;
@@ -2367,7 +2367,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                   }
 
                   if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
-                      attribute.setValue("PERSISTENT", typeof attributeConfig.presistent === "undefined" ? true : attributeConfig.presistent);
+                      attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
                   }
 
                   if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {

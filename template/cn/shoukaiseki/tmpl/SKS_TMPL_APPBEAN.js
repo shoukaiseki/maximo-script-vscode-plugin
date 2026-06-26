@@ -17,6 +17,8 @@ Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+/** @type {psdi.util.MXApplicationException} */
+MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
 loggerMX.info("["+scriptName+"]----------");
 
 /** @type {jscustom.AnsiLogger} */
@@ -45,8 +47,15 @@ function initLogger(dbctx){
 function initializeApp(dbctx){
     initLogger(dbctx);
     var clientsession = dbctx.webclientsession();
-    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
-
+    // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
+    // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", new MXApplicationException("ibm_rl","createpoSuccessNoOrder").getMessage(msr), 0);
+    /**
+     { "msgGroup": "ibm_system", "msgKey": "option_ok", "value": "操作成功", "displayMethod": "TEXT", "options": ["close"], "prefix": "BMXZZ", "suffix": "E" },
+        displayMethod = TEXT 和 STATUS 都是绿色
+		STATUS常用在显示固定值,比如列表过滤器,下载显示的按钮名称
+     */
+    //右上角绿色成功提示
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
 
     logger.info("[" + scriptName + "] initializeApp")
 }
@@ -57,6 +66,21 @@ function initializeApp(dbctx){
  */
 function MKITEM(dbctx) {
     initLogger(dbctx);
+    /**
+     * 管理模式下不允许执行
+     {
+        "msgGroup": "ibm_system",
+        "msgKey": "AdminOnThis",
+        "value": "管理方式已开启,页面初始化程序受到影响,NEW/INIT等脚本无法执行,<br/>请在先回启动中心,等待管理方式关闭之后重新进入应用",
+        "displayMethod": "MSGBOX",
+        "options": ["close"],
+        "prefix": "BMXZZ",
+        "suffix": "E"
+    },
+     */
+    if(Java.type("psdi.iface.mic.MicUtil").getAdminModeState()){
+        throw new MXApplicationException("ibm_system","AdminOnThis")
+    }
     logger.info("[" + scriptName + "] MKITEM")
 }
 
@@ -83,14 +107,23 @@ function selectrecord(dbctx) {
 
 
 /**
+ * 特别注意: 如果在选择操作中想执行APPBEAN的方法,在签名选项中: 高级签名选项要选 (无) 不要做任何高级签名选项的修改
+ *                      如果选择了: 此操作必须由用户在UI中调用,则不会执行APPBEAN的方法
+ *                      此操作必须由用户在UI中调用勾选了,触发的会是 操作脚本
+ * 
  * 无需配置其它信息, APPBEAN.应用名
+ * 
+ * 
 {
   "owneremail": "",
   "createdbyid": "",
   "description": "测试",
+  "sks:autoscript:enable:remark":"bean脚本开启条件,系统属性mxe.script.allowbeanscript=1",
+  "sks:autoscript:remark": "脚本名一定要APPBEAN.<appname>,其中<appname>是应用的名称,转为大写,应用中URL参数中的value=ITEM",
+  "autoscript": "APPBEAN.ITEM",
   "launchPoints": [],
   "createdbyemail": "",
-  "sks:interface": "interface的值一定要=1",
+  "sks:interface:remark": "interface的值一定要=1,如果之前是0,pull脚本之后,使用工具箱中的导入功能,导入会更改interface的值",
   "interface": 1,
   "scriptlanguage": "JavaScript",
   "langcode": "ZH",
@@ -102,16 +135,12 @@ function selectrecord(dbctx) {
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "APPBEAN.ITEM",
   "ownername": "",
   "changeby": "MAXADMIN",
-  "autoscriptid": 117,
   "active": 1,
-  "changedate": "2026-05-29T00:24:30+08:00",
   "ownerid": "",
-  "version": "1.0.18",
+  "version": "1.0.1",
   "orgid": "",
-  "statusdate": "2026-05-29T00:23:34+08:00",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.bean",
   "loglevel": "INFO",
