@@ -58,7 +58,7 @@ if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_lan
 // }
 //忽略默认字段,导出时候忽略导入时候一些默认的字段,简化json,适合于单表迁移,复制表信息
 var ignoreDefVal = false
-if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryParam("ignoreDefVal")) {
+if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryParam("ignoreDefVal")=="true") {
     ignoreDefVal = true
 }
 
