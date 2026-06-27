@@ -1,0 +1,20 @@
+{
+  "owneremail": "",
+  "createdbyid": "",
+  "description": "获取属性值自动转换类型测试",
+  "launchPoints": [],
+  "createdbyemail": "",
+  "interface": 0,
+  "scriptlanguage": "JavaScript",
+  "createdbyphone": "",
+  "scheduledstatus": "",
+  "variables": [],
+  "comments": "",
+  "autoscript": "TEST_SKS_GETVALUEAUTOMAXTYPE",
+  "active": 1,
+  "version": "1.0.54",
+  "ibm_packagepath": "cn.shoukaiseki.test",
+  "loglevel": "INFO",
+  "userdefined": 1,
+  "status": "Draft"
+}
