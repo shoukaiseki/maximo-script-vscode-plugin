@@ -21,6 +21,9 @@ MXServer = Java.type("psdi.server.MXServer");
 
 RandomAccessFile = Java.type("java.io.RandomAccessFile");
 
+/** @type {psdi.mbo.SqlFormat} */
+SqlFormat = Java.type("psdi.mbo.SqlFormat");
+
 /** @type {psdi.util.logging.MXLoggerFactory} */
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var loggerMX = MXLoggerFactory.getLogger(scriptName);//使用根目录记录器
@@ -48,6 +51,10 @@ function main() {
     /** @type {psdi.server.MaxVarServiceRemote} */
     var maxvarServ = MXServer.getMXServer().lookup("MAXVARS");
     var config = JSON.parse(requestBody);
+
+    var maxvars = MXServer.getMXServer().getMboSet("MAXVARS", userInfo);
+    var sqlFormat = new SqlFormat("VARNAME=:1");
+
     var data=[]
     for(var i=0;i<config.length;i++){
         var item = config[i];
@@ -61,6 +68,14 @@ function main() {
             // if(typeof item.varvalue === 'string'){
             //     varOut["varvalue"] = item.varvalue;
             // }
+            sqlFormat.setString(1, item.varname);
+            maxvars.setWhere(sqlFormat.format());
+            maxvars.reset()
+            var maxvar = maxvars.moveFirst()
+            if(maxvar){
+                maxvar.setValue("VARVALUE",item.varvalue)
+                maxvars.save()
+            }
             varOut["varvalue"] = maxvarServ.getString(item.varname, null);
         }catch(e){
             try{
@@ -81,9 +96,18 @@ function main() {
         }
        data.push(varOut) ;
     }
+    _close(maxvars);
     responseBody = JSON.stringify({ "status": "success", "message": "配置已成功更新","data": data });
 }
 
+function _close(set){
+    try {
+        if(!set)return;
+        try { set.cleanup()} catch (ignore) { }
+        try { set.close()} catch (ignore) { }
+    } catch (ignore) { }
+
+}
 
 /**
  
