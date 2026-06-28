@@ -70,6 +70,14 @@ JSONArray = Java.type("com.ibm.json.java.JSONArray");//17
 /** @type {com.ibm.json.java.JSONArtifact} */
 JSONArtifact = Java.type("com.ibm.json.java.JSONArtifact");//18
 
+//JSONObject对key排序---没用
+/** @type {java.util.LinkedHashMap} */
+LinkedHashMap = Java.type("java.util.LinkedHashMap");
+
+//如果需要JSONObject对key排序,可以使用OrderedJSONObject
+/** @type {com.ibm.json.java.OrderedJSONObject} */
+OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
+
 /** @type {com.ibm.json.java.JSONObject} */
 JSONObject = Java.type("com.ibm.json.java.JSONObject");//19
 

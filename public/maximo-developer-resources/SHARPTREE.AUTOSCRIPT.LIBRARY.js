@@ -2158,6 +2158,9 @@ MaxObject.prototype.setMboValues = function (mbo) {
   logger.error("mbo.ignoreObjectMain20="+(!this.ignoreObjectMain));
   //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
     if(ignoreObjectMain){
+        if(!this.description){
+            throw new MXApplicationException("#","objectName="+this.object+" 的描述不能为空");
+        }
 
         mbo.setValue("DESCRIPTION", this.description);
 

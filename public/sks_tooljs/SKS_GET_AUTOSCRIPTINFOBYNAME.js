@@ -11,8 +11,13 @@ importClass(Packages.java.time.format.DateTimeFormatter);
 importClass(Packages.java.util.HashMap);
 importClass(Packages.java.text.SimpleDateFormat);
 importClass(Packages.java.util.TimeZone);
-importClass(Packages.com.ibm.json.java.JSONObject);
-importClass(Packages.com.ibm.json.java.JSONArray);
+//如果需要JSONObject对key排序,可以使用OrderedJSONObject
+/** @type {com.ibm.json.java.OrderedJSONObject} */
+OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
+/** @type {com.ibm.json.java.JSONObject} */
+JSONObject = Java.type("com.ibm.json.java.JSONObject");
+/** @type {com.ibm.json.java.JSONArray} */
+JSONArray = Java.type("com.ibm.json.java.JSONArray");
 
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
 ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
@@ -40,7 +45,7 @@ try {
     var dataMap = getAutoScriptInfo(tmpMbo)
 
     // 构建返回的JSON对象
-    var result = new JSONObject();
+    var result = new OrderedJSONObject();
     result.put("code",200);
     result.put("message","success");
     result.put("data",dataMap);
@@ -72,7 +77,8 @@ function getAutoScriptInfo(scriptMbo) {
     if(!asvSet.isEmpty()){
       asv = asvSet.moveFirst();
       while (asv){
-        var varObj = new JSONObject();
+        /** @type {com.ibm.json.java.OrderedJSONObject} */
+        var varObj = new OrderedJSONObject();
         varObj.put("varname", asv.getString("VARNAME"));
         varObj.put("vartype", asv.getString("VARTYPE"));
         varObj.put("varbindingtype", asv.getString("VARBINDINGTYPE"));
@@ -148,26 +154,27 @@ function getAutoScriptInfo(scriptMbo) {
         }
 
         
-        var lpObj = new JSONObject();
+        /** @type {com.ibm.json.java.OrderedJSONObject} */
+        var lpObj = new OrderedJSONObject();
          
         //自己加的字段，用于前端显示
+        lpObj.put("launchpointname", lp.getString("LAUNCHPOINTNAME"));
+        lpObj.put("description", lp.getString("DESCRIPTION"));
+        lpObj.put("objectname", lp.getString("OBJECTNAME"));
+        lpObj.put("attributename", lp.getString("ATTRIBUTENAME"));
+        lpObj.put("launchpointtype", lp.getString("LAUNCHPOINTTYPE"));
+        lpObj.put("objectevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("OBJECTEVENT").getMaxType()));
+        lpObj.put("attributeevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("ATTRIBUTEEVENT").getMaxType()));
         lpObj.put("sks:eventtype", EVENTTYPE);
+        lpObj.put("eventtype", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVENTTYPE").getMaxType()));
         lpObj.put("sks:evcontext", EVCONTEXT);
+        lpObj.put("evcontext", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVCONTEXT").getMaxType()));
         lpObj.put("sks:addupdatedelete", ADDUPDATEDELETE.join(","));
         //系统虚拟属性,要加上,否则导入时启动点不对
         lpObj.put("add", ScriptUtil.getValueFromMaxType(lp.getMboValue("ADD").getMaxType()));
         lpObj.put("update", ScriptUtil.getValueFromMaxType(lp.getMboValue("UPDATE").getMaxType()));
         lpObj.put("delete", ScriptUtil.getValueFromMaxType(lp.getMboValue("DELETE").getMaxType()));
-        lpObj.put("attributeevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("ATTRIBUTEEVENT").getMaxType()));
-        lpObj.put("eventtype", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVENTTYPE").getMaxType()));
-        lpObj.put("evcontext", ScriptUtil.getValueFromMaxType(lp.getMboValue("EVCONTEXT").getMaxType()));
 
-        lpObj.put("launchpointname", lp.getString("LAUNCHPOINTNAME"));
-        lpObj.put("description", lp.getString("DESCRIPTION"));
-        lpObj.put("launchpointtype", lp.getString("LAUNCHPOINTTYPE"));
-        lpObj.put("objectname", lp.getString("OBJECTNAME"));
-        lpObj.put("attributename", lp.getString("ATTRIBUTENAME"));
-        lpObj.put("objectevent", ScriptUtil.getValueFromMaxType(lp.getMboValue("OBJECTEVENT").getMaxType()));
         lpObj.put("condition", lp.getString("CONDITION"));
         lpObj.put("active", ScriptUtil.getValueFromMaxType(lp.getMboValue("ACTIVE").getMaxType()));
 
@@ -178,37 +185,13 @@ function getAutoScriptInfo(scriptMbo) {
     service.log("lpvArr finish")
 
     // 使用Map存储所有字段
-    var dataMap = new JSONObject();
+    /** @type {com.ibm.json.java.OrderedJSONObject} */
+    var dataMap = new OrderedJSONObject();
 
     // AUTOSCRIPT主表字段
     dataMap.put("autoscript", tmpMbo.getString("AUTOSCRIPT"));
-    dataMap.put("status", tmpMbo.getString("STATUS"));
-    dataMap.put("scheduledstatus", tmpMbo.getString("SCHEDULEDSTATUS"));
-    dataMap.put("comments", tmpMbo.getString("COMMENTS"));
-    dataMap.put("ownerid", tmpMbo.getString("OWNERID"));
-    dataMap.put("ownername", tmpMbo.getString("OWNERNAME"));
-    dataMap.put("ownerphone", tmpMbo.getString("OWNERPHONE"));
-    dataMap.put("owneremail", tmpMbo.getString("OWNEREMAIL"));
-    dataMap.put("createdbyid", tmpMbo.getString("CREATEDBYID"));
     dataMap.put("description", tmpMbo.getString("DESCRIPTION"));
-    dataMap.put("orgid", tmpMbo.getString("ORGID"));
-    dataMap.put("siteid", tmpMbo.getString("SITEID"));
-    dataMap.put("action", tmpMbo.getString("ACTION"));
-    dataMap.put("version", tmpMbo.getString("VERSION"));
-    dataMap.put("category", tmpMbo.getString("CATEGORY"));
-    dataMap.put("statusdate", formatDateTime(tmpMbo.getDate("STATUSDATE")));
-    dataMap.put("changedate", formatDateTime(tmpMbo.getDate("CHANGEDATE")));
-    dataMap.put("createdbyphone", tmpMbo.getString("CREATEDBYPHONE"));
-    dataMap.put("createdbyname", tmpMbo.getString("CREATEDBYNAME"));
-    dataMap.put("createdbyemail", tmpMbo.getString("CREATEDBYEMAIL"));
-    dataMap.put("owner", tmpMbo.getString("OWNER"));
-    dataMap.put("createdby", tmpMbo.getString("CREATEDBY"));
-    dataMap.put("changeby", tmpMbo.getString("CHANGEBY"));
-    dataMap.put("autoscriptid", tmpMbo.getLong("AUTOSCRIPTID"));
-    dataMap.put("hasld", tmpMbo.getInt("HASLD"));
-    dataMap.put("langcode", tmpMbo.getString("LANGCODE"));
     dataMap.put("scriptlanguage", tmpMbo.getString("SCRIPTLANGUAGE"));
-    dataMap.put("userdefined", tmpMbo.getInt("USERDEFINED"));
     dataMap.put("loglevel", tmpMbo.getString("LOGLEVEL"));
     dataMap.put("interface", tmpMbo.getInt("INTERFACE"));
     dataMap.put("active", tmpMbo.getInt("ACTIVE"));
@@ -221,6 +204,34 @@ function getAutoScriptInfo(scriptMbo) {
     // 子表信息
     dataMap.put("variables", asvArr);
     dataMap.put("launchPoints", lpArr);
+
+    dataMap.put("status", tmpMbo.getString("STATUS"));
+    dataMap.put("scheduledstatus", tmpMbo.getString("SCHEDULEDSTATUS"));
+    dataMap.put("comments", tmpMbo.getString("COMMENTS"));
+    dataMap.put("ownerid", tmpMbo.getString("OWNERID"));
+    dataMap.put("ownername", tmpMbo.getString("OWNERNAME"));
+    dataMap.put("ownerphone", tmpMbo.getString("OWNERPHONE"));
+    dataMap.put("owneremail", tmpMbo.getString("OWNEREMAIL"));
+    dataMap.put("createdbyid", tmpMbo.getString("CREATEDBYID"));
+    dataMap.put("orgid", tmpMbo.getString("ORGID"));
+    dataMap.put("siteid", tmpMbo.getString("SITEID"));
+    dataMap.put("action", tmpMbo.getString("ACTION"));
+    dataMap.put("version", tmpMbo.getString("VERSION"));
+    dataMap.put("category", tmpMbo.getString("CATEGORY"));
+    dataMap.put("owner", tmpMbo.getString("OWNER"));
+    dataMap.put("hasld", tmpMbo.getInt("HASLD"));
+    dataMap.put("langcode", tmpMbo.getString("LANGCODE"));
+    dataMap.put("userdefined", tmpMbo.getInt("USERDEFINED"));
+    dataMap.put("createdbyphone", tmpMbo.getString("CREATEDBYPHONE"));
+    dataMap.put("createdbyname", tmpMbo.getString("CREATEDBYNAME"));
+    dataMap.put("createdbyemail", tmpMbo.getString("CREATEDBYEMAIL"));
+    dataMap.put("autoscriptid", tmpMbo.getLong("AUTOSCRIPTID"));
+    dataMap.put("createdby", tmpMbo.getString("CREATEDBY"));
+    dataMap.put("changeby", tmpMbo.getString("CHANGEBY"));
+    dataMap.put("statusdate", formatDateTime(tmpMbo.getDate("STATUSDATE")));
+    dataMap.put("changedate", formatDateTime(tmpMbo.getDate("CHANGEDATE")));
+
+
 
     return dataMap;
 
