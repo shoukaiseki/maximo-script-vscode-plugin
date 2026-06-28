@@ -3,6 +3,7 @@
 /* eslint-disable no-unused-vars */
 
 // @ts-nocheck
+var serverName="SHARPTREE.AUTOSCRIPT.LIBRARY";
 
 MboConstants = Java.type("psdi.mbo.MboConstants");
 SqlFormat = Java.type("psdi.mbo.SqlFormat");
@@ -19,7 +20,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 /**  @type {psdi.util.logging.MXLogger}*/
 var logger = MXLoggerFactory.getLogger("maximo.script.SHARPTREE.AUTOSCRIPT.LIBRARY");
-logger.setLevel(Level.DEBUG);
+// logger.setLevel(Level.INFO);
 
 if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
     //_langcode=zh
@@ -2155,7 +2156,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
   logger.debug("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
   logger.info("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
     logger.warn("mbo.ignoreObjectMain10="+(typeof this.ignoreObjectMain === "undefined"));
-  logger.error("mbo.ignoreObjectMain20="+(!this.ignoreObjectMain));
+  logger.error("\x1b[31m ["+serverName+"] objectName= "+this.object+" mbo.ignoreObjectMain10="+(!this.ignoreObjectMain)+"\x1b[0m");
   //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
     if(ignoreObjectMain){
         if(!this.description){

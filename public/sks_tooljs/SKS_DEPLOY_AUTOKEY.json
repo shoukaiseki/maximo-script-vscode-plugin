@@ -1,0 +1,20 @@
+{
+  "owneremail": "",
+  "createdbyid": "",
+  "description": "SKS_DEPLOY_AUTOKEY",
+  "launchPoints": [],
+  "createdbyemail": "",
+  "interface": 0,
+  "scriptlanguage": "JavaScript",
+  "createdbyphone": "",
+  "scheduledstatus": "",
+  "variables": [],
+  "comments": "",
+  "autoscript": "SKS_DEPLOY_AUTOKEY",
+  "active": 1,
+  "version": "1.0.57",
+  "ibm_packagepath": "cn.shoukaiseki.test",
+  "loglevel": "INFO",
+  "userdefined": 1,
+  "status": "Draft"
+}
