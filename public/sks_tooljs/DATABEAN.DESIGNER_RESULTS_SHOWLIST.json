@@ -42,7 +42,7 @@
   "statusdate": "2026-05-29T00:23:34+08:00",
   "hasld": 0,
   "ibm_packagepath": "cn.shoukaiseki.tools",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

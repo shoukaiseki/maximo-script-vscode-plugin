@@ -14,7 +14,7 @@
   "active": 1,
   "version": "1.0.57",
   "ibm_packagepath": "cn.shoukaiseki.test",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "userdefined": 1,
   "status": "Draft"
 }
