@@ -27,6 +27,7 @@
   - [清除脚本](#清除脚本)
   - [修复应用XML重复ID](#修复应用xml重复id)
 - [Pull 应用 XML](#pull-应用-xml)
+- [修复应用xml推送](#修复应用xml推送)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
   - [版本检查](#版本检查)
 
@@ -1043,6 +1044,36 @@ app_xml_backup_20260610_143025/
 
 ---
 
+## 修复应用xml推送
+
+**功能**：从 Maximo 获取 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本源代码并通过 MXAPIAUTOSCRIPT 接口推送修复。
+
+**使用方式**：
+1. 在编辑器中打开 XML 文件
+2. 右键点击 → **"Maximo Script: 修复应用xml推送"**
+
+**处理流程**：
+
+1. **获取脚本源代码**
+   - 调用 `SKS_EXP_AUTOSCRIPTBYNAME` 接口
+   - 获取 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本的源代码（不保存到本地）
+
+2. **推送修复脚本**
+   - 构建请求体（包含 description、autoscript、ibm_packagepath、loglevel、changedate、source）
+   - 调用 `MXAPIAUTOSCRIPT` 接口（PATCH 方法）
+   - 等待服务器处理完成
+
+3. **查看结果**
+   - 成功：弹出通知 "修复应用 XML 推送成功"
+   - 失败：弹出错误提示，包含详细错误信息
+
+**注意事项**：
+- ⚠️ 需要 Maximo 系统中部署 `SKS_EXP_AUTOSCRIPTBYNAME` 脚本
+- ⚠️ 需要正确的 Maximo 服务器地址和认证信息配置
+- ⚠️ 此操作会更新 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本，请确认后再执行
+
+---
+
 ## 📥 脚本 Pull 和 Push
 
 ### 前置配置
@@ -1415,4 +1446,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-06-25 | 版本：1.4.5*
+*最后更新：2026-06-25 | 版本：1.4.10*

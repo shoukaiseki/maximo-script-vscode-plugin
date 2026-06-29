@@ -384,6 +384,56 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(pullAppXmlCommand);
 
+  // 注册修复应用 XML 推送命令
+  const repairAppXmlPushCommand = vscode.commands.registerCommand('maximoScript.repairAppXmlPush', async () => {
+    try {
+      const editor = vscode.window.activeTextEditor;
+
+      if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+      }
+
+      const document = editor.document;
+
+      // 只处理 XML 文件
+      if (document.languageId !== 'xml') {
+        vscode.window.showErrorMessage('只能在 XML 文件中使用此功能');
+        return;
+      }
+
+      logger.info('[RepairAppXmlPush] 开始修复应用 XML 推送...');
+
+      // 显示进度提示
+      vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: '正在修复应用 XML 推送',
+          cancellable: false
+        },
+        async (progress) => {
+          progress.report({ message: '正在连接 Maximo...' });
+
+          // 调用 ConfigPanel 的静态方法
+          const result = await ConfigPanel.repairAppXmlPush(logger);
+
+          if (result.success) {
+            logger.info('[RepairAppXmlPush] ✅ 修复推送成功');
+            vscode.window.showInformationMessage('修复应用 XML 推送成功');
+          } else {
+            logger.error(`[RepairAppXmlPush] ❌ 修复推送失败: ${result.errorMessage}`);
+            vscode.window.showErrorMessage(`修复应用 XML 推送失败: ${result.errorMessage}`);
+          }
+        }
+      );
+    } catch (error: any) {
+      console.log(error);
+      logger.error(`[RepairAppXmlPush] ❌ 修复失败: ${error.message}`);
+      vscode.window.showErrorMessage(`修复应用 XML 推送失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(repairAppXmlPushCommand);
+
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
     try {

@@ -1374,6 +1374,98 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 修复应用 XML 推送：获取 SHARPTREE.AUTOSCRIPT.SCREENS 脚本内容并通过 MXAPIAUTOSCRIPT 接口推送（静态方法，供 extension.ts 调用）
+   * @returns { success: boolean, errorMessage?: string }
+   */
+  public static async repairAppXmlPush(
+    logger: vscode.LogOutputChannel
+  ): Promise<{ success: boolean; errorMessage?: string }> {
+    try {
+      logger.info('[RepairAppXmlPush] 开始修复应用 XML 推送...');
+
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+
+      if (!serverUrl) {
+        const errorMsg = '服务器地址未配置';
+        logger.error(`[RepairAppXmlPush] ${errorMsg}`);
+        return { success: false, errorMessage: errorMsg };
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        const errorMsg = '配置不完整，请先在配置面板中设置服务器信息';
+        logger.error(`[RepairAppXmlPush] ${errorMsg}`);
+        return { success: false, errorMessage: errorMsg };
+      }
+
+      const scriptName = 'SHARPTREE.AUTOSCRIPT.SCREENS';
+
+      // 步骤1: 通过 SKS_EXP_AUTOSCRIPTBYNAME 获取脚本源代码
+      logger.info(`[RepairAppXmlPush] 正在获取脚本源代码: ${scriptName}`);
+      const exportUrl = `script/SKS_EXP_AUTOSCRIPTBYNAME`;
+      const exportResult = await httpRequestToMaximo({
+        url: exportUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: { 'AUTOSCRIPT': scriptName }
+      });
+
+      if (exportResult.status !== 200 || !exportResult.data) {
+        const errorMsg = `获取脚本源代码失败: HTTP ${exportResult.status}`;
+        logger.error(`[RepairAppXmlPush] ${errorMsg}`);
+        return { success: false, errorMessage: errorMsg };
+      }
+
+      var sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+      logger.info(`[RepairAppXmlPush] ✅ 成功获取脚本源代码，长度: ${sourceCode.length} 字符`);
+      // if(sourceCode.endsWith("//")){
+      //   sourceCode=sourceCode.substring(0, sourceCode.length - 2)
+      // }else{
+      //   sourceCode += "//";
+      // }
+      // 步骤2: 构建请求体并通过 MXAPIAUTOSCRIPT 接口推送
+      const scriptId = '_' + Buffer.from(scriptName).toString('base64');
+      const pushUrl = `os/MXAPIAUTOSCRIPT/${scriptId}?lean=1`;
+
+      const pushData = {
+        description: 'Sharptree Screens Script',
+        autoscript: scriptName,
+        ibm_packagepath: 'sharptree.autoscript',
+        loglevel: 'ERROR',
+        changedate: new Date().toISOString(),
+        source: sourceCode
+      };
+      //AUTOSCRIPT
+      logger.info(`[RepairAppXmlPush] 正在推送脚本: ${scriptName}`);
+      const pushResult = await httpRequestToMaximo({
+        url: pushUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-method-override': 'PATCH'
+        },
+        data: pushData
+      });
+
+      if (pushResult.data && pushResult.data.status && pushResult.data.status === 'error') {
+        const errorMsg = `推送失败: ${pushResult.data.status} ${JSON.stringify(pushResult.data.message || '')}`;
+        logger.error(`[RepairAppXmlPush] ❌ ${errorMsg}`);
+        return { success: false, errorMessage: errorMsg };
+      }
+
+      logger.info(`[RepairAppXmlPush] ✅ 修复推送成功: ${scriptName}`);
+      return { success: true };
+
+    } catch (error: any) {
+      const errorMsg = `修复推送失败: ${error.message}`;
+      logger.error(`[RepairAppXmlPush] ❌ ${errorMsg}`);
+      return { success: false, errorMessage: errorMsg };
+    }
+  }
+
+  /**
    * 比较两个语义化版本号 (如 "1.0.1" vs "1.0.2")
    * @returns 正数表示 v1 > v2，负数表示 v1 < v2，0 表示相等
    */

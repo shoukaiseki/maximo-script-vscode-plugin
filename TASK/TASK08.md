@@ -76,3 +76,28 @@ curl --request POST \
 工具箱中的 导出MAXOBJECT 标签下增加一个启用精简/完整开关,进行持久化存储
 
 开启精简模式后 SKS_EXPORT_DBCONFIG接口中增加参数 ignoreDefVal=true
+
+
+# 05
+新增 修复应用xml推送 功能,在xml编辑时候,点击右键菜单显示
+
+功能是先通过脚本接口获取 SHARPTREE.AUTOSCRIPT.SCREENS 脚本,
+
+只获取脚本内容不进行保存,然后通过以下接口推送脚本
+
+```
+curl --request POST \
+  --url api/os/MXAPIAUTOSCRIPT/_U0hBUlBUUkVFLkFVVE9TQ1JJUFQuU0NSRUVOUw== \
+  --header 'Accept: */*' \
+  --header 'x-method-override: PATCH' \
+  --data '{
+
+  "description": "Sharptree Screens Script",
+  "autoscript": "SHARPTREE.AUTOSCRIPT.SCREENS",
+  "ibm_packagepath": "sharptree.autoscript",
+  "loglevel": "ERROR",
+  "source": <获取到的脚本内容>
+}'
+```
+
+提示成功或者失败即可

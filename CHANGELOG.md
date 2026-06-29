@@ -5,6 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.10] - 2026-06-25
+
+### 新增功能
+
+#### 修复应用XML推送右键菜单
+- ✨ 新增 XML 文件右键菜单「修复应用xml推送」功能
+  - 通过 `SKS_EXP_AUTOSCRIPTBYNAME` 获取 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本源代码（不保存到本地）
+  - 通过 `MXAPIAUTOSCRIPT` PATCH 接口推送修复脚本
+  - 包含 `description`、`autoscript`、`ibm_packagepath`、`loglevel`、`changedate`、`source` 字段
+  - 显示进度提示，成功或失败弹窗通知
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json`
+    - 新增 `maximoScript.repairAppXmlPush` 命令定义
+    - `editor/context` 菜单为 XML 文件添加入口（`navigation@4`）
+  - `src/extension.ts`
+    - 新增 `repairAppXmlPush` 命令注册实现
+    - 调用 `ConfigPanel.repairAppXmlPush()` 静态方法
+  - `src/configPanel.ts`
+    - 新增 `repairAppXmlPush()` 静态方法
+    - 实现脚本源代码获取、MXAPIAUTOSCRIPT PATCH 推送完整流程
+
+---
+
 ## [1.4.5] - 2026-06-25
 
 ### 新增功能
