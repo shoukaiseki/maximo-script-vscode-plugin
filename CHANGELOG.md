@@ -18,6 +18,8 @@
   - 支持自动生成带时间戳的备份目录
   - 导出目录独立持久化配置（`exportMaxobjectDirectory`）
   - 提供“打开导出配置文件”按钮，快速编辑过滤规则
+  - **新增精简/完整模式开关**：开启精简模式后导出时 `SKS_EXPORT_DBCONFIG` 接口传递 `ignoreDefVal=true`
+  - 配置项 `maxobjectSimpleMode`，持久化保存
 
 #### Pull 应用 XML 右键菜单
 - ✨ 新增 XML 文件右键菜单「Pull 应用 XML」功能
@@ -35,6 +37,7 @@
 - 🔧 新增 `maximoScript.exportMaxobjectDirectory` 配置项
   - 与导出脚本、导出应用XML目录相互独立
   - 持久化保存，重新加载窗口后自动恢复
+- 🔧 新增 `maximoScript.maxobjectSimpleMode` 配置项
 
 ### 技术实现
 
@@ -45,6 +48,7 @@
   - `package.json`
     - 新增 `maximoScript.pullAppXml` 命令定义
     - 新增 `maximoScript.exportMaxobjectDirectory` 配置项定义
+    - 新增 `maximoScript.maxobjectSimpleMode` 配置项定义
     - `editor/context` 和 `explorer/context` 菜单添加 Pull 应用 XML 入口
     - 版本号更新为 1.4.5
   - `src/configPanel.ts`
@@ -55,6 +59,7 @@
     - 新增 `_selectDirectoryForExtractMaxobject()` 方法
     - 新增 `_extractMaxobject()` 方法（多线程导出）
     - `_sendInitialConfig()` 和 `_saveConfig()` 添加 `exportMaxobjectDirectory` 字段
+    - `_extractMaxobject()` 增加 `maxobjectSimpleMode` 精简模式判断逻辑
     - 消息处理添加 `extractMaxobject`、`openMaxobjectConfig` 等 case
   - `src/extension.ts`
     - 新增 `maximoScript.pullAppXml` 命令实现
@@ -64,6 +69,7 @@
     - 新增导出目录选择、配置文件打开、开始导出等交互
     - ConfigData 接口添加 `exportMaxobjectDirectory` 字段
     - 新增 `extractMaxobjectDirectoryPath` 和 `isExtractMaxobjectRunning` 状态
+    - ConfigData 接口添加 `maxobjectSimpleMode` 字段
 
 ### 注意事项
 

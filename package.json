@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -200,6 +200,11 @@
           "type": "string",
           "default": "",
           "description": "导出MAXOBJECT目录（用于存储导出的 MAXOBJECT DBCONFIG JSON，持久化保存）"
+        },
+        "maximoScript.maxobjectSimpleMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "MAXOBJECT 导出精简模式：开启后导出时忽略默认值字段（即向 SKS_EXPORT_DBCONFIG 接口传递 ignoreDefVal=true）"
         },
         "maximoScript.envnum": {
           "type": "string",

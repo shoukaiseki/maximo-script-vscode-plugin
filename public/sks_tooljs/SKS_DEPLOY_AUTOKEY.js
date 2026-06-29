@@ -194,6 +194,13 @@ function saveOrUpdateAutokey(autokeyData, index) {
         // 如果提供了 SITEORGTYPE，按照源代码的逻辑批量创建
         if (siteorgtype && !autokeyData._delete) {
             createAutokeyBySiteOrgType(autokeyname, siteorgtype, seed, prefix, langcode, index);
+            
+            // 如果同时提供了 siteid，还需要为指定站点创建站点级自动键
+            if (siteid) {
+                logger.info("同时为指定站点 " + siteid + " 创建站点级自动键");
+                createSingleAutokey(autokeyname, siteid, null, null, seed, prefix, langcode);
+            }
+            
             return;
         }
 

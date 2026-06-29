@@ -71,3 +71,8 @@ curl --request POST \
 
 之后再将接口获取的xml内容写入当时右键点击的文件中
 
+
+# 04
+工具箱中的 导出MAXOBJECT 标签下增加一个启用精简/完整开关,进行持久化存储
+
+开启精简模式后 SKS_EXPORT_DBCONFIG接口中增加参数 ignoreDefVal=true

@@ -384,7 +384,9 @@ function exportAttributes(objectName,objectEntity,maxObjectCfg) {
             
             // 跳过系统字段
             if (attributeName === "ROWSTAMP" || 
-                attributeName === "HASLD") {
+                attributeName === "HASLD"||
+                attributeName === "DESCRIPTION_LONGDESCRIPTION"
+            ) {
                 attributeCfg = maxAttributeCfgSet.moveNext();
                 continue;
             }
@@ -552,7 +554,7 @@ function exportRelationships(objectName) {
             var relConfig = new OrderedJSONObject();
             
             // 字符串类型字段
-            relConfig.put("parent", commonsUtils.getMboStringValue(service, relationship, "PARENT"));
+            // relConfig.put("parent", commonsUtils.getMboStringValue(service, relationship, "PARENT"));
             relConfig.put("relationship", commonsUtils.getMboStringValue(service, relationship, "NAME"));
             relConfig.put("child", commonsUtils.getMboStringValue(service, relationship, "CHILD"));
             relConfig.put("whereClause", commonsUtils.getMboStringValue(service, relationship, "WHERECLAUSE"));

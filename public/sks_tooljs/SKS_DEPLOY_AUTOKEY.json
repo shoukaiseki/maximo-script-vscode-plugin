@@ -12,7 +12,7 @@
   "comments": "",
   "autoscript": "SKS_DEPLOY_AUTOKEY",
   "active": 1,
-  "version": "1.0.57",
+  "version": "1.0.60",
   "ibm_packagepath": "cn.shoukaiseki.test",
   "loglevel": "ERROR",
   "userdefined": 1,

@@ -2314,6 +2314,12 @@ MaxObject.prototype.setMboValues = function (mbo) {
                   attribute.delete();
               }
           }else if(attribute&&attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))){
+              if (attributeConfig.description) {
+                  attribute.setValue("REMARKS", attributeConfig.description);
+              }
+              if (attributeConfig.title) {
+                  attribute.setValue("TITLE", attributeConfig.title);
+              }
             //不是新增的就忽略主键ID
           } else {
               if (!attribute) {
@@ -2350,17 +2356,6 @@ MaxObject.prototype.setMboValues = function (mbo) {
                       attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
                   }
 
-                  try{
-                      if (typeof attributeConfig.defaultValue !== "undefined") {
-                          if (attributeConfig.defaultValue == null) {
-                              attribute.setValueNull("DEFAULTVALUE")
-                              logger.debug("attributeConfig.defaultValue=null")
-                          } else {
-                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
-                          }
-                      }
-                  }catch(ei){}
 
                   if (typeof attributeConfig.domain !== "undefined"&&!attribute.getMboValueData("DOMAINID").isReadOnly()) {
                       attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
@@ -2417,6 +2412,17 @@ MaxObject.prototype.setMboValues = function (mbo) {
                       }
                       // logger.debug("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
                   }
+                  try{
+                      if (typeof attributeConfig.defaultValue !== "undefined") {
+                          if (attributeConfig.defaultValue == null) {
+                              attribute.setValueNull("DEFAULTVALUE")
+                              logger.debug("attributeConfig.defaultValue=null")
+                          } else {
+                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                          }
+                      }
+                  }catch(ei){}
 
                   if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
                       if (typeof attributeConfig.searchType !== "undefined") {

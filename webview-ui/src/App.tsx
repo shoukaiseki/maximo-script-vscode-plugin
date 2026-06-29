@@ -34,6 +34,7 @@ interface ConfigData {
   langcode: string;  // 语言代码
   pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
   autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
+  maxobjectSimpleMode: boolean;  // MAXOBJECT 导出精简模式（忽略默认值）
   exportMaxobjectDirectory: string;
 }
 
@@ -85,6 +86,7 @@ const App: React.FC = () => {
     langcode: '',  // 语言代码，空字符串表示未设置
     pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
     autoCreateExportDir: true,  // 默认自动生成导出目录
+    maxobjectSimpleMode: false,  // MAXOBJECT 导出精简模式（忽略默认值）
     exportMaxobjectDirectory: '',
   });
   
@@ -2063,6 +2065,24 @@ const App: React.FC = () => {
                     {!config.autoCreateExportDir 
                       ? '✅ 直接保存到选择的目录'
                       : '⚠️ 将创建时间戳子目录（如：maxobject_backup_20260523_143025/）'}
+                  </p>
+                </div>
+
+                {/* 精简/完整模式开关 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.maxobjectSimpleMode}
+                      onChange={(e) => updateConfig({ maxobjectSimpleMode: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🔧 精简模式（开启后导出时忽略默认值字段）</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {config.maxobjectSimpleMode 
+                      ? '✅ 精简模式已开启，导出时将忽略默认值字段'
+                      : '💡 完整模式（默认），导出时将包含所有字段'}
                   </p>
                 </div>
 

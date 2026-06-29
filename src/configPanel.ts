@@ -382,6 +382,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
       await config.update('autoCreateExportDir', data.autoCreateExportDir !== undefined ? data.autoCreateExportDir : true, vscode.ConfigurationTarget.Global);  // 导出脚本时自动生成目录
       await config.update('exportMaxobjectDirectory', data.exportMaxobjectDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('maxobjectSimpleMode', data.maxobjectSimpleMode !== undefined ? data.maxobjectSimpleMode : false, vscode.ConfigurationTarget.Global);
       await config.update('enableJSDocParsing', data.enableJSDocParsing, vscode.ConfigurationTarget.Global);
       await config.update('enableTypeInference', data.enableTypeInference, vscode.ConfigurationTarget.Global);
       await config.update('autoGenerateReflectionApi', data.autoGenerateReflectionApi || false, vscode.ConfigurationTarget.Global);
@@ -757,7 +758,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       langcode: config.get('langcode', ''),  // 语言代码，空字符串表示未设置
       pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true),  // 推送 XML 时始终使用 MAXAUTH，默认为 true
       autoCreateExportDir: config.get('autoCreateExportDir', true),  // 导出脚本时自动生成目录，默认为 true
-      exportMaxobjectDirectory: config.get('exportMaxobjectDirectory', '')
+      exportMaxobjectDirectory: config.get('exportMaxobjectDirectory', ''),
+      maxobjectSimpleMode: config.get('maxobjectSimpleMode', false)
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -3391,10 +3393,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
    */
   private async _extractMaxobject(directoryPath: string, autoCreateExportDir: boolean = true) {
     try {
-      this._sendToolboxOutput('📦 开始导出 MAXOBJECT...');
-
       const config = vscode.workspace.getConfiguration('maximoScript');
       const serverUrl = config.get<string>('serverUrl', '');
+      const maxobjectSimpleMode = config.get<boolean>('maxobjectSimpleMode', false);
+      
+      this._sendToolboxOutput(`📦 开始导出 MAXOBJECT...${maxobjectSimpleMode ? '（精简模式）' : '（完整模式）'}`);
       
       if (!serverUrl) {
         this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
@@ -3496,7 +3499,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
             headers: {
               'Content-Type': 'application/json'
             },
-            data: { objectNames: [objectName] }
+            data: { objectNames: [objectName], ...(maxobjectSimpleMode ? { ignoreDefVal: true } : {}) }
           });
 
           if (exportResult.status !== 200 || !exportResult.data) {
