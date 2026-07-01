@@ -1,0 +1,15 @@
+{
+  "description": "应用xml备份",
+  "launchPoints": [],
+  "createdbyemail": "",
+  "interface": 1,
+  "scriptlanguage": "JavaScript",
+  "langcode": "ZH",
+  "variables": [],
+  "autoscript": "APPBEAN.DESIGNER",
+  "active": 1,
+  "version": "1.0.42",
+  "ibm_packagepath": "cn.shoukaiseki.tools",
+  "loglevel": "INFO",
+  "status": "Draft"
+}

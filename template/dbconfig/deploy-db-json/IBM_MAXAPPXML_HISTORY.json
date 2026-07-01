@@ -1,0 +1,135 @@
+{
+  "maxObjects": [
+    {
+      "object": "IBM_MAXAPPXML_HISTORY",
+      "description": "应用xml历史记录",
+      "level": "SYSTEM",
+      "langCode": "EN",
+      "userDefined": true,
+      "mainObject": false,
+      "attributes": [
+        {
+          "attribute": "CREATETIME",
+          "description": "创建时间",
+          "title": "创建时间",
+          "type": "DATETIME",
+          "length": 10,
+          "scale": 0,
+          "defaultValue": "&SYSDATE&",
+          "searchType": "EXACT"
+        },
+        {
+          "attribute": "CREATEPERSON",
+          "description": "创建人",
+          "title": "创建人",
+          "type": "UPPER",
+          "sameAsObject": "PERSON",
+          "sameAsAttribute": "PERSONID",
+          "length": 100,
+          "scale": 0,
+          "defaultValue": "&PERSONID&",
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "HOSTNAME",
+          "description": "主机名",
+          "title": "Host Name",
+          "type": "UPPER",
+          "length": 50,
+          "scale": 0,
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "ALIASNAME",
+          "description": "推送人别名",
+          "title": "推送人别名",
+          "type": "ALN",
+          "length": 50,
+          "scale": 0,
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "VERSION",
+          "description": "Script Version",
+          "title": "Version",
+          "type": "ALN",
+          "sameAsObject": "AUTOSCRIPT",
+          "sameAsAttribute": "VERSION",
+          "length": 20,
+          "scale": 0,
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "SOURCE",
+          "description": "脚本的源代码",
+          "title": "Source Code",
+          "type": "CLOB",
+          "length": 999999,
+          "scale": 0,
+          "searchType": "NONE"
+        },
+        {
+          "attribute": "APP",
+          "description": "应用xml名称",
+          "title": "应用xml名称",
+          "type": "UPPER",
+          "sameAsObject": "MAXAPPS",
+          "sameAsAttribute": "APP",
+          "length": 40,
+          "scale": 0,
+          "mustBe": true,
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "IBM_MAXAPPXML_HISTORYID",
+          "description": "ID",
+          "title": "ID",
+          "type": "BIGINT",
+          "length": 19,
+          "scale": 0,
+          "primaryColumn": 1,
+          "required": true,
+          "mustBe": true,
+          "searchType": "EXACT"
+        },
+        {
+          "attribute": "DESCRIPTION",
+          "description": "Description",
+          "title": "Description",
+          "type": "ALN",
+          "length": 50,
+          "scale": 0,
+          "localizable": true,
+          "longDescriptionOwner": true,
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "TYPE",
+          "description": "类型",
+          "title": "类型",
+          "type": "ALN",
+          "length": 50,
+          "scale": 0,
+          "defaultValue": "designer",
+          "searchType": "WILDCARD"
+        },
+        {
+          "attribute": "LANGCODE",
+          "description": "语言代码",
+          "title": "语言代码",
+          "type": "UPPER",
+          "sameAsObject": "LANGUAGE",
+          "sameAsAttribute": "MAXLANGCODE",
+          "length": 4,
+          "scale": 0,
+          "class": "psdi.app.system.FldLangCode",
+          "mustBe": true,
+          "positive": true,
+          "userDefined": false,
+          "searchType": "WILDCARD"
+        }
+      ],
+      "relationships": []
+    }
+  ]
+}

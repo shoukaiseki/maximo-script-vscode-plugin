@@ -235,3 +235,6 @@ Date = Java.type("java.util.Date");
 
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
 ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
+
+/** @type {psdi.util.MXMath} */
+MXMath = Java.type("psdi.util.MXMath");

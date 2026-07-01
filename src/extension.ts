@@ -238,9 +238,9 @@ export function activate(context: vscode.ExtensionContext) {
 
           if (result.success) {
             logger.info(`[PushXmlToMaximo] ✅ XML 推送成功`);
-            vscode.window.showInformationMessage(`XML 已成功推送到 Maximo`);
+            vscode.window.showInformationMessage(`XML 已成功推送到 Maximo.\n如果没有生效,右键点击,选择"Maximo Script:修复应用xml推送"`);
             // logger.error(`maxauth用户`)
-            logger.error(`如果没有生效,则 Maximo配置,连接选择 MAXAUTH之后测试连接,再切回APIKey模式(这时候不要点测试),或者重新初始化`)
+            logger.error(`如果没有生效,右键点击,选择"Maximo Script:修复应用xml推送"`)
             logger.error(`或者web先登录一次应用程序设计器`)
             logger.error(`或者再初始化以下工具箱`)
           } else {
@@ -293,14 +293,19 @@ export function activate(context: vscode.ExtensionContext) {
       const fs = require('fs');
       const fileName = path.basename(filePath, '.xml');
 
-      const idMatch = fileContent.match(/<presentation[^>]*\sid=["']([^"']+)["']/i);
+      let idMatch = fileContent.match(/<presentation[^>]*\sid=["']([^"']+)["']/i);
+      let elementType = 'presentation';
       if (!idMatch) {
-        vscode.window.showErrorMessage('未找到 presentation 元素的 id 属性');
+        idMatch = fileContent.match(/<systemlib[^>]*\sid=["']([^"']+)["']/i);
+        elementType = 'systemlib';
+      }
+      if (!idMatch) {
+        vscode.window.showErrorMessage('未找到 presentation 或 systemlib 元素的 id 属性');
         return;
       }
 
       const presentationId = idMatch[1];
-      logger.info(`[PullAppXml] 文件名: ${fileName}, presentation id: ${presentationId}`);
+      logger.info(`[PullAppXml] 文件名: ${fileName}, ${elementType} id: ${presentationId}`);
 
       if (fileName !== presentationId) {
         const choice = await vscode.window.showWarningMessage(
@@ -336,7 +341,19 @@ export function activate(context: vscode.ExtensionContext) {
         async (progress) => {
           progress.report({ message: '正在从 Maximo 获取应用 XML...' });
 
-          const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
+          const hostname = require('os').hostname();
+          const aliasNameConfig = vscode.workspace.getConfiguration('maximoScript').get('aliasName', '');
+          let screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
+          const queryParams: string[] = [];
+          if (hostname) {
+            queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
+          }
+          if (aliasNameConfig) {
+            queryParams.push(`_aliasname=${encodeURIComponent(aliasNameConfig)}`);
+          }
+          if (queryParams.length > 0) {
+            screenUrl += '?' + queryParams.join('&');
+          }
           const screenResult = await httpRequestToMaximo({
             url: screenUrl,
             method: 'GET'

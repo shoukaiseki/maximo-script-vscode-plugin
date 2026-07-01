@@ -33,6 +33,15 @@ if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_lan
     }
 }
 
+var clentHost=null
+var aliasName=null
+if(request.getQueryParam("_clenthost")!=='undefined'&&request.getQueryParam("_clenthost")){
+    clentHost=request.getQueryParam("_clenthost")
+}
+if(request.getQueryParam("_aliasname")!=='undefined'&&request.getQueryParam("_aliasname")){
+    aliasName=request.getQueryParam("_aliasname")
+}
+
 RuntimeException = Java.type("java.lang.RuntimeException");
 System.out.println("----------------Starting execution of script " + service.getScriptName());
 
@@ -133,6 +142,12 @@ ImportAppScript.prototype.importApp = function(app,saveLabels) {
     } else if (MXServer.isBotcInstalled() && this.currentAppID != null && (this.currentAppID.equalsIgnoreCase("library") || this.currentAppID.equalsIgnoreCase("lookups") || this.currentAppID.equalsIgnoreCase("menus"))) {
         throw new MXApplicationException("botc", "nosystempresentataions");
     }
+    //在这里增加保存系统当前的历史记录,新增一个保存历史记录的方法,参考 masscript\cn\shoukaiseki\tools\APPBEAN.DESIGNER.js
+    // 保存旧版本历史记录（从数据库查询当前已有内容，作为导入前的备份）
+    if(!saveOldVersionHistory(pp)){
+        logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  无旧版本需要备份或保存失败")
+    }
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveHistory")
     //系统xml 或者 应用xml存在
         var labels = pp.getLabels();
         this.saveXML( this.currentAppID, pp.getTrimmedXML());
@@ -196,6 +211,70 @@ ImportAppScript.prototype.saveXML = function(appID, xml) {
         }
         logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML end")
 
+}
+/**
+ * 保存当前数据库中的旧版本 XML 到历史记录表（导入前的备份）
+ * 根据 appID 查询 MAXPRESENTATION 表中的当前 PRESENTATION 内容并保存到 IBM_MAXAPPXML_HISTORY
+ * @param {string} appID - 应用名
+ * @returns {boolean} 是否保存成功
+ */
+function saveOldVersionHistory(pp) {
+    appID = pp.getApplication();
+    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] saveOldVersionHistory appID=" + appID);
+    var presentationSet = null;
+    var historySet = null;
+    try {
+        // 查询当前数据库中的 MAXPRESENTATION 记录
+        presentationSet = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
+        presentationSet.resetQbe();
+        presentationSet.setQbeExactMatch(true);
+        presentationSet.setQbe("app", appID);
+        presentationSet.reset();
+
+        if (presentationSet.isEmpty()) {
+            logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] MAXPRESENTATION中无旧版本记录，跳过备份");
+            return true;
+        }
+
+        var mbo = presentationSet.getMbo(0);
+        var oldXml = mbo.getString("PRESENTATION");
+        if (!oldXml) {
+            logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] PRESENTATION为空，跳过备份");
+            return true;
+        }
+
+        // 保存到 IBM_MAXAPPXML_HISTORY
+        historySet = MXServer.getMXServer().getMboSet("IBM_MAXAPPXML_HISTORY", userInfo);
+        var history = historySet.add();
+
+        history.setValue("SOURCE", oldXml, MboConstants.NOACCESSCHECK);
+        history.setValue("APP", appID, MboConstants.NOACCESSCHECK);
+        if(!clentHost){
+            clentHost = userInfo.getClientHost();
+        }
+        if(!clentHost){
+             clentHost = request.getHttpServletRequest().getRemoteHost();
+        }
+        if(clentHost){
+            history.setValue("HOSTNAME", clentHost, MboConstants.NOACCESSCHECK);
+        }else{
+            history.setValue("HOSTNAME", "_unknown_", MboConstants.NOACCESSCHECK);
+        }
+        history.setValue("ALIASNAME", aliasName?aliasName:"_screen_", MboConstants.NOACCESSCHECK);
+        history.setValue("TYPE", "screens", MboConstants.NOACCESSCHECK);
+        history.setValue("DESCRIPTION", appID, MboConstants.NOACCESSCHECK);
+        history.setValue("LANGCODE", userInfo.getLangCode(), MboConstants.NOACCESSCHECK);
+
+        historySet.save();
+        logger.info("\x1b[32m[SHARPTREE.AUTOSCRIPT.SCREENS] 旧版本历史记录保存成功: " + appID + "\x1b[0m");
+        return true;
+    } catch (e) {
+        logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] saveOldVersionHistory error", e);
+        return false;
+    } finally {
+        _close(presentationSet);
+        _close(historySet);
+    }
 }
 ImportAppScript.prototype.saveLabels = function(appID, labels) {
     logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")

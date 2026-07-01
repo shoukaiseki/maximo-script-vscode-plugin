@@ -95,7 +95,11 @@ function SAVE(dbctx){
     if(!mbo){
         return
     }
-    if(!(mbo.toBeUpdated()||mbo.toBeAdded())){
+    // if(!(appBean.toBeSaved()||mbo.toBeUpdated()||mbo.toBeAdded())){
+    //     return
+    // }
+    if(!appBean.toBeSaved()){
+        logger.info("[" + scriptName + "] 无任何变更，跳过备份")
         return
     }
     logger.info("[" + scriptName + "] 保存自动化脚本历史记录")

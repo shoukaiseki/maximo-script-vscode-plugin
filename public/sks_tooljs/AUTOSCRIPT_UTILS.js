@@ -42,6 +42,8 @@ SimpleDateFormat = Java.type("java.text.SimpleDateFormat");
 JSONArray = Java.type("com.ibm.json.java.JSONArray");
 /** @type {com.ibm.json.java.JSONObject} */
 JSONObject = Java.type("com.ibm.json.java.JSONObject");
+/** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
+ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
 
 /** @type {jscustom.AnsiLogger} */
 var logger = null

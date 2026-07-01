@@ -6,6 +6,8 @@
 
 
 ### IBM_AUTOSCRIPT_HISTORY_API_CONFIG.json
+前端保存备份功能需导入 APPBEAN.AUTOSCRIPT 脚本
+
 保存脚本历史记录
 
 如果创建表时出现失败,
@@ -53,3 +55,9 @@ select MAXTYPE,LENGTH from MAXATTRIBUTE where OBJECTNAME='IBM_AUTOSCRIPT_HISTORY
 <textbox dataattribute="scriptlanguage" id="main_grid2_attr1_2" lookup="scriptengines"/>
 <textbox dataattribute="IBM_PACKAGEPATH" id="1779285828009" size="60"/>
 ```
+
+## IBM_MAXAPPXML_HISTORY.json
+
+应用xml备份的表,如果出现类似 ibm_autoscript_history 的情况,按照 ibm_autoscript_history的处理方式处理
+
+前端保存备份功能需导入 APPBEAN.DESIGNER 脚本

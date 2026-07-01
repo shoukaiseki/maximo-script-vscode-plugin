@@ -1301,8 +1301,19 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       logger.info('[pushXmlToMaximo] 开始推送 XML...');
 
-      // 直接调用 SHARPTREE.AUTOSCRIPT.SCREENS API
-      const deployUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      const hostname = require('os').hostname();
+      const aliasNameConfig = config.get('aliasName', '');
+      let deployUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      const queryParams: string[] = [];
+      if (hostname) {
+        queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
+      }
+      if (aliasNameConfig) {
+        queryParams.push(`_aliasname=${encodeURIComponent(aliasNameConfig)}`);
+      }
+      if (queryParams.length > 0) {
+        deployUrl += '?' + queryParams.join('&');
+      }
       
       // 根据配置决定是否强制使用 MAXAUTH
       const requestOptions: any = {
@@ -1427,7 +1438,19 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // }
       // 步骤2: 构建请求体并通过 MXAPIAUTOSCRIPT 接口推送
       const scriptId = '_' + Buffer.from(scriptName).toString('base64');
-      const pushUrl = `os/MXAPIAUTOSCRIPT/${scriptId}?lean=1`;
+      const hostname = require('os').hostname();
+      const aliasNameConfig = config.get('aliasName', '');
+      let pushUrl = `os/MXAPIAUTOSCRIPT/${scriptId}?lean=1`;
+      const queryParams: string[] = [];
+      if (hostname) {
+        queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
+      }
+      if (aliasNameConfig) {
+        queryParams.push(`_aliasname=${encodeURIComponent(aliasNameConfig)}`);
+      }
+      if (queryParams.length > 0) {
+        pushUrl += '&' + queryParams.join('&');
+      }
 
       const pushData = {
         description: 'Sharptree Screens Script',
