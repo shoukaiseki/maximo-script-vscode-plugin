@@ -10,8 +10,8 @@
 						<pushbutton mxevent="reloadcache" id="reloadcache" label="Reload Cache" style="primary"/>
 					</buttongroup> -->
 					<menubar event="search" id="actiontoolbar1" sourcemethod="getAppSearchOptions"/>
-					<table id="results_showlist" inputmode="readonly" label="TABLE TITLE" mboname="IBM_AUTOSCRIPT_HISTORY" selectmode="multiple"  orderby="IBM_AUTOSCRIPT_HISTORYID desc" >
-						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody" >
+					<table id="results_showlist" inputmode="readonly" label="TABLE TITLE" mboname="IBM_AUTOSCRIPT_HISTORY" selectmode="multiple" orderby="IBM_AUTOSCRIPT_HISTORYID desc">
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
 							<tablecol dataattribute="IBM_AUTOSCRIPT_HISTORYID" filterable="false" id="results_showlist_column_select" mxevent="toggleselectrow" mxevent_desc="Select Row {0}" sortable="false" type="event"/>
 							<tablecol label="ID" dataattribute="IBM_AUTOSCRIPT_HISTORYID" id="results_showlist_column_link" mxevent="selectrecord" mxevent_desc="Go To %1" type="link" usefieldsizegroup="false"/>
 							<tablecol dataattribute="AUTOSCRIPT" id="results_showlist_column1" mxevent="selectrecord" mxevent_desc="Go To %1" type="link" />
@@ -29,7 +29,7 @@
 						<sectionrow id="maintab_section_row1">
 							<sectioncol id="maintab_section_col1">
 								<section id="maintab_section_col1_section">
-									<textbox  inputmode="readonly" dataattribute="AUTOSCRIPT" id="maintab_attr_autoscript"/>
+									<textbox inputmode="readonly" dataattribute="AUTOSCRIPT" id="maintab_attr_autoscript"/>
 									<textbox dataattribute="ALIASNAME" id="maintab_attr_aliasname"/>
 									<textbox dataattribute="HOSTNAME" id="maintab_attr_hostname"/>
 									<textbox dataattribute="DESCRIPTION" id="maintab_attr_description"/>
@@ -37,18 +37,26 @@
 							</sectioncol>
 							<sectioncol id="maintab_section_col2">
 								<section id="maintab_section_col2_section">
-									<textbox  inputmode="readonly" dataattribute="VERSION" id="maintab_attr_version"/>
-									<textbox  dataattribute="CREATEPERSON" id="maintab_attr_createperson" inputmode="readonly"/>
-									<textbox  dataattribute="CREATETIME" id="maintab_attr_createtime" inputmode="readonly" lookup="datelookup"/>
+									<textbox inputmode="readonly" dataattribute="VERSION" id="maintab_attr_version"/>
+									<textbox dataattribute="CREATEPERSON" id="maintab_attr_createperson" inputmode="readonly"/>
+									<textbox dataattribute="CREATETIME" id="maintab_attr_createtime" inputmode="readonly" lookup="datelookup"/>
 								</section>
 							</sectioncol>
 						</sectionrow>
-						<sectionrow id="maintab_section_row2">
-						<multilinetextbox inputmode="readonly" dataattribute="SOURCE" id="maintab_attr_source" rows="15" columns="80"/>
-						</sectionrow>
-						<sectionrow id="GFNuDOt5gHfZNMME">
-						<multilinetextbox inputmode="readonly" dataattribute="DESCRIPTION_LONGDESCRIPTION" id="bv7cWnEdeE4WZMNz" rows="15" columns="80"/>
-						</sectionrow>
+						<!-- <sectionrow id="maintab_section_row2"> -->
+							<!-- <multilinetextbox inputmode="readonly" dataattribute="SOURCE" id="maintab_attr_source" rows="15" columns="80"/> -->
+						<!-- </sectionrow> -->
+						<!-- <sectionrow id="GFNuDOt5gHfZNMME"> -->
+							<!-- <multilinetextbox inputmode="readonly" dataattribute="DESCRIPTION_LONGDESCRIPTION" id="bv7cWnEdeE4WZMNz" rows="15" columns="80"/> -->
+						<!-- </sectionrow> -->
+					</section>
+					<section id="arXNzs0O27OqWWMn">
+						<multilinetextbox inputmode="readonly" dataattribute="SOURCE" id="maintab_attr_source" rows="15" columns="120"/>
+						<!-- <miniapp inputmode="readonly" beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="CONDACTNstep3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source';inputmode:'readonly'"/> -->
+
+					</section>
+					<section id="mHC2YUde02Sbca9T">
+						<multilinetextbox label="详细描述" inputmode="readonly" dataattribute="DESCRIPTION_LONGDESCRIPTION" id="bv7cWnEdeE4WZMNz" rows="15" columns="120"/>
 					</section>
 				</tab>
 			</tabgroup>

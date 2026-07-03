@@ -8,7 +8,7 @@
   "variables": [],
   "autoscript": "APPBEAN.DESIGNER",
   "active": 1,
-  "version": "1.0.42",
+  "version": "1.0.56",
   "ibm_packagepath": "cn.shoukaiseki.tools",
   "loglevel": "INFO",
   "status": "Draft"

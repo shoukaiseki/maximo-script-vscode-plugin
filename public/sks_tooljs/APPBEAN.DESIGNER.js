@@ -138,7 +138,9 @@ function SAVE(dbctx){
 
     var historySet=null
     try {
-        historySet = mbo.getMboSet("!IBM_MAXAPPXML_HISTORY", "IBM_MAXAPPXML_HISTORY", "1=2")
+        historySet = MXServer.getMXServer().getMboSet("IBM_MAXAPPXML_HISTORY", mbo.getUserInfo());
+        historySet.setWhere("1=2")
+        historySet.reset()
         var appHistory = historySet.add()
 
         // SOURCE字段存放PRESENTATION XML内容
@@ -159,8 +161,24 @@ function SAVE(dbctx){
 
         // DESCRIPTION使用应用名
         appHistory.setValue("DESCRIPTION", appName, MboConstants.NOACCESSCHECK);
-// 在 SAVE 函数（第113行的备份函数）中加上
-        appHistory.setValue("HOSTNAME", userInfo.getClientHost(), MboConstants.NOACCESSCHECK);
+        var clentHost = userInfo.getClientHost();
+        logger.info("\x1b[32m[" + scriptName + "] mbo.clientHost=" + clentHost + "\x1b[0m")
+        if(!hostnameIsValid(clentHost)){
+            if (appBean.getMXSession()) {
+                clentHost=appBean.getMXSession().getClientHost();
+                logger.info("\x1b[32m[" + scriptName + "] mbo.clientHost2=" + clentHost + "\x1b[0m")
+                if (!hostnameIsValid(clentHost)) {
+                    clentHost=appBean.getMXSession().getClientAddr();
+                    logger.info("\x1b[32m[" + scriptName + "] mbo.clientHost3=" + clentHost + "\x1b[0m")
+                }
+            }
+
+        }
+        if(clentHost){
+            appHistory.setValue("HOSTNAME", clentHost, MboConstants.NOACCESSCHECK);
+        }else{
+            appHistory.setValue("HOSTNAME", "_unknown_", MboConstants.NOACCESSCHECK);
+        }
         appHistory.setValue("LANGCODE", userInfo.getLangCode(), MboConstants.NOACCESSCHECK);
         historySet.save()
         logger.info("\x1b[32m" + "应用程序设计器备份成功" + "\x1b[0m")
@@ -175,6 +193,19 @@ function SAVE(dbctx){
     // appBean.fireDataChangedEvent()
 }
 
+//是否有效主机名
+function hostnameIsValid(clentHost){
+    if (!clentHost) {
+        return false
+    }
+    if (clentHost.equalsIgnoreCase("_unknown_")) {
+        return false
+    }
+    if (clentHost.equalsIgnoreCase("_gateway")) {
+        return false
+    }
+    return true
+}
 
 
 // Cleans up the MboSet connections and closes the set.

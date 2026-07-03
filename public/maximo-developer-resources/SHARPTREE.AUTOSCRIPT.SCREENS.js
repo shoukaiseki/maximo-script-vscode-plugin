@@ -264,7 +264,10 @@ function saveOldVersionHistory(pp) {
         history.setValue("TYPE", "screens", MboConstants.NOACCESSCHECK);
         history.setValue("DESCRIPTION", appID, MboConstants.NOACCESSCHECK);
         history.setValue("LANGCODE", userInfo.getLangCode(), MboConstants.NOACCESSCHECK);
-
+        history.setValue("VERSION","save.before", MboConstants.NOACCESSCHECK);
+        history=history.copy()
+        history.setValue("VERSION","save.after", MboConstants.NOACCESSCHECK);
+        history.setValue("SOURCE",pp.getTrimmedXML(), MboConstants.NOACCESSCHECK);
         historySet.save();
         logger.info("\x1b[32m[SHARPTREE.AUTOSCRIPT.SCREENS] 旧版本历史记录保存成功: " + appID + "\x1b[0m");
         return true;

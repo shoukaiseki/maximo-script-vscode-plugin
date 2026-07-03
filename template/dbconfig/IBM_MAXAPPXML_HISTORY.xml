@@ -5,19 +5,20 @@
 		<include controltoclone="pageHeader" id="INCLUDE-pageHeader"/>
 		<clientarea id="clientarea">
 			<tabgroup id="maintabs" style="form">
-				<tab default="true" id="results" label="List" type="list">
+				<tab default="true" id="results" label="列表" type="list">
 					<!-- <buttongroup id="main_toolbar">
 						<pushbutton mxevent="reloadcache" id="reloadcache" label="Reload Cache" style="primary"/>
 					</buttongroup> -->
 					<menubar event="search" id="actiontoolbar1" sourcemethod="getAppSearchOptions"/>
-					<table id="results_showlist" inputmode="readonly" label="TABLE TITLE" mboname="IBM_MAXAPPXML_HISTORY" selectmode="multiple"  orderby="IBM_MAXAPPXML_HISTORYID desc" >
-						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody" >
+					<table id="results_showlist" inputmode="readonly" label="XML历史记录" mboname="IBM_MAXAPPXML_HISTORY" selectmode="multiple" orderby="IBM_MAXAPPXML_HISTORYID desc">
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
 							<tablecol dataattribute="IBM_MAXAPPXML_HISTORYID" filterable="false" id="results_showlist_column_select" mxevent="toggleselectrow" mxevent_desc="Select Row {0}" sortable="false" type="event"/>
 							<tablecol label="ID" dataattribute="IBM_MAXAPPXML_HISTORYID" id="results_showlist_column_link" mxevent="selectrecord" mxevent_desc="Go To %1" type="link" usefieldsizegroup="false"/>
 							<tablecol dataattribute="APP" id="results_showlist_column1" mxevent="selectrecord" mxevent_desc="Go To %1" type="link" />
 							<tablecol dataattribute="ALIASNAME" id="results_showlist_column2"/>
 							<tablecol dataattribute="HOSTNAME" id="results_showlist_column4"/>
-							<tablecol dataattribute="LANGCODE" id="results_showlist_column3"/>
+							<tablecol dataattribute="VERSION" id="results_showlist_column3"/>
+							<tablecol dataattribute="LANGCODE" id="IkB3aPvj52u0j3bq"/>
 							<tablecol dataattribute="CREATEPERSON" id="results_showlist_column5"/>
 							<tablecol dataattribute="CREATETIME" id="results_showlist_column6"/>
 							<tablecol filterable="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="Add to Bookmarks" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
@@ -29,26 +30,28 @@
 						<sectionrow id="maintab_section_row1">
 							<sectioncol id="maintab_section_col1">
 								<section id="maintab_section_col1_section">
-									<textbox  inputmode="readonly" dataattribute="AUTOSCRIPT" id="maintab_attr_autoscript"/>
-									<textbox dataattribute="ALIASNAME" id="maintab_attr_aliasname"/>
-									<textbox dataattribute="HOSTNAME" id="maintab_attr_hostname"/>
-									<textbox dataattribute="DESCRIPTION" id="maintab_attr_description"/>
+									<textbox label="id" inputmode="readonly" dataattribute="IBM_MAXAPPXML_HISTORYID" id="maintab_attr_autoscript"/>
+									<textbox dataattribute="ALIASNAME" id="maintab_attr_aliasname" inputmode="readonly"/>
+									<textbox dataattribute="HOSTNAME" id="maintab_attr_hostname" inputmode="readonly"/>
+									<textbox dataattribute="DESCRIPTION" id="maintab_attr_description" inputmode="readonly"/>
 								</section>
 							</sectioncol>
 							<sectioncol id="maintab_section_col2">
 								<section id="maintab_section_col2_section">
-									<textbox  inputmode="readonly" dataattribute="VERSION" id="maintab_attr_version"/>
-									<textbox  dataattribute="CREATEPERSON" id="maintab_attr_createperson" inputmode="readonly"/>
-									<textbox  dataattribute="CREATETIME" id="maintab_attr_createtime" inputmode="readonly" lookup="datelookup"/>
+									<textbox inputmode="readonly" dataattribute="VERSION" id="maintab_attr_version"/>
+									<textbox dataattribute="LANGCODE" id="8AeyBVYjFH3s24Un" inputmode="readonly"/>
+									<textbox dataattribute="TYPE" id="75gleWzIU7o5h5Ru" inputmode="readonly"/>
+									<textbox dataattribute="CREATEPERSON" id="maintab_attr_createperson" inputmode="readonly"/>
+									<textbox dataattribute="CREATETIME" id="maintab_attr_createtime" inputmode="readonly" lookup="datelookup"/>
 								</section>
 							</sectioncol>
 						</sectionrow>
-						<sectionrow id="maintab_section_row2">
-						<multilinetextbox inputmode="readonly" dataattribute="SOURCE" id="maintab_attr_source" rows="15" columns="80"/>
-						</sectionrow>
-						<sectionrow id="GFNuDOt5gHfZNMME">
-						<multilinetextbox inputmode="readonly" dataattribute="DESCRIPTION_LONGDESCRIPTION" id="bv7cWnEdeE4WZMNz" rows="15" columns="80"/>
-						</sectionrow>
+					</section>
+					<section id="arXNzs0O27OqWWMn">
+						<multilinetextbox inputmode="readonly" dataattribute="SOURCE" id="maintab_attr_source" rows="15" columns="120"/>
+					</section>
+					<section id="mHC2YUde02Sbca9T">
+						<multilinetextbox label="详细描述" inputmode="readonly" dataattribute="DESCRIPTION_LONGDESCRIPTION" id="bv7cWnEdeE4WZMNz" rows="15" columns="120"/>
 					</section>
 				</tab>
 			</tabgroup>

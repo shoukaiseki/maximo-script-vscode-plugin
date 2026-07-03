@@ -389,8 +389,13 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
       // 再判断是否存在?,存在就在?后面插入_langcode参数,不存在就加上?和_langcode参数信息
       const queryIndex = beforeHash.indexOf('?');
       if (queryIndex !== -1) {
-        // 已存在查询参数，在 ? 后面插入 _langcode
-        beforeHash = beforeHash.substring(0, queryIndex + 1) + '_langcode=' + langcode + '&' + beforeHash.substring(queryIndex + 1);
+        if (beforeHash.endsWith("?")) {
+          // 已存在查询参数，在 ? 后面插入 _langcode
+          beforeHash = beforeHash + "_langcode=" + langcode ;
+        } else {
+          // 已存在查询参数，在 ? 后面插入 _langcode
+          beforeHash = beforeHash.substring(0, queryIndex + 1) + "_langcode=" + langcode + "&" + beforeHash.substring(queryIndex + 1);
+        }
       } else {
         // 不存在查询参数，加上 ? 和 _langcode 参数
         beforeHash = beforeHash + '?_langcode=' + langcode;
