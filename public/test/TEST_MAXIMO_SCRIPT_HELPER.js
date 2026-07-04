@@ -231,10 +231,10 @@ AppInstance = Java.type("psdi.webclient.system.controller.AppInstance");//66
 SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
 
 /** @type {java.util.Date} */
-Date = Java.type("java.util.Date");
+Date = Java.type("java.util.Date");//68
 
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
-ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
+ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");//69
 
 /** @type {psdi.util.MXMath} */
-MXMath = Java.type("psdi.util.MXMath");
+MXMath = Java.type("psdi.util.MXMath");//70

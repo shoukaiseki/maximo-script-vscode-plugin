@@ -15,10 +15,41 @@ logger.info('\x1b[35m品红文本\x1b[0m'); // 品红文本
 logger.info('\x1b[36m青色文本\x1b[0m'); // 青色文本
 logger.info('\x1b[37m白色文本\x1b[0m'); // 白色文本
 
+/** @type {psdi.util.MXApplicationException} */
+var MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
+
+/** @type {psdi.util.MXException} */
+var MXException = Java.type("psdi.util.MXException");//9
+
 if(logger.isInfoEnabled()){
     logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init debug\x1b[0m")
     logger.info(formatMsgByAnsiCode("[SKS_LOG_ANSI_UTILS] formatMsgByAnsiCode","31"))
     logger.info(formatMsgByLevel("[SKS_LOG_ANSI_UTILS] formatMsgByLevel","DEBUG"))
+}
+
+/**
+ * 统一错误处理
+ */
+function throwError(error,configIn) {
+    var config = configIn || {};
+// config.errGroup
+// config.errKey
+    if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError) {
+        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeReferenceError \x1b[0m")
+        errorMessage = error.getStackTrace();
+        logger.error("Nashorn NativeReferenceError: " + errorMessage);
+        throw new MXApplicationException("#", "" + errorMessage);
+    }
+    if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeTypeError \x1b[0m")
+        errorMessage = error.getStackTrace();
+        logger.error("Nashorn NativeTypeError: " + errorMessage);
+        throw new MXApplicationException("#", "" + errorMessage);
+    }
+    if (error instanceof MXException || error instanceof MXApplicationException) {
+        throw error;
+    }
+    throw new MXApplicationException("#", ""+error);
 }
 
 /**
@@ -38,9 +69,9 @@ function getErrorStackTrace(error){
     }
     try{
         logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace 001\x1b[0m");
-        if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+        if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError) {
             logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] getErrorStackTrace 002\x1b[0m");
-            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError \x1b[0m")
+            logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeReferenceError \x1b[0m")
             // 打印堆栈跟踪
             errorMessage = error.getStackTrace();
             logger.warn("\x1b[31m[" + scriptName + "] Nashorn NativeTypeError: " + errorMessage);

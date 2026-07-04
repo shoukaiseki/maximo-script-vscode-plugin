@@ -14,8 +14,22 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 
 /** @type {psdi.util.logging.MaximoLogger} */
-var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
+var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
+var sksLogAnsiUtils = null;
+try {
+    sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+} catch (e) { }
+/** @type {jscustom.AnsiLogger} */
+var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true, printModel: false }) : loggerMX;
 
+//_lang=zh ,_lang=en,
+// _langcode=zh , _langcode=en
+if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
+    var _langcode = request.getQueryParam("_langcode");
+    // uInfo.setLocale(lang);
+    uInfo.setLangCode(_langcode)
+    logger.info("------------------_langcode=" + uInfo.getLocale().getLanguage() + ",country=" + uInfo.getLocale().getCountry());
+}
 main();
 
 function main() {
@@ -162,7 +176,7 @@ function saveOrUpdateDomain(domainData, index) {
     
     try {
         // 获取MAXDOMAIN表的MBO集合
-        domainSet = MXServer.getMXServer().getMboSet("MAXDOMAIN", MXServer.getMXServer().getSystemUserInfo());
+        domainSet = MXServer.getMXServer().getMboSet("MAXDOMAIN", userInfo);
         
         // 查询是否已存在
         /** @type {psdi.mbo.SqlFormat} */

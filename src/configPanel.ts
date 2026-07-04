@@ -1719,7 +1719,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           if (key.toLowerCase() === 'autoscript' || key.toLowerCase() === 'description' || key.toLowerCase() === 'source') {
             continue;
           }
-          if(key.toLowerCase().startsWith('sks:')){
+          if(key.toLowerCase().startsWith('sks:')
+            ||key.toLowerCase() === 'changedate'
+            ||key.toLowerCase() === 'statusdate'
+          ){
             // 跳过 sks: 开头的字段
             continue;
           }
@@ -1783,6 +1786,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
       if (deployBody['spi:active'] === undefined) {
         deployBody['spi:active'] = true;
+      }
+      if (deployBody['spi:version'] === undefined || deployBody['spi:version'] === '') {
+        deployBody['spi:version'] = '1.0.0';
       }
       if (source){
         deployBody['spi:source'] = source.replace(/\r\n/g, '\n');

@@ -28,8 +28,12 @@ var scriptName = service.getScriptName();
 
 /** @type {psdi.util.logging.MaximoLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
-var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
-logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+var sksLogAnsiUtils = null;
+try {
+    sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+} catch (e) { }
+/** @type {jscustom.AnsiLogger} */
+var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true, printModel: false }) : loggerMX;
 
 try{
     // /** @type {psdi.webclient.system.session.WebClientSession} */
