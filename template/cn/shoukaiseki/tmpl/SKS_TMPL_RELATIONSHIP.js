@@ -104,7 +104,7 @@ mboset=mbo.getMboSet(ri.getName(),ri.getDest(),whereClause)
   "statusdate": "2026-06-08T03:17:27+08:00",
   "hasld": 0,
   "ibm_packagepath": "ibm.system.relationship",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

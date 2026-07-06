@@ -47,7 +47,7 @@ var mbonameTmp = mboname
 var interactiveTmp = interactive
 /** @type {boolean} */
 var onaddTmp = onadd
-/** @type {MboValue} */
+/** @type {psdi.mbo.MboValue} */
 var mbovalueTmp = mbovalue
 /** @type {ScriptService} */
 var serviceTmp = service
@@ -133,7 +133,7 @@ AttributeLaunchPoint 类中
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.attrlist",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

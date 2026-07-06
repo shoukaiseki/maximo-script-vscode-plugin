@@ -88,7 +88,7 @@ mxerrormsg=null
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "cn.shoukaiseki.mxerr",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

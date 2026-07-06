@@ -105,13 +105,26 @@ function SAVE(dbctx){
     logger.info("[" + scriptName + "] 保存自动化脚本历史记录")
     var historySet=null
     try {
-        historySet = mbo.getMboSet("!IBM_AUTOSCRIPT_HISTORY", "IBM_AUTOSCRIPT_HISTORY", "1=2")
+        historySet = MXServer.getMXServer().getMboSet( "IBM_AUTOSCRIPT_HISTORY",mbo.getUserInfo())
+        historySet.setWhere("1=2")
+        historySet.setMXTransaction(MXServer.getMXServer().createMXTransaction());
+        historySet.reset()
         if(!historySet.isEmpty()){
             return
         }
         versionAutoAdd(mbo)
+        var asSet = MXServer.getMXServer().getMboSet( "AUTOSCRIPT",mbo.getUserInfo())
+        var sqlFormat=new SqlFormat("AUTOSCRIPT=:1");
+        sqlFormat.setString(1,mbo.getString("AUTOSCRIPT"));
+        asSet.setWhere(sqlFormat.format())
+        asSet.reset()
+        if (asSet.isEmpty()||asSet.count()>1) {
+            logger.warn("[" + scriptName + "] AUTOSCRIPT:" + mbo.getString("AUTOSCRIPT") + "不存在,或存在多个,无需保存历史记录")
+            return
+        }
+
         var scriptHistory = historySet.add()
-        dbctx.invokeScript("AUTOSCRIPT_UTILS","copyScriptToHistory",[dbctx,mbo, scriptHistory])
+        dbctx.invokeScript("AUTOSCRIPT_UTILS","copyScriptToHistory",[dbctx,asSet.getMbo(0), scriptHistory])
         scriptHistory.setValue("ALIASNAME", "_backup_", MboConstants.NOACCESSCHECK);
         historySet.save()
         logger.info("\x1b[32m" + "备份成功" + "\x1b[0m")

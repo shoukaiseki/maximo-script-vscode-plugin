@@ -79,7 +79,8 @@ function main(){
 }
 
 
-```
+/**
+  
 action
     action: SKS_TMPL_WF_ACTION
     PARAMETER: SKS_TMPL_WF_ACTION.SKS_TMPL_WF_ACTION.ABC
@@ -129,11 +130,12 @@ action
   "statusdate": "2026-05-31T10:27:03+08:00",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.option",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,
   "status": "Draft",
   "createdbyname": ""
 }
-```
+
+ */

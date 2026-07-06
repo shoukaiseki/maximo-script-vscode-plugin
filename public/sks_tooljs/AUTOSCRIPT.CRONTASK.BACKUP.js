@@ -79,7 +79,7 @@ try{
     for(var script=scriptSet.moveFirst(); script; script = scriptSet.moveNext()){
         logger.info("["+scriptName+"]----------------开始处理脚本: " + script.getString("AUTOSCRIPT"));
         var scriptHistory = scriptHistorySet.add()
-        dbctx.invokeScript("AUTOSCRIPT_UTILS","copyScriptToHistory",[service,script, scriptHistory])
+        service.invokeScript("AUTOSCRIPT_UTILS","copyScriptToHistory",[service,script, scriptHistory])
         copyScriptToHistory(script, scriptHistory)
         scriptHistory.setValue("ALIASNAME", "_crontask_", MboConstants.NOACCESSCHECK);
         if(i%10==0){

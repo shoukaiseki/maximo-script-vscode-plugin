@@ -353,7 +353,7 @@ function formatDateTime(date) {
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "cn.shoukaiseki.tools",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

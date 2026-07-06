@@ -166,7 +166,7 @@ function addrow(dbctx){
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.bean",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

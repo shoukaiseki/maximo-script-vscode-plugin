@@ -10,29 +10,78 @@
 Arrays = Java.type("java.util.Arrays");
 // var variableName = mbo;
 
-// 属性启动点 - 检索列表事件
-// 参考隐式变量
-var relationObject = "LOCATIONS";
-var relationWhere = "LOCATION=:IBM_STOREROOM";
+/** @type {java.lang.String} */
+var appTmp = app
+/** @type {java.lang.String} */
+var mboattrTmp = mboattr
+/** @type {java.lang.String} */
+var scriptNameTmp = scriptName
+/** @type {java.lang.String} */
+var launchPointTmp = launchPoint
+/** @type {java.lang.String} */
+var mbonameTmp = mboname
+/** @type {boolean} */
+var interactiveTmp = interactive
+/** @type {psdi.mbo.MboValue} */
+var mbovalueTmp = mbovalue
+/** @type {ScriptService} */
+var serviceTmp = service
+/** @type {psdi.mbo.Mbo} */
+var mboTmp = mbo
+/** @type {java.lang.String} */
+var userTmp = user
 
-listWhere = "type in ( 'STOREROOM' )";
+//可能是initvalue脚本设置的那个值
+/** @type {java.lang.String} */
+var lookupnameTmp = lookupname
+//字段名如果是id,属性名就是 id_previous
+//<lower(attrname)_previous>  原来的值
+//<lower(attrname)_initial>  初始的值
+//<lower(attrname)           现在的值
 
-// 排序
-listOrder = "LOCATIONSID asc";
 
-service.log("当前 listWhere = " + listWhere);
+//方法中设置,必须在声明全局变量
+var relationObject
+var relationWhere
+
+var listWhere
+var listOrder
+
+    //将另一个对象的哪个字段
+var srcKeys 
+    //存到当前对象的哪个字段
+var targetKeys 
+
+//如果想返回listMboSet,必须设置listMboSet
+var listMboSet
+main()
+
+function main() {
+  // 属性启动点 - 检索列表事件
+  // 参考隐式变量
+  relationObject = "LOCATIONS";
+  relationWhere = "LOCATION=:IBM_STOREROOM";
+
+  listWhere = "type in ( 'STOREROOM' )";
+
+  // 排序
+  listOrder = "LOCATIONSID asc";
+
+  service.log("当前 listWhere = " + listWhere);
 
 
-// thisvalue=["IBM_STOREROOM","SITEID"]
-// lookupname=["LOCATION","SITEID"]
+  // thisvalue=["IBM_STOREROOM","SITEID"]
+  // lookupname=["LOCATION","SITEID"]
 
-//将另一个对象的哪个字段
-srcKeys = Arrays.asList(["LOCATION"]);
-//存到当前对象的哪个字段
-targetKeys= Arrays.asList(["IBM_STOREROOM"]);
+  //将另一个对象的哪个字段
+  srcKeys = Arrays.asList(["LOCATION"]);
+  //存到当前对象的哪个字段
+  targetKeys = Arrays.asList(["IBM_STOREROOM"]);
 
-var clientsession = service.webclientsession();
-clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+  var clientsession = service.webclientsession();
+  clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+
+}
 
 
 /**

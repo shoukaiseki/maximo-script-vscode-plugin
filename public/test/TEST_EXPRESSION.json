@@ -1,0 +1,26 @@
+{
+  "autoscript": "TEST_EXPRESSION",
+  "description": "隐藏IBM_PO(PR)中excel导入table",
+  "scriptlanguage": "JavaScript",
+  "loglevel": "INFO",
+  "interface": 0,
+  "active": 1,
+  "ibm_packagepath": "cn.shoukaiseki.cn",
+  "variables": [],
+  "launchPoints": [
+    {
+      "launchpointname": "IBM_PRHIDEIX",
+      "description": "隐藏IBM_PO(PR)中excel导入table",
+      "launchpointtype": "CUSTOMCONDITION",
+      "objectevent": 0,
+      "sks:eventtype": "验证",
+      "active": true
+    }
+  ],
+  "status": "Draft",
+  "version": "1.0.8",
+  "category": "",
+  "hasld": 0,
+  "langcode": "ZH",
+  "userdefined": 1
+}

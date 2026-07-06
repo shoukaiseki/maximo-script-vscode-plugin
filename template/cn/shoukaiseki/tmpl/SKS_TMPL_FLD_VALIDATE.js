@@ -131,7 +131,7 @@ AttributeLaunchPoint 类中
   "orgid": "",
   "hasld": 0,
   "ibm_packagepath": "ibm.item.attrlist",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

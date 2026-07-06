@@ -27,8 +27,8 @@ var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX,
 if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
     var _langcode = request.getQueryParam("_langcode");
     // uInfo.setLocale(lang);
-    uInfo.setLangCode(_langcode)
-    logger.info("------------------_langcode=" + uInfo.getLocale().getLanguage() + ",country=" + uInfo.getLocale().getCountry());
+    userInfo.setLangCode(_langcode)
+    logger.info("------------------_langcode=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry());
 }
 main();
 

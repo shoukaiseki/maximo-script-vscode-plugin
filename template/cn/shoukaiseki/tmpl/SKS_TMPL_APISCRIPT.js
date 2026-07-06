@@ -120,7 +120,7 @@ responseBody = JSON.stringify(data);
   "statusdate": "2026-05-30T06:50:14+08:00",
   "hasld": 0,
   "ibm_packagepath": "cn.shoukaiseki.test",
-  "loglevel": "INFO",
+  "loglevel": "ERROR",
   "ownerphone": "",
   "category": "",
   "userdefined": 1,

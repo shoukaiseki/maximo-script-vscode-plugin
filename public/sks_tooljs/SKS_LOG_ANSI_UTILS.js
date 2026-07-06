@@ -53,6 +53,28 @@ function throwError(error,configIn) {
 }
 
 /**
+ * 非Java错误,或MX错误,抛出
+ * @param {*} error 
+ */
+function notJavaErrorOrIsMXErrorToThrow(error){
+    if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError) {
+        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeReferenceError \x1b[0m")
+        errorMessage = error.getStackTrace();
+        logger.error("Nashorn NativeReferenceError: " + errorMessage);
+        throw new MXApplicationException("#", "" + errorMessage);
+    }
+    if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeTypeError \x1b[0m")
+        errorMessage = error.getStackTrace();
+        logger.error("Nashorn NativeTypeError: " + errorMessage);
+        throw new MXApplicationException("#", "" + errorMessage);
+    }
+    if (error instanceof MXException || error instanceof MXApplicationException) {
+        throw error;
+    }
+}
+
+/**
  *  获取错误堆栈跟踪
     var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
     sksLogAnsiUtils.getErrorStackTrace(error)
