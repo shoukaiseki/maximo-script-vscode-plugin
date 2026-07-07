@@ -1,0 +1,51 @@
+{
+  "owneremail": "",
+  "createdbyid": "",
+  "description": "测试",
+  "launchPoints": [],
+  "createdbyemail": "",
+  "interface": 1,
+  "scriptlanguage": "JavaScript",
+  "langcode": "ZH",
+  "createdby": "MAXZHCN",
+  "siteid": "",
+  "action": "",
+  "createdbyphone": "",
+  "scheduledstatus": "",
+  "owner": "MAXZHCN",
+  "variables": [
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "varbindingvalue": "CONFIGUR",
+      "varname": "beanapp"
+    },
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "varbindingvalue": "showcompletewhere",
+      "varname": "beanid"
+    }
+  ],
+  "comments": "",
+  "autoscript": "DATABEAN.SHOWCOMPLETEWHERE",
+  "ownername": "",
+  "changeby": "MAXADMIN",
+  "autoscriptid": 263,
+  "active": 1,
+  "changedate": "2026-05-29T00:24:30+08:00",
+  "ownerid": "",
+  "version": "1.0.93",
+  "orgid": "",
+  "statusdate": "2026-05-29T00:23:34+08:00",
+  "hasld": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools",
+  "loglevel": "INFO",
+  "ownerphone": "",
+  "category": "",
+  "userdefined": 1,
+  "status": "Draft",
+  "createdbyname": ""
+}

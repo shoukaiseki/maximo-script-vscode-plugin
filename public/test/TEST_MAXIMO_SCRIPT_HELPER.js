@@ -40,6 +40,7 @@ MXLogger = Java.type("psdi.util.logging.MXLogger");//7
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
 
+
 /** @type {psdi.util.MXException} */
 MXException = Java.type("psdi.util.MXException");//9
 
@@ -221,6 +222,7 @@ OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");//63
 /** @type {psdi.webclient.system.beans.DataBeanContext} */
 DataBeanContext = Java.type("psdi.webclient.system.beans.DataBeanContext")//64
 
+
 /** @type {psdi.webclient.system.controller.WebClientEvent} */
 WebClientEvent = Java.type("psdi.webclient.system.controller.WebClientEvent");//65
 
@@ -238,3 +240,9 @@ ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");//69
 
 /** @type {psdi.util.MXMath} */
 MXMath = Java.type("psdi.util.MXMath");//70
+
+/** @type {psdi.util.MXApplicationYesNoCancelException} */
+MXApplicationYesNoCancelException = Java.type("psdi.util.MXApplicationYesNoCancelException");//71
+
+/** @type {psdi.webclient.system.controller.Utility} */
+Utility = Java.type("psdi.webclient.system.controller.Utility");//72
