@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
+import { CreateScriptPanel } from './createScriptPanel';
 import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse, fetchClassReflection, fetchClassReflectionLocal } from './httpRequest';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
@@ -450,6 +451,40 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(repairAppXmlPushCommand);
+
+  // 注册从模板创建脚本命令
+  const createScriptFromTemplateCommand = vscode.commands.registerCommand('maximoScript.createScriptFromTemplate', async (uri?: vscode.Uri) => {
+    try {
+      let targetDir: string;
+
+      if (uri) {
+        const fs = require('fs');
+        const path = require('path');
+        const stat = fs.statSync(uri.fsPath);
+        if (stat.isDirectory()) {
+          targetDir = uri.fsPath;
+        } else {
+          targetDir = path.dirname(uri.fsPath);
+        }
+        logger.info(`[CreateScriptFromTemplate] 从资源管理器触发，目标目录: ${targetDir}`);
+      } else {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showErrorMessage('没有打开的编辑器');
+          return;
+        }
+        targetDir = require('path').dirname(editor.document.fileName);
+        logger.info(`[CreateScriptFromTemplate] 从编辑器触发，目标目录: ${targetDir}`);
+      }
+
+      CreateScriptPanel.createOrShow(context.extensionUri, targetDir);
+
+    } catch (error: any) {
+      logger.error(`[CreateScriptFromTemplate] ❌ 创建脚本失败: ${error.message}`);
+      vscode.window.showErrorMessage(`创建脚本失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(createScriptFromTemplateCommand);
 
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {

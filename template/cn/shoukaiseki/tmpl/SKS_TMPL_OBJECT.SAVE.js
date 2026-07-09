@@ -35,22 +35,16 @@ var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
 logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
 logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
-
-var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
-logger.info("---------------appName=" + appName)
-
 /** @type {java.lang.String} */
 var app = app
+/** @type {java.lang.String} */
+var mbonameTmp = mboname
 /** @type {boolean} */
 var interactiveTmp = interactive
 /** @type {boolean} */
 var onaddTmp = onadd
-/** @type {java.lang.String} */
-var launchPointTmp = launchPoint
 /** @type {boolean} */
 var onsetupTmp = onsetup
-/** @type {java.lang.String} */
-var mbonameTmp = mboname
 /** @type {ScriptService} */
 var serviceTmp = service
 /** @type {boolean} */
@@ -67,70 +61,44 @@ var userTmp = user
 /** @type {psdi.mbo.MboValue} */
 var evalresultTmp = evalresult
 
-if(appName=="IBM_ITEM"){
-    // var clientsession =  service.webclientsession();
-    //clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning","----初始化" + mbo.getString("STATUS"), 1);
-    var activelist = ["DESCRIPTION"];
-    if (!mbo.getString("STATUS").equals("DRAFT")) {
-        //mbo.setFlag( MboConstants.READONLY, true);
-        mbo.setFieldFlag(activelist, MboConstants.READONLY, true);
-        mbo.getMboSet("IBM_CUSTOMERADD").setFlag(MboConstants.READONLY, true);
-    }
-}
+var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
+logger.info("---------------appName=" + appName)
+userInfo=mbo.getUserInfo();
 
-var clientsession = service.webclientsession();
-clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+mbo.setValue("CHANGEBY", userInfo.getPersonId());
+mbo.setValue("CHANGEDATE", mxserver.getDate());
 
 
 /**
 {
-  "owneremail": "",
-  "createdbyid": "",
-  "description": "ITEM初始化脚本",
+  "autoscript": "IBM_REQSRC.SAVE",
+  "description": "保存前操作",
+  "scriptlanguage": "JavaScript",
+  "loglevel": "ERROR",
+  "interface": 0,
+  "active": 1,
+  "ibm_packagepath": "ibm.item.mbo",
+  "variables": [],
   "launchPoints": [
     {
+      "launchpointname": "SAVE",
+      "description": "保存前操作",
+      "objectname": "IBM_REQSRC",
       "launchpointtype": "OBJECT",
-      "addupdatedelete": "",
+      "objectevent": 14,
+      "sks:eventtype": "保存",
+      "eventtype": "4",
       "sks:evcontext": "保存前",
-      "condition": "",
-      "attributeevent": "",
-      "objectname": "ITEM",
-      "description": "ITEM初始化脚本",
-      "active": "Y",
-      "eventtype": "初始化值",
-      "attributename": "",
-      "launchpointname": "INIT_ACTION",
-      "objectevent": "1"
+      "evcontext": "0",
+      "sks:addupdatedelete": "添加,更新,删除",
+      "add": true,
+      "update": true,
+      "delete": true,
+      "active": true
     }
   ],
-  "createdbyemail": "",
-  "interface": 0,
-  "scriptlanguage": "JavaScript",
-  "langcode": "ZH",
-  "createdby": "MAXADMIN",
-  "siteid": "",
-  "action": "",
-  "createdbyphone": "",
-  "scheduledstatus": "",
-  "owner": "MAXADMIN",
-  "variables": [],
-  "comments": "",
-  "autoscript": "ITEM.INIT",
-  "ownername": "",
-  "changeby": "MAXADMIN",
-  "active": 1,
-  "changedate": "2026-06-02T22:03:29+08:00",
-  "ownerid": "",
-  "version": "1.0.7",
-  "orgid": "",
-  "statusdate": "2026-05-25T07:05:55+08:00",
-  "hasld": 0,
-  "ibm_packagepath": "ibm.item.apply",
-  "loglevel": "ERROR",
-  "ownerphone": "",
-  "category": "",
-  "userdefined": 1,
   "status": "Draft",
-  "createdbyname": ""
+  "version": "1.0.6",
+  "langcode": "ZH"
 }
  */

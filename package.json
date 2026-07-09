@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.14",
+  "version": "1.4.15",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -78,6 +78,10 @@
       {
         "command": "maximoScript.repairAppXmlPush",
         "title": "Maximo Script: 修复应用xml推送"
+      },
+      {
+        "command": "maximoScript.createScriptFromTemplate",
+        "title": "Maximo Script: 从模板创建脚本"
       }
     ],
     "menus": {
@@ -123,6 +127,11 @@
           "command": "maximoScript.pullAppXml",
           "when": "resourceLangId == xml",
           "group": "navigation@1"
+        },
+        {
+          "command": "maximoScript.createScriptFromTemplate",
+          "when": "resourceScheme == file",
+          "group": "navigation@2"
         }
       ]
     },

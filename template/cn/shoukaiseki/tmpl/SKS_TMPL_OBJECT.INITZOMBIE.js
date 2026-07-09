@@ -115,7 +115,7 @@ clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----å
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "ITEM.INIT",
+  "autoscript": "ITEM.INITZOMBIE",
   "ownername": "",
   "changeby": "MAXADMIN",
   "active": 1,

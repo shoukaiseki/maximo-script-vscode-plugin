@@ -101,3 +101,23 @@ curl --request POST \
 ```
 
 提示成功或者失败即可
+
+
+
+
+# 06
+还是用另一种方式吧,不要选择模板,
+而是根据选择的类型,默认使用模板中的js生成
+根据选择的脚本类型生成对应的json内容
+
+参考模板: template\cn\shoukaiseki\tmpl  
+
+参考页面: E:\devwork\ideawork\maximo91_soloncode\xmltmp\dev\autoscript.xml
+maximo中有些脚本有多步,我们就一步填写完所有进行创建
+
+参考maximo中保存脚本的方式: E:\maximoProject\java_sources\imaximob 下搜索AutoScript.java maximo页面中对话框的一些Bean类处理逻辑也可以在该目录下搜索
+
+参考json导出脚本: E:\gitwork\wushiling\jsproject\masscript\cn\shoukaiseki\tools\SKS_GET_AUTOSCRIPTINFOBYNAME.js
+
+参考SKILL E:\gitwork\maximo-script-vscode-plugin\.lingma\skills\maximo-autoscript-api\SKILL.md
+参考其它脚本: E:\gitwork\wushiling\jsproject\masscript\ibm 目录下
