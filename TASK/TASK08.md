@@ -121,3 +121,11 @@ maximo中有些脚本有多步,我们就一步填写完所有进行创建
 
 参考SKILL E:\gitwork\maximo-script-vscode-plugin\.lingma\skills\maximo-autoscript-api\SKILL.md
 参考其它脚本: E:\gitwork\wushiling\jsproject\masscript\ibm 目录下
+
+
+# 07
+脚本类型放第一行
+
+## 对象启动点中
+ - 如果所选的脚本类型需要启动点配置对象和属性的,脚本名输入之后,根据.进行分割,将[0]设置到对象名称,[1]设置到属性名称
+ - 如果所选的脚本类型需要启动点配置对象的,脚本名输入之后,根据.进行分割,将[0]设置到对象名称

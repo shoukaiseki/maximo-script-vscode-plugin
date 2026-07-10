@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.15",
+  "version": "1.4.16",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -82,6 +82,10 @@
       {
         "command": "maximoScript.createScriptFromTemplate",
         "title": "Maximo Script: 从模板创建脚本"
+      },
+      {
+        "command": "maximoScript.importScriptFromJson",
+        "title": "Maximo Script: 导入脚本"
       }
     ],
     "menus": {
@@ -132,6 +136,11 @@
           "command": "maximoScript.createScriptFromTemplate",
           "when": "resourceScheme == file",
           "group": "navigation@2"
+        },
+        {
+          "command": "maximoScript.importScriptFromJson",
+          "when": "resourceLangId == json",
+          "group": "navigation@3"
         }
       ]
     },

@@ -486,6 +486,72 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(createScriptFromTemplateCommand);
 
+  const importScriptFromJsonCommand = vscode.commands.registerCommand('maximoScript.importScriptFromJson', async (uri?: vscode.Uri) => {
+    try {
+      if (!uri) {
+        vscode.window.showErrorMessage('请选择要导入的 JSON 文件');
+        return;
+      }
+
+      const fs = require('fs');
+      const path = require('path');
+      const jsonFilePath = uri.fsPath;
+
+      if (!fs.existsSync(jsonFilePath)) {
+        vscode.window.showErrorMessage('文件不存在');
+        return;
+      }
+
+      const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+      const scriptConfig = JSON.parse(jsonContent);
+      const scriptName = scriptConfig.autoscript;
+
+      if (!scriptName) {
+        vscode.window.showErrorMessage('JSON 文件中未找到 autoscript 字段');
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        `确定要导入脚本 "${scriptName}" 到 Maximo 吗？`,
+        { modal: true },
+        '确定',
+        '取消'
+      );
+
+      if (confirm !== '确定') {
+        return;
+      }
+
+      const jsFilePath = path.join(path.dirname(jsonFilePath), `${scriptName}.js`);
+      let source = '';
+      if (fs.existsSync(jsFilePath)) {
+        source = fs.readFileSync(jsFilePath, 'utf-8');
+      } else if (scriptConfig.source) {
+        source = scriptConfig.source;
+      }
+
+      if (!source) {
+        vscode.window.showErrorMessage('未找到脚本源代码，请确保存在同名的 .js 文件');
+        return;
+      }
+
+      const result = await ConfigPanel.importScriptFromJson(scriptName, source, scriptConfig, logger, jsFilePath);
+
+      if (result.success) {
+        logger.info(`[ImportScriptFromJson] ✅ 脚本导入成功: ${scriptName}`);
+        vscode.window.showInformationMessage(`脚本 "${scriptName}" 已成功导入到 Maximo`);
+      } else {
+        logger.error(`[ImportScriptFromJson] ❌ 脚本导入失败: ${result.errorMessage}`);
+        vscode.window.showErrorMessage(`脚本导入失败: ${result.errorMessage}`);
+      }
+
+    } catch (error: any) {
+      logger.error(`[ImportScriptFromJson] ❌ 导入脚本失败: ${error.message}`);
+      vscode.window.showErrorMessage(`导入脚本失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(importScriptFromJsonCommand);
+
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
     try {

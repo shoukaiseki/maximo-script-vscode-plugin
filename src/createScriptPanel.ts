@@ -45,6 +45,12 @@ export class CreateScriptPanel {
         logger.info(`[CreateScriptPanel] 收到消息: ${message.command}`);
         switch (message.command) {
           case 'webviewReady':
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+            this._panel.webview.postMessage({
+              command: 'loadTargetDir',
+              targetDir: this._targetDir,
+              workspaceRoot: workspaceRoot
+            });
             return;
           case 'createScript':
             await this._createScript(message.data);
@@ -123,10 +129,11 @@ export class CreateScriptPanel {
     scriptName: string;
     scriptType: string;
     description: string;
+    ibmPackagepath?: string;
     launchPointConfig?: any;
   }) {
     try {
-      const { scriptName, scriptType, description, launchPointConfig } = data;
+      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig } = data;
 
       if (!scriptName || !scriptName.trim()) {
         this._panel.webview.postMessage({
@@ -154,7 +161,7 @@ export class CreateScriptPanel {
         templateContent = this._generateDefaultScriptContent(scriptType);
       }
 
-      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, launchPointConfig);
+      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig);
 
       const jsFilePath = path.join(this._targetDir, `${scriptName}.js`);
       const jsonFilePath = path.join(this._targetDir, `${scriptName}.json`);
@@ -279,8 +286,10 @@ function main() {
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }
 
-  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, launchPointConfig?: any): ScriptConfig {
+  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
+    
+    const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN';
     
     const scriptConfig: ScriptConfig = {
       autoscript: scriptName,
@@ -289,7 +298,7 @@ function main() {
       active: 1,
       logLevel: 'ERROR',
       scriptlanguage: 'JavaScript',
-      interface: 0,
+      interface: isInterface ? 1 : 0,
       variables: [],
       launchPoints: [],
       status: 'Draft',
@@ -313,7 +322,8 @@ function main() {
       createdbyphone: '',
       changeby: 'MAXADMIN',
       category: '',
-      autoscriptid: 0
+      autoscriptid: 0,
+      ibm_packagepath: ibmPackagepath
     };
 
     if (typeInfo.category === 'object' || typeInfo.category === 'attribute') {
@@ -381,7 +391,21 @@ function main() {
 
       setTimeout(() => {
         this._panel.dispose();
-      }, 1000);
+        
+        vscode.window.showInformationMessage(
+          `脚本 ${scriptConfig.autoscript} 创建成功!`,
+          { title: '打开 JS 文件', action: 'openJs' },
+          { title: '打开 JSON 文件', action: 'openJson' }
+        ).then(async (selection) => {
+          if (selection?.action === 'openJs') {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(jsFilePath));
+            await vscode.window.showTextDocument(doc);
+          } else if (selection?.action === 'openJson') {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(jsonFilePath));
+            await vscode.window.showTextDocument(doc);
+          }
+        });
+      }, 500);
 
     } catch (error: any) {
       logger.error(`[CreateScriptPanel] 写入文件失败: ${error.message}`);

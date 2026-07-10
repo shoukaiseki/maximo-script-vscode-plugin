@@ -5,6 +5,60 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.16] - 2026-07-11
+
+### 新增功能
+
+#### 创建脚本功能
+- ✨ 新增右键菜单「从模板创建脚本」
+  - 支持资源管理器中右键点击目录或文件
+  - 如果点击文件，脚本创建在同目录下
+  - 弹出对话框，通过标签页选择普通脚本或对象启动点脚本
+  - 根据选择的脚本类型自动匹配模板文件
+  - 自动生成 JS 内容和 JSON 配置
+  - 输入框自动去除首尾空格
+  - 添加 `ibm_packagepath` 输入框，自动根据目录位置生成包名（去掉项目根目录和第一级目录）
+  - AppBean/DataBean 脚本自动设置 `interface=1`，其他类型 `interface=0`
+  - 创建成功后弹出提示，支持打开 JS/JSON 文件
+
+#### 导入脚本功能
+- ✨ 新增右键菜单「导入脚本」（仅对 JSON 文件显示）
+  - 读取 JSON 文件中的 `autoscript` 字段获取脚本名
+  - 弹出确认对话框，确认后开始导入
+  - 先调用历史记录保存接口（`SKS_AUTOSCRIPT_HISTORY_SAVE`）
+  - 检查脚本是否存在：存在则更新，不存在则创建新脚本
+  - 支持导入启动点、变量等完整配置
+  - 导入成功或失败弹窗通知
+
+### 技术实现
+
+- 📦 修改文件
+  - `package.json`
+    - 新增 `maximoScript.createScriptFromTemplate` 命令定义
+    - 新增 `maximoScript.importScriptFromJson` 命令定义
+    - `explorer/context` 菜单添加创建脚本和导入脚本入口
+  - `src/extension.ts`
+    - 实现 `createScriptFromTemplate` 命令，处理目录选择和面板创建
+    - 实现 `importScriptFromJson` 命令，调用 `ConfigPanel.importScriptFromJson` 静态方法
+  - `src/configPanel.ts`
+    - 新增 `importScriptFromJson` 静态方法，支持创建和更新脚本
+    - 包含历史记录保存、脚本存在性检查、创建/更新逻辑
+    - 正确处理启动点和变量的 `spi:` 前缀转换
+  - `src/createScriptPanel.ts`
+    - 创建脚本 Webview 面板
+    - 根据脚本类型自动查找模板文件
+    - 生成默认 JS 内容和 JSON 配置
+    - AppBean/DataBean 脚本设置 `interface=1`
+    - 创建成功后弹出打开文件提示
+  - `webview-ui/src/components/CreateScriptModal.tsx`
+    - React 组件，实现标签页切换
+    - 脚本类型选择、脚本名称输入、描述输入
+    - 对象启动点配置：启动点名称、对象名称、字段名称、描述、条件表达式
+    - 脚本名自动分割填充：按 `.` 分割，[0] 设置到对象名称，[1] 设置到属性名称
+    - ibm_packagepath 自动生成，基于相对项目根目录的路径
+
+---
+
 ## [1.4.10] - 2026-06-25
 
 ### 新增功能

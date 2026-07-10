@@ -1827,6 +1827,180 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     });
   }
 
+  public static async importScriptFromJson(
+    scriptName: string,
+    source: string,
+    scriptConfig: any,
+    logger: vscode.LogOutputChannel,
+    filePath?: string
+  ): Promise<{ success: boolean; errorMessage?: string }> {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const authType = config.get<string>('authType', 'maxauth');
+      const maxauth = config.get<string>('maxauth', '');
+      const apiKey = config.get<string>('apiKey', '');
+      const aliasName = config.get<string>('aliasName', '');
+      const scriptStoragePath = config.get<string>('scriptStoragePath', 'masscript');
+
+      if (!serverUrl || (authType === 'maxauth' && !maxauth) || (authType === 'apikey' && !apiKey)) {
+        return { success: false, errorMessage: '配置不完整，请先在配置面板中设置服务器信息' };
+      }
+
+      let historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
+      try {
+        historyResult = await ConfigPanel._saveScriptHistoryStatic(scriptName, source, serverUrl, authType, maxauth, apiKey, aliasName, scriptStoragePath, logger, filePath);
+      } catch (historyError: any) {
+        logger.error(`[importScriptFromJson] 保存历史记录失败: ${historyError.message}`);
+      }
+
+      const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID', 'source'];
+      const customFields: Record<string, any> = {};
+
+      for (const [key, value] of Object.entries(scriptConfig)) {
+        if (ignoreFields.includes(key.toUpperCase())) {
+          continue;
+        }
+        customFields[key.toLowerCase()] = value;
+      }
+
+      customFields.autoscript = scriptName;
+      customFields.source = source.replace(/\r\n/g, '\n');
+
+      if (scriptConfig.scriptlanguage) {
+        customFields.scriptlanguage = scriptConfig.scriptlanguage;
+      }
+
+      if (scriptConfig.active !== undefined) {
+        customFields.active = scriptConfig.active === true || scriptConfig.active === 1 || scriptConfig.active === '1';
+      } else {
+        customFields.active = true;
+      }
+
+      const checkUrl = `os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${scriptName}"`;
+      const checkResult = await httpRequestToMaximo({
+        url: checkUrl,
+        method: 'GET',
+        headers: {
+          ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+        }
+      });
+
+      let scriptExists = false;
+      let scriptHref = null;
+
+      if (checkResult.status === 200 && checkResult.data) {
+        const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
+        if (memberCount === 1) {
+          scriptExists = true;
+          scriptHref = checkResult.data.member[0].href;
+        }
+      }
+
+      let deployUrl: string;
+      let deployMethod: 'POST' | 'PATCH' = 'POST';
+      const deployHeaders: any = {
+        'Content-Type': 'application/json',
+        ...(authType === 'maxauth' ? { 'MAXAUTH': maxauth } : { 'apiKey': apiKey })
+      };
+
+      if (scriptExists && scriptHref) {
+        deployUrl = scriptHref;
+        deployHeaders['Content-Type'] = 'application/merge-patch+json';
+        deployHeaders['x-method-override'] = 'PATCH';
+      } else {
+        deployUrl = `os/MXAPIAUTOSCRIPT`;
+      }
+
+      const deployBody: any = {};
+
+      for (const key in customFields) {
+        if (customFields.hasOwnProperty(key)) {
+          if (key.toLowerCase() === 'autoscript' || key.toLowerCase() === 'description' || key.toLowerCase() === 'source') {
+            continue;
+          }
+          if (key.toLowerCase().startsWith('sks:') || key.toLowerCase() === 'changedate' || key.toLowerCase() === 'statusdate') {
+            continue;
+          }
+
+          if (key.toLowerCase() === 'launchpoints') {
+            const launchPointsTmp: any[] = [];
+            for (const launchPoint of customFields[key]) {
+              const launchPointTmp: any = {};
+              for (const lpKey in launchPoint) {
+                if (lpKey.toLowerCase() === 'eventtype' || lpKey.startsWith('sks:')) {
+                  continue;
+                }
+                if (launchPoint.hasOwnProperty(lpKey)) {
+                  launchPointTmp[`spi:${lpKey.toLowerCase()}`] = launchPoint[lpKey];
+                }
+              }
+              launchPointsTmp.push(launchPointTmp);
+            }
+            deployBody['spi:scriptlaunchpoint'] = launchPointsTmp;
+            continue;
+          }
+
+          if (key.toLowerCase() === 'variables') {
+            const variablesTmp: any[] = [];
+            for (const variable of customFields[key]) {
+              const variableTmp: any = {};
+              for (const vKey in variable) {
+                if (variable.hasOwnProperty(vKey)) {
+                  variableTmp[`spi:${vKey.toLowerCase()}`] = variable[vKey];
+                }
+              }
+              variablesTmp.push(variableTmp);
+            }
+            deployBody['spi:autoscriptvars'] = variablesTmp;
+            continue;
+          }
+
+          deployBody[`spi:${key.toLowerCase()}`] = customFields[key];
+        }
+      }
+
+      if (!deployBody['spi:autoscript']) {
+        deployBody['spi:autoscript'] = scriptName;
+      }
+      if (!deployBody['spi:description']) {
+        deployBody['spi:description'] = scriptConfig.description || scriptName;
+      }
+      if (!deployBody['spi:scriptlanguage']) {
+        deployBody['spi:scriptlanguage'] = scriptConfig.scriptlanguage || 'nashorn';
+      }
+      if (deployBody['spi:active'] === undefined) {
+        deployBody['spi:active'] = true;
+      }
+      if (deployBody['spi:version'] === undefined || deployBody['spi:version'] === '') {
+        deployBody['spi:version'] = '1.0.0';
+      }
+      if (source) {
+        deployBody['spi:source'] = source.replace(/\r\n/g, '\n');
+      } else {
+        deployBody['spi:source'] = '';
+      }
+
+      const deployResult = await httpRequestToMaximo({
+        url: deployUrl,
+        method: deployMethod,
+        headers: deployHeaders,
+        data: deployBody
+      });
+
+      const { hasError, errorMsg } = checkResponseHasError(deployResult, logger, '[importScriptFromJson]');
+      if (hasError) {
+        return { success: false, errorMessage: errorMsg };
+      }
+
+      return { success: true };
+
+    } catch (error: any) {
+      logger.error(`[importScriptFromJson] 导入失败: ${error.message}`);
+      return { success: false, errorMessage: error.message };
+    }
+  }
+
   /**
    * 部署单个脚本文件
    */

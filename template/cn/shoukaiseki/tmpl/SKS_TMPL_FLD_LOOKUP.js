@@ -53,7 +53,9 @@ var srcKeys
 var targetKeys 
 
 //如果想返回listMboSet,必须设置listMboSet
-var listMboSet
+//如果不设置值,不能声明该变量,否则mboset永远null
+// var listMboSet = null
+
 main()
 
 function main() {

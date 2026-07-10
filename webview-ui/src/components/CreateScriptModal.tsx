@@ -53,6 +53,7 @@ const CreateScriptModal: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('');
   const [scriptName, setScriptName] = useState('');
   const [description, setDescription] = useState('');
+  const [ibmPackagepath, setIbmPackagepath] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -88,6 +89,9 @@ const CreateScriptModal: React.FC = () => {
     window.addEventListener('message', event => {
       const message = event.data;
       switch (message.command) {
+        case 'loadTargetDir':
+          _parseTargetDir(message.targetDir, message.workspaceRoot);
+          break;
         case 'showError':
           setErrorMessage(message.message);
           setTimeout(() => setErrorMessage(''), 5000);
@@ -102,6 +106,29 @@ const CreateScriptModal: React.FC = () => {
       }
     });
   }, []);
+
+  const _parseTargetDir = (targetDir: string, workspaceRoot: string = '') => {
+    try {
+      const normalizedTargetDir = targetDir.replace(/\\/g, '/');
+      let normalizedWorkspaceRoot = workspaceRoot.replace(/\\/g, '/');
+      
+      if (!normalizedWorkspaceRoot.endsWith('/')) {
+        normalizedWorkspaceRoot += '/';
+      }
+      
+      if (normalizedTargetDir.startsWith(normalizedWorkspaceRoot)) {
+        const relativePath = normalizedTargetDir.substring(normalizedWorkspaceRoot.length);
+        const pathParts = relativePath.split('/').filter(p => p && p !== '.' && !p.includes('.'));
+        if (pathParts.length >= 1) {
+          const remainingParts = pathParts.slice(1);
+          const packagePath = remainingParts.join('.').toLowerCase();
+          setIbmPackagepath(packagePath);
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing target dir:', e);
+    }
+  };
 
   const filteredTypes = scriptTypes.filter(t => {
     if (activeTab === 'normal') {
@@ -161,7 +188,8 @@ const CreateScriptModal: React.FC = () => {
     const data: any = {
       scriptName: scriptName.trim(),
       scriptType: selectedType,
-      description: description.trim()
+      description: description.trim(),
+      ibmPackagepath: ibmPackagepath.trim()
     };
 
     if (activeTab === 'object' && (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute')) {
@@ -230,14 +258,24 @@ const CreateScriptModal: React.FC = () => {
   };
 
   const handleScriptNameChange = (value: string) => {
-    setScriptName(value);
-    if (selectedTypeInfo?.category === 'object') {
-      const suffix = value.split('.').pop();
-      if (suffix && suffix !== value) {
-        setLaunchPointConfig(prev => ({
-          ...prev,
-          launchpointname: suffix
-        }));
+    const trimmedValue = value.trim();
+    setScriptName(trimmedValue);
+    if (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute') {
+      const parts = trimmedValue.split('.').filter(p => p.trim());
+      if (parts.length >= 1) {
+        const updates: any = {};
+        updates.objectname = parts[0];
+        if (parts.length >= 2) {
+          if (selectedTypeInfo.category === 'attribute') {
+            updates.attributename = parts[1];
+            updates.launchpointname = parts.length >= 3 ? parts[parts.length - 1] : parts[1];
+          } else {
+            updates.launchpointname = parts.length >= 2 ? parts[parts.length - 1] : '';
+          }
+        } else {
+          updates.launchpointname = '';
+        }
+        setLaunchPointConfig(prev => ({ ...prev, ...updates }));
       }
     }
   };
@@ -362,33 +400,6 @@ const CreateScriptModal: React.FC = () => {
               fontWeight: '500',
               color: 'var(--vscode-foreground)'
             }}>
-              脚本名称 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={scriptName}
-              onChange={(e) => handleScriptNameChange(e.target.value)}
-              placeholder="输入脚本名称，例如: MY_SCRIPT 或 ITEM.INIT"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid var(--vscode-input-border)',
-                borderRadius: '4px',
-                background: 'var(--vscode-input-background)',
-                color: 'var(--vscode-input-foreground)',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '5px',
-              fontWeight: '500',
-              color: 'var(--vscode-foreground)'
-            }}>
               脚本类型 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
             </label>
             <select
@@ -422,13 +433,13 @@ const CreateScriptModal: React.FC = () => {
               fontWeight: '500',
               color: 'var(--vscode-foreground)'
             }}>
-              描述
+              脚本名称 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
             </label>
             <input
               type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="输入脚本描述"
+              value={scriptName}
+              onChange={(e) => handleScriptNameChange(e.target.value)}
+              placeholder="输入脚本名称，例如: MY_SCRIPT 或 ITEM.INIT"
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -440,6 +451,60 @@ const CreateScriptModal: React.FC = () => {
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '5px',
+              fontWeight: '500',
+              color: 'var(--vscode-foreground)'
+            }}>
+              IBM Package Path
+            </label>
+            <input
+              type="text"
+              value={ibmPackagepath}
+              onChange={(e) => setIbmPackagepath(e.target.value.trim())}
+              placeholder="包路径，例如: cn.shoukaiseki.script"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid var(--vscode-input-border)',
+                borderRadius: '4px',
+                background: 'var(--vscode-input-background)',
+                color: 'var(--vscode-input-foreground)',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '5px',
+              fontWeight: '500',
+              color: 'var(--vscode-foreground)'
+            }}>
+              描述
+            </label>
+            <input
+                      type="text"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value.trim())}
+                      placeholder="输入脚本描述"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid var(--vscode-input-border)',
+                        borderRadius: '4px',
+                        background: 'var(--vscode-input-background)',
+                        color: 'var(--vscode-input-foreground)',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
           </div>
 
           {activeTab === 'object' && selectedTypeInfo && (selectedTypeInfo.category === 'object' || selectedTypeInfo.category === 'attribute') && (
@@ -472,7 +537,7 @@ const CreateScriptModal: React.FC = () => {
                   <input
                     type="text"
                     value={launchPointConfig.launchpointname}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, launchpointname: e.target.value }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, launchpointname: e.target.value.trim() }))}
                     placeholder="例如: INIT, SAVE"
                     style={{
                       width: '100%',
@@ -499,7 +564,7 @@ const CreateScriptModal: React.FC = () => {
                   <input
                     type="text"
                     value={launchPointConfig.objectname}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, objectname: e.target.value }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, objectname: e.target.value.trim() }))}
                     placeholder="例如: ITEM, WORKORDER"
                     style={{
                       width: '100%',
@@ -525,10 +590,10 @@ const CreateScriptModal: React.FC = () => {
                       字段名称 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
                     </label>
                     <input
-                      type="text"
-                      value={launchPointConfig.attributename}
-                      onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, attributename: e.target.value }))}
-                      placeholder="例如: ITEMNUM, STATUS"
+                    type="text"
+                    value={launchPointConfig.attributename}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, attributename: e.target.value.trim() }))}
+                    placeholder="例如: ITEMNUM, STATUS"
                       style={{
                         width: '100%',
                         padding: '6px 10px',
@@ -714,7 +779,7 @@ const CreateScriptModal: React.FC = () => {
                 <input
                   type="text"
                   value={launchPointConfig.description}
-                  onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, description: e.target.value.trim() }))}
                   placeholder="输入启动点描述"
                   style={{
                     width: '100%',
@@ -741,7 +806,7 @@ const CreateScriptModal: React.FC = () => {
                   </label>
                   <textarea
                     value={launchPointConfig.condition}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, condition: e.target.value }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, condition: e.target.value.trim() }))}
                     placeholder="输入条件表达式（可选）"
                     rows={3}
                     style={{
