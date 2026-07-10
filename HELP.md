@@ -1550,4 +1550,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-07-11 | 版本：1.4.16*
+*最后更新：2026-07-11 | 版本：1.4.18*

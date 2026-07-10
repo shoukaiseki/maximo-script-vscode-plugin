@@ -16,7 +16,7 @@ export interface ScriptConfig {
   description: string;
   version: string;
   active: number;
-  logLevel: string;
+  loglevel: string;
   scriptlanguage: string;
   interface: number;
   variables: any[];
@@ -161,6 +161,8 @@ export class CreateScriptPanel {
         templateContent = this._generateDefaultScriptContent(scriptType);
       }
 
+      templateContent = this._processTemplateVariables(templateContent, scriptName);
+
       const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig);
 
       const jsFilePath = path.join(this._targetDir, `${scriptName}.js`);
@@ -184,6 +186,16 @@ export class CreateScriptPanel {
         message: `创建脚本失败: ${error.message}`
       });
     }
+  }
+
+  /**
+   * 处理模板变量替换
+   * @param content 模板内容
+   * @param scriptName 脚本名称
+   * @returns 替换变量后的内容
+   */
+  private _processTemplateVariables(content: string, scriptName: string): string {
+    return content.replace(/\$\{sks_scriptName\}/g, scriptName);
   }
 
   private _generateDefaultScriptContent(scriptType: string): string {
@@ -271,6 +283,7 @@ function main() {
       { value: 'DATABEAN', label: 'DataBean脚本', description: '数据Bean扩展', category: 'normal' },
       { value: 'CRONTASK', label: '定时任务脚本', description: '定时执行', category: 'normal' },
       { value: 'APPBEAN', label: 'AppBean脚本', description: '应用Bean扩展', category: 'normal' },
+      { value: 'COMMON_FUNC', label: '通用函数脚本', description: '可被其他脚本调用的通用函数', category: 'normal' },
       { value: 'OPTION', label: '选项脚本', description: '选项列表', category: 'normal' },
       { value: 'MXERR', label: '异常脚本', description: '异常处理', category: 'normal' },
       { value: 'LOOKUP', label: 'Lookup脚本', description: '查找功能', category: 'normal' },
@@ -289,39 +302,21 @@ function main() {
   private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
     
-    const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN';
+    const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC';
     
     const scriptConfig: ScriptConfig = {
       autoscript: scriptName,
       description: description || `${scriptName} - ${typeInfo.description}`,
       version: '1.0.0',
       active: 1,
-      logLevel: 'ERROR',
+      loglevel: 'INFO',
       scriptlanguage: 'JavaScript',
       interface: isInterface ? 1 : 0,
       variables: [],
       launchPoints: [],
       status: 'Draft',
       langcode: 'ZH',
-      createdby: 'MAXADMIN',
-      owner: 'MAXADMIN',
       userdefined: 1,
-      hasld: 0,
-      orgid: '',
-      siteid: '',
-      action: '',
-      scheduledstatus: '',
-      comments: '',
-      ownerid: '',
-      ownername: '',
-      owneremail: '',
-      ownerphone: '',
-      createdbyid: '',
-      createdbyname: '',
-      createdbyemail: '',
-      createdbyphone: '',
-      changeby: 'MAXADMIN',
-      category: '',
       autoscriptid: 0,
       ibm_packagepath: ibmPackagepath
     };

@@ -35,6 +35,7 @@ const scriptTypes: ScriptTypeItem[] = [
   { value: 'DATABEAN', label: 'DataBean脚本', description: '数据Bean扩展', category: 'normal' },
   { value: 'CRONTASK', label: '定时任务脚本', description: '定时执行', category: 'normal' },
   { value: 'APPBEAN', label: 'AppBean脚本', description: '应用Bean扩展', category: 'normal' },
+  { value: 'COMMON_FUNC', label: '通用函数脚本', description: '可被其他脚本调用的通用函数', category: 'normal' },
   { value: 'OPTION', label: '选项脚本', description: '选项列表', category: 'normal' },
   { value: 'MXERR', label: '异常脚本', description: '异常处理', category: 'normal' },
   { value: 'LOOKUP', label: 'Lookup脚本', description: '查找功能', category: 'normal' },
@@ -244,21 +245,22 @@ const CreateScriptModal: React.FC = () => {
     } else if (typeInfo?.category === 'attribute') {
       setScriptName('');
       setDescription(typeInfo.description);
+      const attrEvent = type === 'FLD_ACTION' ? '4' : type === 'FLD_VALIDATE' ? '2' : type === 'FLD_LOOKUP' ? '3' : '0';
       setLaunchPointConfig(prev => ({
         ...prev,
         objectname: '',
         attributename: '',
         launchpointname: type.replace('FLD_', ''),
         description: typeInfo.description,
-        eventtype: '0',
-        attributeevent: type === 'FLD_ACTION' ? '4' : type === 'FLD_VALIDATE' ? '2' : type === 'FLD_LOOKUP' ? '3' : '0',
+        eventtype: attrEvent,
+        attributeevent: attrEvent,
         condition: ''
       }));
     }
   };
 
   const handleScriptNameChange = (value: string) => {
-    const trimmedValue = value.trim();
+    const trimmedValue = value.trim().toUpperCase();
     setScriptName(trimmedValue);
     if (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute') {
       const parts = trimmedValue.split('.').filter(p => p.trim());
@@ -537,7 +539,7 @@ const CreateScriptModal: React.FC = () => {
                   <input
                     type="text"
                     value={launchPointConfig.launchpointname}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, launchpointname: e.target.value.trim() }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, launchpointname: e.target.value.trim().toUpperCase() }))}
                     placeholder="例如: INIT, SAVE"
                     style={{
                       width: '100%',
@@ -564,7 +566,7 @@ const CreateScriptModal: React.FC = () => {
                   <input
                     type="text"
                     value={launchPointConfig.objectname}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, objectname: e.target.value.trim() }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, objectname: e.target.value.trim().toUpperCase() }))}
                     placeholder="例如: ITEM, WORKORDER"
                     style={{
                       width: '100%',
@@ -592,7 +594,7 @@ const CreateScriptModal: React.FC = () => {
                     <input
                     type="text"
                     value={launchPointConfig.attributename}
-                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, attributename: e.target.value.trim() }))}
+                    onChange={(e) => setLaunchPointConfig(prev => ({ ...prev, attributename: e.target.value.trim().toUpperCase() }))}
                     placeholder="例如: ITEMNUM, STATUS"
                       style={{
                         width: '100%',

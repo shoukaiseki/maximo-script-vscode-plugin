@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.18] - 2026-07-11
+
+### 修复
+
+- 🐛 修复 JSON 配置中 `loglevel` 属性大小写错误（`logLevel` → `loglevel`）
+- 🐛 修复字段启动点脚本（FLD_ACTION/FLD_VALIDATE/FLD_LOOKUP）选择时 `eventtype` 未自动设置的问题
+
+### 新增功能
+
+- ✨ 模板变量替换功能
+  - 支持在模板文件中使用 `${sks_scriptName}` 变量
+  - 创建脚本时自动替换为实际脚本名
+  - APPBEAN/DATABEAN 模板改用 `${sks_scriptName}` 变量
+- ✨ 新增 COMMON_FUNC 通用函数脚本类型
+  - 自动匹配模板 `SKS_TMPL_COMMON_FUNC.js`
+  - 自动设置 `interface=1`，支持被其他脚本调用
+
+### 优化
+
+- 🔧 脚本名称、启动点名称、对象名称、属性名称输入后自动转为大写字母
+- 🔧 精简生成的 JSON 配置，移除不必要的空字段
+- 🔧 `loglevel` 默认值改为 `INFO`
+
+---
+
 ## [1.4.16] - 2026-07-11
 
 ### 新增功能
