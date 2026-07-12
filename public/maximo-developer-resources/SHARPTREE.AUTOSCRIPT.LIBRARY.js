@@ -2155,10 +2155,11 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
   logger.debug("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
   logger.info("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
-    logger.warn("mbo.ignoreObjectMain10="+(typeof this.ignoreObjectMain === "undefined"));
+    logger.warn("mbo.ignoreObjectMain10=" + (typeof this.ignoreObjectMain === "undefined"));
   logger.error("\x1b[31m ["+serverName+"] objectName= "+this.object+" mbo.ignoreObjectMain10="+(!this.ignoreObjectMain)+"\x1b[0m");
   //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
     if(ignoreObjectMain){
+        logger.info("\x1b[32m ["+serverName+"] objectName= "+this.object+" change maxobject \x1b[0m")
         if(!this.description){
             throw new MXApplicationException("#","objectName="+this.object+" 的描述不能为空");
         }
@@ -2202,6 +2203,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
         }
 
       }
+    logger.info("\x1b[32m [" + serverName + "] view change " + this.view + "\x1b[0m");
 
     if (!this.view) {
         if (mbo.toBeAdded()) {
@@ -2254,11 +2256,12 @@ MaxObject.prototype.setMboValues = function (mbo) {
         if (mbo.toBeAdded()) {
             mbo.setValue("ISVIEW", this.view);
         }
+        logger.info("\x1b[32m ["+serverName+"] view change "+this.view+"\x1b[0m");
 
         this.viewWhere != null ? mbo.setValue("VIEWWHERE", this.viewWhere) : mbo.setValueNull("VIEWWHERE");
 
         if (this.joinToObject && mbo.toBeAdded()) {
-            mbo.setValue("JOINTOOBJECT", this.joinToObject);
+            mbo.setValue("JOINOBJECT", this.joinToObject);
         }
 
         mbo.setValue("AUTOSELECT", this.automaticallySelect);
@@ -2298,6 +2301,8 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
         }
         logger.debug(service.jsonarrayToString(jsonArray));
+
+    var isView = this.view;
 
       this.attributes.forEach(function (attributeConfig) {
           /** @type {psdi.mbo.MboRemote} */
@@ -2479,6 +2484,28 @@ MaxObject.prototype.setMboValues = function (mbo) {
                   } else {
                       attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
                   }
+                  logger.info("\x1b[32m["+serverName+"]"+attributeConfig.attribute+" isView="+isView+" \x1b[0m")
+                    if(isView){
+                        logger.info("\x1b[32m[" + serverName + "] attribute.entityName=" + attributeConfig.entityName + " \x1b[0m")
+                        if(typeof attributeConfig.persistent !== "undefined"){
+                            attribute.setValue("persistent", attributeConfig.persistent,MboConstants.NOACCESSCHECK)
+                        }
+                        if(typeof attributeConfig.entityName !== "undefined"){
+                            if(attributeConfig.entityName ){
+                                attribute.setValue("entityName", attributeConfig.entityName,MboConstants.NOACCESSCHECK)
+                                logger.debug("\x1b[32m["+serverName+"] "+attributeConfig.attribute+" setEntityName="+attribute.entityName+"\x1b[0m")
+                            }else{
+                                attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
+                            }
+                        }
+                        if(typeof attributeConfig.columnName !== "undefined"){
+                            if(attributeConfig.columnName ){
+                                attribute.setValue("columnName", attributeConfig.columnName,MboConstants.NOACCESSCHECK)
+                            }else{
+                                attribute.setValueNull("columnName", MboConstants.NOACCESSCHECK)
+                            }
+                        }
+                    }
               }
           }
       });
