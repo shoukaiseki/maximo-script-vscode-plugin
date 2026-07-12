@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS_LOGGER_MANAGE",
+  "description": "MXLOGGER管理,通过 REST API 调用",
+  "version": "1.0.5",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools"
+}

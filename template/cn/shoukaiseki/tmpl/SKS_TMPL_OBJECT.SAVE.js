@@ -43,8 +43,7 @@ var mbonameTmp = mboname
 var interactiveTmp = interactive
 /** @type {boolean} */
 var onaddTmp = onadd
-/** @type {boolean} */
-var onsetupTmp = onsetup
+
 /** @type {ScriptService} */
 var serviceTmp = service
 /** @type {boolean} */

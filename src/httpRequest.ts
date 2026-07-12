@@ -193,6 +193,7 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
         (error: any) => {
           // 对响应错误做点什么
           let errorMessage = '[Axios Response Error] ';
+          console.error("request.error.response",error.response)
           const { truncated, data } = limitLogOutput(error);
           console.log(data)
           logger.info(data);
@@ -205,14 +206,109 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
               const detailMsg = `  详情: ${error.response.data.errorMsg}`;
               logger.error(detailMsg);
             }
+            
+            // 错误也保存到 response- 文件
+            try {
+              const vscodeConfig = vscode.workspace.getConfiguration('maximoScript');
+              const enableHttpLog = vscodeConfig.get('enableHttpLog', false);
+              if (enableHttpLog) {
+                const fs = require('fs');
+                const path = require('path');
+                const tmpDir = path.join(require('os').tmpdir(), 'maximo-script-helper');
+                if (!fs.existsSync(tmpDir)) {
+                  fs.mkdirSync(tmpDir, { recursive: true });
+                }
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `response-${error.response.config?.method?.toUpperCase() || 'UNKNOWN'}-${timestamp}.http`;
+                const filePath = path.join(tmpDir, fileName);
+                
+                // 保存完整错误信息（含响应数据和错误详情）
+                const errorDetail = {
+                  error: {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                  },
+                  response: {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    data: error.response.data
+                  }
+                };
+                fs.writeFileSync(filePath, JSON.stringify(errorDetail, null, 2), 'utf-8');
+                console.log(`[HTTP Client File] 已保存: ${filePath}`);
+                logger.info(`[HTTP Client File] 已保存: ${filePath}`);
+              }
+            } catch (saveError: any) {
+              console.error('[HTTP Client File] 保存失败:', saveError.message);
+            }
           } else if (error.request) {
             errorMessage += 'No response received';
             console.error(errorMessage);
             logger.error(errorMessage);
+            
+            // 无响应也保存到错误文件
+            try {
+              const vscodeConfig = vscode.workspace.getConfiguration('maximoScript');
+              const enableHttpLog = vscodeConfig.get('enableHttpLog', false);
+              if (enableHttpLog) {
+                const fs = require('fs');
+                const path = require('path');
+                const tmpDir = path.join(require('os').tmpdir(), 'maximo-script-helper');
+                if (!fs.existsSync(tmpDir)) {
+                  fs.mkdirSync(tmpDir, { recursive: true });
+                }
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `response-NO-RESPONSE-${timestamp}.http`;
+                const filePath = path.join(tmpDir, fileName);
+                const errorDetail = {
+                  error: {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                  },
+                  note: 'No response received from server'
+                };
+                fs.writeFileSync(filePath, JSON.stringify(errorDetail, null, 2), 'utf-8');
+                console.log(`[HTTP Client File] 已保存: ${filePath}`);
+                logger.info(`[HTTP Client File] 已保存: ${filePath}`);
+              }
+            } catch (saveError: any) {
+              console.error('[HTTP Client File] 保存失败:', saveError.message);
+            }
           } else {
             errorMessage += error.message;
             console.error(errorMessage);
             logger.error(errorMessage);
+            
+            // 其他错误也保存到文件
+            try {
+              const vscodeConfig = vscode.workspace.getConfiguration('maximoScript');
+              const enableHttpLog = vscodeConfig.get('enableHttpLog', false);
+              if (enableHttpLog) {
+                const fs = require('fs');
+                const path = require('path');
+                const tmpDir = path.join(require('os').tmpdir(), 'maximo-script-helper');
+                if (!fs.existsSync(tmpDir)) {
+                  fs.mkdirSync(tmpDir, { recursive: true });
+                }
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `response-ERROR-${timestamp}.http`;
+                const filePath = path.join(tmpDir, fileName);
+                const errorDetail = {
+                  error: {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                  }
+                };
+                fs.writeFileSync(filePath, JSON.stringify(errorDetail, null, 2), 'utf-8');
+                console.log(`[HTTP Client File] 已保存: ${filePath}`);
+                logger.info(`[HTTP Client File] 已保存: ${filePath}`);
+              }
+            } catch (saveError: any) {
+              console.error('[HTTP Client File] 保存失败:', saveError.message);
+            }
           }
           
           return Promise.reject(error);
@@ -464,10 +560,15 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     if (error.response) {
       // 服务器返回错误状态码
       errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+      if(logger) logger.error('[HTTP Request Error] 响应状态:', error.response.status, error.response.statusText);
+      if(logger) logger.error('[HTTP Request Error] 响应头:', JSON.stringify(error.response.headers, null, 2));
+      if(logger) logger.error('[HTTP Request Error] 响应数据:', typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data, null, 2));
+      console.error('[HTTP Request Error] 响应状态:', error.response.status, error.response.statusText);
+      console.error('[HTTP Request Error] 响应头:', JSON.stringify(error.response.headers, null, 2));
+      console.error('[HTTP Request Error] 响应数据:', error.response.data);
       if (error.response.data && error.response.data.errorMsg) {
         errorMessage += ` - ${error.response.data.errorMsg}`;
       }
-      console.error('[HTTP Request Error] 响应数据:', error.response.data);
       if(error.response.data){
         if(error.response.data['Error']&&error.response.data['Error']['message']){
           throw new Error(error.response.data['Error']['message']);
