@@ -10,7 +10,7 @@ interface ScriptTypeItem {
   value: string;
   label: string;
   description: string;
-  category: 'normal' | 'object' | 'attribute' | 'other';
+  category: 'normal' | 'object' | 'attribute' | 'other' | 'fixed';
 }
 
 interface LaunchPointConfig {
@@ -46,15 +46,41 @@ const scriptTypes: ScriptTypeItem[] = [
   { value: 'FLD_VALIDATE', label: '字段验证', description: '字段值验证', category: 'attribute' },
   { value: 'FLD_LOOKUP', label: '字段查找', description: '字段查找功能', category: 'attribute' },
   { value: 'WF_ACTION', label: '工作流动作', description: '工作流步骤动作', category: 'other' },
-  { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' }
+  { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' },
+  { value: 'OBJECT.NEW_FIXED', label: 'NEW_FIXED(隐藏字段)', description: '新建时隐藏字段(系统固定名称)', category: 'fixed' },
+  { value: 'OBJECT.SAVE_FIXED', label: 'SAVE_FIXED(隐藏字段)', description: '保存时隐藏字段(系统固定名称)', category: 'fixed' }
 ];
 
+// 根据 TASK09.md 整理的命名规范提示
+const namingHints: Record<string, string> = {
+  'APISCRIPT': '建议命名: <对象名>API （如 MXASSETAPI）',
+  'CONDITION': '建议命名: COND.<应用名>.<自定义> （如 COND.WOTRACK.CHECKSTATUS）',
+  'DATABEAN': '建议命名: DATABEAN.<自定义名> （如 DATABEAN.RESULT_LIST）',
+  'CRONTASK': '建议命名: <对象>.crontask.<任务名> （如 SR.crontask.CLEANUP）',
+  'APPBEAN': '建议命名: APPBEAN.<应用> （如 APPBEAN.WOTRACK）',
+  'COMMON_FUNC': '建议命名: <脚本名>.common （如 UTILS.common）',
+  'OPTION': '建议命名: <对象>.option.<签名选项> （如 WORKORDER.option.WOAPPR）',
+  'MXERR': '根据异常处理功能命名',
+  'LOOKUP': '根据查找功能命名',
+  'OBJECT.INIT': '建议命名: <对象>.initvalue （如 ITEM.initvalue）',
+  'OBJECT.SAVE': '建议命名: <对象>.PRESAVE / .AFTSAVE / .AFTTXSAVE （如 ASSET.PRESAVE）',
+  'OBJECT.INITZOMBIE': '建议命名: <对象>.<启动点名称>',
+  'FLD_ACTION': '建议命名: <对象>.<属性>.action （如 ITEM.STATUS.action）',
+  'FLD_VALIDATE': '建议命名: <对象>.<属性>.validate （如 ITEM.STATUS.validate）',
+  'FLD_LOOKUP': '建议命名: <对象>.<属性>.list （如 ITEM.STATUS.list）',
+  'WF_ACTION': '建议命名: <对象>.workflow.<事件> （如 WORKORDER.workflow.START）',
+  'RELATIONSHIP': '建议命名: <RS>_<表名>_<关系名> （如 RS_WORKORDER_MATUSETRANS）',
+  'OBJECT.NEW_FIXED': '系统固定名称: <对象名>.NEW （如 ITEM.NEW，Maximo 自动调用）',
+  'OBJECT.SAVE_FIXED': '系统固定名称: <对象名>.SAVE （如 ITEM.SAVE，Maximo 自动调用）'
+};
+
 const CreateScriptModal: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'normal' | 'object'>('normal');
+  const [activeTab, setActiveTab] = useState<'normal' | 'object' | 'fixed'>('normal');
   const [selectedType, setSelectedType] = useState<string>('');
   const [scriptName, setScriptName] = useState('');
   const [description, setDescription] = useState('');
   const [ibmPackagepath, setIbmPackagepath] = useState('');
+  const [fixedName, setFixedName] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -132,6 +158,9 @@ const CreateScriptModal: React.FC = () => {
   };
 
   const filteredTypes = scriptTypes.filter(t => {
+    if (activeTab === 'fixed') {
+      return t.category === 'fixed' || t.value === 'APPBEAN';
+    }
     if (activeTab === 'normal') {
       return t.category === 'normal' || t.category === 'other';
     }
@@ -223,7 +252,11 @@ const CreateScriptModal: React.FC = () => {
     setSelectedType(type);
     const typeInfo = scriptTypes.find(t => t.value === type);
     
-    if (typeInfo?.category === 'normal' || typeInfo?.category === 'other') {
+    if (typeInfo?.category === 'fixed') {
+      setScriptName('');
+      setFixedName('');
+      setDescription(typeInfo.description);
+    } else if (typeInfo?.category === 'normal' || typeInfo?.category === 'other') {
       setScriptName('');
       setDescription(typeInfo.description);
     } else if (typeInfo?.category === 'object') {
@@ -279,6 +312,18 @@ const CreateScriptModal: React.FC = () => {
         }
         setLaunchPointConfig(prev => ({ ...prev, ...updates }));
       }
+    }
+  };
+
+  const handleFixedNameChange = (value: string) => {
+    const trimmedValue = value.trim().toUpperCase();
+    setFixedName(trimmedValue);
+    if (selectedType === 'OBJECT.NEW_FIXED') {
+      setScriptName(trimmedValue ? `${trimmedValue}.NEW` : '');
+    } else if (selectedType === 'OBJECT.SAVE_FIXED') {
+      setScriptName(trimmedValue ? `${trimmedValue}.SAVE` : '');
+    } else if (selectedType === 'APPBEAN') {
+      setScriptName(trimmedValue ? `APPBEAN.${trimmedValue}` : '');
     }
   };
 
@@ -368,6 +413,22 @@ const CreateScriptModal: React.FC = () => {
             >
               对象启动点脚本
             </button>
+            <button
+              onClick={() => setActiveTab('fixed')}
+              style={{
+                flex: 1,
+                padding: '10px 20px',
+                background: activeTab === 'fixed' ? 'var(--vscode-button-background)' : 'transparent',
+                color: activeTab === 'fixed' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                border: 'none',
+                borderBottom: activeTab === 'fixed' ? '2px solid var(--vscode-textLink-foreground)' : 'none',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              固定脚本名称脚本
+            </button>
           </div>
 
           {errorMessage && (
@@ -428,6 +489,48 @@ const CreateScriptModal: React.FC = () => {
             </select>
           </div>
 
+          {activeTab === 'fixed' && selectedType && (
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '5px',
+                fontWeight: '500',
+                color: 'var(--vscode-foreground)'
+              }}>
+                {selectedType === 'APPBEAN' ? '应用名称' : '对象名称'} <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={fixedName}
+                onChange={(e) => handleFixedNameChange(e.target.value)}
+                placeholder={selectedType === 'APPBEAN' ? '例如: WOTRACK' : '例如: ITEM, WORKORDER'}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              {scriptName && (
+                <div style={{
+                  marginTop: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  color: 'var(--vscode-charts-green)',
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--vscode-charts-green)'
+                }}>
+                  ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ marginBottom: '15px' }}>
             <label style={{ 
               display: 'block', 
@@ -442,17 +545,34 @@ const CreateScriptModal: React.FC = () => {
               value={scriptName}
               onChange={(e) => handleScriptNameChange(e.target.value)}
               placeholder="输入脚本名称，例如: MY_SCRIPT 或 ITEM.INIT"
+              readOnly={activeTab === 'fixed' && !!selectedType}
               style={{
                 width: '100%',
                 padding: '8px 12px',
                 border: '1px solid var(--vscode-input-border)',
                 borderRadius: '4px',
-                background: 'var(--vscode-input-background)',
-                color: 'var(--vscode-input-foreground)',
+                background: activeTab === 'fixed' && selectedType ? 'var(--vscode-editor-background)' : 'var(--vscode-input-background)',
+                color: activeTab === 'fixed' && selectedType ? 'var(--vscode-charts-green)' : 'var(--vscode-input-foreground)',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                opacity: activeTab === 'fixed' && selectedType ? 0.8 : 1,
+                cursor: activeTab === 'fixed' && selectedType ? 'default' : 'text'
               }}
             />
+            {selectedType && namingHints[selectedType] && (
+              <div style={{
+                marginTop: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                color: 'var(--vscode-textLink-foreground)',
+                background: 'var(--vscode-textBlockQuote-background)',
+                borderRadius: '4px',
+                borderLeft: '3px solid var(--vscode-textLink-foreground)',
+                lineHeight: '1.4'
+              }}>
+                💡 {namingHints[selectedType]}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: '15px' }}>

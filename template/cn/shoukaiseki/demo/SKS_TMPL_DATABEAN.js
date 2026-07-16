@@ -7,7 +7,7 @@
 /// <reference path="@javaapi/global.d.ts" />
 // load('nashorn:mozilla_compat.js');
 // 直接调用方法的脚本,无任何隐式变量可以使用
-var scriptName="DATABEAN.IBM_ADDITEMAPPLY.RESULTS_SHOWLIST"//service.getScriptName()
+var scriptName="${sks_scriptName}"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
 /** @type {org.apache.log4j.Level} */
@@ -30,7 +30,7 @@ SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
 /** @type {jscustom.AnsiLogger} */
 var logger=null
 
-clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.加载了!!!", 1);
+// clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.加载了!!!", 1);
 
 /**
  * 初始化日志记录器

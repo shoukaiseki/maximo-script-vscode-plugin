@@ -57,6 +57,7 @@ var targetKeys
 // var listMboSet = null
 
 main()
+var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
 
 function main() {
   // 属性启动点 - 检索列表事件

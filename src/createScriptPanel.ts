@@ -8,7 +8,7 @@ export interface ScriptTypeItem {
   value: string;
   label: string;
   description: string;
-  category: 'normal' | 'object' | 'attribute' | 'other';
+  category: 'normal' | 'object' | 'attribute' | 'other' | 'fixed';
 }
 
 export interface ScriptConfig {
@@ -294,7 +294,9 @@ function main() {
       { value: 'FLD_VALIDATE', label: '字段验证', description: '字段值验证', category: 'attribute' },
       { value: 'FLD_LOOKUP', label: '字段查找', description: '字段查找功能', category: 'attribute' },
       { value: 'WF_ACTION', label: '工作流动作', description: '工作流步骤动作', category: 'other' },
-      { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' }
+      { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' },
+      { value: 'OBJECT.NEW_FIXED', label: '新增触发脚本(系统固定名称)', description: '新增触发的脚本', category: 'fixed' },
+      { value: 'OBJECT.SAVE_FIXED', label: '保存触发脚本(系统固定名称)', description: 'API调用save时候可能不会触发该脚本', category: 'fixed' }
     ];
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }

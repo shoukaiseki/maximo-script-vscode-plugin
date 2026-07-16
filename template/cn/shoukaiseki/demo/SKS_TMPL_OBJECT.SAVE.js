@@ -7,13 +7,12 @@
 /// <reference path="@javaapi/global.d.ts" />
 //可用于控制字段只读
 
-load('nashorn:mozilla_compat.js');
-importPackage(java.io);
-importPackage(java.sql);
-importClass(Packages.psdi.util.MXException);
-importClass(Packages.psdi.util.MXApplicationException);
-importClass(Packages.psdi.server.MXServer);
-importClass(Packages.java.util.HashMap);
+/** @type {psdi.util.MXException} */
+MXException = Java.type("psdi.util.MXException");
+/** @type {psdi.util.MXApplicationException} */
+MXApplicationException = Java.type("psdi.util.MXApplicationException");
+/** @type {psdi.server.MXServer} */
+MXServer = Java.type("psdi.server.MXServer");
 
 /** @type {psdi.mbo.MboConstants} */
 MboConstants = Java.type("psdi.mbo.MboConstants");
@@ -43,7 +42,6 @@ var mbonameTmp = mboname
 var interactiveTmp = interactive
 /** @type {boolean} */
 var onaddTmp = onadd
-
 /** @type {ScriptService} */
 var serviceTmp = service
 /** @type {boolean} */
@@ -63,6 +61,8 @@ var evalresultTmp = evalresult
 var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
 logger.info("---------------appName=" + appName)
 userInfo=mbo.getUserInfo();
+/** @type {psdi.server.MXServer} */
+var mxserver = MXServer.getMXServer();
 
 mbo.setValue("CHANGEBY", userInfo.getPersonId());
 mbo.setValue("CHANGEDATE", mxserver.getDate());
@@ -70,6 +70,7 @@ mbo.setValue("CHANGEDATE", mxserver.getDate());
 
 /**
 {
+  "sks:autoscript:remark": "如果名称是<对象名>.SAVE,那么不要设置启动点,会执行两次",
   "autoscript": "IBM_REQSRC.SAVE",
   "description": "保存前操作",
   "scriptlanguage": "JavaScript",

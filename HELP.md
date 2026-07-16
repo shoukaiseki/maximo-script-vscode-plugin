@@ -1004,7 +1004,7 @@ app_xml_backup_20260610_143025/
 
 ## Pull 应用 XML
 
-**功能**：从 Maximo 服务器拉取单个应用的 Presentation XML，并自动备份原文件。
+**功能**：从 Maximo 服务器拉取单个应用的 Presentation XML，自动备份原文件并刷新编辑器。
 
 **使用方式**：
 1. 在编辑器中打开 XML 文件，右键点击 → **"Maximo Script: Pull 应用 XML"**
@@ -1038,6 +1038,11 @@ app_xml_backup_20260610_143025/
 
 5. **写入新内容**
    - 用从 Maximo 获取的 XML 内容覆盖原文件
+
+6. **自动刷新编辑器**
+   - 如果文件已在编辑器中打开，自动强制从磁盘重新加载
+   - 脏文件（未保存编辑）不会自动刷新，避免丢失编辑内容
+   - 刷新失败不影响主流程，仅记录警告日志
 
 **注意事项**：
 - ⚠️ 需要 Maximo 系统中部署 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本
@@ -1199,7 +1204,7 @@ Push 和 Pull 操作都会自动进行版本检查，防止数据覆盖。
 **对话框操作步骤**：
 
 1. **选择脚本类型**
-   - 通过标签页切换：普通脚本、对象启动点脚本、字段启动点脚本、其他
+   - 通过标签页切换：普通脚本、对象启动点脚本、字段启动点脚本、其他、**固定脚本名称脚本**
    - 根据选择的脚本类型自动匹配模板文件（`SKS_TMPL_{scriptType}.js`）
 
 2. **填写脚本信息**
@@ -1219,7 +1224,22 @@ Push 和 Pull 操作都会自动进行版本检查，防止数据覆盖。
    - 脚本名称按 `.` 分割，自动填充到对象名称和属性名称
    - 例如：`ASSET.DESCRIPTION.VALIDATE` → 对象名称：`ASSET`，属性名称：`DESCRIPTION`
 
-5. **创建脚本**
+5. **固定脚本名称脚本**（第三标签页）
+   - 切换到「固定脚本名称脚本」标签页
+   - 脚本类型选择：
+     - **OBJECT.NEW_FIXED**：新增触发脚本，系统固定名称 `<对象名>.NEW`（如 `ITEM.NEW`）
+     - **OBJECT.SAVE_FIXED**：保存触发脚本，系统固定名称 `<对象名>.SAVE`（如 `ITEM.SAVE`）
+     - **APPBEAN**：应用 Bean 脚本，自动生成为 `APPBEAN.<应用名>`（如 `APPBEAN.WOTRACK`）
+   - 输入对象名称或应用名称后脚本名自动生成
+   - 脚本名称输入框变为只读模式，以绿色显示自动生成的名称
+
+6. **命名规范提示**
+   - 选择脚本类型后，下方自动显示对应的命名规范建议
+   - 例如选择 OBJECT.SAVE 时提示：`建议命名: <对象>.PRESAVE / .AFTSAVE / .AFTTXSAVE`
+   - 例如选择 APPBEAN 时提示：`建议命名: APPBEAN.<应用> （如 APPBEAN.WOTRACK）`
+   - 帮助用户选择合适的脚本名称格式
+
+7. **创建脚本**
    - 点击 **"创建"** 按钮
    - 自动生成 JS 内容（基于模板）和 JSON 配置
    - AppBean/DataBean 脚本自动设置 `interface=1`，其他类型 `interface=0`
@@ -1550,4 +1570,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-07-11 | 版本：1.4.18*
+*最后更新：2026-07-12 | 版本：1.4.21*

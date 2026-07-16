@@ -391,6 +391,24 @@ export function activate(context: vscode.ExtensionContext) {
           fs.writeFileSync(filePath, presentation, 'utf-8');
           logger.info(`[PullAppXml] ✅ ${presentationId}.xml 已更新`);
 
+          // 如果文件已在编辑器中打开，自动刷新显示
+          try {
+            const existingEditor = vscode.window.visibleTextEditors.find(e =>
+              e.document.fileName === filePath
+            );
+            if (existingEditor && !existingEditor.document.isDirty) {
+              // 切换到该文件并执行 revert 强制从磁盘重新加载
+              await vscode.window.showTextDocument(existingEditor.document, {
+                viewColumn: existingEditor.viewColumn,
+                preserveFocus: true
+              });
+              await vscode.commands.executeCommand('workbench.action.files.revert');
+              logger.info(`[PullAppXml] 已自动刷新编辑器: ${presentationId}.xml`);
+            }
+          } catch (refreshError: any) {
+            logger.warn(`[PullAppXml] 刷新编辑器失败: ${refreshError.message}`);
+          }
+
           vscode.window.showInformationMessage(`应用 XML 已更新: ${presentationId}`);
         }
       );

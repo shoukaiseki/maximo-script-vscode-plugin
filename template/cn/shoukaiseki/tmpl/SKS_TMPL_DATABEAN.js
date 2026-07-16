@@ -30,7 +30,7 @@ SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
 /** @type {jscustom.AnsiLogger} */
 var logger=null
 
-clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.加载了!!!", 1);
+// clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "DATABEAN.加载了!!!", 1);
 
 /**
  * 初始化日志记录器

@@ -59,6 +59,30 @@ function main() {
     for(var i=0;i<config.length;i++){
         var item = config[i];
         if(item._ignore) continue;
+        if(item._delete) {
+            try {
+                sqlFormat.setString(1, item.varname);
+                maxvars.setWhere(sqlFormat.format());
+                maxvars.reset();
+                var maxvar = maxvars.moveFirst();
+                if(maxvar) {
+                    maxvars.deleteAll();
+                    maxvars.save();
+                }
+                varOut["deleted"] = true;
+            } catch(e) {
+                try {
+                    var errorTrack=sksLogAnsiUtils.getErrorStackTrace(e);
+                    logger.warn("\x1b[31m[" + scriptName + "] \n" + errorTrack + "\x1b[0m");
+                    varOut["deleteerror"] = e.message;
+                } catch(e2) {
+                    logger.error(e2);
+                    varOut["deleteerror"] = e.message;
+                }
+            }
+            data.push(varOut);
+            continue;
+        }
         maxvarServ.put(item.varname, null, item.varvalue);
         var varType = maxvarServ.getMaxVarType(item.varname);
         var varOut={}

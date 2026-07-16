@@ -20,7 +20,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 /**  @type {psdi.util.logging.MXLogger}*/
 var logger = MXLoggerFactory.getLogger("maximo.script.SHARPTREE.AUTOSCRIPT.LIBRARY");
-// logger.setLevel(Level.INFO);
+logger.setLevel(Level.INFO);
 
 if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
     //_langcode=zh
@@ -2153,7 +2153,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
     }
     var ignoreObjectMain=(typeof this.ignoreObjectMain === "undefined"||!this.ignoreObjectMain);
 
-  logger.debug("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
+  logger.info("mbo.ignoreObjectMain0="+this.ignoreObjectMain);
   logger.info("mbo.ignoreObjectMain0="+(typeof this.ignoreObjectMain));
     logger.warn("mbo.ignoreObjectMain10=" + (typeof this.ignoreObjectMain === "undefined"));
   logger.error("\x1b[31m ["+serverName+"] objectName= "+this.object+" mbo.ignoreObjectMain10="+(!this.ignoreObjectMain)+"\x1b[0m");
@@ -2300,214 +2300,428 @@ MaxObject.prototype.setMboValues = function (mbo) {
               attrMbo = attributeSet.moveNext();
 
         }
-        logger.debug(service.jsonarrayToString(jsonArray));
+        logger.info(service.jsonarrayToString(jsonArray));
 
-    var isView = this.view;
+        var isView = this.view;
+        var extendsObjectTmp=this.extendsObject
+        var objectNameTmp=this.objectName
 
-      this.attributes.forEach(function (attributeConfig) {
-          /** @type {psdi.mbo.MboRemote} */
-          var attribute = attributeSet.moveFirst();
-          while (attribute) {
-              if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
-                  break;
-              }
-              attribute = attributeSet.moveNext();
-          }
-        logger.debug("attribute="+attributeConfig.attribute)
-          if (attributeConfig.delete) {
-              if (attribute != null) {
-                  attribute.delete();
-              }
-          }else if(attribute&&attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))){
-              if (attributeConfig.description) {
-                  attribute.setValue("REMARKS", attributeConfig.description);
-              }
-              if (attributeConfig.title) {
-                  attribute.setValue("TITLE", attributeConfig.title);
-              }
-            //不是新增的就忽略主键ID
-          } else {
-              if (!attribute) {
-                  attribute = attributeSet.add();
-                  attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
-                  logger.debug("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
-              }
-              if (attribute.isNew()||!attributeConfig._updateIgnored) {
-                  logger.debug("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
+      this.attributes.forEach(function (attributeConfig,attrIndex) {
+          logger.info("\x1b[32m[" + serverName + "] attrIndex="+attrIndex+",attributeConfig.attribute="+ attributeConfig.attribute + " isView=" + isView + " \x1b[0m")
+          if (!isView) {
+            //处理非视图属性
 
-                  attribute.setValue("REMARKS", attributeConfig.description);
-                  attribute.setValue("TITLE", attributeConfig.title);
+            /** @type {psdi.mbo.MboRemote} */
+            var attribute = attributeSet.moveFirst();
+            while (attribute) {
+                if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
+                    break;
+                }
+                attribute = attributeSet.moveNext();
+            }
+            logger.info("attribute=" + attributeConfig.attribute)
+            if (attributeConfig.delete) {
+                if (attribute != null) {
+                    attribute.delete();
+                }
+            } else if (attribute && attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))) {
+                if (attributeConfig.description) {
+                    attribute.setValue("REMARKS", attributeConfig.description);
+                }
+                if (attributeConfig.title) {
+                    attribute.setValue("TITLE", attributeConfig.title);
+                }
+                //不是新增的就忽略主键ID
+            } else {
+                if (!attribute) {
+                    attribute = attributeSet.add();
+                    attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
+                    logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
+                }
+                if (attribute.isNew() || !attributeConfig._updateIgnored) {
+                    logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
 
-                  if (typeof attributeConfig.class !== "undefined"&&!attribute.getMboValueData("CLASSNAME").isReadOnly()) {
-                      attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
-                  }
+                    attribute.setValue("REMARKS", attributeConfig.description);
+                    attribute.setValue("TITLE", attributeConfig.title);
 
-                  //只有等同对象为空的时候才会设置type和length
-                  if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
-                      if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
-                          attributeConfig.type == null ? attribute.setValueNull("MAXTYPE",2) : attribute.setValue("MAXTYPE", attributeConfig.type,2);
-                      }
+                    if (typeof attributeConfig.class !== "undefined" && !attribute.getMboValueData("CLASSNAME").isReadOnly()) {
+                        attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
+                    }
 
-                      if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
-                          attribute.setValue("LENGTH", attributeConfig.length,2);
-                      }
-
-                      if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
-                          attribute.setValue("SCALE", attributeConfig.scale,2);
-                      }
-                  }
-
-                  if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
-                      attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
-                  }
-
-
-                  if (typeof attributeConfig.domain !== "undefined"&&!attribute.getMboValueData("DOMAINID").isReadOnly()) {
-                      attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
-                  }
-
-                  if (typeof attributeConfig.alias !== "undefined") {
-                      attributeConfig.alias == null ? attribute.setValueNull("ALIAS",2) : attribute.setValue("ALIAS", attributeConfig.alias,2);
-                  }
-
-                  if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
-                      attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
-                  }
-
-                  if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
-                      attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
-                  }
-
-                  if (typeof attributeConfig.column !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
-                      attributeConfig.column == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.column);
-                  }
-
-                  if (typeof attributeConfig.sameAsObject !== "undefined") {
-                      attributeConfig.sameAsObject == null
-                          ? attribute.setValueNull("SAMEASOBJECT",2)
-                          : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject,2);
-                  }
-                  if (typeof attributeConfig.sameAsAttribute !== "undefined") {
-                      attributeConfig.sameAsAttribute == null
-                          ? attribute.setValueNull("SAMEASATTRIBUTE",2)
-                          : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute,2);
-                  }
-
-                  if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
-                      attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
-                  }
-
-                  //   logger.debug(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
-                  if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
-                      if (typeof attributeConfig.autonumber !== "undefined") {
-                          if (attributeConfig.autonumber == null) {
-                              attribute.setValueNull("AUTOKEYNAME")
-                              // logger.debug("attributeConfig.autonumber=null")
-                          } else {
-                              attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
-                              logger.debug("attributeConfig.autonumber=" + attributeConfig.autonumber)
-                          }
-                      } else {
-                          // logger.debug("attributeConfig.autonumber is undefined")
-                      }
-                  } else {
-                      if (attributeConfig.autonumber) {
-                          attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
-                          logger.debug("attributeConfig.autonumber=" + attributeConfig.autonumber)
-                      }
-                      // logger.debug("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
-                  }
-                  try{
-                      if (typeof attributeConfig.defaultValue !== "undefined") {
-                          if (attributeConfig.defaultValue == null) {
-                              attribute.setValueNull("DEFAULTVALUE")
-                              logger.debug("attributeConfig.defaultValue=null")
-                          } else {
-                              attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-                              logger.debug("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
-                          }
-                      }
-                  }catch(ei){}
-
-                  if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
-                      if (typeof attributeConfig.searchType !== "undefined") {
-                          attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
-                      }
-                  }
-
-                  if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
-                      attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
-                  }
-
-                  if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
-                      if (typeof attributeConfig.textDirection !== "undefined") {
-                          attributeConfig.textDirection == null
-                              ? attribute.setValueNull("TEXTDIRECTION")
-                              : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
-                      }
-                  }
-
-                  if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
-                      attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
-                  }
-
-                  if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
-                      attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
-                  }
-                  if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
-                      if (typeof attributeConfig.sequenceName !== "undefined") {
-                          attributeConfig.sequenceName == null
-                              ? attribute.setValueNull("SEQUENCENAME")
-                              : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
-                      }
-                  }
-
-                  if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
-                      if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
-                          attributeConfig.typeOfComplexExpression == null
-                              ? attribute.setValueNull("COMPLEXEXPRESSION")
-                              : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
-                      }
-                  }
-
-                  if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
-                      attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
-                  }
-                  if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
-                      attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
-                  }
-                  if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
-                      attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
-                  }
-                  if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
-                      attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
-                  } else {
-                      attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
-                  }
-                  logger.info("\x1b[32m["+serverName+"]"+attributeConfig.attribute+" isView="+isView+" \x1b[0m")
-                    if(isView){
-                        logger.info("\x1b[32m[" + serverName + "] attribute.entityName=" + attributeConfig.entityName + " \x1b[0m")
-                        if(typeof attributeConfig.persistent !== "undefined"){
-                            attribute.setValue("persistent", attributeConfig.persistent,MboConstants.NOACCESSCHECK)
+                    //只有等同对象为空的时候才会设置type和length
+                    if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
+                        if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
+                            attributeConfig.type == null ? attribute.setValueNull("MAXTYPE", 2) : attribute.setValue("MAXTYPE", attributeConfig.type, 2);
                         }
-                        if(typeof attributeConfig.entityName !== "undefined"){
-                            if(attributeConfig.entityName ){
-                                attribute.setValue("entityName", attributeConfig.entityName,MboConstants.NOACCESSCHECK)
-                                logger.debug("\x1b[32m["+serverName+"] "+attributeConfig.attribute+" setEntityName="+attribute.entityName+"\x1b[0m")
-                            }else{
-                                attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
-                            }
+
+                        if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
+                            attribute.setValue("LENGTH", attributeConfig.length, 2);
                         }
-                        if(typeof attributeConfig.columnName !== "undefined"){
-                            if(attributeConfig.columnName ){
-                                attribute.setValue("columnName", attributeConfig.columnName,MboConstants.NOACCESSCHECK)
-                            }else{
-                                attribute.setValueNull("columnName", MboConstants.NOACCESSCHECK)
-                            }
+
+                        if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
+                            attribute.setValue("SCALE", attributeConfig.scale, 2);
                         }
                     }
-              }
-          }
+
+                    if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
+                        attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
+                    }
+
+
+                    if (typeof attributeConfig.domain !== "undefined" && !attribute.getMboValueData("DOMAINID").isReadOnly()) {
+                        attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
+                    }
+
+                    if (typeof attributeConfig.alias !== "undefined") {
+                        attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
+                    }
+
+                    if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
+                        attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
+                    }
+
+                    if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
+                        attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
+                    }
+
+                    if (typeof attributeConfig.columnName !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
+                        attributeConfig.columnName == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.columnName);
+                    }
+
+                    if (typeof attributeConfig.sameAsObject !== "undefined") {
+                        attributeConfig.sameAsObject == null
+                            ? attribute.setValueNull("SAMEASOBJECT", 2)
+                            : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                    }
+                    if (typeof attributeConfig.sameAsAttribute !== "undefined") {
+                        attributeConfig.sameAsAttribute == null
+                            ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                            : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                    }
+
+                    if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
+                        attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
+                    }
+
+                    //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
+                    if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
+                        if (typeof attributeConfig.autonumber !== "undefined") {
+                            if (attributeConfig.autonumber == null) {
+                                attribute.setValueNull("AUTOKEYNAME")
+                                // logger.info("attributeConfig.autonumber=null")
+                            } else {
+                                attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
+                                logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                            }
+                        } else {
+                            // logger.info("attributeConfig.autonumber is undefined")
+                        }
+                    } else {
+                        if (attributeConfig.autonumber) {
+                            attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
+                            logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                        }
+                        // logger.info("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
+                    }
+                    try {
+                        if (typeof attributeConfig.defaultValue !== "undefined") {
+                            if (attributeConfig.defaultValue == null) {
+                                attribute.setValueNull("DEFAULTVALUE")
+                                logger.info("attributeConfig.defaultValue=null")
+                            } else {
+                                attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                                logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                            }
+                        }
+                    } catch (ei) { }
+
+                    if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
+                        if (typeof attributeConfig.searchType !== "undefined") {
+                            attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
+                        }
+                    }
+
+                    if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
+                        attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
+                    }
+
+                    if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
+                        if (typeof attributeConfig.textDirection !== "undefined") {
+                            attributeConfig.textDirection == null
+                                ? attribute.setValueNull("TEXTDIRECTION")
+                                : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
+                        }
+                    }
+
+                    if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
+                        attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
+                    }
+
+                    if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
+                        attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
+                    }
+                    if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
+                        if (typeof attributeConfig.sequenceName !== "undefined") {
+                            attributeConfig.sequenceName == null
+                                ? attribute.setValueNull("SEQUENCENAME")
+                                : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
+                        }
+                    }
+
+                    if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
+                        if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                            attributeConfig.typeOfComplexExpression == null
+                                ? attribute.setValueNull("COMPLEXEXPRESSION")
+                                : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
+                        }
+                    }
+
+                    if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
+                        attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
+                    }
+                    if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
+                        attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
+                    }
+                    if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
+                        attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
+                    }
+                    if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
+                        attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
+                    } else {
+                        attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
+                    }
+
+                }
+            }
+        } else {
+            //处理视图属性
+
+            /** @type {psdi.mbo.MboRemote} */
+            var attribute = attributeSet.moveFirst();
+            while (attribute) {
+                if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
+                    break;
+                }
+                attribute = attributeSet.moveNext();
+            }
+            logger.info("\x1b[32m[" + serverName + "] " + "attribute=" + attributeConfig.attribute+",extendsObjectTmp="+(extendsObjectTmp+"ID")+"\x1b[0m")
+            if (attributeConfig.delete) {
+                if (attribute != null) {
+                    attribute.delete();
+                }
+            } else if (attribute && (attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))
+                || attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(extendsObjectTmp+"ID")
+            )) {
+                if (attributeConfig.description) {
+                    attribute.setValue("REMARKS", attributeConfig.description);
+                }
+                if (attributeConfig.title) {
+                    attribute.setValue("TITLE", attributeConfig.title);
+                }
+                //不是新增的就忽略主键ID
+            } else {
+                if (!attribute) {
+                    attribute = attributeSet.add();
+                    attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
+                    logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
+                }
+                if (attribute.isNew() || !attributeConfig._updateIgnored) {
+                       var roAlways = ["objectname", "changed", "viewchanged", "attributeno", "userdefined", "eaudittbname", "langtablename", "ishandlecolumn", "entityname", "nextsequenceno"];
+                       //取消只读
+                    attribute.setFieldFlag(roAlways, MboConstants.READONLY, false);
+
+                    if (typeof attributeConfig.persistent !== "undefined") {
+                            logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setPersistent=" + attributeConfig.persistent + "\x1b[0m")
+                        attribute.setValue("persistent", attributeConfig.persistent?true:false, MboConstants.NOACCESSCHECK)
+                    }
+                    if (typeof attributeConfig.entityName !== "undefined") {
+                        if (attributeConfig.entityName) {
+                            logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setEntityName=" + attributeConfig.entityName + "\x1b[0m")
+                            attribute.setValue("entityName", attributeConfig.entityName, MboConstants.NOACCESSCHECK)
+                        } else {
+                            attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
+                        }
+                    }
+                            logger.info("\x1b[32m[" + serverName + "] 1.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
+                    if (typeof attributeConfig.columnName !== "undefined") {
+                        if (attributeConfig.columnName) {
+                            logger.info("\x1b[32m[" + serverName + "] 2.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
+                            attribute.setValue("columnName", attributeConfig.columnName, MboConstants.NOACCESSCHECK)
+                        } else {
+                            attribute.setValueNull("columnName", MboConstants.NOACCESSCHECK)
+                        }
+                    }
+
+                    logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
+
+                    attribute.setValue("REMARKS", attributeConfig.description);
+                    attribute.setValue("TITLE", attributeConfig.title);
+
+                    if (typeof attributeConfig.class !== "undefined") {
+                         attribute.setValue("CLASSNAME", attributeConfig.class,MboConstants.NOACCESSCHECK);
+                    }else{
+                        attribute.setValueNull("CLASSNAME",MboConstants.NOACCESSCHECK)
+                    }
+
+                    //只有等同对象为空的时候才会设置type和length
+                    if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
+                        if (typeof attributeConfig.type !== "undefined" ) {
+                             attribute.setValue("MAXTYPE", attributeConfig.type, 2);
+                        }else{
+                            attribute.setValueNull("MAXTYPE", 2) 
+                        }
+
+                        if (typeof attributeConfig.length !== "undefined" && attributeConfig.length !=null) {
+                            attribute.setValue("LENGTH", attributeConfig.length, 2);
+                        }
+
+                        if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale !=null) {
+                            attribute.setValue("SCALE", attributeConfig.scale, 2);
+                        }
+                    }
+
+                    if (typeof attributeConfig.required === "undefined") {
+                        if(attributeConfig.required){
+                        attribute.setValue("REQUIRED", attributeConfig.required?true:false, MboConstants.NOACCESSCHECK);
+                        }
+
+                    }
+
+
+                    if (typeof attributeConfig.domain !== "undefined" ) {
+                        if(attributeConfig.domain == null){
+                            attribute.setValueNull("DOMAINID")
+                        }else{
+                           attribute.setValue("DOMAINID", attributeConfig.domain);
+                        }
+                    }
+
+                    if (typeof attributeConfig.alias !== "undefined") {
+                        attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
+                    }
+
+
+                    if (typeof attributeConfig.mustBe === "undefined") {
+                        attribute.setValue("MUSTBE", attributeConfig.mustBe ? true : false, MboConstants.NOACCESSCHECK);
+                    }
+
+                    if (typeof attributeConfig.columnName !== "undefined") {
+                        if(attributeConfig.columnName == null){
+                            attribute.setValueNull("COLUMNNAME")
+                        }else{
+                           attribute.setValue("COLUMNNAME", attributeConfig.columnName,2);
+                        }
+                    }
+
+                    if (typeof attributeConfig.sameAsObject !== "undefined") {
+                        if(attributeConfig.sameAsObject == null){
+                            attribute.setValueNull("SAMEASOBJECT", 2)
+                        }else{
+                           attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                        }
+                        attributeConfig.sameAsObject == null
+                            ? attribute.setValueNull("SAMEASOBJECT", 2)
+                            : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                    }
+                    if (typeof attributeConfig.sameAsAttribute !== "undefined") {
+                        if(attributeConfig.sameAsAttribute == null){
+                            attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                        }else{
+                           attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                        }
+                        attributeConfig.sameAsAttribute == null
+                            ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                            : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                    }
+
+                    if (typeof attributeConfig.canAutonumber !== "undefined") {
+                        attribute.setValue("CANAUTONUM", attributeConfig.canAutonumber ? true : false, MboConstants.NOACCESSCHECK);
+                    }
+
+                    //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
+                    // attribute.getMboValueData("AUTOKEYNAME").setFieldFlag(MboConstants.READONLY, false)
+                    if (typeof attributeConfig.autonumber !== "undefined") {
+                        if (attributeConfig.autonumber) {
+                            attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
+                            logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                        }else{
+                            attribute.setValueNull("AUTOKEYNAME",2)
+                        }
+                    } else {
+                        // logger.info("attributeConfig.autonumber is undefined")
+                    }
+                    try {
+                        if (typeof attributeConfig.defaultValue !== "undefined") {
+                            if (attributeConfig.defaultValue == null) {
+                                attribute.setValueNull("DEFAULTVALUE",2)
+                                logger.info("attributeConfig.defaultValue=null")
+                            } else {
+                                attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue,2);
+                                logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                            }
+                        }
+                    } catch (ei) { }
+
+                    if (typeof attributeConfig.searchType !== "undefined") {
+                        if (typeof attributeConfig.searchType !== "undefined") {
+                            attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType,2);
+                        }
+                    }
+
+                    if (typeof attributeConfig.localizable !== "undefined") {
+                        attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable,2);
+                    }
+
+                    if (typeof attributeConfig.textDirection !== "undefined") {
+                        if (typeof attributeConfig.textDirection !== "undefined") {
+                            attributeConfig.textDirection == null
+                                ? attribute.setValueNull("TEXTDIRECTION",2)
+                                : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection,2);
+                        }
+                    }
+
+                    if (typeof attributeConfig.positive !== "undefined") {
+                        attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive,2);
+                    }
+
+                    if (typeof attributeConfig.longDescriptionOwner !== "undefined") {
+                        attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner,2);
+                    }
+                    if (typeof attributeConfig.sequenceName !== "undefined") {
+                        attributeConfig.sequenceName == null
+                            ? attribute.setValueNull("SEQUENCENAME",2)
+                            : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName,2);
+                    }
+
+                    if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                        if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                            attributeConfig.typeOfComplexExpression == null
+                                ? attribute.setValueNull("COMPLEXEXPRESSION",2)
+                                : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression,2);
+                        }
+                    }
+
+                    if (typeof attributeConfig.eAuditEanbled !== "undefined") {
+                        attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled,2);
+                    }
+                    if (typeof attributeConfig.multiLanguageInUse !== "undefined") {
+                        attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse,2);
+                    }
+                    if (typeof attributeConfig.eSignatureEnabled !== "undefined") {
+                        attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled,2);
+                    }
+                    if (typeof attributeConfig.primaryColumn !== "undefined" ) {
+                        if( attributeConfig.primaryColumn == null){
+                            attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
+                        } else {
+                            attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
+                        }
+                    }
+
+
+                }
+            }
+        }
       });
 
 
@@ -2527,7 +2741,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
               attrMbo = attributeSet.moveNext();
 
         }
-        logger.debug(service.jsonarrayToString(jsonArray));
+        logger.info(service.jsonarrayToString(jsonArray));
     }
 
     if (this.indexes && Array.isArray(this.indexes) && this.indexes.length > 0) {
@@ -2644,7 +2858,7 @@ function mainLibrary() {
  * @param {*} config A parsed JSON array of messages, properties, and other items to be added, updated, or deleted.
  */
 function deployConfig(config) {
-    logger.debug("Deploying Configuration: \n" + JSON.stringify(config, null, 4));
+    logger.info("Deploying Configuration: \n" + JSON.stringify(config, null, 4));
     if (typeof config.messages !== "undefined") {
         deployMessages(config.messages);
     }
@@ -2714,7 +2928,7 @@ function deployActions(actions) {
  * @param {Action} action single action that will be added/updated
  */
 function addOrUpdateAction(action) {
-    logger.debug("Setting up the " + action.action + " action.");
+    logger.info("Setting up the " + action.action + " action.");
     var actionSet;
     try {
         actionSet = MXServer.getMXServer().getMboSet("ACTION", userInfo);
@@ -2732,7 +2946,7 @@ function addOrUpdateAction(action) {
     } finally {
         __libraryClose(actionSet);
     }
-    logger.debug("Setup up the " + action.action + " action.");
+    logger.info("Setup up the " + action.action + " action.");
 }
 
 /**
@@ -2740,7 +2954,7 @@ function addOrUpdateAction(action) {
  * @param {Action} action single action that will be deleted.
  */
 function deleteAction(action) {
-    logger.debug("Deleting the " + action.action + " action.");
+    logger.info("Deleting the " + action.action + " action.");
     var actionSet;
     try {
         actionSet = MXServer.getMXServer().getMboSet("ACTION", userInfo);
@@ -2755,7 +2969,7 @@ function deleteAction(action) {
     } finally {
         __libraryClose(actionSet);
     }
-    logger.debug("Deleted the " + action.action + " action.");
+    logger.info("Deleted the " + action.action + " action.");
 }
 
 /**
@@ -2783,7 +2997,7 @@ function deployCommunicationTemplates(communicationTemplates) {
  * @param {CommunicationTemplate} communicationTemplate single communication template that will be added/updated
  */
 function addOrUpdateCommunicationTemplate(communicationTemplate) {
-    logger.debug("Setting up the " + communicationTemplate.templateID + " communication template.");
+    logger.info("Setting up the " + communicationTemplate.templateID + " communication template.");
     var commTemplateSet;
     try {
         commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", userInfo);
@@ -2801,7 +3015,7 @@ function addOrUpdateCommunicationTemplate(communicationTemplate) {
     } finally {
         __libraryClose(commTemplateSet);
     }
-    logger.debug("Set up the " + communicationTemplate.ifaceName + " communication template.");
+    logger.info("Set up the " + communicationTemplate.ifaceName + " communication template.");
 }
 
 /**
@@ -2809,7 +3023,7 @@ function addOrUpdateCommunicationTemplate(communicationTemplate) {
  * @param {CommunicationTemplate} communicationTemplate single communication template that will be deleted.
  */
 function deleteCommunicationTemplate(communicationTemplate) {
-    logger.debug("Deleting the " + communicationTemplate.ifaceName + " communication template.");
+    logger.info("Deleting the " + communicationTemplate.ifaceName + " communication template.");
     var commTemplateSet;
     try {
         commTemplateSet = MXServer.getMXServer().getMboSet("COMMTEMPLATE", userInfo);
@@ -2824,7 +3038,7 @@ function deleteCommunicationTemplate(communicationTemplate) {
     } finally {
         __libraryClose(commTemplateSet);
     }
-    logger.debug("Deleted the " + communicationTemplate.ifaceName + " communication template.");
+    logger.info("Deleted the " + communicationTemplate.ifaceName + " communication template.");
 }
 
 /**
@@ -2853,7 +3067,7 @@ function deployMaxObjects(maxObjects) {
  * @param {MaxObject} maxObject single Maximo object that will be added/updated
  */
 function addOrUpdateMaxObject(maxObject) {
-    logger.debug("Setting up the " + maxObject.object + " Maximo object.");
+    logger.info("Setting up the " + maxObject.object + " Maximo object.");
     var maxObjectSet;
     try {
         maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECTCFG", userInfo);
@@ -2874,7 +3088,7 @@ function addOrUpdateMaxObject(maxObject) {
     } finally {
         __libraryClose(maxObjectSet);
     }
-    logger.debug("Set up the " + maxObject.objectName + " Maximo object.");
+    logger.info("Set up the " + maxObject.objectName + " Maximo object.");
 }
 
 /**
@@ -2882,7 +3096,7 @@ function addOrUpdateMaxObject(maxObject) {
  * @param {MaxObject} maxObject single Maximo object  that will be deleted.
  */
 function deleteMaxObject(maxObject) {
-    logger.debug("Deleting the " + maxObject.objectNmae + " Maximo object.");
+    logger.info("Deleting the " + maxObject.objectNmae + " Maximo object.");
     var maxObjectSet;
     try {
         maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECT", userInfo);
@@ -2897,7 +3111,7 @@ function deleteMaxObject(maxObject) {
     } finally {
         __libraryClose(maxObjectSet);
     }
-    logger.debug("Deleted the " + launchInContext.ifaceName + " launch in context.");
+    logger.info("Deleted the " + launchInContext.ifaceName + " launch in context.");
 }
 
 /**
@@ -2925,7 +3139,7 @@ function deployLaunchInContexts(launchInContexts) {
  * @param {LaunchInContext} launchInContext single launch in context that will be added/updated
  */
 function addOrUpdateLaunchInContext(launchInContext) {
-    logger.debug("Setting up the " + launchInContext.launchEntryName + " launch in context.");
+    logger.info("Setting up the " + launchInContext.launchEntryName + " launch in context.");
     var launchInContextSet;
     try {
         launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", userInfo);
@@ -2943,7 +3157,7 @@ function addOrUpdateLaunchInContext(launchInContext) {
     } finally {
         __libraryClose(launchInContextSet);
     }
-    logger.debug("Set up the " + launchInContext.ifaceName + " launch in context.");
+    logger.info("Set up the " + launchInContext.ifaceName + " launch in context.");
 }
 
 /**
@@ -2951,7 +3165,7 @@ function addOrUpdateLaunchInContext(launchInContext) {
  * @param {LaunchInContext} launchInContext single launch in context that will be deleted.
  */
 function deleteLaunchInContext(launchInContext) {
-    logger.debug("Deleting the " + launchInContext.ifaceName + " launch in context.");
+    logger.info("Deleting the " + launchInContext.ifaceName + " launch in context.");
     var launchInContextSet;
     try {
         launchInContextSet = MXServer.getMXServer().getMboSet("MAXLAUNCHENTRY", userInfo);
@@ -2966,7 +3180,7 @@ function deleteLaunchInContext(launchInContext) {
     } finally {
         __libraryClose(launchInContextSet);
     }
-    logger.debug("Deleted the " + launchInContext.ifaceName + " launch in context.");
+    logger.info("Deleted the " + launchInContext.ifaceName + " launch in context.");
 }
 
 /**
@@ -2994,7 +3208,7 @@ function deployInvocationChannels(invocationChannels) {
  * @param {InvocationChannel} invocationChannel single invocation channel that will be added/updated
  */
 function addOrUpdateInvocationChannel(invocationChannel) {
-    logger.debug("Setting up the " + invocationChannel.ifaceName + " invocation channel.");
+    logger.info("Setting up the " + invocationChannel.ifaceName + " invocation channel.");
     var maxIfaceInvokeSet;
     try {
         maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", userInfo);
@@ -3012,7 +3226,7 @@ function addOrUpdateInvocationChannel(invocationChannel) {
     } finally {
         __libraryClose(maxIfaceInvokeSet);
     }
-    logger.debug("Setup up the " + invocationChannel.ifaceName + " invocation channel.");
+    logger.info("Setup up the " + invocationChannel.ifaceName + " invocation channel.");
 }
 
 /**
@@ -3020,7 +3234,7 @@ function addOrUpdateInvocationChannel(invocationChannel) {
  * @param {InvocationChannel} invocationChannel single invocation channel that will be deleted.
  */
 function deleteInvocationChannel(invocationChannel) {
-    logger.debug("Deleting the " + invocationChannel.ifaceName + " invocation channel.");
+    logger.info("Deleting the " + invocationChannel.ifaceName + " invocation channel.");
     var maxIfaceInvokeSet;
     try {
         maxIfaceInvokeSet = MXServer.getMXServer().getMboSet("MAXIFACEINVOKE", userInfo);
@@ -3035,7 +3249,7 @@ function deleteInvocationChannel(invocationChannel) {
     } finally {
         __libraryClose(maxIfaceInvokeSet);
     }
-    logger.debug("Deleted the " + invocationChannel.ifaceName + " invocation channel.");
+    logger.info("Deleted the " + invocationChannel.ifaceName + " invocation channel.");
 }
 
 /**
@@ -3063,7 +3277,7 @@ function deployEnterpriseServices(enterpriseServices) {
  * @param {EnterpriseService} enterpriseService single enterprise service that will be added/updated
  */
 function addOrUpdateEnterpriseService(enterpriseService) {
-    logger.debug("Setting up the " + enterpriseService.ifaceName + " enterprise service.");
+    logger.info("Setting up the " + enterpriseService.ifaceName + " enterprise service.");
     var maxIfaceInSet;
     try {
         maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", userInfo);
@@ -3090,7 +3304,7 @@ function addOrUpdateEnterpriseService(enterpriseService) {
     } finally {
         __libraryClose(maxIfaceInSet);
     }
-    logger.debug("Setup up the " + enterpriseService.ifaceName + " enterprise service.");
+    logger.info("Setup up the " + enterpriseService.ifaceName + " enterprise service.");
 }
 
 /**
@@ -3098,7 +3312,7 @@ function addOrUpdateEnterpriseService(enterpriseService) {
  * @param {EnterpriseService} enterpriseService single enterprise service that will be deleted.
  */
 function deleteEnterpriseService(enterpriseService) {
-    logger.debug("Deleting the " + enterpriseService.ifaceName + " enterprise service.");
+    logger.info("Deleting the " + enterpriseService.ifaceName + " enterprise service.");
     var maxIfaceInSet;
     try {
         maxIfaceInSet = MXServer.getMXServer().getMboSet("MAXIFACEIN", userInfo);
@@ -3122,7 +3336,7 @@ function deleteEnterpriseService(enterpriseService) {
     } finally {
         __libraryClose(maxIfaceInSet);
     }
-    logger.debug("Deleted the " + enterpriseService.ifaceName + " enterprise service.");
+    logger.info("Deleted the " + enterpriseService.ifaceName + " enterprise service.");
 }
 
 /**
@@ -3150,7 +3364,7 @@ function deployPublishChannels(publishChannels) {
  * @param {PublishChannel} publishChannel single publish channel that will be added/updated
  */
 function addOrUpdatePublishChannel(publishChannel) {
-    logger.debug("Setting up the " + publishChannel.ifaceName + " publish channel.");
+    logger.info("Setting up the " + publishChannel.ifaceName + " publish channel.");
     var maxIfaceOutSet;
     try {
         maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", userInfo);
@@ -3180,7 +3394,7 @@ function addOrUpdatePublishChannel(publishChannel) {
     } finally {
         __libraryClose(maxIfaceOutSet);
     }
-    logger.debug("Setup up the " + publishChannel.ifaceName + " publish channel.");
+    logger.info("Setup up the " + publishChannel.ifaceName + " publish channel.");
 }
 
 /**
@@ -3188,7 +3402,7 @@ function addOrUpdatePublishChannel(publishChannel) {
  * @param {PublishChannel} publishChannel single publish channel that will be deleted.
  */
 function deletePublishChannel(publishChannel) {
-    logger.debug("Deleting the " + publishChannel.ifaceName + " publish channel.");
+    logger.info("Deleting the " + publishChannel.ifaceName + " publish channel.");
     var maxIfaceOutSet;
     try {
         maxIfaceOutSet = MXServer.getMXServer().getMboSet("MAXIFACEOUT", userInfo);
@@ -3213,7 +3427,7 @@ function deletePublishChannel(publishChannel) {
     } finally {
         __libraryClose(maxIfaceOutSet);
     }
-    logger.debug("Deleted the " + publishChannel.ifaceName + " publish channel.");
+    logger.info("Deleted the " + publishChannel.ifaceName + " publish channel.");
 }
 
 function deployLoggers(loggers) {
@@ -3375,7 +3589,7 @@ function deployEndPoints(endPoints) {
  * @param {EndPoint} endPoint single end point that will be added/updated
  */
 function addOrUpdateEndPoint(endPoint) {
-    logger.debug("Setting up the " + endPoint.endPointName + " end point.");
+    logger.info("Setting up the " + endPoint.endPointName + " end point.");
     var maxEndPointSet;
     try {
         maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", userInfo);
@@ -3393,7 +3607,7 @@ function addOrUpdateEndPoint(endPoint) {
     } finally {
         __libraryClose(maxEndPointSet);
     }
-    logger.debug("Setup up the " + endPoint.endPointName + " end point.");
+    logger.info("Setup up the " + endPoint.endPointName + " end point.");
 }
 
 /**
@@ -3401,7 +3615,7 @@ function addOrUpdateEndPoint(endPoint) {
  * @param {EndPoint} endPoint single end point that will be deleted.
  */
 function deleteEndPoint(endPoint) {
-    logger.debug("Deleting the " + endPoint.endPointName + " end point.");
+    logger.info("Deleting the " + endPoint.endPointName + " end point.");
     var maxEndPointSet;
     try {
         maxEndPointSet = MXServer.getMXServer().getMboSet("MAXENDPOINT", userInfo);
@@ -3417,7 +3631,7 @@ function deleteEndPoint(endPoint) {
     } finally {
         __libraryClose(maxEndPointSet);
     }
-    logger.debug("Deleted the " + endPoint.endPointName + " end point.");
+    logger.info("Deleted the " + endPoint.endPointName + " end point.");
 }
 
 /**
@@ -3445,7 +3659,7 @@ function deployExternalSystems(externalSystems) {
  * @param {ExternalSystem} externalSystem single external system that will be added/updated
  */
 function addOrUpdateExternalSystem(externalSystem) {
-    logger.debug("Setting up the " + externalSystem.extSysName + " external sytsem.");
+    logger.info("Setting up the " + externalSystem.extSysName + " external sytsem.");
     var maxExtSystemSet;
     try {
         maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", userInfo);
@@ -3463,7 +3677,7 @@ function addOrUpdateExternalSystem(externalSystem) {
     } finally {
         __libraryClose(maxExtSystemSet);
     }
-    logger.debug("Setup up the " + externalSystem.extSysName + " external sytsem.");
+    logger.info("Setup up the " + externalSystem.extSysName + " external sytsem.");
 }
 
 /**
@@ -3471,7 +3685,7 @@ function addOrUpdateExternalSystem(externalSystem) {
  * @param {ExternalSystem} externalSystem single external system that will be deleted.
  */
 function deleteExternalSystem(externalSystem) {
-    logger.debug("Deleting the " + externalSystem.extSysName + " external sytsem.");
+    logger.info("Deleting the " + externalSystem.extSysName + " external sytsem.");
     var maxExtSystemSet;
     try {
         maxExtSystemSet = MXServer.getMXServer().getMboSet("MAXEXTSYSTEM", userInfo);
@@ -3489,7 +3703,7 @@ function deleteExternalSystem(externalSystem) {
     } finally {
         __libraryClose(maxExtSystemSet);
     }
-    logger.debug("Deleted the " + this.extSysName + " external sytsem.");
+    logger.info("Deleted the " + this.extSysName + " external sytsem.");
 }
 
 function deployIntegrationObjects(integrationObjects) {
@@ -3497,7 +3711,7 @@ function deployIntegrationObjects(integrationObjects) {
         throw new MXApplicationException("","The integrationObjects parameter is required and must be an array of integration object objects.");
     }
 
-    logger.debug("Integration Objects: \n" + JSON.stringify(integrationObjects, null, 4));
+    logger.info("Integration Objects: \n" + JSON.stringify(integrationObjects, null, 4));
 
     integrationObjects.forEach(function (integrationObject) {
         if (typeof integrationObject.delete !== "undefined" && integrationObject.delete == true) {
@@ -3660,7 +3874,7 @@ function deployMessages(messages) {
         throw new MXApplicationException("","The messages parameter is required and must be an array of message objects.");
     }
 
-    logger.debug("Deploying Messages: \n" + JSON.stringify(messages, null, 4));
+    logger.info("Deploying Messages: \n" + JSON.stringify(messages, null, 4));
 
     messages.forEach(function (message) {
         if (typeof message.delete !== "undefined" && message.delete == true) {
@@ -3676,7 +3890,7 @@ function deployMessages(messages) {
  * @param {Message} message single message that will be added/updated
  */
 function addOrUpdateMessage(message) {
-    logger.debug("addUpdateMessage function called");
+    logger.info("addUpdateMessage function called");
 
     var maxMessageSet;
     try {
@@ -3703,7 +3917,7 @@ function addOrUpdateMessage(message) {
         __libraryClose(maxMessageSet);
     }
 
-    logger.debug("addUpdateMessage function end");
+    logger.info("addUpdateMessage function end");
 }
 
 /**
@@ -3795,7 +4009,7 @@ function addOrUpdateProperty(property) {
  * @param {*} property single property that will be deleted
  */
 function deleteProperty(property) {
-    logger.debug("deleteProperty function called, passed property " + property + " argument");
+    logger.info("deleteProperty function called, passed property " + property + " argument");
 
     if (!property) {
         throw new MXApplicationException("","The property parameter is required for the deleteProperty function.");
@@ -3810,18 +4024,18 @@ function deleteProperty(property) {
 
         if (!maxPropSet.isEmpty()) {
             //property exists, delete
-            logger.debug("Property " + property.propName + " exists. Deleting the property.");
+            logger.info("Property " + property.propName + " exists. Deleting the property.");
             maxPropSet.deleteAll();
         } else {
             //property does not exist
-            logger.debug("Property " + property.propName + " does not exist. Taking no action.");
+            logger.info("Property " + property.propName + " does not exist. Taking no action.");
         }
 
         maxPropSet.save();
     } finally {
         __libraryClose(maxPropSet);
     }
-    logger.debug("removeProperty function end");
+    logger.info("removeProperty function end");
 }
 
 /**
@@ -3832,7 +4046,7 @@ function deleteProperty(property) {
  * @param {*} parent The parent logger to add the child logger to.
  */
 function __addLoggerIfDoesNotExist(loggerName, level, parent) {
-    logger.debug("Adding or updating the logger " + loggerName + " and setting the level to " + level + ".");
+    logger.info("Adding or updating the logger " + loggerName + " and setting the level to " + level + ".");
     var loggerSet;
     try {
         loggerSet = MXServer.getMXServer().getMboSet("MAXLOGGER", userInfo);
@@ -3848,7 +4062,7 @@ function __addLoggerIfDoesNotExist(loggerName, level, parent) {
             child = parent.getMboSet("CHILDLOGGERS").add();
             child.setValue("LOGGER", loggerName);
             child.setValue("LOGLEVEL", level);
-            logger.debug("Added the logger " + loggerName + " and set the level to " + level + ".");
+            logger.info("Added the logger " + loggerName + " and set the level to " + level + ".");
         }
     } finally {
         __libraryClose(loggerSet);

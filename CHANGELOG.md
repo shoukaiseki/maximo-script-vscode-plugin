@@ -5,6 +5,98 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.21] - 2026-07-12
+
+### 新增功能
+
+#### 创建脚本增强
+- ✨ 新增第三标签页「固定脚本名称脚本」
+  - 支持 OBJECT.NEW_FIXED（新增触发脚本，系统固定名称 `<对象名>.NEW`）
+  - 支持 OBJECT.SAVE_FIXED（保存触发脚本，系统固定名称 `<对象名>.SAVE`）
+  - 输入对象名称或应用名称后自动生成脚本名
+  - 脚本名称输入框自动变为只读模式并以绿色显示
+
+- ✨ 新增脚本命名规范提示
+  - 根据脚本类型显示对应的命名建议（如 `APISCRIPT`、`OBJECT.SAVE`、`FLD_ACTION` 等）
+  - 参考 TASK09.md 整理的命名规范，帮助用户选择合适的脚本名称
+
+#### Pull 应用 XML 自动刷新编辑器
+- ✨ Pull 应用 XML 后，如果文件已在编辑器中打开，自动刷新显示变更内容
+  - 通过 `workbench.action.files.revert` 命令强制从磁盘重新加载
+  - 脏文件（未保存）不会自动刷新，避免丢失编辑内容
+  - 刷新失败不影响主流程，仅记录警告日志
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/createScriptPanel.ts`
+    - ScriptTypeItem 接口 category 扩展支持 `'fixed'`
+    - 新增 OBJECT.NEW_FIXED 和 OBJECT.SAVE_FIXED 脚本类型
+  - `webview-ui/src/components/CreateScriptModal.tsx`
+    - 新增第三个标签页按钮「固定脚本名称脚本」
+    - 添加 `namingHints` 对象（18 种脚本类型的命名规范提示）
+    - 添加 `fixedName` 状态和 `handleFixedNameChange` 处理函数
+    - 固定标签页中脚本名输入框只读，显示自动生成的名称
+  - `src/extension.ts`
+    - Pull 应用 XML 写入文件后检查编辑器并执行 revert 命令
+  - 模板文件更新（SKS_TMPL_OBJECT.NEW_FIXED.js 等）
+
+---
+
+## [1.4.20] - 2026-07-12
+
+### 改进优化
+
+#### 数据库配置导出增强
+- 🔧 SKS_EXPORT_DBCONFIG 脚本新增导出字段：
+  - `triggerRoot`、`storagePartition`、`unqiueColumn`、`languageTable`、`languageColumn`、`alternateIndex`（条件导出）
+  - `addRowstamp`、`textSearchEnabled`（默认值导出）
+  - view 字段名从 `isView` 改为 `view`
+- 🔧 SHARPTREE.AUTOSCRIPT.LIBRARY 脚本更新
+
+### 技术实现
+
+- 🔧 修改文件
+  - `public/sks_tooljs/SKS_EXPORT_DBCONFIG.js` - 新增导出字段
+  - `public/maximo-developer-resources/SHARPTREE.AUTOSCRIPT.LIBRARY.js` - 脚本更新
+
+---
+
+## [1.4.19] - 2026-07-12
+
+### 新增功能
+
+#### HTTP 错误响应保存到文件
+- ✨ HTTP 请求错误时，自动保存详细错误信息到临时文件
+  - **有响应错误**（如 HTTP 480）：保存为 `response-POST-{timestamp}.http`
+  - **无响应错误**：保存为 `response-NO-RESPONSE-{timestamp}.http`
+  - **其他错误**：保存为 `response-ERROR-{timestamp}.http`
+  - 文件保存到系统临时目录 `maximo-script-helper/`
+  - 仅当 `enableHttpLog` 配置开启时生效
+
+#### 日志管理导入脚本
+- ✨ 新增 SKS_LOGGER_MANAGE 脚本用于日志管理
+
+### 修复
+
+- 🐛 修复脚本配置中 `active` 字段值类型
+  - 将 `'Y'`/`'N'` 字符串改为 `true`/`false` 布尔值
+  - 影响创建脚本功能生成的 JSON 配置
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/httpRequest.ts`
+    - Axios 响应拦截器错误处理增强
+    - 三种错误类型分别保存到临时文件
+    - 响应状态、头信息、数据详细日志输出
+  - `src/createScriptPanel.ts`
+    - `active` 字段值从 `'Y'`/`'N'` 改为 `true`/`false`
+    - 模板文件 SKS_TMPL_OBJECT.SAVE.js 同步更新
+  - `public/sks_tooljs/SKS_LOGGER_MANAGE.js` - 新增日志管理脚本
+
+---
+
 ## [1.4.18] - 2026-07-11
 
 ### 修复

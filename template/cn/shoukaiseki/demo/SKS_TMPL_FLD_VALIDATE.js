@@ -65,6 +65,7 @@ var userTmp = user
 
 
 logger.info("\x1b[32m[" + scriptName + "]----------------mboattr= " + mboattr + "\x1b[0m")
+var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
 
 //还有一个字段名相同的变量, 值是通过 ScriptUtil.getValueFromMaxType(this.getMboValue().getMaxType()) 获取
 main()
