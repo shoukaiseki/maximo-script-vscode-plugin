@@ -6,7 +6,7 @@
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
 // load('nashorn:mozilla_compat.js');
-var scriptName=service.getScriptName()
+var scriptName = service.getScriptName()
 
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
 ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
@@ -40,32 +40,33 @@ Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
-var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
-loggerMX.error("["+scriptName+"]----------1");
+var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+loggerMX.error("[" + scriptName + "]----------1");
 /** @type {jscustom.AnsiLogger} */
-var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
+var logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 // logger.setLevel(Level.INFO);
-logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
-logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
+logger.info("[" + scriptName + "]----------------Starting execution of script " + service.getScriptName());
+logger.info("[" + scriptName + "]-------------webclientsession=" + service.webclientsession())
 
 
 /** @type {java.lang.String} */
-var scriptNameTmp=scriptName
+var scriptNameTmp = scriptName
 
 /** @type {java.lang.String} */
-var instanceNameTmp=instanceName
+var instanceNameTmp = instanceName
 
 /** @type {psdi.security.UserInfo} */
-var runAsUserInfoTmp=runAsUserInfo
+var runAsUserInfoTmp = runAsUserInfo
 
 /** @type {java.lang.String} */
-var argTmp=arg
+var argTmp = arg
 
 /** @type {psdi.mbo.MboSet} */
-var scriptSet=null
-var scriptHistorySet=null
+var scriptSet = null
+var scriptHistorySet = null
 
-try{
+try {
+    logger.error("\x1b[32m[" + scriptName + "]----------------备份脚本定时任务开始------------------\x1b[0m");
 
     scriptSet = MXServer.getMXServer().getMboSet("AUTOSCRIPT", runAsUserInfo)
     scriptSet.setWhere("1=1")
@@ -75,29 +76,63 @@ try{
     scriptHistorySet.setWhere("1=2")
     scriptHistorySet.reset()
 
-    var i=0
-    for(var script=scriptSet.moveFirst(); script; script = scriptSet.moveNext()){
-        logger.info("["+scriptName+"]----------------开始处理脚本: " + script.getString("AUTOSCRIPT"));
+    var i = 0
+    for (var script = scriptSet.moveFirst(); script; script = scriptSet.moveNext()) {
+        logger.info("[" + scriptName + "]----------------开始备份脚本: " + script.getString("AUTOSCRIPT"));
         var scriptHistory = scriptHistorySet.add()
-        service.invokeScript("AUTOSCRIPT_UTILS","copyScriptToHistory",[service,script, scriptHistory])
-        copyScriptToHistory(script, scriptHistory)
+        service.invokeScript("AUTOSCRIPT_UTILS", "copyScriptToHistory", [service, script, scriptHistory])
+        // copyScriptToHistory(script, scriptHistory)
         scriptHistory.setValue("ALIASNAME", "_crontask_", MboConstants.NOACCESSCHECK);
-        if(i%10==0){
+        if (i % 10 == 0) {
             scriptHistorySet.save()
         }
         i++
     }
     scriptHistorySet.save()
-    logger.error("\x1b[32m["+scriptName+"]----------------备份脚本定时任务完成------------------\x1b[0m");
-}catch(e){
-    logger.error("["+scriptName+"]----------------Error: " , e);
-}finally{
+
+    // 清理7天前的历史记录
+    logger.info("[" + scriptName + "]----------------开始清理37天前的_CRONTASK_历史记录");
+    cleanUpHistory(runAsUserInfo)
+    logger.error("\x1b[32m[" + scriptName + "]----------------备份脚本定时任务完成------------------\x1b[0m");
+} catch (e) {
+    logger.error("[" + scriptName + "]----------------Error: ", e);
+    sksLogAnsiUtils.throwError(e)
+} finally {
     _close(scriptSet)
     _close(scriptHistorySet)
 }
 
+function cleanUpHistory(runAsUserInfo) {
+    var connBackup = null
+    var stmtBackup = null
+    try {
 
-function _close(set){
+        /** @type {java.sql.Connection} */
+        connBackup = MXServer.getMXServer().getDBManager().getConnection(runAsUserInfo.getConnectionKey());
+        /** @type {java.sql.Statement} */
+        var stmtBackup = connBackup.createStatement();
+        var sqlDelete = "DELETE FROM IBM_AUTOSCRIPT_HISTORY WHERE ALIASNAME='_crontask_' AND CREATETIME < CURRENT_DATE - 37 DAYS";
+        var deletedCount = stmtBackup.executeUpdate(sqlDelete);
+        logger.info("[" + scriptName + "]----------------已清理 " + deletedCount + " 条历史记录");
+    } finally {
+        _closeOnly(stmtBackup)
+        _closeOnly(connBackup)
+    }
+}
+
+/**
+ * 关闭（有close方法的对象）
+ */
+function _closeOnly(obj) {
+    try {
+        if (obj) {
+            obj.close()
+        }
+    } catch (ignored) { }
+}
+
+
+function _close(set) {
     if (set) {
         try {
             set.cleanup()

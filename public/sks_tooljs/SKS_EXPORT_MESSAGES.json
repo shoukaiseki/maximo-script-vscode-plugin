@@ -1,0 +1,13 @@
+{
+  "autoscript": "SKS_EXPORT_MESSAGES",
+  "description": "导出 MAXMESSAGES 消息为 JSON(支持 where/gk 过滤)",
+  "category": "SKS_TOOL",
+  "active": true,
+  "loglevel": "ERROR",
+  "scriptlanguage": "JavaScript",
+  "userdefined": 1,
+  "interface": 0,
+  "version": "1.0.7",
+  "variables": [],
+  "launchPoints": []
+}
