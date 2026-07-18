@@ -23,7 +23,8 @@ loggerMX.info("["+scriptName+"]----------");
 
 /** @type {jscustom.AnsiLogger} */
 var logger=null
-
+/** @type {jscustom.sksLogAnsiUtils} */
+var sksLogAnsiUtils = null
 
 /**
  * 初始化日志记录器,在通用脚本中,每次都需要调用该方法以初始化logger
@@ -33,7 +34,7 @@ function initLogger(service){
     if(logger!=null){
         return
     }
-    var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+    sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
     logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 // logger.setLevel(Level.INFO);
 
@@ -65,6 +66,29 @@ function testCalc(service,mbo){
     return "testCalc ok"
 }
 
+
+/**
+ * 关闭（有close方法的对象）
+ */
+function _closeOnly(f) {
+  try {
+    if (f) {
+      f.close()
+    }
+  } catch (ignored) { }
+}
+
+/**
+ * 关闭MboSet
+ */
+function _close(set) {
+  try {
+    if (set) {
+      try { set.cleanup(); } catch (ignored) { }
+      try { set.close(); } catch (ignored) { }
+    }
+  } catch (ignored) { }
+}
 
 /**
  * 自定义通用脚本,有两种方式,单次调用方式和频繁调用方式

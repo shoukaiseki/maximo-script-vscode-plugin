@@ -163,11 +163,21 @@ function exportExcel(dbctx) {
     var appBean = appInstance.getAppBean();
     // var dataBean = appInstance.getDataBean();
     // var dataBean = appInstance.getDataBean("results_showlist");
+    /** @type {psdi.webclient.system.beans.DataBean} */
     var dataBean = appBean.getResultsBean();
     /** @type {psdi.mbo.MboSetRemote} */
-    var mboSet = dataBean.getMboSet();
+    var uiMboSet = dataBean.getMboSet();
     /** @type {psdi.security.UserInfo} */
     var userInfo = clientsession.getUserInfo();
+
+    // 使用独立 MboSet 读取数据，不污染界面 MboSet
+    /** @type {psdi.mbo.MboSetRemote} */
+    var mboSet = MXServer.getMXServer().getMboSet(uiMboSet.getName(), userInfo);
+    mboSet.setWhere(uiMboSet.getWhere());
+    var orderBy = uiMboSet.getOrderBy();
+    if (orderBy != null && orderBy.length() > 0) {
+        mboSet.setOrderBy(orderBy);
+    }
 
     /** @type {com.ibm.tivoli.maximo.export.excel.ExcelExportWriter} */
     var ExcelExportWriter = Java.type("com.ibm.tivoli.maximo.export.excel.ExcelExportWriter");
@@ -265,6 +275,10 @@ function exportExcel(dbctx) {
     //     "提示", "正在后台导出文件，完成后请再次点击「导出excel」按钮下载", 1);
     // appInstance.openURL(downloadUrl, true);
     // logger.info("[" + scriptName + "] exportExcel success, downloadUrl=" + downloadUrl);
+
+    // 清理独立 MboSet
+    _close(mboSet);
+
     return filename;
 
 }

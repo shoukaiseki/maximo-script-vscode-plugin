@@ -23,6 +23,8 @@ loggerMX.info("["+scriptName+"]----------");
 
 /** @type {jscustom.AnsiLogger} */
 var logger=null
+/** @type {jscustom.sksLogAnsiUtils} */
+var sksLogAnsiUtils = null
 
 
 /**
@@ -33,7 +35,7 @@ function initLogger(dbctx){
     if(logger!=null){
         return
     }
-    var sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
+    sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
     logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 // logger.setLevel(Level.INFO);
 
@@ -105,6 +107,28 @@ function selectrecord(dbctx) {
 
 
 
+/**
+ * 关闭（有close方法的对象）
+ */
+function _closeOnly(f) {
+  try {
+    if (f) {
+      f.close()
+    }
+  } catch (ignored) { }
+}
+
+/**
+ * 关闭MboSet
+ */
+function _close(set) {
+  try {
+    if (set) {
+      try { set.cleanup(); } catch (ignored) { }
+      try { set.close(); } catch (ignored) { }
+    }
+  } catch (ignored) { }
+}
 
 /**
  * 特别注意: 如果在选择操作中想执行APPBEAN的方法,在签名选项中: 高级签名选项要选 (无) 不要做任何高级签名选项的修改

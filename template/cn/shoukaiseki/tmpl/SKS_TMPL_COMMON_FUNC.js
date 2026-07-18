@@ -23,6 +23,8 @@ loggerMX.info("["+scriptName+"]----------");
 
 /** @type {jscustom.AnsiLogger} */
 var logger=null
+/** @type {jscustom.sksLogAnsiUtils} */
+var sksLogAnsiUtils = null
 
 
 /**
@@ -33,7 +35,7 @@ function initLogger(service){
     if(logger!=null){
         return
     }
-    var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+    sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
     logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 // logger.setLevel(Level.INFO);
 

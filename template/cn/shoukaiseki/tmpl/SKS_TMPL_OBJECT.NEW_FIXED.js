@@ -24,6 +24,7 @@ Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
+/** @type {jscustom.sksLogAnsiUtils} */
 var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
 loggerMX.error("["+scriptName+"]----------1");
 /** @type {jscustom.AnsiLogger} */
@@ -32,6 +33,8 @@ var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
 logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
 logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
+/** @type {psdi.server.MXServer} */
+MXServer = Java.type("psdi.server.MXServer")
 /** @type {psdi.server.MXServer} */
 var mxserver = Java.type("psdi.server.MXServer").getMXServer();
 

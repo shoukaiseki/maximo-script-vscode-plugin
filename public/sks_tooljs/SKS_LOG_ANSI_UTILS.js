@@ -28,7 +28,8 @@ if(logger.isInfoEnabled()){
 }
 
 /**
- * 统一错误处理
+ * 统一错误处理,因为有些错误不是继承Exception
+ * @param {*} e 错误对象
  */
 function throwError(error,configIn) {
     var config = configIn || {};
@@ -53,7 +54,9 @@ function throwError(error,configIn) {
 }
 
 /**
- * 非Java错误,或MX错误,抛出
+ * 非Java错误,或MX错误,抛出,在调用该方法后通常自定义抛出信息
+ *         sksLogAnsiUtils.notJavaErrorOrIsMXErrorToThrow(e)
+ *         throw new MXApplicationException("#","单元格数值解析异常 row=" + row.getRowNum() + ", col=" + colIndex + ": " + e.toString())
  * @param {*} error 
  */
 function notJavaErrorOrIsMXErrorToThrow(error){

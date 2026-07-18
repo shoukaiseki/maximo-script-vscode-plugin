@@ -23,6 +23,7 @@ Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+/** @type {jscustom.sksLogAnsiUtils} */
 var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
 loggerMX.error("["+scriptName+"]----------1");
 /** @type {jscustom.AnsiLogger} */
@@ -46,7 +47,7 @@ var mbonameTmp = mboname
 var interactiveTmp = interactive
 /** @type {boolean} */
 var onaddTmp = onadd
-/** @type {MboValue} */
+/** @type {psdi.mbo.MboValue} */
 var mbovalueTmp = mbovalue
 /** @type {ScriptService} */
 var serviceTmp = service
