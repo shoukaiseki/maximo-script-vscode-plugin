@@ -11,6 +11,8 @@ declare namespace jscustom {
         
         /** 是否启用 ANSI 颜色代码 */
         ansiOpen: boolean;
+        /** 是否启用打印模式 ,在mxlogger无效的时候启用*/
+        printModel: boolean;
         
         /**
          * 构造函数

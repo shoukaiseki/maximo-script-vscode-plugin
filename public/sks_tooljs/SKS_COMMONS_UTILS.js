@@ -14,7 +14,9 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 /** @type {com.ibm.tivoli.maximo.script.ScriptUtil} */
-ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
+var ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
+/** @type {psdi.util.MXFormat} */
+var MXFormat = Java.type("psdi.util.MXFormat");
 
 /** @type {psdi.iface.mos.ConversionUtil} */
 ConversionUtil = Java.type("psdi.iface.mos.ConversionUtil");
@@ -125,6 +127,38 @@ function getMboStringValue(service, mbo, attributeName)
         return null
     }
     return mbo.getString(attributeName);
+}
+
+/**
+ * 获取MBO的日期值字符串，格式为yyyy-MM-dd HH:mm:ss
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemotea} mbo - MBO对象
+ * @param {java.lang.String} attributeName - 属性名称
+ * @returns {java.lang.String} 属性值
+ */
+function getMboDateTimeToString(service,mbo,attributeName){
+    logger.debug("getMboStringValue")
+    if (mbo.isNull(attributeName)) {
+        return null
+    }
+    var d = mbo.getDate(attributeName);
+    var df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    df.setTimeZone(TimeZone.getDefault());
+    return df.format(d);
+}
+/**
+ * 获取MBO的日期值字符串，格式为yyyy-MM-dd
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemotea} mbo - MBO对象
+ * @param {java.lang.String} attributeName - 属性名称
+ * @returns {java.lang.String} 属性值
+ */
+function getMboDateToString(service,mbo,attributeName){
+    logger.debug("getMboStringValue")
+    if (mbo.isNull(attributeName)) {
+        return null
+    }
+    return MXFormat.dateToSQLString(mbo.getDate(attributeName))
 }
 
 /**

@@ -187,13 +187,14 @@ function buildMessageObject(msgMbo) {
   var optionsVal = getInt(msgMbo, "OPTIONS");
   if (optionsVal !== null) {
     var optionsArr = new JSONArray();
-    // OPTIONS 位掩码: OK=1, CANCEL=2, CLOSE=4, YES=8, NO=16
-    if (optionsVal & 1) { optionsArr.add("ok"); }
-    if (optionsVal & 2) { optionsArr.add("cancel"); }
-    if (optionsVal & 4) { optionsArr.add("close"); }
+    // OPTIONS 位掩码: CLOSE=1, OK=2, CANCEL=4, YES=8, NO=16
+    if (optionsVal & 1) { optionsArr.add("close"); }
+    if (optionsVal & 2) { optionsArr.add("ok"); }
+    if (optionsVal & 4) { optionsArr.add("cancel"); }
     if (optionsVal & 8) { optionsArr.add("yes"); }
     if (optionsVal & 16) { optionsArr.add("no"); }
     obj.put("options", optionsArr);
+    obj.put("sks:options", optionsVal);
   }
 
   if (!ignoreDefVal) {

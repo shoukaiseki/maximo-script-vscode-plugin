@@ -114,6 +114,7 @@ function longExportExcel(dbctx) {
         var filename=exportExcel(dbctx)
         
 
+        //TableDownloadServlet
         var targetUrl = "/maximo/tabledownload?filename=" + filename;
 
         // 计算耗时
@@ -241,9 +242,9 @@ function exportExcel(dbctx) {
         writer.emitCell(5, mbo.getString("CREATEPERSON"), 0, null, ctx);
         writer.emitCell(6, mbo.getString("CREATETIME"), 0, null, ctx);
         writer.endRow();
-        // if(rowNum > 100){
-        //     break
-        // }
+        if(rowNum > 4999){
+            break
+        }
     }
 
     writer.endDocument();
