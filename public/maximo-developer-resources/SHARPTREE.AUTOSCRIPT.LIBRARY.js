@@ -2072,7 +2072,7 @@ function MaxObject(maxobject) {
     this.level = typeof maxobject.level === "undefined" ? null : maxobject.level;
     this.triggerRoot = typeof maxobject.triggerRoot === "undefined" ? null : maxobject.triggerRoot;
     this.textDirection = typeof maxobject.textDirection === "undefined" ? null : maxobject.textDirection;
-    this.mainObject = typeof maxobject.mainObject === "undefined" ? false : maxobject.mainObject;
+    this.mainObject = typeof maxobject.mainObject === "undefined" ? true : maxobject.mainObject;
     // this.presistent = typeof maxobject.presistent === "undefined" ? true : maxobject.presistent;
     this.storagePartition = typeof maxobject.storagePartition === "undefined" ? null : maxobject.storagePartition;
     this.unqiueColumn = typeof maxobject.unqiueColumn === "undefined" ? null : maxobject.unqiueColumn;
@@ -2198,7 +2198,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
             mbo.setValue("TRIGROOT", this.triggerRoot);
         }
 
-        if (this.mainObject != null) {
+        if (typeof this.mainObject!=='undefined'&&this.mainObject != null) {
             mbo.setValue("MAINOBJECT", this.mainObject);
         }
 
@@ -2741,7 +2741,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
               attrMbo = attributeSet.moveNext();
 
         }
-        logger.info(service.jsonarrayToString(jsonArray));
+        // logger.info("["+serverName+"] sks_print "+service.jsonarrayToString(jsonArray));
     }
 
     if (this.indexes && Array.isArray(this.indexes) && this.indexes.length > 0) {
@@ -3076,11 +3076,15 @@ function addOrUpdateMaxObject(maxObject) {
         sqlf.setObject(1, "MAXOBJECTCFG", "OBJECTNAME", maxObject.object);
         maxObjectSet.setWhere(sqlf.format());
 
+        var masMboObject=null
         if (maxObjectSet.isEmpty()) {
-            maxObjectConfig.setMboValues(maxObjectSet.add());
+            masMboObject = maxObjectSet.add()
+            maxObjectConfig.setMboValues(masMboObject);
         } else {
-            maxObjectConfig.setMboValues(maxObjectSet.moveFirst());
+            masMboObject = maxObjectSet.moveFirst()
+            maxObjectConfig.setMboValues(masMboObject);
         }
+        logger.info("\x1b[33m["+serverName+"] STORAGEPARTITION="+masMboObject.getString("STORAGEPARTITION")+" \x1b[0m")
 
         logger.info(maxObject.object+".save.before")
         maxObjectSet.save();
