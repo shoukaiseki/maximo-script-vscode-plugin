@@ -2306,423 +2306,424 @@ MaxObject.prototype.setMboValues = function (mbo) {
         var extendsObjectTmp=this.extendsObject
         var objectNameTmp=this.objectName
 
-      this.attributes.forEach(function (attributeConfig,attrIndex) {
-          logger.info("\x1b[32m[" + serverName + "] attrIndex="+attrIndex+",attributeConfig.attribute="+ attributeConfig.attribute + " isView=" + isView + " \x1b[0m")
-          if (!isView) {
-            //处理非视图属性
+        for (var attrIndex = 0; attrIndex < this.attributes.length; attrIndex++) {
+            var attributeConfig = this.attributes[attrIndex]
+            logger.info("\x1b[32m[" + serverName + "] attrIndex=" + attrIndex + ",attributeConfig.attribute=" + attributeConfig.attribute + " isView=" + isView + " \x1b[0m")
+            if (!isView) {
+                //处理非视图属性
 
-            /** @type {psdi.mbo.MboRemote} */
-            var attribute = attributeSet.moveFirst();
-            while (attribute) {
-                if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
-                    break;
-                }
-                attribute = attributeSet.moveNext();
-            }
-            logger.info("attribute=" + attributeConfig.attribute)
-            if (attributeConfig.delete) {
-                if (attribute != null) {
-                    attribute.delete();
-                }
-            } else if (attribute && attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))) {
-                if (attributeConfig.description) {
-                    attribute.setValue("REMARKS", attributeConfig.description);
-                }
-                if (attributeConfig.title) {
-                    attribute.setValue("TITLE", attributeConfig.title);
-                }
-                //不是新增的就忽略主键ID
-            } else {
-                if (!attribute) {
-                    attribute = attributeSet.add();
-                    attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
-                    logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
-                }
-                if (attribute.isNew() || !attributeConfig._updateIgnored) {
-                    logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
-
-                    attribute.setValue("REMARKS", attributeConfig.description);
-                    attribute.setValue("TITLE", attributeConfig.title);
-
-                    if (typeof attributeConfig.class !== "undefined" && !attribute.getMboValueData("CLASSNAME").isReadOnly()) {
-                        attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
+                /** @type {psdi.mbo.MboRemote} */
+                var attribute = attributeSet.moveFirst();
+                while (attribute) {
+                    if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
+                        break;
                     }
+                    attribute = attributeSet.moveNext();
+                }
+                logger.info("attribute=" + attributeConfig.attribute)
+                if (attributeConfig.delete) {
+                    if (attribute != null) {
+                        attribute.delete();
+                    }
+                } else if (attribute && attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))) {
+                    if (attributeConfig.description) {
+                        attribute.setValue("REMARKS", attributeConfig.description);
+                    }
+                    if (attributeConfig.title) {
+                        attribute.setValue("TITLE", attributeConfig.title);
+                    }
+                    //不是新增的就忽略主键ID
+                } else {
+                    if (!attribute) {
+                        attribute = attributeSet.add();
+                        attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
+                        logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
+                    }
+                    if (attribute.isNew() || !attributeConfig._updateIgnored) {
+                        logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
 
-                    //只有等同对象为空的时候才会设置type和length
-                    if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
-                        if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
-                            attributeConfig.type == null ? attribute.setValueNull("MAXTYPE", 2) : attribute.setValue("MAXTYPE", attributeConfig.type, 2);
+                        attribute.setValue("REMARKS", attributeConfig.description);
+                        attribute.setValue("TITLE", attributeConfig.title);
+
+                        if (typeof attributeConfig.class !== "undefined" && !attribute.getMboValueData("CLASSNAME").isReadOnly()) {
+                            attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
                         }
 
-                        if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
-                            attribute.setValue("LENGTH", attributeConfig.length, 2);
+                        //只有等同对象为空的时候才会设置type和length
+                        if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
+                            if (typeof attributeConfig.type !== "undefined" && !attribute.getMboValueData("MAXTYPE").isReadOnly()) {
+                                attributeConfig.type == null ? attribute.setValueNull("MAXTYPE", 2) : attribute.setValue("MAXTYPE", attributeConfig.type, 2);
+                            }
+
+                            if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
+                                attribute.setValue("LENGTH", attributeConfig.length, 2);
+                            }
+
+                            if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
+                                attribute.setValue("SCALE", attributeConfig.scale, 2);
+                            }
                         }
 
-                        if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
-                            attribute.setValue("SCALE", attributeConfig.scale, 2);
+                        if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
+                            attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
                         }
-                    }
-
-                    if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
-                        attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
-                    }
 
 
-                    if (typeof attributeConfig.domain !== "undefined" && !attribute.getMboValueData("DOMAINID").isReadOnly()) {
-                        attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
-                    }
+                        if (typeof attributeConfig.domain !== "undefined" && !attribute.getMboValueData("DOMAINID").isReadOnly()) {
+                            attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
+                        }
 
-                    if (typeof attributeConfig.alias !== "undefined") {
-                        attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
-                    }
+                        if (typeof attributeConfig.alias !== "undefined") {
+                            attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
+                        }
 
-                    if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
-                        attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
-                    }
+                        if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
+                            attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
+                        }
 
-                    if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
-                        attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
-                    }
+                        if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
+                            attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
+                        }
 
-                    if (typeof attributeConfig.columnName !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
-                        attributeConfig.columnName == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.columnName);
-                    }
+                        if (typeof attributeConfig.columnName !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
+                            attributeConfig.columnName == null ? attribute.setValueNull("COLUMNNAME") : attribute.setValue("COLUMNNAME", attributeConfig.columnName);
+                        }
 
-                    if (typeof attributeConfig.sameAsObject !== "undefined") {
-                        attributeConfig.sameAsObject == null
-                            ? attribute.setValueNull("SAMEASOBJECT", 2)
-                            : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
-                    }
-                    if (typeof attributeConfig.sameAsAttribute !== "undefined") {
-                        attributeConfig.sameAsAttribute == null
-                            ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
-                            : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
-                    }
+                        if (typeof attributeConfig.sameAsObject !== "undefined") {
+                            attributeConfig.sameAsObject == null
+                                ? attribute.setValueNull("SAMEASOBJECT", 2)
+                                : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                        }
+                        if (typeof attributeConfig.sameAsAttribute !== "undefined") {
+                            attributeConfig.sameAsAttribute == null
+                                ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                                : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                        }
 
-                    if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
-                        attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
-                    }
+                        if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
+                            attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
+                        }
 
-                    //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
-                    if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
-                        if (typeof attributeConfig.autonumber !== "undefined") {
-                            if (attributeConfig.autonumber == null) {
-                                attribute.setValueNull("AUTOKEYNAME")
-                                // logger.info("attributeConfig.autonumber=null")
+                        //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
+                        if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {
+                            if (typeof attributeConfig.autonumber !== "undefined") {
+                                if (attributeConfig.autonumber == null) {
+                                    attribute.setValueNull("AUTOKEYNAME")
+                                    // logger.info("attributeConfig.autonumber=null")
+                                } else {
+                                    attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
+                                    logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                                }
                             } else {
-                                attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber);
+                                // logger.info("attributeConfig.autonumber is undefined")
+                            }
+                        } else {
+                            if (attributeConfig.autonumber) {
+                                attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
                                 logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
                             }
-                        } else {
-                            // logger.info("attributeConfig.autonumber is undefined")
+                            // logger.info("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
                         }
-                    } else {
-                        if (attributeConfig.autonumber) {
-                            attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
-                            logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
-                        }
-                        // logger.info("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
-                    }
-                    try {
-                        if (typeof attributeConfig.defaultValue !== "undefined") {
-                            if (attributeConfig.defaultValue == null) {
-                                attribute.setValueNull("DEFAULTVALUE")
-                                logger.info("attributeConfig.defaultValue=null")
-                            } else {
-                                attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
-                                logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                        try {
+                            if (typeof attributeConfig.defaultValue !== "undefined") {
+                                if (attributeConfig.defaultValue == null) {
+                                    attribute.setValueNull("DEFAULTVALUE")
+                                    logger.info("attributeConfig.defaultValue=null")
+                                } else {
+                                    attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue);
+                                    logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                                }
+                            }
+                        } catch (ei) { }
+
+                        if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
+                            if (typeof attributeConfig.searchType !== "undefined") {
+                                attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
                             }
                         }
-                    } catch (ei) { }
 
-                    if (!attribute.getMboValueData("SEARCHTYPE").isReadOnly()) {
-                        if (typeof attributeConfig.searchType !== "undefined") {
-                            attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType);
-                        }
-                    }
-
-                    if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
-                        attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
-                    }
-
-                    if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
-                        if (typeof attributeConfig.textDirection !== "undefined") {
-                            attributeConfig.textDirection == null
-                                ? attribute.setValueNull("TEXTDIRECTION")
-                                : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
-                        }
-                    }
-
-                    if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
-                        attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
-                    }
-
-                    if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
-                        attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
-                    }
-                    if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
-                        if (typeof attributeConfig.sequenceName !== "undefined") {
-                            attributeConfig.sequenceName == null
-                                ? attribute.setValueNull("SEQUENCENAME")
-                                : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
-                        }
-                    }
-
-                    if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
-                        if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
-                            attributeConfig.typeOfComplexExpression == null
-                                ? attribute.setValueNull("COMPLEXEXPRESSION")
-                                : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
-                        }
-                    }
-
-                    if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
-                        attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
-                    }
-                    if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
-                        attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
-                    }
-                    if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
-                        attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
-                    }
-                    if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
-                        attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
-                    } else {
-                        attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
-                    }
-
-                }
-            }
-        } else {
-            //处理视图属性
-
-            /** @type {psdi.mbo.MboRemote} */
-            var attribute = attributeSet.moveFirst();
-            while (attribute) {
-                if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
-                    break;
-                }
-                attribute = attributeSet.moveNext();
-            }
-            logger.info("\x1b[32m[" + serverName + "] " + "attribute=" + attributeConfig.attribute+",extendsObjectTmp="+(extendsObjectTmp+"ID")+"\x1b[0m")
-            if (attributeConfig.delete) {
-                if (attribute != null) {
-                    attribute.delete();
-                }
-            } else if (attribute && (attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))
-                || attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(extendsObjectTmp+"ID")
-            )) {
-                if (attributeConfig.description) {
-                    attribute.setValue("REMARKS", attributeConfig.description);
-                }
-                if (attributeConfig.title) {
-                    attribute.setValue("TITLE", attributeConfig.title);
-                }
-                //不是新增的就忽略主键ID
-            } else {
-                if (!attribute) {
-                    attribute = attributeSet.add();
-                    attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
-                    logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
-                }
-                if (attribute.isNew() || !attributeConfig._updateIgnored) {
-                       var roAlways = ["objectname", "changed", "viewchanged", "attributeno", "userdefined", "eaudittbname", "langtablename", "ishandlecolumn", "entityname", "nextsequenceno"];
-                       //取消只读
-                    attribute.setFieldFlag(roAlways, MboConstants.READONLY, false);
-
-                    if (typeof attributeConfig.persistent !== "undefined") {
-                            logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setPersistent=" + attributeConfig.persistent + "\x1b[0m")
-                        attribute.setValue("persistent", attributeConfig.persistent?true:false, MboConstants.NOACCESSCHECK)
-                    }
-                    if (typeof attributeConfig.entityName !== "undefined") {
-                        if (attributeConfig.entityName) {
-                            logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setEntityName=" + attributeConfig.entityName + "\x1b[0m")
-                            attribute.setValue("entityName", attributeConfig.entityName, MboConstants.NOACCESSCHECK)
-                        } else {
-                            attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
-                        }
-                    }
-                            logger.info("\x1b[32m[" + serverName + "] 1.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
-                    if (typeof attributeConfig.columnName !== "undefined") {
-                        if (attributeConfig.columnName) {
-                            logger.info("\x1b[32m[" + serverName + "] 2.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
-                            attribute.setValue("columnName", attributeConfig.columnName, MboConstants.NOACCESSCHECK)
-                        } else {
-                            attribute.setValueNull("columnName", MboConstants.NOACCESSCHECK)
-                        }
-                    }
-
-                    logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
-
-                    attribute.setValue("REMARKS", attributeConfig.description);
-                    attribute.setValue("TITLE", attributeConfig.title);
-
-                    if (typeof attributeConfig.class !== "undefined") {
-                         attribute.setValue("CLASSNAME", attributeConfig.class,MboConstants.NOACCESSCHECK);
-                    }else{
-                        attribute.setValueNull("CLASSNAME",MboConstants.NOACCESSCHECK)
-                    }
-
-                    //只有等同对象为空的时候才会设置type和length
-                    if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
-                        if (typeof attributeConfig.type !== "undefined" ) {
-                             attribute.setValue("MAXTYPE", attributeConfig.type, 2);
-                        }else{
-                            attribute.setValueNull("MAXTYPE", 2) 
+                        if (!attribute.getMboValueData("LOCALIZABLE").isReadOnly()) {
+                            attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable);
                         }
 
-                        if (typeof attributeConfig.length !== "undefined" && attributeConfig.length !=null) {
-                            attribute.setValue("LENGTH", attributeConfig.length, 2);
-                        }
-
-                        if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale !=null) {
-                            attribute.setValue("SCALE", attributeConfig.scale, 2);
-                        }
-                    }
-
-                    if (typeof attributeConfig.required === "undefined") {
-                        if(attributeConfig.required){
-                        attribute.setValue("REQUIRED", attributeConfig.required?true:false, MboConstants.NOACCESSCHECK);
-                        }
-
-                    }
-
-
-                    if (typeof attributeConfig.domain !== "undefined" ) {
-                        if(attributeConfig.domain == null){
-                            attribute.setValueNull("DOMAINID")
-                        }else{
-                           attribute.setValue("DOMAINID", attributeConfig.domain);
-                        }
-                    }
-
-                    if (typeof attributeConfig.alias !== "undefined") {
-                        attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
-                    }
-
-
-                    if (typeof attributeConfig.mustBe === "undefined") {
-                        attribute.setValue("MUSTBE", attributeConfig.mustBe ? true : false, MboConstants.NOACCESSCHECK);
-                    }
-
-                    if (typeof attributeConfig.columnName !== "undefined") {
-                        if(attributeConfig.columnName == null){
-                            attribute.setValueNull("COLUMNNAME")
-                        }else{
-                           attribute.setValue("COLUMNNAME", attributeConfig.columnName,2);
-                        }
-                    }
-
-                    if (typeof attributeConfig.sameAsObject !== "undefined") {
-                        if(attributeConfig.sameAsObject == null){
-                            attribute.setValueNull("SAMEASOBJECT", 2)
-                        }else{
-                           attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
-                        }
-                        attributeConfig.sameAsObject == null
-                            ? attribute.setValueNull("SAMEASOBJECT", 2)
-                            : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
-                    }
-                    if (typeof attributeConfig.sameAsAttribute !== "undefined") {
-                        if(attributeConfig.sameAsAttribute == null){
-                            attribute.setValueNull("SAMEASATTRIBUTE", 2)
-                        }else{
-                           attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
-                        }
-                        attributeConfig.sameAsAttribute == null
-                            ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
-                            : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
-                    }
-
-                    if (typeof attributeConfig.canAutonumber !== "undefined") {
-                        attribute.setValue("CANAUTONUM", attributeConfig.canAutonumber ? true : false, MboConstants.NOACCESSCHECK);
-                    }
-
-                    //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
-                    // attribute.getMboValueData("AUTOKEYNAME").setFieldFlag(MboConstants.READONLY, false)
-                    if (typeof attributeConfig.autonumber !== "undefined") {
-                        if (attributeConfig.autonumber) {
-                            attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
-                            logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
-                        }else{
-                            attribute.setValueNull("AUTOKEYNAME",2)
-                        }
-                    } else {
-                        // logger.info("attributeConfig.autonumber is undefined")
-                    }
-                    try {
-                        if (typeof attributeConfig.defaultValue !== "undefined") {
-                            if (attributeConfig.defaultValue == null) {
-                                attribute.setValueNull("DEFAULTVALUE",2)
-                                logger.info("attributeConfig.defaultValue=null")
-                            } else {
-                                attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue,2);
-                                logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                        if (!attribute.getMboValueData("TEXTDIRECTION").isReadOnly()) {
+                            if (typeof attributeConfig.textDirection !== "undefined") {
+                                attributeConfig.textDirection == null
+                                    ? attribute.setValueNull("TEXTDIRECTION")
+                                    : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
                             }
                         }
-                    } catch (ei) { }
 
-                    if (typeof attributeConfig.searchType !== "undefined") {
-                        if (typeof attributeConfig.searchType !== "undefined") {
-                            attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType,2);
+                        if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
+                            attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
                         }
-                    }
 
-                    if (typeof attributeConfig.localizable !== "undefined") {
-                        attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable,2);
-                    }
-
-                    if (typeof attributeConfig.textDirection !== "undefined") {
-                        if (typeof attributeConfig.textDirection !== "undefined") {
-                            attributeConfig.textDirection == null
-                                ? attribute.setValueNull("TEXTDIRECTION",2)
-                                : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection,2);
+                        if (!attribute.getMboValueData("ISLDOWNER").isReadOnly()) {
+                            attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner);
                         }
-                    }
-
-                    if (typeof attributeConfig.positive !== "undefined") {
-                        attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive,2);
-                    }
-
-                    if (typeof attributeConfig.longDescriptionOwner !== "undefined") {
-                        attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner,2);
-                    }
-                    if (typeof attributeConfig.sequenceName !== "undefined") {
-                        attributeConfig.sequenceName == null
-                            ? attribute.setValueNull("SEQUENCENAME",2)
-                            : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName,2);
-                    }
-
-                    if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
-                        if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
-                            attributeConfig.typeOfComplexExpression == null
-                                ? attribute.setValueNull("COMPLEXEXPRESSION",2)
-                                : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression,2);
+                        if (!attribute.getMboValueData("SEQUENCENAME").isReadOnly()) {
+                            if (typeof attributeConfig.sequenceName !== "undefined") {
+                                attributeConfig.sequenceName == null
+                                    ? attribute.setValueNull("SEQUENCENAME")
+                                    : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName);
+                            }
                         }
-                    }
 
-                    if (typeof attributeConfig.eAuditEanbled !== "undefined") {
-                        attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled,2);
-                    }
-                    if (typeof attributeConfig.multiLanguageInUse !== "undefined") {
-                        attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse,2);
-                    }
-                    if (typeof attributeConfig.eSignatureEnabled !== "undefined") {
-                        attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled,2);
-                    }
-                    if (typeof attributeConfig.primaryColumn !== "undefined" ) {
-                        if( attributeConfig.primaryColumn == null){
+                        if (!attribute.getMboValueData("COMPLEXEXPRESSION").isReadOnly()) {
+                            if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                                attributeConfig.typeOfComplexExpression == null
+                                    ? attribute.setValueNull("COMPLEXEXPRESSION")
+                                    : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
+                            }
+                        }
+
+                        if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
+                            attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
+                        }
+                        if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
+                            attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
+                        }
+                        if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
+                            attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
+                        }
+                        if (typeof attributeConfig.primaryColumn === "undefined" || attributeConfig.primaryColumn == null) {
                             attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
                         } else {
                             attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
                         }
+
                     }
+                }
+            } else {
+                //处理视图属性
+
+                /** @type {psdi.mbo.MboRemote} */
+                var attribute = attributeSet.moveFirst();
+                while (attribute) {
+                    if (attribute.getString("ATTRIBUTENAME") == attributeConfig.attribute) {
+                        break;
+                    }
+                    attribute = attributeSet.moveNext();
+                }
+                logger.info("\x1b[32m[" + serverName + "] " + "attribute=" + attributeConfig.attribute + ",extendsObjectTmp=" + (extendsObjectTmp + "ID") + "\x1b[0m")
+                if (attributeConfig.delete) {
+                    if (attribute != null) {
+                        attribute.delete();
+                    }
+                } else if (attribute && (attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))
+                    || attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(extendsObjectTmp + "ID")
+                )) {
+                    if (attributeConfig.description) {
+                        attribute.setValue("REMARKS", attributeConfig.description);
+                    }
+                    if (attributeConfig.title) {
+                        attribute.setValue("TITLE", attributeConfig.title);
+                    }
+                    //不是新增的就忽略主键ID
+                } else {
+                    if (!attribute) {
+                        attribute = attributeSet.add();
+                        attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
+                        logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
+                    }
+                    if (attribute.isNew() || !attributeConfig._updateIgnored) {
+                        var roAlways = ["objectname", "changed", "viewchanged", "attributeno", "userdefined", "eaudittbname", "langtablename", "ishandlecolumn", "entityname", "nextsequenceno"];
+                        //取消只读
+                        attribute.setFieldFlag(roAlways, MboConstants.READONLY, false);
+
+                        if (typeof attributeConfig.persistent !== "undefined") {
+                            logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setPersistent=" + attributeConfig.persistent + "\x1b[0m")
+                            attribute.setValue("persistent", attributeConfig.persistent ? true : false, MboConstants.NOACCESSCHECK)
+                        }
+                        if (typeof attributeConfig.entityName !== "undefined") {
+                            if (attributeConfig.entityName) {
+                                logger.info("\x1b[32m[" + serverName + "] " + attributeConfig.attribute + " setEntityName=" + attributeConfig.entityName + "\x1b[0m")
+                                attribute.setValue("entityName", attributeConfig.entityName, MboConstants.NOACCESSCHECK)
+                            } else {
+                                attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
+                            }
+                        }
+                        logger.info("\x1b[32m[" + serverName + "] 1.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
+                        if (typeof attributeConfig.columnName !== "undefined") {
+                            if (attributeConfig.columnName) {
+                                logger.info("\x1b[32m[" + serverName + "] 2.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
+                                attribute.setValue("columnName", attributeConfig.columnName, MboConstants.NOACCESSCHECK)
+                            } else {
+                                attribute.setValueNull("columnName", MboConstants.NOACCESSCHECK)
+                            }
+                        }
+
+                        logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
+
+                        attribute.setValue("REMARKS", attributeConfig.description);
+                        attribute.setValue("TITLE", attributeConfig.title);
+
+                        if (typeof attributeConfig.class !== "undefined" && attributeConfig.class !== null) {
+                            attribute.setValue("CLASSNAME", attributeConfig.class, MboConstants.NOACCESSCHECK);
+                        } else {
+                            attribute.setValueNull("CLASSNAME", MboConstants.NOACCESSCHECK)
+                        }
+
+                        //只有等同对象为空的时候才会设置type和length
+                        if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
+                            if (typeof attributeConfig.type !== "undefined") {
+                                attribute.setValue("MAXTYPE", attributeConfig.type, 2);
+                            } else {
+                                attribute.setValueNull("MAXTYPE", 2)
+                            }
+
+                            if (typeof attributeConfig.length !== "undefined" && attributeConfig.length != null) {
+                                attribute.setValue("LENGTH", attributeConfig.length, 2);
+                            }
+
+                            if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale != null) {
+                                attribute.setValue("SCALE", attributeConfig.scale, 2);
+                            }
+                        }
+
+                        if (typeof attributeConfig.required === "undefined") {
+                            if (attributeConfig.required) {
+                                attribute.setValue("REQUIRED", attributeConfig.required ? true : false, MboConstants.NOACCESSCHECK);
+                            }
+
+                        }
 
 
+                        if (typeof attributeConfig.domain !== "undefined") {
+                            if (attributeConfig.domain == null) {
+                                attribute.setValueNull("DOMAINID")
+                            } else {
+                                attribute.setValue("DOMAINID", attributeConfig.domain);
+                            }
+                        }
+
+                        if (typeof attributeConfig.alias !== "undefined") {
+                            attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
+                        }
+
+
+                        if (typeof attributeConfig.mustBe === "undefined") {
+                            attribute.setValue("MUSTBE", attributeConfig.mustBe ? true : false, MboConstants.NOACCESSCHECK);
+                        }
+
+                        if (typeof attributeConfig.columnName !== "undefined") {
+                            if (attributeConfig.columnName == null) {
+                                attribute.setValueNull("COLUMNNAME",2)
+                            } else {
+                                attribute.setValue("COLUMNNAME", attributeConfig.columnName, 2);
+                            }
+                        }
+
+                        if (typeof attributeConfig.sameAsObject !== "undefined") {
+                            if (attributeConfig.sameAsObject == null) {
+                                attribute.setValueNull("SAMEASOBJECT", 2)
+                            } else {
+                                attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                            }
+                            attributeConfig.sameAsObject == null
+                                ? attribute.setValueNull("SAMEASOBJECT", 2)
+                                : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                        }
+                        if (typeof attributeConfig.sameAsAttribute !== "undefined") {
+                            if (attributeConfig.sameAsAttribute == null) {
+                                attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                            } else {
+                                attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                            }
+                            attributeConfig.sameAsAttribute == null
+                                ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
+                                : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
+                        }
+
+                        if (typeof attributeConfig.canAutonumber !== "undefined") {
+                            attribute.setValue("CANAUTONUM", attributeConfig.canAutonumber ? true : false, MboConstants.NOACCESSCHECK);
+                        }
+
+                        //   logger.info(attributeConfig.attribute+".MboValue.isReadOnly()"+attribute.getMboValue("AUTOKEYNAME").isReadOnly())
+                        // attribute.getMboValueData("AUTOKEYNAME").setFieldFlag(MboConstants.READONLY, false)
+                        if (typeof attributeConfig.autonumber !== "undefined") {
+                            if (attributeConfig.autonumber) {
+                                attribute.setValue("AUTOKEYNAME", attributeConfig.autonumber, 11);
+                                logger.info("attributeConfig.autonumber=" + attributeConfig.autonumber)
+                            } else {
+                                attribute.setValueNull("AUTOKEYNAME", 2)
+                            }
+                        } else {
+                            // logger.info("attributeConfig.autonumber is undefined")
+                        }
+                        try {
+                            if (typeof attributeConfig.defaultValue !== "undefined") {
+                                if (attributeConfig.defaultValue == null) {
+                                    attribute.setValueNull("DEFAULTVALUE", 2)
+                                    logger.info("attributeConfig.defaultValue=null")
+                                } else {
+                                    attribute.setValue("DEFAULTVALUE", attributeConfig.defaultValue, 2);
+                                    logger.info("attributeConfig.defaultValue=" + attributeConfig.defaultValue)
+                                }
+                            }
+                        } catch (ei) { }
+
+                        if (typeof attributeConfig.searchType !== "undefined") {
+                            if (typeof attributeConfig.searchType !== "undefined") {
+                                attributeConfig.searchType == null ? attribute.setValueNull("SEARCHTYPE") : attribute.setValue("SEARCHTYPE", attributeConfig.searchType, 2);
+                            }
+                        }
+
+                        if (typeof attributeConfig.localizable !== "undefined") {
+                            attribute.setValue("LOCALIZABLE", typeof attributeConfig.localizable === "undefined" ? false : attributeConfig.localizable, 2);
+                        }
+
+                        if (typeof attributeConfig.textDirection !== "undefined") {
+                            if (typeof attributeConfig.textDirection !== "undefined") {
+                                attributeConfig.textDirection == null
+                                    ? attribute.setValueNull("TEXTDIRECTION", 2)
+                                    : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection, 2);
+                            }
+                        }
+
+                        if (typeof attributeConfig.positive !== "undefined") {
+                            attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive, 2);
+                        }
+
+                        if (typeof attributeConfig.longDescriptionOwner !== "undefined") {
+                            attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner, 2);
+                        }
+                        if (typeof attributeConfig.sequenceName !== "undefined") {
+                            attributeConfig.sequenceName == null
+                                ? attribute.setValueNull("SEQUENCENAME", 2)
+                                : attribute.setValue("SEQUENCENAME", attributeConfig.sequenceName, 2);
+                        }
+
+                        if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                            if (typeof attributeConfig.typeOfComplexExpression !== "undefined") {
+                                attributeConfig.typeOfComplexExpression == null
+                                    ? attribute.setValueNull("COMPLEXEXPRESSION", 2)
+                                    : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression, 2);
+                            }
+                        }
+
+                        if (typeof attributeConfig.eAuditEanbled !== "undefined") {
+                            attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled, 2);
+                        }
+                        if (typeof attributeConfig.multiLanguageInUse !== "undefined") {
+                            attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse, 2);
+                        }
+                        if (typeof attributeConfig.eSignatureEnabled !== "undefined") {
+                            attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled, 2);
+                        }
+                        if (typeof attributeConfig.primaryColumn !== "undefined") {
+                            if (attributeConfig.primaryColumn == null) {
+                                attribute.setValueNull("PRIMARYKEYCOLSEQ", MboConstants.NOACCESSCHECK);
+                            } else {
+                                attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
+                            }
+                        }
+
+
+                    }
                 }
             }
         }
-      });
 
 
        /** @type{com.ibm.json.java.JSONArray}*/
