@@ -48,7 +48,8 @@ const scriptTypes: ScriptTypeItem[] = [
   { value: 'WF_ACTION', label: '工作流动作', description: '工作流步骤动作', category: 'other' },
   { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' },
   { value: 'OBJECT.NEW_FIXED', label: 'NEW_FIXED(隐藏字段)', description: '新建时隐藏字段(系统固定名称)', category: 'fixed' },
-  { value: 'OBJECT.SAVE_FIXED', label: 'SAVE_FIXED(隐藏字段)', description: '保存时隐藏字段(系统固定名称)', category: 'fixed' }
+  { value: 'OBJECT.SAVE_FIXED', label: 'SAVE_FIXED(隐藏字段)', description: '保存时隐藏字段(系统固定名称)', category: 'fixed' },
+  { value: 'NEW', label: 'MBO脚本-新增时触发', description: '在对象新增时触发，系统固定名称 <对象名>.NEW', category: 'fixed' }
 ];
 
 // 根据 TASK09.md 整理的命名规范提示
@@ -71,7 +72,8 @@ const namingHints: Record<string, string> = {
   'WF_ACTION': '建议命名: <对象>.workflow.<事件> （如 WORKORDER.workflow.START）',
   'RELATIONSHIP': '建议命名: <RS>_<表名>_<关系名> （如 RS_WORKORDER_MATUSETRANS）',
   'OBJECT.NEW_FIXED': '系统固定名称: <对象名>.NEW （如 ITEM.NEW，Maximo 自动调用）',
-  'OBJECT.SAVE_FIXED': '系统固定名称: <对象名>.SAVE （如 ITEM.SAVE，Maximo 自动调用）'
+  'OBJECT.SAVE_FIXED': '系统固定名称: <对象名>.SAVE （如 ITEM.SAVE，Maximo 自动调用）',
+  'NEW': '系统固定名称: <对象名>.NEW （如 ITEM.NEW，Maximo 在新增对象时自动调用）'
 };
 
 const CreateScriptModal: React.FC = () => {
@@ -318,7 +320,7 @@ const CreateScriptModal: React.FC = () => {
   const handleFixedNameChange = (value: string) => {
     const trimmedValue = value.trim().toUpperCase();
     setFixedName(trimmedValue);
-    if (selectedType === 'OBJECT.NEW_FIXED') {
+    if (selectedType === 'OBJECT.NEW_FIXED' || selectedType === 'NEW') {
       setScriptName(trimmedValue ? `${trimmedValue}.NEW` : '');
     } else if (selectedType === 'OBJECT.SAVE_FIXED') {
       setScriptName(trimmedValue ? `${trimmedValue}.SAVE` : '');

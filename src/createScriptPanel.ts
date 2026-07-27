@@ -296,7 +296,8 @@ function main() {
       { value: 'WF_ACTION', label: '工作流动作', description: '工作流步骤动作', category: 'other' },
       { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' },
       { value: 'OBJECT.NEW_FIXED', label: '新增触发脚本(系统固定名称)', description: '新增触发的脚本', category: 'fixed' },
-      { value: 'OBJECT.SAVE_FIXED', label: '保存触发脚本(系统固定名称)', description: 'API调用save时候可能不会触发该脚本', category: 'fixed' }
+      { value: 'OBJECT.SAVE_FIXED', label: '保存触发脚本(系统固定名称)', description: 'API调用save时候可能不会触发该脚本', category: 'fixed' },
+      { value: 'NEW', label: 'MBO脚本-新增时触发', description: '在对象新增时触发，系统固定名称 <对象名>.NEW', category: 'fixed' }
     ];
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }
