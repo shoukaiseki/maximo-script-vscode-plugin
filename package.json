@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.25",
+  "version": "1.4.26",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -232,6 +232,36 @@
           "type": "boolean",
           "default": false,
           "description": "MAXOBJECT 导出精简模式：开启后导出时忽略默认值字段（即向 SKS_EXPORT_DBCONFIG 接口传递 ignoreDefVal=true）"
+        },
+        "maximoScript.extractThreadCount": {
+          "type": "number",
+          "default": 5,
+          "description": "导出脚本并发线程数（工具箱->导出脚本）"
+        },
+        "maximoScript.extractXmlThreadCount": {
+          "type": "number",
+          "default": 5,
+          "description": "导出应用XML并发线程数（工具箱->导出应用XML）"
+        },
+        "maximoScript.extractMaxobjectThreadCount": {
+          "type": "number",
+          "default": 5,
+          "description": "导出MAXOBJECT并发线程数（工具箱->导出MAXOBJECT）"
+        },
+        "maximoScript.extractZipEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "导出脚本完成后自动打包为ZIP文件"
+        },
+        "maximoScript.extractXmlZipEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "导出应用XML完成后自动打包为ZIP文件"
+        },
+        "maximoScript.extractMaxobjectZipEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "导出MAXOBJECT完成后自动打包为ZIP文件"
         },
         "maximoScript.envnum": {
           "type": "string",

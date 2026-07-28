@@ -36,6 +36,12 @@ interface ConfigData {
   autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
   maxobjectSimpleMode: boolean;  // MAXOBJECT 导出精简模式（忽略默认值）
   exportMaxobjectDirectory: string;
+  extractThreadCount: number;  // 导出脚本线程数
+  extractXmlThreadCount: number;  // 导出应用XML线程数
+  extractMaxobjectThreadCount: number;  // 导出MAXOBJECT线程数
+  extractZipEnabled: boolean;  // 导出脚本完成后打包ZIP
+  extractXmlZipEnabled: boolean;  // 导出应用XML完成后打包ZIP
+  extractMaxobjectZipEnabled: boolean;  // 导出MAXOBJECT完成后打包ZIP
 }
 
 const App: React.FC = () => {
@@ -88,6 +94,12 @@ const App: React.FC = () => {
     autoCreateExportDir: true,  // 默认自动生成导出目录
     maxobjectSimpleMode: false,  // MAXOBJECT 导出精简模式（忽略默认值）
     exportMaxobjectDirectory: '',
+    extractThreadCount: 5,
+    extractXmlThreadCount: 5,
+    extractMaxobjectThreadCount: 5,
+    extractZipEnabled: false,
+    extractXmlZipEnabled: false,
+    extractMaxobjectZipEnabled: false,
   });
   
   // 环境配置缓存
@@ -1862,6 +1874,37 @@ const App: React.FC = () => {
                   </p>
                 </div>
 
+                {/* 并发线程数配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🔄 导出线程数：</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={config.extractThreadCount}
+                      onChange={(e) => updateConfig({ extractThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
+                      style={{ width: '80px', textAlign: 'center' }}
+                    />
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    并发导出脚本数（范围 1~20，推荐 5~10）
+                  </p>
+                </div>
+
+                {/* 打包ZIP选项 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.extractZipEnabled}
+                      onChange={(e) => updateConfig({ extractZipEnabled: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>📦 导出完成后自动打包为ZIP</span>
+                  </label>
+                </div>
+
                 <button 
                   onClick={handleStartExtract}
                   disabled={!extractDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning}
@@ -1965,6 +2008,37 @@ const App: React.FC = () => {
                   </p>
                 </div>
 
+                {/* 并发线程数配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🔄 导出线程数：</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={config.extractXmlThreadCount}
+                      onChange={(e) => updateConfig({ extractXmlThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
+                      style={{ width: '80px', textAlign: 'center' }}
+                    />
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    并发导出应用XML数（范围 1~20，推荐 5~10）
+                  </p>
+                </div>
+
+                {/* 打包ZIP选项 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.extractXmlZipEnabled}
+                      onChange={(e) => updateConfig({ extractXmlZipEnabled: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>📦 导出完成后自动打包为ZIP</span>
+                  </label>
+                </div>
+
                 <button 
                   onClick={handleStartExtractXml}
                   disabled={!extractXmlDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning}
@@ -2066,6 +2140,37 @@ const App: React.FC = () => {
                       ? '✅ 直接保存到选择的目录'
                       : '⚠️ 将创建时间戳子目录（如：maxobject_backup_20260523_143025/）'}
                   </p>
+                </div>
+
+                {/* 并发线程数配置 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🔄 导出线程数：</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={config.extractMaxobjectThreadCount}
+                      onChange={(e) => updateConfig({ extractMaxobjectThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
+                      style={{ width: '80px', textAlign: 'center' }}
+                    />
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    并发导出MAXOBJECT数（范围 1~20，推荐 5~10）
+                  </p>
+                </div>
+
+                {/* 打包ZIP选项 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.extractMaxobjectZipEnabled}
+                      onChange={(e) => updateConfig({ extractMaxobjectZipEnabled: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>📦 导出完成后自动打包为ZIP</span>
+                  </label>
                 </div>
 
                 {/* 精简/完整模式开关 */}

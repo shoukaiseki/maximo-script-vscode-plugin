@@ -5,6 +5,45 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.26] - 2026-07-28
+
+### 新增功能
+
+#### 工具箱导出功能增强
+- ✨ 导出脚本、导出应用XML、导出MAXOBJECT 改为多线程并发导出（默认5个并发）
+  - 大幅提升大量脚本/应用/对象的导出速度
+  - 每个标签页可独立配置线程数（范围 1~20）
+  - 配置持久化保存
+
+#### 导出自动打包ZIP
+- ✨ 新增导出完成后自动打包为ZIP并删除源目录功能
+  - 每个标签页独立开关，配置持久化保存
+  - 仅当自动生成时间戳子目录时生效，避免打包用户选中的根目录
+  - 使用 PowerShell Compress-Archive 打包
+  - 打包成功后自动删除源目录，节省磁盘空间
+
+### Bug 修复
+
+- 🐛 修复 `completionMode` 被 `envs.json` 意外覆盖的问题
+  - completionMode 不再从 envs.json 中读取
+  - completionMode 也不再保存到 envs.json
+  - 完全由 VSCode 全局设置控制，避免切换环境后补全模式被篡改
+
+### 技术实现
+
+- 🔧 修改文件
+  - `package.json` - 新增 `extractThreadCount`、`extractXmlThreadCount`、`extractMaxobjectThreadCount`、`extractZipEnabled`、`extractXmlZipEnabled`、`extractMaxobjectZipEnabled` 配置项
+  - `src/configPanel.ts`
+    - `_extractScripts()` / `_extractAppXml()` / `_extractMaxobject()` 改为并发导出
+    - 新增 `_zipExportDirectory()` 打包方法
+    - `_sendInitialConfig()` / `_saveConfig()` 添加线程数和打包配置
+    - 加载配置时不再从 envs.json 覆盖 completionMode
+  - `webview-ui/src/App.tsx`
+    - 每个导出标签页增加线程数输入框和自动打包ZIP勾选框
+  - `src/envConfig.ts` - `EnvironmentConfig.completionMode` 改为可选字段
+
+---
+
 ## [1.4.21] - 2026-07-12
 
 ### 新增功能

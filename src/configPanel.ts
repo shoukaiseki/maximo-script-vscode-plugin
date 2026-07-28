@@ -391,6 +391,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('jdkPath', data.jdkPath, vscode.ConfigurationTarget.Global);
       await config.update('jarDirectories', data.jarDirectories || [], vscode.ConfigurationTarget.Global);
       await config.update('additionalJars', data.additionalJars || [], vscode.ConfigurationTarget.Global);
+      await config.update('extractThreadCount', data.extractThreadCount !== undefined ? data.extractThreadCount : 5, vscode.ConfigurationTarget.Global);
+      await config.update('extractXmlThreadCount', data.extractXmlThreadCount !== undefined ? data.extractXmlThreadCount : 5, vscode.ConfigurationTarget.Global);
+      await config.update('extractMaxobjectThreadCount', data.extractMaxobjectThreadCount !== undefined ? data.extractMaxobjectThreadCount : 5, vscode.ConfigurationTarget.Global);
+      await config.update('extractZipEnabled', data.extractZipEnabled !== undefined ? data.extractZipEnabled : false, vscode.ConfigurationTarget.Global);
+      await config.update('extractXmlZipEnabled', data.extractXmlZipEnabled !== undefined ? data.extractXmlZipEnabled : false, vscode.ConfigurationTarget.Global);
+      await config.update('extractMaxobjectZipEnabled', data.extractMaxobjectZipEnabled !== undefined ? data.extractMaxobjectZipEnabled : false, vscode.ConfigurationTarget.Global);
       
       // 验证保存结果
       const savedValue = config.get('enableHttpLog', false);
@@ -413,7 +419,6 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiKey: data.apiKey,
         apiType: data.apiType,
         version: data.version,
-        completionMode: data.completionMode || 'vscode',
         langcode: data.langcode || '',  // 语言代码，空字符串表示未设置
         pushXmlAlwaysUseMaxauth: data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH
       };
@@ -759,7 +764,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true),  // 推送 XML 时始终使用 MAXAUTH，默认为 true
       autoCreateExportDir: config.get('autoCreateExportDir', true),  // 导出脚本时自动生成目录，默认为 true
       exportMaxobjectDirectory: config.get('exportMaxobjectDirectory', ''),
-      maxobjectSimpleMode: config.get('maxobjectSimpleMode', false)
+      maxobjectSimpleMode: config.get('maxobjectSimpleMode', false),
+      extractThreadCount: config.get('extractThreadCount', 5),
+      extractXmlThreadCount: config.get('extractXmlThreadCount', 5),
+      extractMaxobjectThreadCount: config.get('extractMaxobjectThreadCount', 5),
+      extractZipEnabled: config.get('extractZipEnabled', false),
+      extractXmlZipEnabled: config.get('extractXmlZipEnabled', false),
+      extractMaxobjectZipEnabled: config.get('extractMaxobjectZipEnabled', false)
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -774,7 +785,6 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         apiKey: envConfigData.apiKey || initialConfigData.apiKey,
         apiType: envConfigData.apiType || initialConfigData.apiType,
         version: envConfigData.version || initialConfigData.version,
-        completionMode: envConfigData.completionMode || initialConfigData.completionMode,
         langcode: envConfigData.langcode || '',  // 语言代码，空字符串表示未设置
         pushXmlAlwaysUseMaxauth: envConfigData.pushXmlAlwaysUseMaxauth !== undefined ? envConfigData.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH，默认为 true
       };
@@ -2627,13 +2637,16 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       let successCount = 0;
       let failCount = 0;
+      const totalCount = screenNames.length;
+      const config2 = vscode.workspace.getConfiguration('maximoScript');
+      const MAX_CONCURRENT = config2.get('extractXmlThreadCount', 5);
 
-      // 步骤2: 逐个获取每个应用的 Presentation XML
-      for (let i = 0; i < screenNames.length; i++) {
-        const screenName = screenNames[i];
+      this._sendToolboxOutput(`🚀 开始导出，并发数: ${MAX_CONCURRENT}`);
 
+      // 单个应用导出处理
+      const exportSingleApp = async (screenName: string, index: number): Promise<boolean> => {
         try {
-          this._sendToolboxOutput(`[${i + 1}/${screenNames.length}] 正在导出: ${screenName}`);
+          this._sendToolboxOutput(`[${index + 1}/${totalCount}] 正在导出: ${screenName}`);
 
           const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}`;
           const screenResult = await httpRequestToMaximo({
@@ -2642,33 +2655,48 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           });
 
           if (screenResult.status !== 200 || !screenResult.data) {
-            failCount++;
-            this._sendToolboxOutput(`  ❌ 获取失败: HTTP ${screenResult.status}`);
-            continue;
+            this._sendToolboxOutput(`  ❌ 获取失败: ${screenName} - HTTP ${screenResult.status}`);
+            return false;
           }
 
           const presentation = screenResult.data.presentation;
           if (!presentation) {
-            failCount++;
             this._sendToolboxOutput(`  ⚠️ 应用 ${screenName} 没有 Presentation XML`);
-            continue;
+            return false;
           }
 
           // 保存 XML 文件
           const xmlFilePath = path.join(exportDir, `${screenName}.xml`);
           fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
-          successCount++;
           this._sendToolboxOutput(`  ✅ 已保存: ${screenName}.xml`);
+          return true;
 
         } catch (error: any) {
-          failCount++;
-          this._sendToolboxOutput(`  ❌ 导出失败: ${error.message}`);
+          this._sendToolboxOutput(`  ❌ 导出失败: ${screenName} - ${error.message}`);
           logger.error(`[ExtractAppXml] 导出 ${screenName} 失败: ${error.message}`);
+          return false;
+        }
+      };
+
+      // 分批并发执行导出（每批 MAX_CONCURRENT 个）
+      for (let i = 0; i < totalCount; i += MAX_CONCURRENT) {
+        const batch = screenNames.slice(i, i + MAX_CONCURRENT);
+        const batchResults = await Promise.all(
+          batch.map((screenName, idx) => exportSingleApp(screenName, i + idx))
+        );
+        for (const success of batchResults) {
+          if (success) successCount++; else failCount++;
         }
       }
 
       this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
       this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+      // 自动打包ZIP（仅当自动生成目录时有效）
+      const zipCfg = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg.get('extractXmlZipEnabled', false) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
 
     } catch (error: any) {
       this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
@@ -2755,19 +2783,23 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       let successCount = 0;
       let failCount = 0;
+      const totalCount = scriptNames.length;
+      const config2 = vscode.workspace.getConfiguration('maximoScript');
+      const MAX_CONCURRENT = config2.get('extractThreadCount', 5);
 
-      // 循环获取每个脚本的详情并保存
-      for (let i = 0; i < scriptNames.length; i++) {
-        const scriptInfo = scriptNames[i];
+      this._sendToolboxOutput(`🚀 开始导出，并发数: ${MAX_CONCURRENT}`);
+
+      // 单个脚本导出处理
+      const exportSingleScript = async (scriptInfo: any, index: number): Promise<boolean> => {
         const scriptName = scriptInfo.autoScript || scriptInfo['oslc:autoscript'] || scriptInfo.autoscript;
 
         if (!scriptName) {
-          this._sendToolboxOutput(`⚠️ 跳过无效脚本 [${i + 1}]`);
-          continue;
+          this._sendToolboxOutput(`⚠️ 跳过无效脚本 [${index + 1}]`);
+          return false;
         }
 
         try {
-          this._sendToolboxOutput(`[${i + 1}/${scriptNames.length}] 正在导出: ${scriptName}`);
+          this._sendToolboxOutput(`[${index + 1}/${totalCount}] 正在导出: ${scriptName}`);
 
           // 步骤1: 调用 SKS_GET_AUTOSCRIPTINFOBYNAME 获取元数据
           const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
@@ -2781,9 +2813,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           });
 
           if (metadataResult.status !== 200 || !metadataResult.data) {
-            failCount++;
             this._sendToolboxOutput(`❌ 获取元数据失败: ${scriptName} - 状态码: ${metadataResult.status}`);
-            continue;
+            return false;
           }
 
           // 解析返回的JSON数据
@@ -2791,15 +2822,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           try {
             metadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
           } catch (parseErr: any) {
-            failCount++;
             this._sendToolboxOutput(`❌ 解析元数据失败: ${scriptName} - ${parseErr.message}`);
-            continue;
+            return false;
           }
 
           if (metadata.code !== 200 || !metadata.data) {
-            failCount++;
             this._sendToolboxOutput(`❌ 元数据响应错误: ${scriptName} - ${metadata.message}`);
-            continue;
+            return false;
           }
 
           const scriptData = metadata.data;
@@ -2877,20 +2906,37 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
             const codeFilePath = path.join(scriptExportDir, codeFileName);
             fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
 
-            successCount++;
             this._sendToolboxOutput(`✅ 已导出: ${scriptName} (${configFileName}, ${codeFileName})`);
+            return true;
           } else {
-            failCount++;
             this._sendToolboxOutput(`❌ 导出源代码失败: ${scriptName} - 状态码: ${exportResult.status}`);
+            return false;
           }
         } catch (error: any) {
-          failCount++;
           this._sendToolboxOutput(`❌ 导出异常: ${scriptName} - ${error.message}`);
+          return false;
+        }
+      };
+
+      // 分批并发执行导出（每批 MAX_CONCURRENT 个）
+      for (let i = 0; i < totalCount; i += MAX_CONCURRENT) {
+        const batch = scriptNames.slice(i, i + MAX_CONCURRENT);
+        const batchResults = await Promise.all(
+          batch.map((scriptInfo, idx) => exportSingleScript(scriptInfo, i + idx))
+        );
+        for (const success of batchResults) {
+          if (success) successCount++; else failCount++;
         }
       }
 
       this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
       this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+      // 自动打包ZIP（仅当自动生成目录时有效，避免打包用户选中的根目录）
+      const zipCfg = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg.get('extractZipEnabled', false) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
 
     } catch (error: any) {
       logger.error(`[_extractScripts] 导出失败: ${error.message}`);
@@ -3772,7 +3818,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return;
       }
 
-      const concurrency = 5;
+      const maxobjectConfig2 = vscode.workspace.getConfiguration('maximoScript');
+      const concurrency = maxobjectConfig2.get('extractMaxobjectThreadCount', 5);
       let successCount = 0;
       let failCount = 0;
       let currentIndex = 0;
@@ -3845,11 +3892,63 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
       this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
 
+      // 自动打包ZIP（仅当自动生成目录时有效）
+      const zipCfg2 = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg2.get('extractMaxobjectZipEnabled', false) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
+
     } catch (error: any) {
       this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
       logger.error(`[ExtractMaxobject] 导出失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'extractMaxobjectComplete' });
+    }
+  }
+
+  /**
+   * 打包导出目录为ZIP文件（使用PowerShell Compress-Archive）
+   */
+  private async _zipExportDirectory(exportDir: string): Promise<string | null> {
+    try {
+      const zipFileName = path.basename(exportDir) + '.zip';
+      const zipFilePath = path.join(path.dirname(exportDir), zipFileName);
+      
+      const { exec } = require('child_process');
+      const escapedDir = exportDir.replace(/'/g, "''");
+      const escapedZip = zipFilePath.replace(/'/g, "''");
+      
+      this._sendToolboxOutput(`📦 正在打包为ZIP: ${zipFileName}`);
+      
+      await new Promise<void>((resolve, reject) => {
+        exec(
+          `powershell -NoProfile -Command "Compress-Archive -Path '${escapedDir}\\*' -DestinationPath '${escapedZip}' -Force"`,
+          { timeout: 300000 },
+          (error: any, stdout: string, stderr: string) => {
+            if (error) {
+              reject(new Error(stderr || error.message));
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+      
+      this._sendToolboxOutput(`✅ 打包完成: ${zipFilePath}`);
+      
+      // 打包成功后删除源目录
+      try {
+        fs.rmSync(exportDir, { recursive: true, force: true });
+        this._sendToolboxOutput(`🗑️ 已删除源目录: ${exportDir}`);
+      } catch (deleteErr: any) {
+        this._sendToolboxOutput(`⚠️ 删除源目录失败: ${deleteErr.message}`);
+      }
+      
+      return zipFilePath;
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 打包ZIP失败: ${error.message}`);
+      logger.error(`[_zipExportDirectory] 打包失败: ${error.message}`);
+      return null;
     }
   }
 
