@@ -83,12 +83,123 @@ function initializeApp(dbctx){
     logger.info("[" + scriptName + "] initializeApp")
 }
 
+/**
+ * 设置日志级别为DEBUG
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ */
+function LOGLEVELDEBUG(dbctx){
+    initLogger(dbctx);
+    logger.info("[" + scriptName + "] LOGLEVELDEBUG")
+    /** @type {psdi.webclient.system.controller.AppInstance} */
+    var appInstance = dbctx.getAppInstance();
+    /** @type {psdi.webclient.system.session.WebClientSession} */
+    var clientsession = dbctx.webclientsession();
+    /** @type {psdi.webclient.system.beans.AppBean} */
+    var appBean = appInstance.getAppBean();
+    /** @type {psdi.webclient.system.beans.DataBean} */
+    var resultBean = appInstance.getResultsBean();
+    /** @type {psdi.mbo.MboSet} */
+    var resultMboSet = resultBean.getMboSet();
+    var currentPosition = resultMboSet.getCurrentPosition();
+    // var index = 0;
+    // for (var as = resultMboSet.moveFirst(); as != null; as = resultMboSet.moveNext()) {
+    //     ++index;
+    //     as.setValue("LOGLEVEL", "ERROR");
+    // }
+    // logger.info("[" + scriptName + "] LOGLEVELERROR " + index + " rows updated")
+    // resultMboSet.save()
+    // resultMboSet.moveTo(currentPosition);
+    // 用sql执行,更新所有行
+    var completeWhere = resultMboSet.getCompleteWhere();
+    var conn = MXServer.getMXServer().getDBManager().getConnection(MXServer.getMXServer().getSystemUserInfo().getConnectionKey());
+    try {
+        if(!completeWhere||completeWhere==''){ completeWhere = " 1=1" }
+        var sql = "UPDATE AUTOSCRIPT SET LOGLEVEL = ? where " + completeWhere
+        logger.info("[" + scriptName + "] LOGLEVELDEBUG SQL: " + sql);
+        var pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, "DEBUG");
+        var rowsUpdated = pstmt.executeUpdate();
+        pstmt.close();
+        logger.info("[" + scriptName + "] LOGLEVELDEBUG " + rowsUpdated + " rows updated via SQL");
+        clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
+    }catch(e){
+        clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("#", "出错了"));
+        throw e;
+    } finally {
+        if (conn) {
+            conn.close();
+        }
+    }
+    logger.info("[" + scriptName + "] LOGLEVELDEBUG ok")
+}
+
+/**
+ * 设置日志级别为ERROR
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ */
+function LOGLEVELERROR(dbctx){
+    initLogger(dbctx);
+    logger.info("[" + scriptName + "] LOGLEVELERROR")
+    /** @type {psdi.webclient.system.controller.AppInstance} */
+    var appInstance = dbctx.getAppInstance();
+    /** @type {psdi.webclient.system.session.WebClientSession} */
+    var clientsession = dbctx.webclientsession();
+    /** @type {psdi.webclient.system.beans.AppBean} */
+    var appBean = appInstance.getAppBean();
+    /** @type {psdi.webclient.system.beans.DataBean} */
+    var resultBean = appInstance.getResultsBean();
+    /** @type {psdi.mbo.MboSet} */
+    var resultMboSet = resultBean.getMboSet();
+    var currentPosition = resultMboSet.getCurrentPosition();
+
+    var completeWhere = resultMboSet.getCompleteWhere();
+    var conn = MXServer.getMXServer().getDBManager().getConnection(MXServer.getMXServer().getSystemUserInfo().getConnectionKey());
+    try {
+        if(!completeWhere||completeWhere==''){ completeWhere = " 1=1" }
+        var sql = "UPDATE AUTOSCRIPT SET LOGLEVEL = ? where " + completeWhere
+        logger.info("[" + scriptName + "] LOGLEVELDEBUG SQL: " + sql);
+        var pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, "ERROR");
+        var rowsUpdated = pstmt.executeUpdate();
+        pstmt.close();
+        logger.info("[" + scriptName + "] LOGLEVELDEBUG " + rowsUpdated + " rows updated via SQL");
+        clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
+    }catch(e){
+        clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("#", "出错了"));
+        throw e;
+    } finally {
+        if (conn) {
+            conn.close();
+        }
+    }
+
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
+    logger.info("[" + scriptName + "] LOGLEVELERROR ok")
+}
+
+/**
+ * 重新加载缓存
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ */
+function RELOADCACHE(dbctx){
+    initLogger(dbctx);
+    /** @type {psdi.webclient.system.session.WebClientSession} */
+    var clientsession = dbctx.webclientsession();
+    logger.info("[" + scriptName + "] RELOADCACHE")
+    var server = MXServer.getMXServer();
+    // 重新加载脚本缓存（修改 autoscript 后需要）
+    server.reloadMaximoCache("SCRIPT", true);
+    clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
+
+    logger.info("[" + scriptName + "] RELOADCACHE ok")
+}
+
 function SAVE(dbctx){
     initLogger(dbctx);
     logger.info("[" + scriptName + "] save")
     /** @type {psdi.webclient.system.controller.AppInstance} */
     var appInstance = dbctx.getAppInstance();
-    /** @type {psdi.webclient.system.beans.DataBean} */
+    /** @type {psdi.webclient.system.beans.AppBean} */
     var appBean = appInstance.getAppBean();
     /** @type {psdi.mbo.MboRemote} */
     var mbo = appBean.getMbo();

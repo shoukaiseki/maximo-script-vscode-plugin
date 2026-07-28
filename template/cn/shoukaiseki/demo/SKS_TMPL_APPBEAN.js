@@ -48,6 +48,7 @@ function initLogger(dbctx){
  */
 function initializeApp(dbctx){
     initLogger(dbctx);
+    /** @type {psdi.webclient.system.session.WebClientSession} */
     var clientsession = dbctx.webclientsession();
     // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
     // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", new MXApplicationException("ibm_rl","createpoSuccessNoOrder").getMessage(msr), 0);
@@ -67,23 +68,43 @@ function initializeApp(dbctx){
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function MKITEM(dbctx) {
-    initLogger(dbctx);
-    /**
-     * 管理模式下不允许执行
-     {
-        "msgGroup": "ibm_system",
-        "msgKey": "AdminOnThis",
-        "value": "管理方式已开启,页面初始化程序受到影响,NEW/INIT等脚本无法执行,<br/>请在先回启动中心,等待管理方式关闭之后重新进入应用",
-        "displayMethod": "MSGBOX",
-        "options": ["close"],
-        "prefix": "BMXZZ",
-        "suffix": "E"
-    },
-     */
-    if(Java.type("psdi.iface.mic.MicUtil").getAdminModeState()){
-        throw new MXApplicationException("ibm_system","AdminOnThis")
-    }
-    logger.info("[" + scriptName + "] MKITEM")
+  initLogger(dbctx);
+  /**
+   * 管理模式下不允许执行
+   {
+      "msgGroup": "ibm_system",
+      "msgKey": "AdminOnThis",
+      "value": "管理方式已开启,页面初始化程序受到影响,NEW/INIT等脚本无法执行,<br/>请在先回启动中心,等待管理方式关闭之后重新进入应用",
+      "displayMethod": "MSGBOX",
+      "options": ["close"],
+      "prefix": "BMXZZ",
+      "suffix": "E"
+  },
+   */
+  if (Java.type("psdi.iface.mic.MicUtil").getAdminModeState()) {
+    throw new MXApplicationException("ibm_system", "AdminOnThis")
+  }
+  /** @type {psdi.webclient.system.controller.AppInstance} */
+  var appInstance = dbctx.getAppInstance();
+  /** @type {psdi.webclient.system.session.WebClientSession} */
+  var clientsession = dbctx.webclientsession();
+  /** @type {psdi.webclient.system.beans.AppBean} */
+  var appBean = appInstance.getAppBean();
+  /** @type {psdi.mbo.MboRemote} */
+  var mbo = appBean.getMbo();
+  if (!mbo) {
+    var appInstance = dbctx.getAppInstance()
+    logger.info("[" + scriptName + "] appInstance= " + appInstance)
+    var appBean = appInstance.getAppBean()
+    logger.info("[" + scriptName + "] appBean= " + appBean)
+    //应用主列表按钮的mbo获取
+    mbo = appBean.getMbo()
+    logger.info("[" + scriptName + "] mbo= " + mbo)
+  }
+  if (!mbo) {
+    throw new MXApplicationException("#", "error,can't find mbo")
+  }
+  logger.info("[" + scriptName + "] MKITEM")
 }
 
 /**

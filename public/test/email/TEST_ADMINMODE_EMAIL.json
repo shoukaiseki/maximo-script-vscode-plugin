@@ -1,0 +1,16 @@
+{
+  "autoscript": "TEST_ADMINMODE_EMAIL",
+  "description": "模拟AdminModeManager管理方式开启时的邮件通知(公告板+邮件)",
+  "version": "1.0.3",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.test.email"
+}

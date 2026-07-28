@@ -287,3 +287,35 @@ function getValueByMaxType(service,mbo, attrName) {
         return null;
     }
 }
+
+
+
+/**
+ * 解析多种格式的日期字符串为Date对象
+ * 支持: yyyy年M月d日, yyyy/MM/dd, yyyy-MM-dd, yyyyMMdd, Excel序列号(数字)
+ * @param {string} dateStr - 日期字符串
+ * @returns {java.util.Date}
+ */
+function parseDateString(dateStr) {
+  if (!dateStr) return null;
+  // 1. 中文格式: yyyy年M月d日
+  try { return new java.text.SimpleDateFormat("yyyy年M月d日").parse(dateStr); } catch (e) {}
+  // 2. 标准横杠格式: yyyy-MM-dd
+  try { return new java.text.SimpleDateFormat("yyyy-MM-dd").parse(dateStr); } catch (e) {}
+  // 3. 斜杠格式: yyyy/MM/dd
+  try { return new java.text.SimpleDateFormat("yyyy/MM/dd").parse(dateStr); } catch (e) {}
+  // 4. 无分隔符: yyyyMMdd
+  try { return new java.text.SimpleDateFormat("yyyyMMdd").parse(dateStr); } catch (e) {}
+  // 5. Excel序列号(纯数字, 如 46171)
+  try {
+    var serialNum = java.lang.Double.parseDouble(dateStr);
+    if (serialNum > 1 && serialNum < 100000) {
+      var msPerDay = 86400000;
+      var baseDate = new java.text.SimpleDateFormat("yyyy-MM-dd").parse("1899-12-30");
+      var msOffset = Math.round(serialNum * msPerDay);
+      return new java.util.Date(baseDate.getTime() + msOffset);
+    }
+  } catch (e) {}
+    //{ "msgGroup": "ibm_common", "msgKey": "canNotParseDate", "value": "无法解析日期: {0}", "displayMethod": "MSGBOX", "options": ["close"], "msgIdPrefix": "BMXAA", "msgIdSuffix": "W" }
+  throw new MXApplicationException("ibm_common","canNotParseDate" [dateStr]);
+}

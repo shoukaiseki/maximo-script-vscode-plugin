@@ -60,7 +60,7 @@ function initialize(dbctx){
 
     /** @type {psdi.webclient.system.controller.AppInstance} */
     var appInstance = dbctx.getAppInstance();
-    /** @type {psdi.webclient.system.beans.DataBean} */
+    /** @type {psdi.webclient.system.beans.AppBean} */
     var appBean = appInstance.getAppBean();
     /** @type {psdi.mbo.MboRemote} */
     var mbo = appBean.getMbo();
@@ -92,19 +92,26 @@ function test(dbctx){
         throw new MXApplicationException("ibm_system","AdminOnThis")
     }
 
-    var mbo = dbctx.getMbo()
+  /** @type {psdi.webclient.system.controller.AppInstance} */
+  var appInstance = dbctx.getAppInstance();
+  /** @type {psdi.webclient.system.session.WebClientSession} */
+  var clientsession = dbctx.webclientsession();
+  /** @type {psdi.webclient.system.beans.AppBean} */
+  var appBean = appInstance.getAppBean();
+  /** @type {psdi.mbo.MboRemote} */
+  var mbo = appBean.getMbo();
+  if (!mbo) {
+    var appInstance = dbctx.getAppInstance()
+    logger.info("[" + scriptName + "] appInstance= " + appInstance)
+    var appBean = appInstance.getAppBean()
+    logger.info("[" + scriptName + "] appBean= " + appBean)
+    //应用主列表按钮的mbo获取
+    mbo = appBean.getMbo()
     logger.info("[" + scriptName + "] mbo= " + mbo)
-    logger.info("[" + scriptName + "] dbctx.getEvent().getType()= " + dbctx.getEvent().getType())
-    if(!mbo){
-        var appInstance = dbctx.getAppInstance()
-        logger.info("[" + scriptName + "] appInstance= " + appInstance)
-        var appBean = appInstance.getAppBean()
-        logger.info("[" + scriptName + "] appBean= " + appBean)
-      //应用主列表按钮的mbo获取
-        mbo = appBean.getMbo()
-        logger.info("[" + scriptName + "] mbo= " + mbo)
-    }
-    var clientsession = dbctx.webclientsession();
+  }
+  if (!mbo) {
+    throw new MXApplicationException("#", "error,can't find mbo")
+  }
     clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 }
 
