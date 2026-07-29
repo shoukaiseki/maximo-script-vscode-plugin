@@ -62,6 +62,13 @@ if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryPar
   ignoreDefVal = true
 }
 
+// 分页参数
+var pageNum = request.getQueryParam("pageNum");
+var pageSize = request.getQueryParam("pageSize");
+var hasPagination = pageNum && pageSize && pageNum !== 'undefined' && pageSize !== 'undefined';
+var pageNumInt = hasPagination ? parseInt(pageNum) : 1;
+var pageSizeInt = hasPagination ? parseInt(pageSize) : 0;
+
 responseBody = main();
 
 function main() {
@@ -75,6 +82,28 @@ function main() {
     var filterMode = requestData.filterMode || "where";
     var whereClause = requestData.where || "";
     var groupKeyList = requestData.groupKeyList || [];
+
+    // 如果传入了字段搜索参数, 自动构建 WHERE 条件
+    // VALUE字段特殊处理: 分页模式有 LEFT JOIN L_MAXMESSAGES, 需同时搜索EN和ZH的value
+    var valueSearchVal = null;
+    if (!whereClause) {
+      var searchFields = {};
+      if (requestData.msgid) searchFields["MSGID"] = requestData.msgid;
+      if (requestData.msggroup) searchFields["MSGGROUP"] = requestData.msggroup;
+      if (requestData.msgkey) searchFields["MSGKEY"] = requestData.msgkey;
+      if (hasPagination) {
+        // 分页模式: VALUE 在 SQL 层面同时搜索两表, 不传给 MboSet
+        if (requestData.value) valueSearchVal = requestData.value;
+      } else {
+        if (requestData.value) searchFields["VALUE"] = requestData.value;
+      }
+      whereClause = buildWhereFromFields(searchFields);
+    }
+
+    // 无任何条件时查全部
+    if (!whereClause) {
+      whereClause = "1=1";
+    }
 
     if (filterMode !== "where" && filterMode !== "gk") {
       throw new MXApplicationException("#", "filterMode 必须是 'where' 或 'gk'");
@@ -103,8 +132,40 @@ function main() {
           }
           logger.info("[" + scriptName + "] WHERE过滤: " + whereClause + ", SQL: " + completeWhere);
 
-          var sql = buildMessageSQL(completeWhere);
-          logger.info("[" + scriptName + "] GK SQL: " + sql);
+          // 分页模式且 VALUE 搜索时, 构建同时搜索 EN 和 ZH 的 SQL WHERE
+          var sqlWhere = completeWhere;
+          if (hasPagination && valueSearchVal) {
+            var enCond = buildFieldCondition("MAXMESSAGES.VALUE", valueSearchVal);
+            var zhCond = buildFieldCondition("L_MAXMESSAGES.VALUE", valueSearchVal);
+            var valueOrClause = "(" + enCond + " OR " + zhCond + ")";
+            if (sqlWhere && sqlWhere !== "1=1") {
+              sqlWhere = "(" + sqlWhere + ") AND " + valueOrClause;
+            } else {
+              sqlWhere = valueOrClause;
+            }
+          }
+
+          // 总数查询
+          var total = 0;
+          if (hasPagination) {
+            var countSql;
+            if (hasPagination && valueSearchVal) {
+              // 总数查询也要 JOIN L_MAXMESSAGES, 否则计数会偏少
+              countSql = "SELECT COUNT(*) FROM MAXMESSAGES LEFT JOIN L_MAXMESSAGES ON (L_MAXMESSAGES.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_MAXMESSAGES.LANGCODE = 'ZH') WHERE " + sqlWhere;
+            } else {
+              countSql = "SELECT COUNT(*) FROM MAXMESSAGES WHERE " + completeWhere;
+            }
+            var countStmt = conn.prepareStatement(countSql);
+            var countRs = countStmt.executeQuery();
+            if (countRs.next()) {
+              total = countRs.getInt(1);
+            }
+            countRs.close();
+            countStmt.close();
+          }
+
+          var sql = buildMessageSQL(sqlWhere, hasPagination, pageNumInt, pageSizeInt);
+          logger.info("[" + scriptName + "] SQL: " + sql);
           var pstmt = conn.prepareStatement(sql);
           var rs = pstmt.executeQuery();
           while (rs.next()) {
@@ -119,6 +180,18 @@ function main() {
             messageSet.close();
           }
         }
+
+        /** @type {com.ibm.json.java.JSONObject} */
+        var result = new OrderedJSONObject();
+        result.put("messages", messages);
+        if (hasPagination) {
+          result.put("total", total);
+          result.put("pageNum", pageNumInt);
+          result.put("pageSize", pageSizeInt);
+        }
+
+        logger.info("[" + scriptName + "] 导出完成, 共 " + messages.size() + " 条消息");
+        return JSON.stringify(JSON.parse(service.jsonToString(result)));
       } else {
         // gk 模式 - 按 msgGroup + msgKey 批量查询
         if (!groupKeyList || groupKeyList.length === 0) {
@@ -140,7 +213,7 @@ function main() {
         }
 
         if (conditions.length > 0) {
-          var sql = buildMessageSQL(conditions.join(" OR "));
+          var sql = buildMessageSQL(conditions.join(" OR "), false);
           logger.info("[" + scriptName + "] GK SQL: " + sql);
           var pstmt = conn.prepareStatement(sql);
           var rs = pstmt.executeQuery();
@@ -151,14 +224,14 @@ function main() {
           rs.close();
           pstmt.close();
         }
+
+        /** @type {com.ibm.json.java.JSONObject} */
+        var result = new OrderedJSONObject();
+        result.put("messages", messages);
+
+        logger.info("[" + scriptName + "] 导出完成, 共 " + messages.size() + " 条消息");
+        return JSON.stringify(JSON.parse(service.jsonToString(result)));
       }
-
-      /** @type {com.ibm.json.java.JSONObject} */
-      var result = new OrderedJSONObject();
-      result.put("messages", messages);
-
-      logger.info("[" + scriptName + "] 导出完成, 共 " + messages.size() + " 条消息");
-      return JSON.stringify(JSON.parse(service.jsonToString(result)));
 
     } finally {
       if (conn) {
@@ -177,20 +250,94 @@ function main() {
 }
 
 /**
- * 构建消息查询SQL,根据语言参数决定是否LEFT JOIN L_MAXMESSAGES
+ * 构建消息查询SQL
+ * 当有分页参数时始终LEFT JOIN L_MAXMESSAGES(ZH)返回中英文双值
+ * 无分页时按 _langcode 参数决定是否JOIN(兼容旧调用)
  * @param {string} baseWhere - WHERE 条件
+ * @param {boolean} hasPagination - 是否有分页
+ * @param {number} pageNum - 页码
+ * @param {number} pageSize - 每页条数
  * @returns {string} 完整 SQL
  */
-function buildMessageSQL(baseWhere) {
-  // 非EN语言: LEFT JOIN 获取该语言的翻译
-  if (typeof _langcode !== 'undefined' && _langcode !== 'EN') {
-    return "SELECT MAXMESSAGES.*, L_MAXMESSAGES.value as L_VALUE" +
+function buildMessageSQL(baseWhere, hasPagination, pageNum, pageSize) {
+  var sql;
+  if (hasPagination) {
+    // 分页模式: 始终LEFT JOIN L_MAXMESSAGES(ZH), 返回中英文双值
+    sql = "SELECT MAXMESSAGES.*, L_MAXMESSAGES.value as L_VALUE" +
+           " FROM MAXMESSAGES" +
+           " LEFT JOIN L_MAXMESSAGES ON (L_MAXMESSAGES.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_MAXMESSAGES.LANGCODE = 'ZH')" +
+           " WHERE " + baseWhere +
+           " ORDER BY MAXMESSAGES.MSGGROUP, MAXMESSAGES.MSGKEY" +
+           " OFFSET " + ((pageNum - 1) * pageSize) + " ROWS FETCH NEXT " + pageSize + " ROWS ONLY";
+  } else if (typeof _langcode !== 'undefined' && _langcode !== 'EN') {
+    // 非EN语言: LEFT JOIN 获取该语言的翻译
+    // WHERE 中的 VALUE 要加 MAXMESSAGES. 前缀, 否则有 LEFT JOIN 时 VALUE 歧义
+    var qualifiedWhere = baseWhere.replace(/\bVALUE\b/g, "MAXMESSAGES.VALUE");
+    sql = "SELECT MAXMESSAGES.*, L_MAXMESSAGES.value as L_VALUE" +
            " FROM MAXMESSAGES" +
            " LEFT JOIN L_MAXMESSAGES ON (L_MAXMESSAGES.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_MAXMESSAGES.LANGCODE = '" + _langcode + "')" +
-           " WHERE " + baseWhere;
+           " WHERE " + qualifiedWhere;
+  } else {
+    // EN语言: 直接取 MAXMESSAGES 原值
+    sql = "SELECT * FROM MAXMESSAGES WHERE " + baseWhere;
   }
-  // EN语言: 直接取 MAXMESSAGES 原值
-  return "SELECT * FROM MAXMESSAGES WHERE " + baseWhere;
+  return sql;
+}
+
+/**
+ * 根据字段搜索参数构建 WHERE 条件
+ * 搜索规则(按开发文档):
+ *   =XXX  精确匹配
+ *   %XXX  通配符模糊(按原值传LIKE)
+ *   纯文本 LIKE '%XXX%' 模糊搜索
+ * @param {Object} fields - { DB列名: 搜索值 }
+ * @returns {string} WHERE 条件
+ */
+function buildWhereFromFields(fields) {
+  var clauses = [];
+  for (var col in fields) {
+    var val = fields[col];
+    if (!val) continue;
+    if (val.startsWith("=")) {
+      // 精确匹配
+      var exactVal = val.substring(1);
+      clauses.push("UPPER(" + col + ") = UPPER('" + escapeSql(exactVal) + "')");
+    } else if (val.indexOf("%") >= 0 || val.indexOf("_") >= 0) {
+      // 通配符模糊
+      clauses.push("UPPER(" + col + ") LIKE UPPER('" + escapeSql(val) + "')");
+    } else {
+      // 纯文本模糊
+      clauses.push("UPPER(" + col + ") LIKE UPPER('%" + escapeSql(val) + "%')");
+    }
+  }
+  return clauses.join(" and ");
+}
+
+/**
+ * SQL 转义(防止注入)
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeSql(str) {
+  if (!str) return "";
+  return str.replace(/'/g, "''");
+}
+
+/**
+ * 构建单个字段的搜索条件
+ * @param {string} col - 列名(可带表前缀,如 MAXMESSAGES.VALUE)
+ * @param {string} val - 搜索值
+ * @returns {string} 条件语句
+ */
+function buildFieldCondition(col, val) {
+  if (!val) return null;
+  if (val.startsWith("=")) {
+    return "UPPER(" + col + ") = UPPER('" + escapeSql(val.substring(1)) + "')";
+  } else if (val.indexOf("%") >= 0 || val.indexOf("_") >= 0) {
+    return "UPPER(" + col + ") LIKE UPPER('" + escapeSql(val) + "')";
+  } else {
+    return "UPPER(" + col + ") LIKE UPPER('%" + escapeSql(val) + "%')";
+  }
 }
 
 /**
@@ -206,6 +353,8 @@ function buildMessageObject(msgMbo) {
   obj.put("msgGroup", getString(msgMbo, "MSGGROUP"));
   obj.put("msgKey", getString(msgMbo, "MSGKEY"));
   obj.put("value", getString(msgMbo, "VALUE"));
+  // 记录ID
+  obj.put("MAXMESSAGESID", getString(msgMbo, "MAXMESSAGESID"));
   obj.put("displayMethod", getString(msgMbo, "DISPLAYMETHOD"));
 
   // options: 整数转字符串数组(与导入格式兼容)
@@ -336,16 +485,19 @@ function buildMessageObjectFromRS(rs) {
   /** @type {com.ibm.json.java.OrderedJSONObject} */
   var obj = new OrderedJSONObject();
 
-  // 必填字段 - value 根据导出语言取值
+  // 必填字段
   obj.put("msgGroup", getStringFromRS(rs, "MSGGROUP"));
   obj.put("msgKey", getStringFromRS(rs, "MSGKEY"));
-  if (typeof _langcode !== 'undefined' && _langcode !== 'EN') {
-    // 非EN语言: 取翻译值,无翻译时回退到原值
-    var transVal = getStringFromRS(rs, "L_VALUE");
-    obj.put("value", transVal !== null ? transVal : getStringFromRS(rs, "VALUE"));
-  } else {
-    // EN语言: 取原值
-    obj.put("value", getStringFromRS(rs, "VALUE"));
+  obj.put("value", getStringFromRS(rs, "VALUE"));
+  // 记录ID(前端详情查询用)
+  obj.put("MAXMESSAGESID", getStringFromRS(rs, "MAXMESSAGESID"));
+  // 始终返回中文翻译值(如果有的话)
+  var transVal = getStringFromRS(rs, "L_VALUE");
+  if (transVal !== null) {
+    obj.put("value_zh", transVal);
+  } else if (hasPagination) {
+    // 分页模式无翻译时也保留字段为null(前端统一展示)
+    obj.put("value_zh", null);
   }
   obj.put("displayMethod", getStringFromRS(rs, "DISPLAYMETHOD"));
 
