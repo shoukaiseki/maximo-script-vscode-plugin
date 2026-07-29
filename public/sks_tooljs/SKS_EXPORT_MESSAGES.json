@@ -2,12 +2,13 @@
   "autoscript": "SKS_EXPORT_MESSAGES",
   "description": "导出 MAXMESSAGES 消息为 JSON(支持 where/gk 过滤)",
   "category": "SKS_TOOL",
+  "ibm_packagepath": "cn.shoukaiseki.tools",
   "active": true,
-  "loglevel": "ERROR",
+  "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
   "userdefined": 1,
   "interface": 0,
-  "version": "1.0.18",
+  "version": "1.0.29",
   "variables": [],
   "launchPoints": []
 }

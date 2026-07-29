@@ -425,13 +425,13 @@ Message.prototype.setMboValues = function (mbo) {
         throw new MXApplicationException("","The mbo parameter must be based on the MAXMESSAGES Maximo object.");
     }
 
-    mbo.setValue("MSGGROUP", this.msgGroup);
-    mbo.setValue("MSGKEY", this.msgKey);
-    mbo.setValue("VALUE", this.value);
+    mbo.setValue("MSGGROUP", this.msgGroup,2);
+    mbo.setValue("MSGKEY", this.msgKey,2);
+    mbo.setValue("VALUE", this.value,2);
     mbo.setValue("DISPLAYMETHOD", this.displayMethod);
 
     if (this.msgId) {
-        mbo.setValue("MSGID", this.msgId);
+        mbo.setValue("MSGID", this.msgId,2);
     } else {
         this.prefix ? mbo.setValue("MSGIDPREFIX", this.prefix) : mbo.setValue("MSGIDPREFIX", "BMXZZ");
         this.suffix ? mbo.setValue("MSGIDSUFFIX", this.suffix) : mbo.setValue("MSGIDSUFFIX", "E");
@@ -3881,12 +3881,15 @@ function deployMessages(messages) {
 
     logger.info("Deploying Messages: \n" + JSON.stringify(messages, null, 4));
 
+    var messageIndex=0;
     messages.forEach(function (message) {
         if (typeof message.delete !== "undefined" && message.delete == true) {
             deleteMessage(message);
         } else {
             addOrUpdateMessage(message);
         }
+        ++messageIndex
+        logger.info("\x1b[32m Message deployed: messageIndex="+messageIndex +",msgGroupKey="+ message.msgGroup + "." + message.msgKey + "\x1b[0m")
     });
 }
 
@@ -3910,12 +3913,14 @@ function addOrUpdateMessage(message) {
 
         // remove the current message if it exists
         if (!maxMessageSet.isEmpty()) {
-            maxMessageSet.getMbo(0).delete();
-            maxMessageSet.save();
-            maxMessageSet.reset();
+            // maxMessageSet.getMbo(0).delete();
+            // maxMessageSet.save();
+            // maxMessageSet.reset();
+            msg.setMboValues(maxMessageSet.getMbo(0));
+        }else{
+            msg.setMboValues(maxMessageSet.add());
         }
 
-        msg.setMboValues(maxMessageSet.add());
 
         maxMessageSet.save();
     } finally {
