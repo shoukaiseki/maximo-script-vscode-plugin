@@ -62,7 +62,7 @@ if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryPar
   ignoreDefVal = true
 }
 
-// API类型: exp=导出, 其他=管理端查询(默认)
+// API类型: exp=导出, query=管理端查询(默认)
 var apiType = request.getQueryParam("apiType");
 
 // 分页参数
@@ -491,7 +491,15 @@ function buildMessageObjectFromRS(rs) {
   // 必填字段
   obj.put("msgGroup", getStringFromRS(rs, "MSGGROUP"));
   obj.put("msgKey", getStringFromRS(rs, "MSGKEY"));
-  obj.put("value", getStringFromRS(rs, "VALUE"));
+  // value 根据 _langcode 取值
+  if (typeof _langcode !== 'undefined' && _langcode !== 'EN') {
+    // 非EN语言: 取翻译值,无翻译时回退到原值
+    var transVal = getStringFromRS(rs, "L_VALUE");
+    obj.put("value", transVal !== null ? transVal : getStringFromRS(rs, "VALUE"));
+  } else {
+    // EN语言: 取原值
+    obj.put("value", getStringFromRS(rs, "VALUE"));
+  }
   // 记录ID(前端详情查询用)
   obj.put("MAXMESSAGESID", getStringFromRS(rs, "MAXMESSAGESID"));
   // 导出模式(apiType=exp)不返回翻译字段,仅显示对应语言的value
