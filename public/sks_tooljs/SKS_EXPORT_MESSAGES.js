@@ -62,6 +62,9 @@ if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryPar
   ignoreDefVal = true
 }
 
+// API类型: exp=导出, 其他=管理端查询(默认)
+var apiType = request.getQueryParam("apiType");
+
 // 分页参数
 var pageNum = request.getQueryParam("pageNum");
 var pageSize = request.getQueryParam("pageSize");
@@ -191,7 +194,7 @@ function main() {
         }
 
         logger.info("[" + scriptName + "] 导出完成, 共 " + messages.size() + " 条消息");
-        return JSON.stringify(JSON.parse(service.jsonToString(result)));
+        return service.jsonToString(result);
       } else {
         // gk 模式 - 按 msgGroup + msgKey 批量查询
         if (!groupKeyList || groupKeyList.length === 0) {
@@ -230,7 +233,7 @@ function main() {
         result.put("messages", messages);
 
         logger.info("[" + scriptName + "] 导出完成, 共 " + messages.size() + " 条消息");
-        return JSON.stringify(JSON.parse(service.jsonToString(result)));
+        return service.jsonToString(result);
       }
 
     } finally {
@@ -245,7 +248,7 @@ function main() {
     var errorData = new JSONObject();
     errorData.put("status", "error");
     errorData.put("message", error.message ? error.message : error.toString());
-    return JSON.stringify(JSON.parse(errorData.serialize()));
+    return errorData.serialize();
   }
 }
 
@@ -491,13 +494,16 @@ function buildMessageObjectFromRS(rs) {
   obj.put("value", getStringFromRS(rs, "VALUE"));
   // 记录ID(前端详情查询用)
   obj.put("MAXMESSAGESID", getStringFromRS(rs, "MAXMESSAGESID"));
-  // 始终返回中文翻译值(如果有的话)
-  var transVal = getStringFromRS(rs, "L_VALUE");
-  if (transVal !== null) {
-    obj.put("value_zh", transVal);
-  } else if (hasPagination) {
-    // 分页模式无翻译时也保留字段为null(前端统一展示)
-    obj.put("value_zh", null);
+  // 导出模式(apiType=exp)不返回翻译字段,仅显示对应语言的value
+  if (apiType !== 'exp') {
+    // 始终返回中文翻译值(如果有的话)
+    var transVal = getStringFromRS(rs, "L_VALUE");
+    if (transVal !== null) {
+      obj.put("value_zh", transVal);
+    } else if (hasPagination) {
+      // 分页模式无翻译时也保留字段为null(前端统一展示)
+      obj.put("value_zh", null);
+    }
   }
   obj.put("displayMethod", getStringFromRS(rs, "DISPLAYMETHOD"));
 

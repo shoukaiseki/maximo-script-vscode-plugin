@@ -5,6 +5,40 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.27] - 2026-07-30
+
+### 新增功能
+
+#### 计划导出功能增强
+- ✨ 导出任务列表新增「模块配置」列，按导出类型动态显示配置项
+  - 导出 MAXOBJECT：显示「精简模式」勾选框
+  - 导出消息：显示「单文件行数」输入框和「精简模式」勾选框
+  - 配置项上下行展示，清晰易用
+- ✨ 每个导出任务行下方显示独立进度条
+  - 实时显示各任务的子进度（如 MAXOBJECT 的对象数、消息的页数、脚本数、应用数）
+  - 进度显示格式：completedCount/total
+  - 任务完成后进度条自动隐藏
+- ✨ 导出消息接口添加 `apiType=exp` 参数
+
+#### 语言参数优化
+- ✨ 计划导出任务使用任务行自身的语言设置作为 `_langcode` 参数
+  - 不同任务可独立配置语言（如 EN/ZH 混合导出）
+  - 不受全局配置 langcode 影响
+
+### Bug 修复
+
+- 🐛 修复 httpRequestToMaximo 全局 langcode 注入覆盖 URL 中已有 `_langcode` 的问题
+  - 当 URL 已包含 `_langcode` 参数时跳过全局注入，避免参数重复
+
+### 技术实现
+
+- 🔧 修改文件
+  - `src/httpRequest.ts` - `_langcode` 已存在检查，URL 已有则不执行全局注入
+  - `src/configPanel.ts` - 所有计划导出 API 请求添加任务级 `_langcode`；新增 `_updateScheduledTaskProgress` 方法；各导出函数传递 taskIndex 上报子进度
+  - `webview-ui/src/App.tsx` - 新增 `scheduledExportTaskProgress` 状态和消息处理；任务行下方渲染独立进度条；模块配置列支持精简模式勾选框和单文件行数配置
+
+---
+
 ## [1.4.26] - 2026-07-28
 
 ### 新增功能

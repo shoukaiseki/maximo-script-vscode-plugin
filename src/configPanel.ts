@@ -212,6 +212,21 @@ export class ConfigPanel {
           case 'openMaxobjectConfig':
             await this._openMaxobjectConfig();
             return;
+          case 'selectDirectoryForExtractMessage':
+            await this._selectDirectoryForExtractMessage();
+            return;
+          case 'extractMessage':
+            await this._extractMessages(message.directoryPath, message.autoCreateExportDir);
+            return;
+          case 'saveScheduledExportConfig':
+            await this._saveScheduledExportConfig(message.config);
+            return;
+          case 'loadScheduledExportConfig':
+            await this._loadScheduledExportConfig();
+            return;
+          case 'executeScheduledExport':
+            await this._executeScheduledExport(message.config);
+            return;
         }
       },
       null,
@@ -397,6 +412,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('extractZipEnabled', data.extractZipEnabled !== undefined ? data.extractZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('extractXmlZipEnabled', data.extractXmlZipEnabled !== undefined ? data.extractXmlZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('extractMaxobjectZipEnabled', data.extractMaxobjectZipEnabled !== undefined ? data.extractMaxobjectZipEnabled : false, vscode.ConfigurationTarget.Global);
+      await config.update('exportMessageDirectory', data.exportMessageDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportMessageThreadCount', data.exportMessageThreadCount !== undefined ? data.exportMessageThreadCount : 5, vscode.ConfigurationTarget.Global);
+      await config.update('exportMessageZipEnabled', data.exportMessageZipEnabled !== undefined ? data.exportMessageZipEnabled : true, vscode.ConfigurationTarget.Global);
+      await config.update('exportMessagePageSize', data.exportMessagePageSize !== undefined ? data.exportMessagePageSize : 5000, vscode.ConfigurationTarget.Global);
+      await config.update('exportMessageIgnoreDefVal', data.exportMessageIgnoreDefVal !== undefined ? data.exportMessageIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
+      await config.update('scheduledExportBaseDir', data.scheduledExportBaseDir || '', vscode.ConfigurationTarget.Global);
       
       // 验证保存结果
       const savedValue = config.get('enableHttpLog', false);
@@ -770,7 +791,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       extractMaxobjectThreadCount: config.get('extractMaxobjectThreadCount', 5),
       extractZipEnabled: config.get('extractZipEnabled', false),
       extractXmlZipEnabled: config.get('extractXmlZipEnabled', false),
-      extractMaxobjectZipEnabled: config.get('extractMaxobjectZipEnabled', false)
+      extractMaxobjectZipEnabled: config.get('extractMaxobjectZipEnabled', false),
+      exportMessageDirectory: config.get('exportMessageDirectory', ''),
+      exportMessageThreadCount: config.get('exportMessageThreadCount', 5),
+      exportMessageZipEnabled: config.get('exportMessageZipEnabled', true),
+      exportMessagePageSize: config.get('exportMessagePageSize', 5000),
+      exportMessageIgnoreDefVal: config.get('exportMessageIgnoreDefVal', false),
+      scheduledExportBaseDir: config.get('scheduledExportBaseDir', '')
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
@@ -3950,6 +3977,800 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[_zipExportDirectory] 打包失败: ${error.message}`);
       return null;
     }
+  }
+
+  /**
+   * 选择消息导出目录
+   */
+  private async _selectDirectoryForExtractMessage() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportMessageDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportMessageDirectory] 消息导出目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractMessageDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '消息导出目录已保存'
+      });
+    }
+  }
+
+  /**
+   * 消息导出（通过 SKS_EXPORT_MESSAGES 接口）
+   */
+  private async _extractMessages(directoryPath: string, autoCreateExportDir: boolean = true) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const pageSize = config.get<number>('exportMessagePageSize', 5000);
+      const ignoreDefVal = config.get<boolean>('exportMessageIgnoreDefVal', false);
+      const threadCount = config.get<number>('exportMessageThreadCount', 5);
+      const langcode = config.get<string>('langcode', 'EN');
+      
+      this._sendToolboxOutput(`📦 开始导出 MAXMESSAGES 消息...${ignoreDefVal ? '（精简模式）' : '（完整模式）'}`);
+      this._sendToolboxOutput(`📋 分页大小: ${pageSize}, 语言: ${langcode}`);
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `messages_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      // 步骤1: 发送请求获取总记录数
+      this._sendToolboxOutput('\n📊 正在获取消息总数...');
+      
+      const countUrl = `script/SKS_EXPORT_MESSAGES?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&pageNum=1&pageSize=1`;
+      const countResult = await httpRequestToMaximo({
+        url: countUrl,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { filterMode: 'where', where: '1=1' }
+      });
+
+      if (countResult.status !== 200 || !countResult.data) {
+        this._sendToolboxOutput(`❌ 获取消息总数失败: HTTP ${countResult.status}`);
+        return;
+      }
+
+      let countData = countResult.data;
+      if (typeof countData === 'string') {
+        try { countData = JSON.parse(countData); } catch (e) { }
+      }
+
+      if (countData.status === 'error') {
+        this._sendToolboxOutput(`❌ 获取消息总数失败: ${countData.message || '未知错误'}`);
+        return;
+      }
+
+      const totalRecords = countData.total || 0;
+      if (totalRecords === 0) {
+        this._sendToolboxOutput('⚠️ 没有需要导出的消息记录');
+        return;
+      }
+
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      this._sendToolboxOutput(`✅ 共 ${totalRecords} 条消息，分 ${totalPages} 页导出（每页 ${pageSize} 条）`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      const maxConcurrent = Math.min(threadCount, totalPages);
+      this._sendToolboxOutput(`\n🚀 开始导出，并发数: ${maxConcurrent}`);
+
+      const pageList = Array.from({ length: totalPages }, (_, i) => i + 1);
+      let currentIndex = 0;
+
+      const exportSinglePage = async (): Promise<boolean> => {
+        const pageNum = currentIndex++;
+        if (pageNum >= totalPages) return false;
+        const page = pageList[pageNum];
+        
+        try {
+          this._sendToolboxOutput(`[${page}/${totalPages}] 正在导出第 ${page} 页...`);
+          
+          const exportUrl = `script/SKS_EXPORT_MESSAGES?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&pageNum=${page}&pageSize=${pageSize}`;
+          const exportResult = await httpRequestToMaximo({
+            url: exportUrl,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            data: { filterMode: 'where', where: '1=1' }
+          });
+
+          if (exportResult.status !== 200 || !exportResult.data) {
+            this._sendToolboxOutput(`  ❌ 第 ${page} 页导出失败: HTTP ${exportResult.status}`);
+            return false;
+          }
+
+          let responseData = exportResult.data;
+          if (typeof responseData === 'string') {
+            try { responseData = JSON.parse(responseData); } catch (e) { }
+          }
+
+          if (responseData.status === 'error') {
+            this._sendToolboxOutput(`  ❌ 第 ${page} 页导出失败: ${responseData.message || '未知错误'}`);
+            return false;
+          }
+
+          const fileName = `messages_page_${page}.json`;
+          const filePath = path.join(exportDir, fileName);
+          fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+          
+          const recordCount = responseData.messages ? responseData.messages.length : 0;
+          this._sendToolboxOutput(`  ✅ 已保存: ${fileName}（${recordCount} 条记录）`);
+          return true;
+
+        } catch (error: any) {
+          this._sendToolboxOutput(`  ❌ 第 ${page} 页导出异常: ${error.message}`);
+          logger.error(`[ExtractMessages] 第 ${page} 页导出失败: ${error.message}`);
+          return false;
+        }
+      };
+
+      const workers = Array.from({ length: maxConcurrent }, async () => {
+        while (true) {
+          const result = await exportSinglePage();
+          if (result === false) break;
+          if (result) successCount++;
+          else failCount++;
+        }
+      });
+
+      await Promise.all(workers);
+
+      this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount} 页, 失败: ${failCount} 页`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+      const zipCfg = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg.get('exportMessageZipEnabled', false) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractMessages] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractMessageComplete' });
+    }
+  }
+
+  /**
+   * 获取计划导出配置文件路径
+   */
+  private _getScheduledExportConfigPath(): string {
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '~';
+    const configDir = path.join(homeDir, '.sks', 'maximo-script-helper');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    return path.join(configDir, 'scheduledExportConfig.json');
+  }
+
+  /**
+   * 保存计划导出配置
+   */
+  private async _saveScheduledExportConfig(config: any) {
+    try {
+      const configPath = this._getScheduledExportConfigPath();
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+      logger.info(`[ScheduledExport] 配置已保存: ${configPath}`);
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '计划导出配置已保存'
+      });
+    } catch (error: any) {
+      logger.error(`[ScheduledExport] 保存配置失败: ${error.message}`);
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'error',
+        text: `保存配置失败: ${error.message}`
+      });
+    }
+  }
+
+  /**
+   * 加载计划导出配置
+   */
+  private async _loadScheduledExportConfig() {
+    try {
+      const configPath = this._getScheduledExportConfigPath();
+      let config: any = { baseDir: '', tasks: [] };
+      
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, 'utf-8');
+        config = JSON.parse(content);
+      }
+      
+      this._panel.webview.postMessage({
+        command: 'loadScheduledExportConfig',
+        config: config
+      });
+    } catch (error: any) {
+      logger.error(`[ScheduledExport] 加载配置失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 替换目录模板中的变量
+   */
+  private _resolveExportPath(template: string, envName: string, langcode?: string): string {
+    const now = new Date();
+    const timestamp = String(now.getTime());
+    const y = now.getFullYear();
+    const M = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const datetimeEN = `${y}${M}${d}_${h}${m}${s}`;
+    if (!langcode) {
+      const mainConfig = vscode.workspace.getConfiguration('maximoScript');
+      langcode = mainConfig.get<string>('langcode', 'EN');
+    }
+
+    let resolved = template;
+    resolved = resolved.replace(/\$\{envName\}/g, envName || 'default');
+    resolved = resolved.replace(/\$\{timestamp\}/g, timestamp);
+    resolved = resolved.replace(/\$\{datetimeEN\}/g, datetimeEN);
+    resolved = resolved.replace(/\$\{langcode\}/g, langcode);
+    
+    return resolved;
+  }
+
+  /**
+   * 向计划导出发送日志
+   */
+  private _sendScheduledLog(text: string) {
+    this._panel.webview.postMessage({
+      command: 'updateScheduledExportLog',
+      text: text
+    });
+  }
+
+  /**
+   * 更新计划导出进度
+   */
+  private _updateScheduledProgress(current: number, total: number, statusText: string) {
+    this._panel.webview.postMessage({
+      command: 'updateScheduledExportProgress',
+      current: current,
+      total: total,
+      statusText: statusText
+    });
+  }
+
+  /**
+   * 更新计划导出单个任务的内部子进度
+   */
+  private _updateScheduledTaskProgress(taskIndex: number, current: number, total: number, statusText: string) {
+    this._panel.webview.postMessage({
+      command: 'updateScheduledTaskProgress',
+      taskIndex: taskIndex,
+      current: current,
+      total: total,
+      statusText: statusText
+    });
+  }
+
+  /**
+   * 执行计划导出
+   */
+  private async _executeScheduledExport(planConfig: any) {
+    try {
+      const tasks = planConfig.tasks || [];
+      const baseDir = planConfig.baseDir || '';
+      const enabledTasks = tasks.filter((t: any) => t.enabled);
+      
+      if (enabledTasks.length === 0) {
+        this._sendScheduledLog('⚠️ 没有启用的导出任务');
+        return;
+      }
+
+      const mainConfig = vscode.workspace.getConfiguration('maximoScript');
+      const envName = mainConfig.get<string>('envnum', '');
+
+      const resolvedBaseDir = this._resolveExportPath(baseDir, envName);
+      
+      this._sendScheduledLog(`📋 计划导出开始，共 ${enabledTasks.length} 个任务`);
+      this._sendScheduledLog(`📁 基础目录: ${resolvedBaseDir}`);
+      
+      this._updateScheduledProgress(0, enabledTasks.length, '');
+
+      if (!fs.existsSync(resolvedBaseDir)) {
+        fs.mkdirSync(resolvedBaseDir, { recursive: true });
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < enabledTasks.length; i++) {
+        const task = enabledTasks[i];
+        const taskNum = i + 1;
+        
+        this._sendScheduledLog(`\n📦 [${taskNum}/${enabledTasks.length}] 开始执行: ${this._getExportFunctionLabel(task.exportFunction)}`);
+        
+        const taskDir = path.join(resolvedBaseDir, this._resolveExportPath(task.directory, envName, task.language || 'EN'));
+        
+        if (!fs.existsSync(taskDir)) {
+          fs.mkdirSync(taskDir, { recursive: true });
+        }
+
+        try {
+          await this._executeSingleExportTask(task, taskDir, taskNum, enabledTasks.length, i);
+          this._sendScheduledLog(`  ✅ [${taskNum}/${enabledTasks.length}] 完成: ${this._getExportFunctionLabel(task.exportFunction)}`);
+          // 如果任务启用了压缩，打包当前任务目录
+          if (task.compress) {
+            this._sendScheduledLog(`  📦 正在打包任务目录为ZIP...`);
+            await this._zipExportDirectory(taskDir);
+          }
+          successCount++;
+        } catch (error: any) {
+          this._sendScheduledLog(`  ❌ [${taskNum}/${enabledTasks.length}] 失败: ${this._getExportFunctionLabel(task.exportFunction)} - ${error.message}`);
+          logger.error(`[ScheduledExport] 任务 ${taskNum} 失败: ${error.message}`);
+          failCount++;
+        }
+
+        this._updateScheduledProgress(i + 1, enabledTasks.length, `已完成 ${i + 1}/${enabledTasks.length} 个任务`);
+      }
+
+      this._sendScheduledLog(`\n🎉 计划导出完成！成功: ${successCount}, 失败: ${failCount}`);
+      this._sendScheduledLog(`📁 保存位置: ${resolvedBaseDir}`);
+      
+    } catch (error: any) {
+      this._sendScheduledLog(`❌ 计划导出过程出错: ${error.message}`);
+      logger.error(`[ScheduledExport] 执行失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'scheduledExportComplete' });
+    }
+  }
+
+  /**
+   * 获取导出功能显示标签
+   */
+  private _getExportFunctionLabel(func: string): string {
+    const labels: Record<string, string> = {
+      'extractMaxobject': '导出 MAXOBJECT',
+      'extractMessage': '导出消息',
+      'extractScript': '导出脚本',
+      'extractAppXml': '导出应用XML'
+    };
+    return labels[func] || func;
+  }
+
+  /**
+   * 执行单个导出任务
+   */
+  private async _executeSingleExportTask(task: any, taskDir: string, taskNum: number, totalTasks: number, taskIndex: number): Promise<void> {
+    const exportFunction = task.exportFunction;
+    
+    switch (exportFunction) {
+      case 'extractMaxobject':
+        this._sendScheduledLog(`  🔄 正在导出 MAXOBJECT 到 ${taskDir}，线程数: ${task.threadCount || 5}`);
+        await this._extractMaxobjectForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, taskIndex);
+        break;
+      case 'extractMessage':
+        this._sendScheduledLog(`  🔄 正在导出消息到 ${taskDir}，线程数: ${task.threadCount || 5}`);
+        await this._extractMessagesForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 5000, taskIndex);
+        break;
+      case 'extractScript':
+        this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
+        await this._extractScriptsForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN');
+        break;
+      case 'extractAppXml':
+        this._sendScheduledLog(`  🔄 正在导出应用XML到 ${taskDir}，线程数: ${task.threadCount || 5}`);
+        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN');
+        break;
+      default:
+        throw new Error(`未知的导出功能: ${exportFunction}`);
+    }
+  }
+
+  /**
+   * 计划导出中的 MAXOBJECT 导出
+   */
+  private async _extractMaxobjectForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, taskIndex: number): Promise<void> {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    
+    const maxobjectResult = await httpRequestToMaximo({
+      url: `script/SKS_GET_MAXOBJECTNAMES?_langcode=${language}`,
+      method: 'GET'
+    });
+
+    if (maxobjectResult.status !== 200 || !maxobjectResult.data) {
+      throw new Error(`获取 MAXOBJECT 列表失败: HTTP ${maxobjectResult.status}`);
+    }
+
+    let allObjects: any[];
+    if (Array.isArray(maxobjectResult.data)) {
+      allObjects = maxobjectResult.data;
+    } else if (maxobjectResult.data.member && Array.isArray(maxobjectResult.data.member)) {
+      allObjects = maxobjectResult.data.member;
+    } else {
+      throw new Error('MAXOBJECT 列表格式不正确');
+    }
+
+    if (allObjects.length === 0) {
+      throw new Error('没有需要导出的 MAXOBJECT');
+    }
+
+    this._sendScheduledLog(`  📋 共 ${allObjects.length} 个 MAXOBJECT`);
+
+    let successCount = 0;
+    let failCount = 0;
+    let currentIndex = 0;
+    let completedCount = 0;
+    const total = allObjects.length;
+
+    const exportSingle = async (): Promise<boolean> => {
+      const index = currentIndex++;
+      if (index >= total) return false;
+      const obj = allObjects[index];
+      const objectName = obj.objectName || obj.OBJECTNAME || '';
+
+      try {
+        const exportUrl = `script/SKS_EXPORT_DBCONFIG?_langcode=${language}`;
+        const exportResult = await httpRequestToMaximo({
+          url: exportUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { objectNames: [objectName], ...(ignoreDefVal ? { ignoreDefVal: true } : {}) }
+        });
+
+        if (exportResult.status !== 200 || !exportResult.data) {
+          this._sendScheduledLog(`    ❌ 导出失败: ${objectName} - HTTP ${exportResult.status}`);
+          return false;
+        }
+
+        let responseData = exportResult.data;
+        if (typeof responseData === 'string') {
+          try { responseData = JSON.parse(responseData); } catch (e) { }
+        }
+
+        const fileName = `DBCONFIG_${objectName}.json`;
+        const filePath = path.join(taskDir, fileName);
+        fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+        
+        this._sendScheduledLog(`    ✅ 已保存: ${fileName}`);
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${objectName}`);
+        return true;
+
+      } catch (error: any) {
+        this._sendScheduledLog(`    ❌ 导出异常: ${objectName} - ${error.message}`);
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${objectName}`);
+        return false;
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(threadCount, total) }, async () => {
+      while (true) {
+        const result = await exportSingle();
+        if (result === false) break;
+      }
+    });
+
+    await Promise.all(workers);
+  }
+
+  /**
+   * 计划导出中的消息导出
+   */
+  private async _extractMessagesForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, pageSize: number, taskIndex: number): Promise<void> {
+    
+    // 获取总数
+    const countUrl = `script/SKS_EXPORT_MESSAGES?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&apiType=exp&pageNum=1&pageSize=1`;
+    const countResult = await httpRequestToMaximo({
+      url: countUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { filterMode: 'where', where: '1=1' }
+    });
+
+    if (countResult.status !== 200 || !countResult.data) {
+      throw new Error(`获取消息总数失败: HTTP ${countResult.status}`);
+    }
+
+    let countData = countResult.data;
+    if (typeof countData === 'string') {
+      try { countData = JSON.parse(countData); } catch (e) { }
+    }
+
+    if (countData.status === 'error') {
+      throw new Error(`获取消息总数失败: ${countData.message || '未知错误'}`);
+    }
+
+    const totalRecords = countData.total || 0;
+    if (totalRecords === 0) {
+      throw new Error('没有需要导出的消息记录');
+    }
+
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    this._sendScheduledLog(`  📋 共 ${totalRecords} 条消息，分 ${totalPages} 页`);
+
+    const maxConcurrent = Math.min(threadCount, totalPages);
+    const pageList = Array.from({ length: totalPages }, (_, i) => i + 1);
+    let currentIndex = 0;
+    let completedCount = 0;
+
+    const exportSinglePage = async (): Promise<boolean> => {
+      const pageNum = currentIndex++;
+      if (pageNum >= totalPages) return false;
+      const page = pageList[pageNum];
+
+      try {
+        const exportUrl = `script/SKS_EXPORT_MESSAGES?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&pageNum=${page}&pageSize=${pageSize}`;
+        const exportResult = await httpRequestToMaximo({
+          url: exportUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { filterMode: 'where', where: '1=1' }
+        });
+
+        if (exportResult.status !== 200 || !exportResult.data) {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+          return false;
+        }
+
+        let responseData = exportResult.data;
+        if (typeof responseData === 'string') {
+          try { responseData = JSON.parse(responseData); } catch (e) { }
+        }
+
+        if (responseData.status === 'error') {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+          return false;
+        }
+
+        const fileName = `messages_page_${page}.json`;
+        const filePath = path.join(taskDir, fileName);
+        fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+        return true;
+
+      } catch (error: any) {
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+        return false;
+      }
+    };
+
+    const workers = Array.from({ length: maxConcurrent }, async () => {
+      while (true) {
+        const result = await exportSinglePage();
+        if (result === false) break;
+      }
+    });
+
+    await Promise.all(workers);
+    this._sendScheduledLog(`  ✅ 消息导出完成，共 ${totalPages} 页`);
+  }
+
+  /**
+   * 计划导出中的脚本导出
+   */
+  private async _extractScriptsForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    const serverUrl = config.get<string>('serverUrl', '');
+    
+    if (!serverUrl) {
+      throw new Error('请先在设置中配置服务器地址');
+    }
+
+    if (!ConfigPanel.checkConfig()) {
+      throw new Error('配置不完整，请先在配置面板中设置服务器信息');
+    }
+
+    // 获取所有脚本名称
+    const scriptsResult = await httpRequestToMaximo({
+      url: `script/SKS_GET_AUTOSCRIPTNAMES?_langcode=${language}`,
+      method: 'GET'
+    });
+
+    if (scriptsResult.status !== 200 || !scriptsResult.data) {
+      throw new Error(`获取脚本列表失败: HTTP ${scriptsResult.status}`);
+    }
+
+    let scriptNames: any[];
+    if (Array.isArray(scriptsResult.data)) {
+      scriptNames = scriptsResult.data;
+    } else if (scriptsResult.data.member && Array.isArray(scriptsResult.data.member)) {
+      scriptNames = scriptsResult.data.member;
+    } else {
+      throw new Error('脚本列表格式不正确');
+    }
+
+    this._sendScheduledLog(`  📋 共 ${scriptNames.length} 个脚本`);
+
+    let successCount = 0;
+    let failCount = 0;
+    let currentIndex = 0;
+    let completedCount = 0;
+    const total = scriptNames.length;
+
+    const exportSingleScript = async (): Promise<boolean> => {
+      const index = currentIndex++;
+      if (index >= total) return false;
+      const scriptInfo = scriptNames[index];
+      const scriptName = typeof scriptInfo === 'string' ? scriptInfo : (scriptInfo.autoscript || scriptInfo.AUTOSCRIPT || '');
+      
+      try {
+        const scriptUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME/${encodeURIComponent(scriptName)}?_langcode=${language}`;
+        const scriptResult = await httpRequestToMaximo({
+          url: scriptUrl,
+          method: 'GET'
+        });
+
+        if (scriptResult.status !== 200 || !scriptResult.data) {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName}`);
+          return false;
+        }
+
+        let scriptData = scriptResult.data;
+        if (typeof scriptData === 'string') {
+          try { scriptData = JSON.parse(scriptData); } catch (e) { }
+        }
+
+        const jsonFileName = `${scriptName}.json`;
+        const jsonFilePath = path.join(taskDir, jsonFileName);
+        fs.writeFileSync(jsonFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
+
+        // 如果有源代码也保存
+        const sourceCode = scriptData.source || scriptData.SOURCE || '';
+        if (sourceCode) {
+          const ext = (scriptData.scriptlanguage || '').toLowerCase() === 'python' ? '.py' : '.js';
+          const codeFileName = `${scriptName}${ext}`;
+          const codeFilePath = path.join(taskDir, codeFileName);
+          fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
+        }
+
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName}`);
+        return true;
+
+      } catch (error: any) {
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName}`);
+        return false;
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(threadCount, total) }, async () => {
+      while (true) {
+        const result = await exportSingleScript();
+        if (result === false) break;
+      }
+    });
+
+    await Promise.all(workers);
+    this._sendScheduledLog(`  ✅ 脚本导出完成`);
+  }
+
+  /**
+   * 计划导出中的应用 XML 导出
+   */
+  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string): Promise<void> {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    const serverUrl = config.get<string>('serverUrl', '');
+    
+    if (!serverUrl) {
+      throw new Error('请先在设置中配置服务器地址');
+    }
+
+    if (!ConfigPanel.checkConfig()) {
+      throw new Error('配置不完整，请先在配置面板中设置服务器信息');
+    }
+
+    // 获取所有应用名称
+    const screensResult = await httpRequestToMaximo({
+      url: `script/SHARPTREE.AUTOSCRIPT.SCREENS?_langcode=${language}`,
+      method: 'GET'
+    });
+
+    if (screensResult.status !== 200 || !screensResult.data) {
+      throw new Error(`获取应用列表失败: HTTP ${screensResult.status}`);
+    }
+
+    let screenNames: string[];
+    if (Array.isArray(screensResult.data.screenNames)) {
+      screenNames = screensResult.data.screenNames;
+    } else {
+      throw new Error('应用列表格式不正确');
+    }
+
+    this._sendScheduledLog(`  📋 共 ${screenNames.length} 个应用`);
+
+    let currentIndex = 0;
+    let completedCount = 0;
+    const total = screenNames.length;
+
+    const exportSingleApp = async (): Promise<boolean> => {
+      const index = currentIndex++;
+      if (index >= total) return false;
+      const screenName = screenNames[index];
+
+      try {
+        const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}`;
+        const screenResult = await httpRequestToMaximo({
+          url: screenUrl,
+          method: 'GET'
+        });
+
+        if (screenResult.status !== 200 || !screenResult.data) {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
+          return false;
+        }
+
+        const presentation = screenResult.data.presentation;
+        if (!presentation) {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
+          return false;
+        }
+
+        const xmlFilePath = path.join(taskDir, `${screenName}.xml`);
+        fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
+        return true;
+
+      } catch (error: any) {
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
+        return false;
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(threadCount, total) }, async () => {
+      while (true) {
+        const result = await exportSingleApp();
+        if (result === false) break;
+      }
+    });
+
+    await Promise.all(workers);
+    this._sendScheduledLog(`  ✅ 应用 XML 导出完成`);
   }
 
   public dispose() {

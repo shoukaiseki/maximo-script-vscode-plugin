@@ -469,8 +469,8 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
       requestHeaders['Content-Type'] = 'application/json';
     }
 
-    // 处理 langcode 参数
-    if (langcode && langcode.trim() !== '') {
+    // 处理 langcode 参数（如果 URL 中已存在 _langcode，则不覆盖）
+    if (langcode && langcode.trim() !== '' && !apiUrl.toLowerCase().includes('_langcode=')) {
       // 先设置两个变量 #前=apiUrl #后=''
       let beforeHash = apiUrl;
       let afterHash = '';

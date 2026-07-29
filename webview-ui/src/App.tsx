@@ -42,6 +42,12 @@ interface ConfigData {
   extractZipEnabled: boolean;  // 导出脚本完成后打包ZIP
   extractXmlZipEnabled: boolean;  // 导出应用XML完成后打包ZIP
   extractMaxobjectZipEnabled: boolean;  // 导出MAXOBJECT完成后打包ZIP
+  exportMessageDirectory: string;  // 消息导出目录
+  exportMessageThreadCount: number;  // 消息导出线程数
+  exportMessageZipEnabled: boolean;  // 消息导出打包ZIP
+  exportMessagePageSize: number;  // 消息导出单文件行数
+  exportMessageIgnoreDefVal: boolean;  // 消息导出忽略默认值
+  scheduledExportBaseDir: string;  // 计划导出基础目录
 }
 
 const App: React.FC = () => {
@@ -62,6 +68,13 @@ const App: React.FC = () => {
   const [isExtractXmlRunning, setIsExtractXmlRunning] = useState<boolean>(false);
   const [extractMaxobjectDirectoryPath, setExtractMaxobjectDirectoryPath] = useState<string>('');
   const [isExtractMaxobjectRunning, setIsExtractMaxobjectRunning] = useState<boolean>(false);
+  const [extractMessageDirectoryPath, setExtractMessageDirectoryPath] = useState<string>('');
+  const [isExtractMessageRunning, setIsExtractMessageRunning] = useState<boolean>(false);
+  const [scheduledExportPlan, setScheduledExportPlan] = useState<any>({ baseDir: '', tasks: [] });
+  const [isScheduledExportRunning, setIsScheduledExportRunning] = useState<boolean>(false);
+  const [scheduledExportProgress, setScheduledExportProgress] = useState<{ current: number; total: number; statusText: string }>({ current: 0, total: 0, statusText: '' });
+  const [scheduledExportTaskProgress, setScheduledExportTaskProgress] = useState<Record<number, { current: number; total: number; statusText: string }>>({});
+  const [scheduledExportLog, setScheduledExportLog] = useState<string>('');
   const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
   const [scriptList, setScriptList] = useState<any[]>([]);
   const [isQueryingScripts, setIsQueryingScripts] = useState<boolean>(false);
@@ -100,6 +113,12 @@ const App: React.FC = () => {
     extractZipEnabled: false,
     extractXmlZipEnabled: false,
     extractMaxobjectZipEnabled: false,
+    exportMessageDirectory: '',
+    exportMessageThreadCount: 5,
+    exportMessageZipEnabled: true,
+    exportMessagePageSize: 5000,
+    exportMessageIgnoreDefVal: false,
+    scheduledExportBaseDir: '',
   });
   
   // 环境配置缓存
@@ -319,6 +338,11 @@ const App: React.FC = () => {
           if (message.data.exportMaxobjectDirectory) {
             setExtractMaxobjectDirectoryPath(message.data.exportMaxobjectDirectory);
           }
+          if (message.data.exportMessageDirectory) {
+            setExtractMessageDirectoryPath(message.data.exportMessageDirectory);
+          }
+          // 加载计划导出配置
+          getVsCodeApi().postMessage({ command: 'loadScheduledExportConfig' });
           break;
         case 'setDirectoryPath':
           setConfig(prev => ({ ...prev, localApiPath: message.path }));
@@ -460,6 +484,41 @@ const App: React.FC = () => {
           // 导出MAXOBJECT完成
           setIsExtractMaxobjectRunning(false);
           break;
+        case 'setExtractMessageDirectoryPath':
+          // 设置消息导出目录路径
+          setExtractMessageDirectoryPath(message.path);
+          setConfig(prev => ({ ...prev, exportMessageDirectory: message.path }));
+          break;
+        case 'extractMessageComplete':
+          // 消息导出完成
+          setIsExtractMessageRunning(false);
+          break;
+        case 'loadScheduledExportConfig':
+          // 加载计划导出配置
+          if (message.config) {
+            setScheduledExportPlan(message.config);
+          }
+          break;
+        case 'updateScheduledExportLog':
+          // 更新计划导出日志
+          setScheduledExportLog(prev => prev + message.text + '\n');
+          break;
+        case 'updateScheduledExportProgress':
+          // 更新计划导出进度
+          setScheduledExportProgress({ current: message.current, total: message.total, statusText: message.statusText });
+          break;
+        case 'updateScheduledTaskProgress':
+          // 更新计划导出单个任务进度
+          setScheduledExportTaskProgress(prev => ({
+            ...prev,
+            [message.taskIndex]: { current: message.current, total: message.total, statusText: message.statusText }
+          }));
+          break;
+        case 'scheduledExportComplete':
+          // 计划导出完成
+          setIsScheduledExportRunning(false);
+          setScheduledExportTaskProgress({});
+          break;
         case 'setScriptList':
           // 设置脚本列表
           setScriptList(message.scripts || []);
@@ -469,6 +528,14 @@ const App: React.FC = () => {
           // 显示用户信息
           setUserInfo(message.data);
           setShowUserInfoDialog(true);
+          break;
+        case 'showMessage':
+          // 显示消息（来自后端的提示）
+          if (message.type === 'success') {
+            getVsCodeApi().postMessage({ command: 'showInfo', message: message.text });
+          } else if (message.type === 'error') {
+            getVsCodeApi().postMessage({ command: 'showWarning', message: message.text });
+          }
           break;
       }
     });
@@ -757,6 +824,69 @@ const App: React.FC = () => {
     });
   };
 
+  // 工具箱 - 选择消息导出目录
+  const handleSelectExtractMessageDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractMessage'
+    });
+  };
+
+  // 工具箱 - 开始导出消息
+  const handleStartExtractMessage = () => {
+    if (!extractMessageDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractMessageRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractMessage',
+      directoryPath: extractMessageDirectoryPath,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
+
+  // 工具箱 - 添加计划导出任务
+  const handleAddScheduledTask = () => {
+    const newTasks = [...(scheduledExportPlan.tasks || [])];
+    const maxId = newTasks.reduce((max: number, t: any) => Math.max(max, t.id || 0), 0);
+    newTasks.push({
+      id: maxId + 1,
+      exportFunction: 'extractMaxobject',
+      directory: 'maxobject_backup_${datetimeEN}_${langcode}',
+      language: 'ZH',
+      compress: true,
+      threadCount: 10,
+      pageSize: 5000,
+      ignoreDefVal: false,
+      enabled: true
+    });
+    setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+  };
+
+  // 工具箱 - 保存计划导出配置
+  const handleSaveScheduledExportConfig = () => {
+    getVsCodeApi().postMessage({
+      command: 'saveScheduledExportConfig',
+      config: scheduledExportPlan
+    });
+  };
+
+  // 工具箱 - 开始执行计划导出
+  const handleStartScheduledExport = () => {
+    setIsScheduledExportRunning(true);
+    setScheduledExportLog('');
+    setScheduledExportProgress({ current: 0, total: 0, statusText: '' });
+    setScheduledExportTaskProgress({});
+    getVsCodeApi().postMessage({
+      command: 'executeScheduledExport',
+      config: scheduledExportPlan
+    });
+  };
+
   // 查询脚本
   const handleQueryScripts = () => {
     setIsQueryingScripts(true);
@@ -843,6 +973,7 @@ const App: React.FC = () => {
     { id: 'completion', label: '补全设置' },
     { id: 'other', label: '其它配置' },
     { id: 'toolbox', label: '工具箱' },
+    { id: 'scheduledExport', label: '计划导出' },
     { id: 'queryScripts', label: '查询脚本' },
     { id: 'logger', label: '日志' },
     { id: 'about', label: '关于' }
@@ -1426,6 +1557,21 @@ const App: React.FC = () => {
                 }}
               >
                 🗄️ 导出MAXOBJECT
+              </button>
+              <button
+                onClick={() => setActiveToolboxTab('extractMessage')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractMessage' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractMessage' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractMessage' ? 'bold' : 'normal'
+                }}
+              >
+                💬 导出消息
               </button>
               <button
                 onClick={() => setActiveToolboxTab('initProject')}
@@ -2256,8 +2402,531 @@ const App: React.FC = () => {
                     {toolboxOutput || '准备就绪，请选择导出目录并点击“开始导出”按钮...'}
                   </pre>
                 </div>
+             </div>
+            )}
+          </div>
+        )}
+
+        {/* 消息导出标签页 */}
+        {activeToolboxTab === 'extractMessage' && (
+          <div>
+            <div style={{ 
+              padding: '15px', 
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderLeft: '4px solid var(--vscode-terminal-ansiCyan)',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>💬 导出 MAXMESSAGES 消息</p>
+              <p style={{ margin: '0 0 10px 0' }}>
+                此功能将通过 SKS_EXPORT_MESSAGES 接口从 Maximo 服务器导出消息（MAXMESSAGES），支持分页导出为多个 JSON 文件。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                📌 <strong>使用说明：</strong><br/>
+                1. 选择要保存消息 JSON 的本地目录<br/>
+                2. 设置单文件行数（分页大小），根据分页查询导出多个文件<br/>
+                3. 可选勾选忽略默认值（简化 JSON）<br/>
+                4. 点击"开始导出"按钮
+              </p>
+            </div>
+
+            {/* 导出目录选择 */}
+            <div className="form-group">
+              <label>选择导出目录：</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={extractMessageDirectoryPath}
+                  readOnly
+                  placeholder="选择要保存消息 JSON 的目录"
+                  style={{ flex: 1 }}
+                />
+                <button onClick={handleSelectExtractMessageDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+              </div>
+            </div>
+
+            {/* 分页大小配置 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📄 单文件行数（分页大小）：</span>
+                <input
+                  type="number"
+                  min="100"
+                  max="50000"
+                  value={config.exportMessagePageSize}
+                  onChange={(e) => updateConfig({ exportMessagePageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) })}
+                  style={{ width: '100px', textAlign: 'center' }}
+                />
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                每个 JSON 文件包含的消息条数（范围 100~50000，根据导出结果分页生成多个文件）
+              </p>
+            </div>
+
+            {/* 忽略默认值选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportMessageIgnoreDefVal}
+                  onChange={(e) => updateConfig({ exportMessageIgnoreDefVal: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>🔧 忽略默认值（简化 JSON）</span>
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                {config.exportMessageIgnoreDefVal 
+                  ? '✅ 精简模式已开启，导出时将忽略默认值字段'
+                  : '💡 完整模式（默认），导出时将包含所有字段'}
+              </p>
+            </div>
+
+            {/* 并发线程数配置 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔄 导出线程数：</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={config.exportMessageThreadCount}
+                  onChange={(e) => updateConfig({ exportMessageThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
+                  style={{ width: '80px', textAlign: 'center' }}
+                />
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                并发导出页数（范围 1~20，推荐 5~10）
+              </p>
+            </div>
+
+            {/* 打包ZIP选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportMessageZipEnabled}
+                  onChange={(e) => updateConfig({ exportMessageZipEnabled: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>📦 导出完成后自动打包为ZIP</span>
+              </label>
+            </div>
+
+            <button 
+              onClick={handleStartExtractMessage}
+              disabled={!extractMessageDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '20px',
+                opacity: (!extractMessageDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning) ? 0.6 : 1,
+                cursor: (!extractMessageDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {!extractMessageDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractMessageRunning ? '⏳ 正在导出...' : '💬 开始导出')}
+            </button>
+
+            {/* 输出日志区域 */}
+            <div style={{ 
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '4px',
+              padding: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                <button 
+                  onClick={handleClearToolboxOutput}
+                  style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                >
+                  清空
+                </button>
+              </div>
+              <pre style={{ 
+                margin: 0,
+                padding: '10px',
+                background: 'var(--vscode-textCodeBlock-background)',
+                borderRadius: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontSize: '0.9em'
+              }}>
+                {toolboxOutput || '准备就绪，请选择导出目录并点击"开始导出"按钮...'}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* 计划导出页面 */}
+        {activeSection === 'scheduledExport' && (
+          <div className="section active">
+            <h2>📅 计划导出</h2>
+            <div style={{ 
+              padding: '15px', 
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderLeft: '4px solid var(--vscode-terminal-ansiGreen)',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ margin: '0 0 10px 0' }}>
+                配置多组导出任务，按顺序执行计划导出。支持变量替换 $&#123;envName&#125;（环境名称）、$&#123;timestamp&#125;（时间戳）、$&#123;datetimeEN&#125;（日期时间格式 yyyyMMdd_HHmmss）。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                📌 <strong>使用说明：</strong><br/>
+                1. 设置基础导出目录（支持 $&#123;envName&#125; 变量）<br/>
+                2. 添加导出任务，配置导出功能、目录、语言等<br/>
+                3. 勾选需要执行的任务<br/>
+                4. 点击"开始执行"按钮，按顺序执行导出<br/>
+                5. 配置会自动保存在 ~/.sks/maximo-script-helper/ 目录下
+              </p>
+            </div>
+
+            {/* 基础导出目录 */}
+            <div className="form-group">
+              <label>📁 基础导出目录：</label>
+              <input
+                type="text"
+                value={scheduledExportPlan.baseDir || ''}
+                onChange={(e) => {
+                  const newPlan = { ...scheduledExportPlan, baseDir: e.target.value };
+                  setScheduledExportPlan(newPlan);
+                }}
+                placeholder="E:/tmp/msh-masbackup/$&#123;envName&#125;"
+                style={{ width: '100%' }}
+              />
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                支持变量: $&#123;envName&#125; - 环境名称, $&#123;timestamp&#125; - 时间戳, $&#123;datetimeEN&#125; - yyyyMMdd_HHmmss
+              </p>
+            </div>
+
+            {/* 任务列表表格 */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 导出任务列表</span>
+                <div>
+                  <button 
+                    onClick={handleAddScheduledTask}
+                    style={{ marginRight: '8px', padding: '4px 12px', cursor: 'pointer' }}
+                  >
+                    ➕ 添加任务
+                  </button>
+                  <button 
+                    onClick={handleSaveScheduledExportConfig}
+                    style={{ padding: '4px 12px', cursor: 'pointer', background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 'none', borderRadius: '4px' }}
+                  >
+                    💾 保存配置
+                  </button>
+                </div>
+              </div>
+
+              {/* 表头 */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '40px 150px 1fr 80px 120px 60px 80px 60px 50px',
+                gap: '4px',
+                padding: '8px 4px',
+                background: 'var(--vscode-editor-background)',
+                borderBottom: '2px solid var(--vscode-panel-border)',
+                fontWeight: 'bold',
+                fontSize: '0.9em'
+              }}>
+                <span style={{ textAlign: 'center' }}>序号</span>
+                <span>导出功能</span>
+                <span>目录</span>
+                <span style={{ textAlign: 'center' }}>语言</span>
+                <span style={{ textAlign: 'center' }}>模块配置</span>
+                <span style={{ textAlign: 'center' }}>压缩</span>
+                <span style={{ textAlign: 'center' }}>线程数</span>
+                <span style={{ textAlign: 'center' }}>启用</span>
+                <span style={{ textAlign: 'center' }}>删除</span>
+              </div>
+
+              {/* 任务行 */}
+              {(scheduledExportPlan.tasks || []).map((task: any, index: number) => {
+                const taskProgress = scheduledExportTaskProgress[index];
+                return (
+                <div key={task.id || index}>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '40px 150px 1fr 80px 120px 60px 80px 60px 50px',
+                  gap: '4px',
+                  padding: '6px 4px',
+                  borderBottom: '1px solid var(--vscode-panel-border)',
+                  alignItems: 'center',
+                  fontSize: '0.85em',
+                  background: task.enabled ? 'transparent' : 'var(--vscode-inputValidation-warningBackground)'
+                }}>
+                  <span style={{ textAlign: 'center' }}>{index + 1}</span>
+                  <select
+                    value={task.exportFunction || ''}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], exportFunction: e.target.value };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ width: '100%', fontSize: '0.85em' }}
+                    disabled={isScheduledExportRunning}
+                  >
+                    <option value="extractMaxobject">导出 MAXOBJECT</option>
+                    <option value="extractMessage">导出消息</option>
+                    <option value="extractScript">导出脚本</option>
+                    <option value="extractAppXml">导出应用XML</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={task.directory || ''}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], directory: e.target.value };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    placeholder="maxobject_backup_$&#123;datetimeEN&#125;_$&#123;lang&#125;"
+                    style={{ width: '100%', fontSize: '0.85em' }}
+                    disabled={isScheduledExportRunning}
+                  />
+                  <select
+                    value={task.language || 'EN'}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], language: e.target.value };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ width: '100%', fontSize: '0.85em' }}
+                    disabled={isScheduledExportRunning}
+                  >
+                    {languageOptions.map(lang => (
+                      <option key={lang.code} value={lang.code}>{lang.code} - {lang.name}</option>
+                    ))}
+                  </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'stretch' }}>
+                    {task.exportFunction === 'extractMaxobject' ? (
+                      <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={task.ignoreDefVal || false}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        精简模式
+                      </label>
+                    ) : task.exportFunction === 'extractMessage' ? (
+                      <>
+                        <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>
+                        <input
+                          type="number"
+                          min="100"
+                          max="50000"
+                          step="100"
+                          value={task.pageSize !== undefined ? task.pageSize : 5000}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', marginTop: '2px' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.ignoreDefVal || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          精简模式
+                        </label>
+                      </>
+                    ) : (
+                      <span style={{ textAlign: 'center', color: 'var(--vscode-descriptionForeground)', fontSize: '0.85em', alignSelf: 'center' }}>-</span>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={task.compress || false}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], compress: e.target.checked };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ justifySelf: 'center', cursor: 'pointer' }}
+                    disabled={isScheduledExportRunning}
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={task.threadCount || 5}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], threadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 5)) };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ width: '60px', textAlign: 'center', fontSize: '0.85em', justifySelf: 'center' }}
+                    disabled={isScheduledExportRunning}
+                  />
+                  <input
+                    type="checkbox"
+                    checked={task.enabled !== false}
+                    onChange={(e) => {
+                      const newTasks = [...(scheduledExportPlan.tasks || [])];
+                      newTasks[index] = { ...newTasks[index], enabled: e.target.checked };
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ justifySelf: 'center', cursor: 'pointer' }}
+                  />
+                  <button
+                    onClick={() => {
+                      const newTasks = (scheduledExportPlan.tasks || []).filter((_: any, i: number) => i !== index);
+                      setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                    }}
+                    style={{ 
+                      justifySelf: 'center',
+                      padding: '2px 6px',
+                      fontSize: '0.85em',
+                      cursor: isScheduledExportRunning ? 'not-allowed' : 'pointer',
+                      background: 'transparent',
+                      border: '1px solid var(--vscode-panel-border)',
+                      borderRadius: '3px',
+                      color: 'var(--vscode-errorForeground)'
+                    }}
+                    disabled={isScheduledExportRunning}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {/* 单个任务进度条 */}
+                {isScheduledExportRunning && taskProgress && taskProgress.total > 0 && (
+                  <div style={{ padding: '2px 8px 6px 8px', borderBottom: '1px solid var(--vscode-panel-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)' }}>
+                      <span>{taskProgress.statusText || ''}</span>
+                      <span>{taskProgress.current} / {taskProgress.total}</span>
+                    </div>
+                    <div style={{ 
+                      width: '100%',
+                      height: '8px',
+                      background: 'var(--vscode-textCodeBlock-background)',
+                      borderRadius: '4px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{ 
+                        width: `${(taskProgress.current / taskProgress.total) * 100}%`,
+                        height: '100%',
+                        background: 'var(--vscode-terminal-ansiGreen)',
+                        borderRadius: '4px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                )}
+                </div>
+                );
+              })}
+
+              {(scheduledExportPlan.tasks || []).length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--vscode-descriptionForeground)' }}>
+                  暂无任务，点击"添加任务"按钮添加
+                </div>
+              )}
+            </div>
+
+            {/* 变量说明 */}
+            <div style={{ 
+              padding: '10px',
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderRadius: '4px',
+              marginBottom: '20px',
+              fontSize: '0.85em'
+            }}>
+              <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>📌 变量说明:</p>
+              <p style={{ margin: '0 0 3px 0' }}>$&#123;envName&#125; - 环境名称（如：loction）</p>
+              <p style={{ margin: '0 0 3px 0' }}>$&#123;timestamp&#125; - 时间戳（如：1722300000000）</p>
+              <p style={{ margin: '0 0 3px 0' }}>$&#123;datetimeEN&#125; - 日期时间格式 yyyyMMdd_HHmmss（如：20260730_001009）</p>
+              <p style={{ margin: '0' }}>$&#123;langcode&#125; - 语言代码（如：ZH, EN）</p>
+            </div>
+
+            {/* 开始执行按钮 */}
+            <button 
+              onClick={handleStartScheduledExport}
+              disabled={isScheduledExportRunning || (scheduledExportPlan.tasks || []).length === 0}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '20px',
+                opacity: (isScheduledExportRunning || (scheduledExportPlan.tasks || []).length === 0) ? 0.6 : 1,
+                cursor: (isScheduledExportRunning || (scheduledExportPlan.tasks || []).length === 0) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isScheduledExportRunning ? '⏳ 正在执行...' : '▶️ 开始执行'}
+            </button>
+
+            {/* 进度条 */}
+            {isScheduledExportRunning && scheduledExportProgress.total > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9em' }}>
+                  <span>📊 导出进度</span>
+                  <span>{scheduledExportProgress.current} / {scheduledExportProgress.total}</span>
+                </div>
+                <div style={{ 
+                  width: '100%',
+                  height: '20px',
+                  background: 'var(--vscode-textCodeBlock-background)',
+                  borderRadius: '10px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    width: `${(scheduledExportProgress.current / scheduledExportProgress.total) * 100}%`,
+                    height: '100%',
+                    background: 'var(--vscode-terminal-ansiGreen)',
+                    borderRadius: '10px',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                  {scheduledExportProgress.statusText || ''}
+                </p>
               </div>
             )}
+
+            {/* 输出日志区域 */}
+            <div style={{ 
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '4px',
+              padding: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 导出日志</span>
+                <button 
+                  onClick={() => setScheduledExportLog('')}
+                  style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                >
+                  清空
+                </button>
+              </div>
+              <pre style={{ 
+                margin: 0,
+                padding: '10px',
+                background: 'var(--vscode-textCodeBlock-background)',
+                borderRadius: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontSize: '0.9em'
+              }}>
+                {scheduledExportLog || '准备就绪，请配置导出任务并点击"开始执行"按钮...'}
+              </pre>
+            </div>
           </div>
         )}
 
