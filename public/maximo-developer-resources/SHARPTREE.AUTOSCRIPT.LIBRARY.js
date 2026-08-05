@@ -2321,16 +2321,22 @@ MaxObject.prototype.setMboValues = function (mbo) {
                     attribute = attributeSet.moveNext();
                 }
                 logger.info("attribute=" + attributeConfig.attribute)
+                    
                 if (attributeConfig.delete) {
                     if (attribute != null) {
                         attribute.delete();
                     }
                 } else if (attribute && attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))) {
                     if (attributeConfig.description) {
-                        attribute.setValue("REMARKS", attributeConfig.description);
+                        //原表中会有空格,设置为无空格的会有变更,所以需要去前尾空之后判断是否相同,避免无意义的变更
+                        if(attributeConfig.description.trim()!==attribute.getString("REMARKS").trim()){
+                            attribute.setValue("REMARKS", attributeConfig.description);
+                        }
                     }
                     if (attributeConfig.title) {
-                        attribute.setValue("TITLE", attributeConfig.title);
+                        if(attributeConfig.title.trim()!==attribute.getString("TITLE").trim()){
+                            attribute.setValue("TITLE", attributeConfig.title);
+                        }
                     }
                     //不是新增的就忽略主键ID
                 } else {
@@ -2341,9 +2347,13 @@ MaxObject.prototype.setMboValues = function (mbo) {
                     }
                     if (attribute.isNew() || !attributeConfig._updateIgnored) {
                         logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
-
-                        attribute.setValue("REMARKS", attributeConfig.description);
-                        attribute.setValue("TITLE", attributeConfig.title);
+                        //原表中会有空格,设置为无空格的会有变更,所以需要去前尾空之后判断是否相同,避免无意义的变更
+                        if(attributeConfig.description.trim()!==attribute.getString("REMARKS").trim()){
+                            attribute.setValue("REMARKS", attributeConfig.description);
+                        }
+                        if(attributeConfig.title.trim()!==attribute.getString("TITLE").trim()){
+                            attribute.setValue("TITLE", attributeConfig.title);
+                        }
 
                         if (typeof attributeConfig.class !== "undefined" && !attribute.getMboValueData("CLASSNAME").isReadOnly()) {
                             attributeConfig.class == null ? attribute.setValueNull("CLASSNAME") : attribute.setValue("CLASSNAME", attributeConfig.class);
@@ -2364,6 +2374,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             }
                         }
 
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         if (!attribute.getMboValueData("REQUIRED").isReadOnly()) {
                             attribute.setValue("REQUIRED", typeof attributeConfig.required === "undefined" ? false : attributeConfig.required);
                         }
@@ -2381,6 +2392,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
                         }
 
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
                             attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
                         }
@@ -2399,6 +2411,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                 ? attribute.setValueNull("SAMEASATTRIBUTE", 2)
                                 : attribute.setValue("SAMEASATTRIBUTE", attributeConfig.sameAsAttribute, 2);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
                             attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
@@ -2424,6 +2437,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             }
                             // logger.info("is readOnly;AUTOKEYNAME="+attribute.getString("AUTOKEYNAME"))
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         try {
                             if (typeof attributeConfig.defaultValue !== "undefined") {
                                 if (attributeConfig.defaultValue == null) {
@@ -2453,6 +2467,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                     : attribute.setValue("TEXTDIRECTION", attributeConfig.textDirection);
                             }
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         if (!attribute.getMboValueData("ISPOSITIVE").isReadOnly()) {
                             attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive);
@@ -2476,6 +2491,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                     : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression);
                             }
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
                             attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
@@ -2483,6 +2499,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
                             attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         if (!attribute.getMboValueData("ESIGENABLED").isReadOnly()) {
                             attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled);
                         }
@@ -2491,6 +2508,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         } else {
                             attribute.setValue("PRIMARYKEYCOLSEQ", attributeConfig.primaryColumn, MboConstants.NOACCESSCHECK);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                     }
                 }
@@ -2543,6 +2561,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                 attribute.setValueNull("entityName", MboConstants.NOACCESSCHECK)
                             }
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         logger.info("\x1b[32m[" + serverName + "] 1.attrName=" + attributeConfig.attribute + " setColumnName=" + attributeConfig.columnName + "\x1b[0m")
                         if (typeof attributeConfig.columnName !== "undefined") {
                             if (attributeConfig.columnName) {
@@ -2563,6 +2582,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         } else {
                             attribute.setValueNull("CLASSNAME", MboConstants.NOACCESSCHECK)
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         //只有等同对象为空的时候才会设置type和length
                         if (typeof attributeConfig.sameAsAttribute === "undefined" && typeof attributeConfig.sameAsObject === "undefined") {
@@ -2587,6 +2607,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             }
 
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
 
                         if (typeof attributeConfig.domain !== "undefined") {
@@ -2605,6 +2626,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         if (typeof attributeConfig.mustBe === "undefined") {
                             attribute.setValue("MUSTBE", attributeConfig.mustBe ? true : false, MboConstants.NOACCESSCHECK);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         if (typeof attributeConfig.columnName !== "undefined") {
                             if (attributeConfig.columnName == null) {
@@ -2624,6 +2646,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                 ? attribute.setValueNull("SAMEASOBJECT", 2)
                                 : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         if (typeof attributeConfig.sameAsAttribute !== "undefined") {
                             if (attributeConfig.sameAsAttribute == null) {
                                 attribute.setValueNull("SAMEASATTRIBUTE", 2)
@@ -2651,6 +2674,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         } else {
                             // logger.info("attributeConfig.autonumber is undefined")
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         try {
                             if (typeof attributeConfig.defaultValue !== "undefined") {
                                 if (attributeConfig.defaultValue == null) {
@@ -2684,6 +2708,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         if (typeof attributeConfig.positive !== "undefined") {
                             attribute.setValue("ISPOSITIVE", typeof attributeConfig.positive === "undefined" ? false : attributeConfig.positive, 2);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                         if (typeof attributeConfig.longDescriptionOwner !== "undefined") {
                             attribute.setValue("ISLDOWNER", typeof attributeConfig.longDescriptionOwner === "undefined" ? false : attributeConfig.longDescriptionOwner, 2);
@@ -2708,6 +2733,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         if (typeof attributeConfig.multiLanguageInUse !== "undefined") {
                             attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse, 2);
                         }
+                        logger.info("attribute.isModified=" + attribute.isModified())
                         if (typeof attributeConfig.eSignatureEnabled !== "undefined") {
                             attribute.setValue("ESIGENABLED", typeof attributeConfig.eSignatureEnabled === "undefined" ? false : attributeConfig.eSignatureEnabled, 2);
                         }
@@ -2719,6 +2745,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             }
                         }
 
+                        logger.info("attribute.isModified=" + attribute.isModified())
 
                     }
                 }
