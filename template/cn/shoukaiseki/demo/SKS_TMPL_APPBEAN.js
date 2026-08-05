@@ -8,7 +8,7 @@
 // load('nashorn:mozilla_compat.js');
 //-------------------------------------------
 // 直接调用方法的脚本,无任何隐式变量可以使用
-var scriptName="${sks_scriptName}"//service.getScriptName()
+var scriptName = "${sks_scriptName}"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
 /** @type {org.apache.log4j.Level} */
@@ -19,10 +19,18 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
-loggerMX.info("["+scriptName+"]----------");
+loggerMX.info("[" + scriptName + "]----------");
+
+/** @type {psdi.webclient.system.controller.WebClientEvent} */
+var WebClientEvent = null
+/** @type {psdi.webclient.system.controller.UploadFile} */
+var UploadFile = null
+
+/** @type {psdi.webclient.system.beans.DataBean} */
+var DataBean=null
 
 /** @type {jscustom.AnsiLogger} */
-var logger=null
+var logger = null
 /** @type {jscustom.sksLogAnsiUtils} */
 var sksLogAnsiUtils = null
 
@@ -31,36 +39,39 @@ var sksLogAnsiUtils = null
  * 初始化日志记录器,在bean脚本中,每次都需要调用该方法以初始化logger
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function initLogger(dbctx){
-    if(logger!=null){
-        return
-    }
-    sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
-    logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
-// logger.setLevel(Level.INFO);
+function initLogger(dbctx) {
+  if (logger != null) {
+    return
+  }
+  DataBean = Java.type("psdi.webclient.system.beans.DataBean");
+  WebClientEvent = Java.type("psdi.webclient.system.controller.WebClientEvent");
+  UploadFile = Java.type("psdi.webclient.system.controller.UploadFile");
+  sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
+  logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+  // logger.setLevel(Level.INFO);
 
-    logger.info("[" + scriptName + "] initialize")
+  logger.info("[" + scriptName + "] initialize")
 }
 
 /**
  * 初始化应用
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function initializeApp(dbctx){
-    initLogger(dbctx);
-    /** @type {psdi.webclient.system.session.WebClientSession} */
-    var clientsession = dbctx.webclientsession();
-    // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
-    // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", new MXApplicationException("ibm_rl","createpoSuccessNoOrder").getMessage(msr), 0);
-    /**
-     { "msgGroup": "ibm_system", "msgKey": "option_ok", "value": "操作成功", "displayMethod": "TEXT", "options": ["close"], "prefix": "BMXZZ", "suffix": "E" },
-        displayMethod = TEXT 和 STATUS 都是绿色
-		STATUS常用在显示固定值,比如列表过滤器,下载显示的按钮名称
-     */
-    //右上角绿色成功提示
-    clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
+function initializeApp(dbctx) {
+  initLogger(dbctx);
+  /** @type {psdi.webclient.system.session.WebClientSession} */
+  var clientsession = dbctx.webclientsession();
+  // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp触发了!!!", 1);
+  // clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", new MXApplicationException("ibm_rl","createpoSuccessNoOrder").getMessage(msr), 0);
+  /**
+   { "msgGroup": "ibm_system", "msgKey": "option_ok", "value": "操作成功", "displayMethod": "TEXT", "options": ["close"], "prefix": "BMXZZ", "suffix": "E" },
+      displayMethod = TEXT 和 STATUS 都是绿色
+  STATUS常用在显示固定值,比如列表过滤器,下载显示的按钮名称
+   */
+  //右上角绿色成功提示
+  clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("ibm_system", "option_ok"));
 
-    logger.info("[" + scriptName + "] initializeApp")
+  logger.info("[" + scriptName + "] initializeApp")
 }
 
 /**
@@ -112,8 +123,8 @@ function MKITEM(dbctx) {
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function setFocus(dbctx) {
-    initLogger(dbctx);
-    logger.info("[" + scriptName + "] setFocus")
+  initLogger(dbctx);
+  logger.info("[" + scriptName + "] setFocus")
 }
 
 
@@ -122,8 +133,8 @@ function setFocus(dbctx) {
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
 function selectrecord(dbctx) {
-    initLogger(dbctx);
-    logger.info("[" + scriptName + "] selectrecord")
+  initLogger(dbctx);
+  logger.info("[" + scriptName + "] selectrecord")
 }
 
 

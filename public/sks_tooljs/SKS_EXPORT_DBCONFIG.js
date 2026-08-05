@@ -522,6 +522,11 @@ function exportAttributes(objectName,objectEntity,maxObjectCfg) {
                 // 长整型字段
                 attribute.put("defaultValue", defaultValue);
                 attribute.put("maxAttributeId", commonsUtils.getMboLongValue(service, attributeCfg, "MAXATTRIBUTEID"));
+                attribute.put("primaryColumn", vPrimaryKeyColSeq);
+                attribute.put("required", required); 
+                attribute.put("persistent", persistent);
+                attribute.put("mustBe", mustbe);
+                attribute.put("positive", positive);
             }else{
                 if (vPrimaryKeyColSeq) { attribute.put("primaryColumn", vPrimaryKeyColSeq); }
                 // 必填

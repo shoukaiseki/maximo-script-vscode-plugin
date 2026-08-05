@@ -80,7 +80,7 @@ function notJavaErrorOrIsMXErrorToThrow(error){
 /**
  *  获取错误堆栈跟踪
     var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
-    sksLogAnsiUtils.getErrorStackTrace(error)
+    var errorMessage = sksLogAnsiUtils.getErrorStackTrace(error)
  * @param {*} error 
  * @returns 
  */
