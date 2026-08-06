@@ -66,16 +66,11 @@ export function activate(context: vscode.ExtensionContext) {
   // 初始化版本警告状态栏
   ConfigPanel.initVersionStatusBar(context);
 
-  // 创建状态栏按钮 - 配置
-  const configStatusItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    100
+  // 注册活动栏视图（左侧扩展图标下方，永久显示）
+  const helperViewProvider = new HelperViewProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(HelperViewProvider.viewType, helperViewProvider)
   );
-  configStatusItem.text = '$(gear) Maximo配置';
-  configStatusItem.tooltip = '点击打开 Maximo Script 配置面板';
-  configStatusItem.command = 'maximoScript.showConfig';
-  configStatusItem.show();
-  context.subscriptions.push(configStatusItem);
 
   // 创建状态栏按钮 - 查看日志
   const logStatusItem = vscode.window.createStatusBarItem(
@@ -1238,5 +1233,141 @@ class CompletionModeSwitcher implements vscode.Disposable {
       this.updateDisplay();
       vscode.window.showInformationMessage(`已切换为${choice.label.split(' ')[1]}`);
     }
+  }
+}
+
+/**
+ * 活动栏视图提供者：在左侧活动栏（扩展图标下方）提供 Maximo 配置入口
+ */
+class HelperViewProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'maximoScript.helperView';
+
+  private _view?: vscode.WebviewView;
+
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken,
+  ): void {
+    this._view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri]
+    };
+
+    webviewView.webview.html = this._getHtml();
+
+    // 处理视图内按钮点击消息
+    webviewView.webview.onDidReceiveMessage((message) => {
+      switch (message.command) {
+        case 'openConfig':
+          vscode.commands.executeCommand('maximoScript.showConfig');
+          break;
+        case 'showLogs':
+          vscode.commands.executeCommand('maximoScript.showLogs');
+          break;
+      }
+    });
+  }
+
+  /**
+   * 生成视图 HTML
+   */
+  private _getHtml(): string {
+    return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    padding: 0;
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-sideBar-background);
+  }
+  .container {
+    padding: 10px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-sideBarTitle-foreground);
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border);
+  }
+  .header .logo {
+    font-size: 16px;
+  }
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 4px;
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .btn:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+  }
+  .btn .icon {
+    font-size: 14px;
+  }
+  .desc {
+    padding: 0 10px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">⚙</span>
+    <span>Maximo Script Helper</span>
+  </div>
+  <div class="container">
+    <button class="btn" onclick="openConfig()">
+      <span class="icon">⚙</span>
+      <span>打开配置</span>
+    </button>
+    <button class="btn" onclick="showLogs()">
+      <span class="icon">📄</span>
+      <span>查看日志</span>
+    </button>
+    <div class="desc">
+      Maximo 自动化脚本开发助手<br/>
+      配置 · 导出 · 补全
+    </div>
+  </div>
+<script>
+  const vscode = acquireVsCodeApi();
+  function openConfig() {
+    vscode.postMessage({ command: 'openConfig' });
+  }
+  function showLogs() {
+    vscode.postMessage({ command: 'showLogs' });
+  }
+</script>
+</body>
+</html>`;
   }
 }

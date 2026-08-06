@@ -1,0 +1,14 @@
+{
+  "autoscript": "SKS_EXPORT_DOMAIN",
+  "description": "导出 MAXDOMAIN 域定义为 JSON(支持 where 过滤, 兼容 SKS_DEPLOY_DOMAIN 导入)",
+  "category": "SKS_TOOL",
+  "ibm_packagepath": "cn.shoukaiseki.tools",
+  "active": true,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "userdefined": 1,
+  "interface": 0,
+  "version": "1.0.4",
+  "variables": [],
+  "launchPoints": []
+}

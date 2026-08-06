@@ -37,3 +37,20 @@ datetimeEN  日期时间格式化成yyyyMMdd_HHmmss
 
 
 导出接口脚本: E:/gitwork/wushiling/jsproject/masscript/cn/shoukaiseki/tools/SKS_EXPORT_MESSAGES.js
+
+
+
+#2
+
+
+这是导出domain的接口,工具箱增加 导出domain 标签页,导出计划也增加这个选项
+```
+curl --request POST \
+  --url '/api/script/SKS_EXPORT_DOMAIN?_langcode=ZH' \
+  --header 'Content-Type: application/json' \
+  --header 'User-Agent: PostmanRuntime-ApipostRuntime/1.1.0' \
+  --header 'apiKey: xxxx' \
+  --data '{
+	
+}'
+```

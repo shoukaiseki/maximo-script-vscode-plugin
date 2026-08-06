@@ -38,6 +38,26 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "maximoScriptHelper",
+          "title": "Maximo Script Helper",
+          "icon": "images/activitybar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "maximoScriptHelper": [
+        {
+          "type": "webview",
+          "id": "maximoScript.helperView",
+          "name": "Maximo Script Helper",
+          "icon": "images/activitybar-icon.svg",
+          "contextualTitle": "Maximo Script Helper"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "maximoScript.showConfig",
