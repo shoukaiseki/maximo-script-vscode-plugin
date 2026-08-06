@@ -43,6 +43,14 @@ try{
     if (!msr.isEmpty()) {
         var rownum=1;
         for (tmpMbo = msr.moveFirst();tmpMbo;tmpMbo = msr.moveNext()) {
+            //审计表(变更记录)忽略
+            if(tmpMbo.getString("OBJECTNAME").startsWith("A_")){
+                continue
+            }
+            //多语言表忽略
+            if(tmpMbo.getString("OBJECTNAME").startsWith("L_")){
+                continue
+            }
             resp.push({
                 "_rownum": rownum++,
                 "objectName": tmpMbo.getString("OBJECTNAME"),

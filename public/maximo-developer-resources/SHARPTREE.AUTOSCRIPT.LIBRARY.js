@@ -2256,21 +2256,21 @@ MaxObject.prototype.setMboValues = function (mbo) {
         }
     } else {
         if (mbo.toBeAdded()) {
-            mbo.setValue("ISVIEW", this.view);
+            mbo.setValue("ISVIEW", this.view,2);
         }
         logger.info("\x1b[32m ["+serverName+"] view change "+this.view+"\x1b[0m");
 
-        this.viewWhere != null ? mbo.setValue("VIEWWHERE", this.viewWhere) : mbo.setValueNull("VIEWWHERE");
+        this.viewWhere != null ? mbo.setValue("VIEWWHERE", this.viewWhere,2) : mbo.setValueNull("VIEWWHERE",2);
 
         if (this.joinToObject && mbo.toBeAdded()) {
-            mbo.setValue("JOINOBJECT", this.joinToObject);
+            mbo.setValue("JOINOBJECT", this.joinToObject,2);
         }
 
-        mbo.setValue("AUTOSELECT", this.automaticallySelect);
+        mbo.setValue("AUTOSELECT", this.automaticallySelect,2);
 
         if (!this.automaticallySelect) {
-            this.viewSelect != null ? mbo.setValue("VIEWSELECT", this.viewSelect) : mbo.setValueNull("VIEWSELECT");
-            this.viewFrom != null ? mbo.setValue("VIEWFROM", this.viewFrom) : mbo.setValueNull("VIEWFROM");
+            this.viewSelect != null ? mbo.setValue("VIEWSELECT", this.viewSelect,2) : mbo.setValueNull("VIEWSELECT",2);
+            this.viewFrom != null ? mbo.setValue("VIEWFROM", this.viewFrom,2) : mbo.setValueNull("VIEWFROM",2);
         }
     }
 
@@ -2350,10 +2350,10 @@ MaxObject.prototype.setMboValues = function (mbo) {
                     if (attribute.isNew() || !attributeConfig._updateIgnored) {
                         logger.info("ATTRIBUTENAME=" + attribute.getString("ATTRIBUTENAME"))
                         //原表中会有空格,设置为无空格的会有变更,所以需要去前尾空之后判断是否相同,避免无意义的变更
-                        if(attributeConfig.description.trim()!==attribute.getString("REMARKS").trim()){
+                        if(attributeConfig.description&&attributeConfig.description.trim()!==attribute.getString("REMARKS").trim()){
                             attribute.setValue("REMARKS", attributeConfig.description);
                         }
-                        if(attributeConfig.title.trim()!==attribute.getString("TITLE").trim()){
+                        if(attributeConfig.title&&attributeConfig.title.trim()!==attribute.getString("TITLE").trim()){
                             attribute.setValue("TITLE", attributeConfig.title);
                         }
 
@@ -2383,20 +2383,23 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
 
                         if (typeof attributeConfig.domain !== "undefined" && !attribute.getMboValueData("DOMAINID").isReadOnly()) {
-                            attributeConfig.domain == null ? attribute.setValueNull("DOMAINID") : attribute.setValue("DOMAINID", attributeConfig.domain);
+                            attributeConfig.domain == null ? attribute.setValueNull("DOMAINID",2) : attribute.setValue("DOMAINID", attributeConfig.domain,2);
                         }
 
                         if (typeof attributeConfig.alias !== "undefined") {
                             attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
                         }
 
-                        if (!attribute.getMboValueData("PERSISTENT").isReadOnly()) {
-                            attribute.setValue("PERSISTENT", typeof attributeConfig.persistent === "undefined" ? true : attributeConfig.persistent);
+                        if(attributeConfig.persistent!==null||typeof attributeConfig.persistent!=="undefined"){
+                            attribute.setValue("PERSISTENT", attributeConfig.persistent,2);
                         }
 
+
                         logger.info("attribute.isModified=" + attribute.isModified())
-                        if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
-                            attribute.setValue("MUSTBE", typeof attributeConfig.mustBe === "undefined" ? false : attributeConfig.mustBe);
+                        if(attributeConfig.mustBe!==null||typeof attributeConfig.mustBe!=="undefined"){
+                        // if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
+                            attribute.setValue("MUSTBE", attributeConfig.mustBe,2);
+                        // }
                         }
 
                         if (typeof attributeConfig.columnName !== "undefined" && !attribute.getMboValueData("COLUMNNAME").isReadOnly()) {
@@ -2404,9 +2407,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         }
 
                         if (typeof attributeConfig.sameAsObject !== "undefined") {
-                            attributeConfig.sameAsObject == null
-                                ? attribute.setValueNull("SAMEASOBJECT", 2)
-                                : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
+                            attributeConfig.sameAsObject == null ? attribute.setValueNull("SAMEASOBJECT", 2) : attribute.setValue("SAMEASOBJECT", attributeConfig.sameAsObject, 2);
                         }
                         if (typeof attributeConfig.sameAsAttribute !== "undefined") {
                             attributeConfig.sameAsAttribute == null
@@ -2614,9 +2615,9 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
                         if (typeof attributeConfig.domain !== "undefined") {
                             if (attributeConfig.domain == null) {
-                                attribute.setValueNull("DOMAINID")
+                                attribute.setValueNull("DOMAINID",2)
                             } else {
-                                attribute.setValue("DOMAINID", attributeConfig.domain);
+                                attribute.setValue("DOMAINID", attributeConfig.domain,2);
                             }
                         }
 
