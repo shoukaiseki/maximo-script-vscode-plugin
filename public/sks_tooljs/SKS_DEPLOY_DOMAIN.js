@@ -247,11 +247,8 @@ function saveOrUpdateDomain(domainData, index) {
             domainMbo.setValue("NEVERCACHE", neverCache);
         }
 
-        if(domainData.alndomain !== 'undefined'&&domainData.alndomain){
-            /** @type {psdi.mbo.MboSetRemote} */
-            var alndomainSet = domainMbo.getMboSet("ALNDOMAINVALUE");
-            saveOrUpdateAlnDomain(alndomainSet,domainData.alndomain)
-        }
+        // 按 domaintype 处理域值子表
+        saveOrUpdateDomainValues(domainMbo, domainData, domainType);
         
         // 保存记录
         domainSet.save();
@@ -406,6 +403,311 @@ function saveOrUpdateAlnDomain(alndomainSet, alndomainDatas) {
     }
 
     logger.info("ALNDOMAIN 记录处理完成");
+}
+
+/**
+ * 按 domaintype 分发域值子表保存(支持 ALN/SYNONYM/NUMERIC/NUMRANGE/CROSSOVER/TABLE)
+ * @param {psdi.mbo.MboRemote} domainMbo - MAXDOMAIN MBO
+ * @param {Object} domainData - 域定义数据
+ * @param {java.lang.String} domainType - 域类型
+ */
+function saveOrUpdateDomainValues(domainMbo, domainData, domainType) {
+    // ALN
+    if (domainData.alndomain) {
+        var alnSet = domainMbo.getMboSet("ALNDOMAINVALUE");
+        try { saveOrUpdateAlnDomain(alnSet, domainData.alndomain); } finally { __mboSetClose(alnSet); }
+    }
+    // SYNONYM
+    if (domainData.synonymdomain) {
+        var synSet = domainMbo.getMboSet("SYNONYMDOMAIN");
+        try { saveOrUpdateSynonymDomain(synSet, domainData.synonymdomain); } finally { __mboSetClose(synSet); }
+    }
+    // NUMERIC
+    if (domainData.numericdomain) {
+        var numSet = domainMbo.getMboSet("NUMDOMAINVALUE");
+        try { saveOrUpdateNumericDomain(numSet, domainData.numericdomain); } finally { __mboSetClose(numSet); }
+    }
+    // NUMRANGE
+    if (domainData.numrangedomain) {
+        var nrSet = domainMbo.getMboSet("RANGEDOMSEGMENT");
+        try { saveOrUpdateNumRangeDomain(nrSet, domainData.numrangedomain); } finally { __mboSetClose(nrSet); }
+    }
+    // TABLE / CROSSOVER (值记录在 MAXTABLEDOMAIN)
+    if (domainData.tabledomain) {
+        var tbRel = domainType === "CROSSOVER" ? "MAXTABLEDOMAINFORCROSSOVER" : "MAXTABLEDOMAIN";
+        var tbSet = domainMbo.getMboSet(tbRel);
+        try { saveOrUpdateTableDomain(tbSet, domainData.tabledomain, domainType); } finally { __mboSetClose(tbSet); }
+    }
+}
+
+/**
+ * 保存或更新 SYNONYMDOMAIN(同义词域)子记录
+ * 主键: DOMAINID+MAXVALUE+VALUE
+ * @param {psdi.mbo.MboSetRemote} synonymdomainSet - SYNONYMDOMAIN MBO 集合
+ * @param {Array} datas - SYNONYMDOMAIN 数据数组
+ */
+function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
+    if (!datas || !Array.isArray(datas) || datas.length === 0) {
+        logger.info("没有 SYNONYMDOMAIN 数据需要处理");
+        return;
+    }
+    logger.info("开始处理 " + datas.length + " 条 SYNONYMDOMAIN 记录");
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        try {
+            var maxvalue = data.maxvalue;
+            var value = data.value;
+            if (!maxvalue || !value) {
+                logger.warn("第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录的 maxvalue/value 不能为空，跳过");
+                continue;
+            }
+            // 查找匹配记录
+            var synMbo = synonymdomainSet.moveFirst();
+            while (synMbo) {
+                if (synMbo.getString("MAXVALUE") == maxvalue && synMbo.getString("VALUE") == value) {
+                    break;
+                }
+                synMbo = synonymdomainSet.moveNext();
+            }
+            if (data._delete) {
+                if (synMbo != null) {
+                    synMbo.delete();
+                    logger.info("已删除 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
+                }
+            } else {
+                if (!synMbo) {
+                    synMbo = synonymdomainSet.add();
+                    synMbo.setValue("MAXVALUE", maxvalue);
+                    synMbo.setValue("VALUE", value);
+                }
+                if (data.description) { synMbo.setValue("DESCRIPTION", data.description); }
+                if (data.defaults) { synMbo.setValue("DEFAULTS", data.defaults); }
+                if (data.orgid) { synMbo.setValue("ORGID", data.orgid); }
+                if (data.siteid) { synMbo.setValue("SITEID", data.siteid); }
+                logger.info("已保存 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
+            }
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " + error.message);
+        }
+    }
+    logger.info("SYNONYMDOMAIN 记录处理完成");
+}
+
+/**
+ * 保存或更新 NUMERICDOMAIN(数值域)子记录
+ * 主键: DOMAINID+VALUE
+ * @param {psdi.mbo.MboSetRemote} numericdomainSet - NUMERICDOMAIN MBO 集合
+ * @param {Array} datas - NUMERICDOMAIN 数据数组
+ */
+function saveOrUpdateNumericDomain(numericdomainSet, datas) {
+    if (!datas || !Array.isArray(datas) || datas.length === 0) {
+        logger.info("没有 NUMERICDOMAIN 数据需要处理");
+        return;
+    }
+    logger.info("开始处理 " + datas.length + " 条 NUMERICDOMAIN 记录");
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        try {
+            var value = data.value;
+            if (value === undefined || value === null || value === "") {
+                logger.warn("第 " + (i + 1) + " 条 NUMERICDOMAIN 记录的 value 不能为空，跳过");
+                continue;
+            }
+            // 查找匹配记录
+            var numMbo = numericdomainSet.moveFirst();
+            while (numMbo) {
+                if (String(numMbo.getString("VALUE")) == String(value)) {
+                    break;
+                }
+                numMbo = numericdomainSet.moveNext();
+            }
+            if (data._delete) {
+                if (numMbo != null) {
+                    numMbo.delete();
+                    logger.info("已删除 NUMERICDOMAIN 记录: VALUE=" + value);
+                }
+            } else {
+                if (!numMbo) {
+                    numMbo = numericdomainSet.add();
+                    numMbo.setValue("VALUE", value);
+                }
+                if (data.description) { numMbo.setValue("DESCRIPTION", data.description); }
+                if (data.orgid) { numMbo.setValue("ORGID", data.orgid); }
+                if (data.siteid) { numMbo.setValue("SITEID", data.siteid); }
+                logger.info("已保存 NUMERICDOMAIN 记录: VALUE=" + value);
+            }
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 NUMERICDOMAIN 记录失败: " + error.message);
+        }
+    }
+    logger.info("NUMERICDOMAIN 记录处理完成");
+}
+
+/**
+ * 保存或更新 NUMRANGEDOMAIN(数值范围域)子记录
+ * 主键: DOMAINID+RANGESEGMENT
+ * @param {psdi.mbo.MboSetRemote} numrangedomainSet - NUMRANGEDOMAIN MBO 集合
+ * @param {Array} datas - NUMRANGEDOMAIN 数据数组
+ */
+function saveOrUpdateNumRangeDomain(numrangedomainSet, datas) {
+    if (!datas || !Array.isArray(datas) || datas.length === 0) {
+        logger.info("没有 NUMRANGEDOMAIN 数据需要处理");
+        return;
+    }
+    logger.info("开始处理 " + datas.length + " 条 NUMRANGEDOMAIN 记录");
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        try {
+            var rangesegment = data.rangesegment;
+            if (rangesegment === undefined || rangesegment === null || rangesegment === "") {
+                logger.warn("第 " + (i + 1) + " 条 NUMRANGEDOMAIN 记录的 rangesegment 不能为空，跳过");
+                continue;
+            }
+            // 查找匹配记录
+            var nrMbo = numrangedomainSet.moveFirst();
+            while (nrMbo) {
+                if (String(nrMbo.getInt("RANGESEGMENT")) == String(rangesegment)) {
+                    break;
+                }
+                nrMbo = numrangedomainSet.moveNext();
+            }
+            if (data._delete) {
+                if (nrMbo != null) {
+                    nrMbo.delete();
+                    logger.info("已删除 NUMRANGEDOMAIN 记录: RANGESEGMENT=" + rangesegment);
+                }
+            } else {
+                if (!nrMbo) {
+                    nrMbo = numrangedomainSet.add();
+                    nrMbo.setValue("RANGESEGMENT", rangesegment);
+                }
+                if (data.rangeminimum !== undefined && data.rangeminimum !== null) { nrMbo.setValue("RANGEMINIMUM", data.rangeminimum); }
+                if (data.rangemaximum !== undefined && data.rangemaximum !== null) { nrMbo.setValue("RANGEMAXIMUM", data.rangemaximum); }
+                if (data.rangeinterval !== undefined && data.rangeinterval !== null) { nrMbo.setValue("RANGEINTERVAL", data.rangeinterval); }
+                if (data.orgid) { nrMbo.setValue("ORGID", data.orgid); }
+                if (data.siteid) { nrMbo.setValue("SITEID", data.siteid); }
+                logger.info("已保存 NUMRANGEDOMAIN 记录: RANGESEGMENT=" + rangesegment);
+            }
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 NUMRANGEDOMAIN 记录失败: " + error.message);
+        }
+    }
+    logger.info("NUMRANGEDOMAIN 记录处理完成");
+}
+
+/**
+ * 保存或更新 MAXTABLEDOMAIN(TABLE/CROSSOVER 域)子记录
+ * CROSSOVER 类型: MAXTABLEDOMAIN 下还有 CROSSOVERDOMAIN 子记录
+ * @param {psdi.mbo.MboSetRemote} tabledomainSet - MAXTABLEDOMAIN MBO 集合
+ * @param {Array} datas - MAXTABLEDOMAIN 数据数组
+ * @param {java.lang.String} domainType - 域类型
+ */
+function saveOrUpdateTableDomain(tabledomainSet, datas, domainType) {
+    if (!datas || !Array.isArray(datas) || datas.length === 0) {
+        logger.info("没有 MAXTABLEDOMAIN 数据需要处理");
+        return;
+    }
+    logger.info("开始处理 " + datas.length + " 条 MAXTABLEDOMAIN 记录");
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        try {
+            var objectname = data.objectname;
+            if (!objectname) {
+                logger.warn("第 " + (i + 1) + " 条 MAXTABLEDOMAIN 记录的 objectname 不能为空，跳过");
+                continue;
+            }
+            // 查找匹配记录
+            var tbMbo = tabledomainSet.moveFirst();
+            while (tbMbo) {
+                if (tbMbo.getString("OBJECTNAME") == objectname) {
+                    break;
+                }
+                tbMbo = tabledomainSet.moveNext();
+            }
+            if (data._delete) {
+                if (tbMbo != null) {
+                    tbMbo.delete();
+                    logger.info("已删除 MAXTABLEDOMAIN 记录: OBJECTNAME=" + objectname);
+                }
+            } else {
+                if (!tbMbo) {
+                    tbMbo = tabledomainSet.add();
+                    tbMbo.setValue("OBJECTNAME", objectname);
+                }
+                if (data.validtnwhereclause) { tbMbo.setValue("VALIDTNWHERECLAUSE", data.validtnwhereclause); }
+                if (data.listwhereclause) { tbMbo.setValue("LISTWHERECLAUSE", data.listwhereclause); }
+                if (data.errorresourcbundle) { tbMbo.setValue("ERRORRESOURCBUNDLE", data.errorresourcbundle); }
+                if (data.erroraccesskey) { tbMbo.setValue("ERRORACCESSKEY", data.erroraccesskey); }
+                if (data.orgid) { tbMbo.setValue("ORGID", data.orgid); }
+                if (data.siteid) { tbMbo.setValue("SITEID", data.siteid); }
+                logger.info("已保存 MAXTABLEDOMAIN 记录: OBJECTNAME=" + objectname);
+            }
+            // CROSSOVER 类型: 处理 MAXTABLEDOMAIN 下的 CROSSOVERDOMAIN 子记录
+            if (domainType === "CROSSOVER" && data.crossoverdomain) {
+                var coSet = tbMbo.getMboSet("CROSSOVERDOMAIN");
+                try { saveOrUpdateCrossoverDomain(coSet, data.crossoverdomain); } finally { __mboSetClose(coSet); }
+            }
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 MAXTABLEDOMAIN 记录失败: " + error.message);
+        }
+    }
+    logger.info("MAXTABLEDOMAIN 记录处理完成");
+}
+
+/**
+ * 保存或更新 CROSSOVERDOMAIN(交叉域映射)子记录
+ * 主键: DOMAINID+SOURCEFIELD+DESTFIELD
+ * @param {psdi.mbo.MboSetRemote} crossoverdomainSet - CROSSOVERDOMAIN MBO 集合
+ * @param {Array} datas - CROSSOVERDOMAIN 数据数组
+ */
+function saveOrUpdateCrossoverDomain(crossoverdomainSet, datas) {
+    if (!datas || !Array.isArray(datas) || datas.length === 0) {
+        logger.info("没有 CROSSOVERDOMAIN 数据需要处理");
+        return;
+    }
+    logger.info("开始处理 " + datas.length + " 条 CROSSOVERDOMAIN 记录");
+    for (var i = 0; i < datas.length; i++) {
+        var data = datas[i];
+        try {
+            var sourcefield = data.sourcefield;
+            var destfield = data.destfield;
+            if (!sourcefield || !destfield) {
+                logger.warn("第 " + (i + 1) + " 条 CROSSOVERDOMAIN 记录的 sourcefield/destfield 不能为空，跳过");
+                continue;
+            }
+            // 查找匹配记录
+            var coMbo = crossoverdomainSet.moveFirst();
+            while (coMbo) {
+                if (coMbo.getString("SOURCEFIELD") == sourcefield && coMbo.getString("DESTFIELD") == destfield) {
+                    break;
+                }
+                coMbo = crossoverdomainSet.moveNext();
+            }
+            if (data._delete) {
+                if (coMbo != null) {
+                    coMbo.delete();
+                    logger.info("已删除 CROSSOVERDOMAIN 记录: " + sourcefield + "->" + destfield);
+                }
+            } else {
+                if (!coMbo) {
+                    coMbo = crossoverdomainSet.add();
+                    coMbo.setValue("SOURCEFIELD", sourcefield);
+                    coMbo.setValue("DESTFIELD", destfield);
+                }
+                if (data.sourcecondition) { coMbo.setValue("SOURCECONDITION", data.sourcecondition); }
+                if (data.destcondition) { coMbo.setValue("DESTCONDITION", data.destcondition); }
+                if (data.copyevenifsrcnull) { coMbo.setValue("COPYEVENIFSRCNULL", data.copyevenifsrcnull); }
+                if (data.copyonlyifdestnull) { coMbo.setValue("COPYONLYIFDESTNULL", data.copyonlyifdestnull); }
+                if (data.sequence !== undefined && data.sequence !== null) { coMbo.setValue("SEQUENCE", data.sequence); }
+                if (data.orgid) { coMbo.setValue("ORGID", data.orgid); }
+                if (data.siteid) { coMbo.setValue("SITEID", data.siteid); }
+                logger.info("已保存 CROSSOVERDOMAIN 记录: " + sourcefield + "->" + destfield);
+            }
+        } catch (error) {
+            logger.error("处理第 " + (i + 1) + " 条 CROSSOVERDOMAIN 记录失败: " + error.message);
+        }
+    }
+    logger.info("CROSSOVERDOMAIN 记录处理完成");
 }
 
 

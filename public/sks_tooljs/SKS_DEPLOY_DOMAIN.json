@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "SKS_DEPLOY_DOMAIN",
+  "description": "SKS_DEPLOY_DOMAIN(支持 ALN/SYNONYM/NUMERIC/NUMRANGE/CROSSOVER/TABLE 域值导入)",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -22,7 +22,7 @@
   "active": 1,
   "changedate": "2026-05-22T05:13:42+08:00",
   "ownerid": "",
-  "version": "1.0.28",
+  "version": "1.0.30",
   "orgid": "",
   "statusdate": "2026-05-22T05:11:56+08:00",
   "hasld": 0,

@@ -46,10 +46,10 @@ datetimeEN  日期时间格式化成yyyyMMdd_HHmmss
 这是导出domain的接口,工具箱增加 导出domain 标签页,导出计划也增加这个选项
 ```
 curl --request POST \
-  --url '/api/script/SKS_EXPORT_DOMAIN?_langcode=ZH' \
+  --url '/api/script/SKS_EXPORT_DOMAIN?_langcode=ZH?_action=export' \
+  --header 'Accept: */*' \
   --header 'Content-Type: application/json' \
-  --header 'User-Agent: PostmanRuntime-ApipostRuntime/1.1.0' \
-  --header 'apiKey: xxxx' \
+  --header 'apiKey: xxxxxxxx' \
   --data '{
 	
 }'

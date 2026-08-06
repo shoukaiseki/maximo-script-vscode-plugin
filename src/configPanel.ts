@@ -218,6 +218,12 @@ export class ConfigPanel {
           case 'extractMessage':
             await this._extractMessages(message.directoryPath, message.autoCreateExportDir);
             return;
+          case 'selectDirectoryForExtractDomain':
+            await this._selectDirectoryForExtractDomain();
+            return;
+          case 'extractDomain':
+            await this._extractDomains(message.directoryPath, message.autoCreateExportDir);
+            return;
           case 'saveScheduledExportConfig':
             await this._saveScheduledExportConfig(message.config);
             return;
@@ -4012,6 +4018,38 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 选择域导出目录
+   */
+  private async _selectDirectoryForExtractDomain() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportDomainDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportDomainDirectory] 域导出目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractDomainDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '域导出目录已保存'
+      });
+    }
+  }
+
+  /**
    * 消息导出（通过 SKS_EXPORT_MESSAGES 接口）
    */
   private async _extractMessages(directoryPath: string, autoCreateExportDir: boolean = true) {
@@ -4166,6 +4204,164 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[ExtractMessages] 导出失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'extractMessageComplete' });
+    }
+  }
+
+  /**
+   * 域导出（通过 SKS_EXPORT_DOMAIN 接口）
+   */
+  private async _extractDomains(directoryPath: string, autoCreateExportDir: boolean = true) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const pageSize = config.get<number>('exportDomainPageSize', 5000);
+      const ignoreDefVal = config.get<boolean>('exportDomainIgnoreDefVal', false);
+      const threadCount = config.get<number>('exportDomainThreadCount', 5);
+      const langcode = config.get<string>('langcode', 'EN');
+      
+      this._sendToolboxOutput(`🏷️ 开始导出 MAXDOMAIN 域定义...${ignoreDefVal ? '（精简模式）' : '（完整模式）'}`);
+      this._sendToolboxOutput(`📋 分页大小: ${pageSize}, 语言: ${langcode}`);
+      
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `domains_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      // 步骤1: 发送请求获取总记录数
+      this._sendToolboxOutput('\n📊 正在获取域定义总数...');
+      
+      const countUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=1&pageSize=1`;
+      const countResult = await httpRequestToMaximo({
+        url: countUrl,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { where: '1=1' }
+      });
+
+      if (countResult.status !== 200 || !countResult.data) {
+        this._sendToolboxOutput(`❌ 获取域定义总数失败: HTTP ${countResult.status}`);
+        return;
+      }
+
+      let countData = countResult.data;
+      if (typeof countData === 'string') {
+        try { countData = JSON.parse(countData); } catch (e) { }
+      }
+
+      if (countData.status === 'error') {
+        this._sendToolboxOutput(`❌ 获取域定义总数失败: ${countData.message || '未知错误'}`);
+        return;
+      }
+
+      const totalRecords = countData.total || 0;
+      if (totalRecords === 0) {
+        this._sendToolboxOutput('⚠️ 没有需要导出的域定义记录');
+        return;
+      }
+
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      this._sendToolboxOutput(`✅ 共 ${totalRecords} 条域定义，分 ${totalPages} 页导出（每页 ${pageSize} 条）`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      const maxConcurrent = Math.min(threadCount, totalPages);
+      this._sendToolboxOutput(`\n🚀 开始导出，并发数: ${maxConcurrent}`);
+
+      const pageList = Array.from({ length: totalPages }, (_, i) => i + 1);
+      let currentIndex = 0;
+
+      const exportSinglePage = async (): Promise<boolean> => {
+        const pageNum = currentIndex++;
+        if (pageNum >= totalPages) return false;
+        const page = pageList[pageNum];
+        
+        try {
+          this._sendToolboxOutput(`[${page}/${totalPages}] 正在导出第 ${page} 页...`);
+          
+          const exportUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+          const exportResult = await httpRequestToMaximo({
+            url: exportUrl,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            data: { where: '1=1' }
+          });
+
+          if (exportResult.status !== 200 || !exportResult.data) {
+            this._sendToolboxOutput(`  ❌ 第 ${page} 页导出失败: HTTP ${exportResult.status}`);
+            return false;
+          }
+
+          let responseData = exportResult.data;
+          if (typeof responseData === 'string') {
+            try { responseData = JSON.parse(responseData); } catch (e) { }
+          }
+
+          if (responseData.status === 'error') {
+            this._sendToolboxOutput(`  ❌ 第 ${page} 页导出失败: ${responseData.message || '未知错误'}`);
+            return false;
+          }
+
+          const fileName = `domains_page_${page}.json`;
+          const filePath = path.join(exportDir, fileName);
+          fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+          
+          const recordCount = responseData.domains ? responseData.domains.length : 0;
+          this._sendToolboxOutput(`  ✅ 已保存: ${fileName}（${recordCount} 条记录）`);
+          return true;
+
+        } catch (error: any) {
+          this._sendToolboxOutput(`  ❌ 第 ${page} 页导出异常: ${error.message}`);
+          logger.error(`[ExtractDomains] 第 ${page} 页导出失败: ${error.message}`);
+          return false;
+        }
+      };
+
+      const workers = Array.from({ length: maxConcurrent }, async () => {
+        while (true) {
+          const result = await exportSinglePage();
+          if (result === false) break;
+          if (result) successCount++;
+          else failCount++;
+        }
+      });
+
+      await Promise.all(workers);
+
+      this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount} 页, 失败: ${failCount} 页`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+
+      const zipCfg = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg.get('exportDomainZipEnabled', false) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractDomains] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractDomainComplete' });
     }
   }
 
@@ -4367,6 +4563,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const labels: Record<string, string> = {
       'extractMaxobject': '导出 MAXOBJECT',
       'extractMessage': '导出消息',
+      'extractDomain': '导出域',
       'extractScript': '导出脚本',
       'extractAppXml': '导出应用XML'
     };
@@ -4387,6 +4584,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       case 'extractMessage':
         this._sendScheduledLog(`  🔄 正在导出消息到 ${taskDir}，线程数: ${task.threadCount || 5}`);
         await this._extractMessagesForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 5000, taskIndex);
+        break;
+      case 'extractDomain':
+        this._sendScheduledLog(`  🔄 正在导出域到 ${taskDir}，线程数: ${task.threadCount || 5}`);
+        await this._extractDomainsForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 5000, taskIndex);
         break;
       case 'extractScript':
         this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
@@ -4583,6 +4784,102 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
     await Promise.all(workers);
     this._sendScheduledLog(`  ✅ 消息导出完成，共 ${totalPages} 页`);
+  }
+
+  /**
+   * 计划导出中的域导出
+   */
+  private async _extractDomainsForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, pageSize: number, taskIndex: number): Promise<void> {
+    
+    // 获取总数
+    const countUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&apiType=exp&_action=export&pageNum=1&pageSize=1`;
+    const countResult = await httpRequestToMaximo({
+      url: countUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { where: '1=1' }
+    });
+
+    if (countResult.status !== 200 || !countResult.data) {
+      throw new Error(`获取域定义总数失败: HTTP ${countResult.status}`);
+    }
+
+    let countData = countResult.data;
+    if (typeof countData === 'string') {
+      try { countData = JSON.parse(countData); } catch (e) { }
+    }
+
+    if (countData.status === 'error') {
+      throw new Error(`获取域定义总数失败: ${countData.message || '未知错误'}`);
+    }
+
+    const totalRecords = countData.total || 0;
+    if (totalRecords === 0) {
+      throw new Error('没有需要导出的域定义记录');
+    }
+
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    this._sendScheduledLog(`  📋 共 ${totalRecords} 条域定义，分 ${totalPages} 页`);
+
+    const maxConcurrent = Math.min(threadCount, totalPages);
+    const pageList = Array.from({ length: totalPages }, (_, i) => i + 1);
+    let currentIndex = 0;
+    let completedCount = 0;
+
+    const exportSinglePage = async (): Promise<boolean> => {
+      const pageNum = currentIndex++;
+      if (pageNum >= totalPages) return false;
+      const page = pageList[pageNum];
+
+      try {
+        const exportUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+        const exportResult = await httpRequestToMaximo({
+          url: exportUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { where: '1=1' }
+        });
+
+        if (exportResult.status !== 200 || !exportResult.data) {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+          return false;
+        }
+
+        let responseData = exportResult.data;
+        if (typeof responseData === 'string') {
+          try { responseData = JSON.parse(responseData); } catch (e) { }
+        }
+
+        if (responseData.status === 'error') {
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+          return false;
+        }
+
+        const fileName = `domains_page_${page}.json`;
+        const filePath = path.join(taskDir, fileName);
+        fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+        return true;
+
+      } catch (error: any) {
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, totalPages, `第 ${page} 页`);
+        return false;
+      }
+    };
+
+    const workers = Array.from({ length: maxConcurrent }, async () => {
+      while (true) {
+        const result = await exportSinglePage();
+        if (result === false) break;
+      }
+    });
+
+    await Promise.all(workers);
+    this._sendScheduledLog(`  ✅ 域导出完成，共 ${totalPages} 页`);
   }
 
   /**

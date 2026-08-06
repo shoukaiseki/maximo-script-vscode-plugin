@@ -374,6 +374,31 @@
           "default": false,
           "description": "消息导出忽略默认值（开启后导出时忽略默认值字段，简化JSON）"
         },
+        "maximoScript.exportDomainDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "域导出目录（用于存储导出的 MAXDOMAIN JSON，持久化保存）"
+        },
+        "maximoScript.exportDomainThreadCount": {
+          "type": "number",
+          "default": 5,
+          "description": "域导出并发线程数（工具箱->导出域）"
+        },
+        "maximoScript.exportDomainZipEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "域导出完成后自动打包为ZIP文件"
+        },
+        "maximoScript.exportDomainPageSize": {
+          "type": "number",
+          "default": 5000,
+          "description": "域导出单文件行数（分页大小，根据分页查询导出多个文件）"
+        },
+        "maximoScript.exportDomainIgnoreDefVal": {
+          "type": "boolean",
+          "default": false,
+          "description": "域导出忽略默认值（开启后导出时忽略默认值字段，简化JSON）"
+        },
         "maximoScript.scheduledExportBaseDir": {
           "type": "string",
           "default": "",

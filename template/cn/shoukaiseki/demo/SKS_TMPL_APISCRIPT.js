@@ -50,6 +50,14 @@ logger.info("["+scriptName+"]----------------Starting execution of script " + se
 logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
 
+//如果是多语言的表,通过下面方式设置语言环境的数据
+var _langcode = "EN";
+if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
+  _langcode = request.getQueryParam("_langcode").toUpperCase();
+  uInfo.setLangCode(_langcode);
+  logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + uInfo.getLocale().getLanguage());
+}
+//参数中不要包含以下参数,这些是maximo中在用的: action,distinct,maxsso,template,collectioncount,localref,relatedref 
 
 /** @type {java.lang.String} */
 var requestBodyTmp=requestBody

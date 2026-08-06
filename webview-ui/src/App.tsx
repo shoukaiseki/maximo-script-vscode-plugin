@@ -47,6 +47,11 @@ interface ConfigData {
   exportMessageZipEnabled: boolean;  // 消息导出打包ZIP
   exportMessagePageSize: number;  // 消息导出单文件行数
   exportMessageIgnoreDefVal: boolean;  // 消息导出忽略默认值
+  exportDomainDirectory: string;  // 域导出目录
+  exportDomainThreadCount: number;  // 域导出线程数
+  exportDomainZipEnabled: boolean;  // 域导出打包ZIP
+  exportDomainPageSize: number;  // 域导出单文件行数
+  exportDomainIgnoreDefVal: boolean;  // 域导出忽略默认值
   scheduledExportBaseDir: string;  // 计划导出基础目录
 }
 
@@ -70,6 +75,8 @@ const App: React.FC = () => {
   const [isExtractMaxobjectRunning, setIsExtractMaxobjectRunning] = useState<boolean>(false);
   const [extractMessageDirectoryPath, setExtractMessageDirectoryPath] = useState<string>('');
   const [isExtractMessageRunning, setIsExtractMessageRunning] = useState<boolean>(false);
+  const [extractDomainDirectoryPath, setExtractDomainDirectoryPath] = useState<string>('');
+  const [isExtractDomainRunning, setIsExtractDomainRunning] = useState<boolean>(false);
   const [scheduledExportPlan, setScheduledExportPlan] = useState<any>({ baseDir: '', tasks: [] });
   const [isScheduledExportRunning, setIsScheduledExportRunning] = useState<boolean>(false);
   const [scheduledExportProgress, setScheduledExportProgress] = useState<{ current: number; total: number; statusText: string }>({ current: 0, total: 0, statusText: '' });
@@ -118,6 +125,11 @@ const App: React.FC = () => {
     exportMessageZipEnabled: true,
     exportMessagePageSize: 5000,
     exportMessageIgnoreDefVal: false,
+    exportDomainDirectory: '',
+    exportDomainThreadCount: 5,
+    exportDomainZipEnabled: true,
+    exportDomainPageSize: 5000,
+    exportDomainIgnoreDefVal: false,
     scheduledExportBaseDir: '',
   });
   
@@ -341,6 +353,9 @@ const App: React.FC = () => {
           if (message.data.exportMessageDirectory) {
             setExtractMessageDirectoryPath(message.data.exportMessageDirectory);
           }
+          if (message.data.exportDomainDirectory) {
+            setExtractDomainDirectoryPath(message.data.exportDomainDirectory);
+          }
           // 加载计划导出配置
           getVsCodeApi().postMessage({ command: 'loadScheduledExportConfig' });
           break;
@@ -492,6 +507,15 @@ const App: React.FC = () => {
         case 'extractMessageComplete':
           // 消息导出完成
           setIsExtractMessageRunning(false);
+          break;
+        case 'setExtractDomainDirectoryPath':
+          // 设置域导出目录路径
+          setExtractDomainDirectoryPath(message.path);
+          setConfig(prev => ({ ...prev, exportDomainDirectory: message.path }));
+          break;
+        case 'extractDomainComplete':
+          // 域导出完成
+          setIsExtractDomainRunning(false);
           break;
         case 'loadScheduledExportConfig':
           // 加载计划导出配置
@@ -845,6 +869,31 @@ const App: React.FC = () => {
     getVsCodeApi().postMessage({
       command: 'extractMessage',
       directoryPath: extractMessageDirectoryPath,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
+
+  // 工具箱 - 选择域导出目录
+  const handleSelectExtractDomainDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractDomain'
+    });
+  };
+
+  // 工具箱 - 开始导出域
+  const handleStartExtractDomain = () => {
+    if (!extractDomainDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractDomainRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractDomain',
+      directoryPath: extractDomainDirectoryPath,
       autoCreateExportDir: config.autoCreateExportDir
     });
   };
@@ -1572,6 +1621,21 @@ const App: React.FC = () => {
                 }}
               >
                 💬 导出消息
+              </button>
+              <button
+                onClick={() => setActiveToolboxTab('extractDomain')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractDomain' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractDomain' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractDomain' ? 'bold' : 'normal'
+                }}
+              >
+                🏷️ 导出域
               </button>
               <button
                 onClick={() => setActiveToolboxTab('initProject')}
@@ -2559,6 +2623,158 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* 导出域标签页 */}
+        {activeToolboxTab === 'extractDomain' && (
+          <div>
+            <div style={{ 
+              padding: '15px', 
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderLeft: '4px solid var(--vscode-terminal-ansiCyan)',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🏷️ 导出 MAXDOMAIN 域定义</p>
+              <p style={{ margin: '0 0 10px 0' }}>
+                此功能将通过 SKS_EXPORT_DOMAIN 接口从 Maximo 服务器导出域定义（MAXDOMAIN），支持分页导出为多个 JSON 文件，兼容 SKS_DEPLOY_DOMAIN 导入。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                📌 <strong>使用说明：</strong><br/>
+                1. 选择要保存域 JSON 的本地目录<br/>
+                2. 设置单文件行数（分页大小），根据分页查询导出多个文件<br/>
+                3. 可选勾选忽略默认值（简化 JSON）<br/>
+                4. 点击"开始导出"按钮
+              </p>
+            </div>
+
+            {/* 导出目录选择 */}
+            <div className="form-group">
+              <label>选择导出目录：</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={extractDomainDirectoryPath}
+                  readOnly
+                  placeholder="选择要保存域 JSON 的目录"
+                  style={{ flex: 1 }}
+                />
+                <button onClick={handleSelectExtractDomainDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+              </div>
+            </div>
+
+            {/* 分页大小配置 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📄 单文件行数（分页大小）：</span>
+                <input
+                  type="number"
+                  min="100"
+                  max="50000"
+                  value={config.exportDomainPageSize}
+                  onChange={(e) => updateConfig({ exportDomainPageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) })}
+                  style={{ width: '100px', textAlign: 'center' }}
+                />
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                每个 JSON 文件包含的域定义条数（范围 100~50000，根据导出结果分页生成多个文件）
+              </p>
+            </div>
+
+            {/* 忽略默认值选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportDomainIgnoreDefVal}
+                  onChange={(e) => updateConfig({ exportDomainIgnoreDefVal: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>🔧 忽略默认值（简化 JSON）</span>
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                {config.exportDomainIgnoreDefVal 
+                  ? '✅ 精简模式已开启，导出时将忽略默认值字段'
+                  : '💡 完整模式（默认），导出时将包含所有字段'}
+              </p>
+            </div>
+
+            {/* 并发线程数配置 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔄 导出线程数：</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={config.exportDomainThreadCount}
+                  onChange={(e) => updateConfig({ exportDomainThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
+                  style={{ width: '80px', textAlign: 'center' }}
+                />
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                并发导出页数（范围 1~20，推荐 5~10）
+              </p>
+            </div>
+
+            {/* 打包ZIP选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportDomainZipEnabled}
+                  onChange={(e) => updateConfig({ exportDomainZipEnabled: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>📦 导出完成后自动打包为ZIP</span>
+              </label>
+            </div>
+
+            <button 
+              onClick={handleStartExtractDomain}
+              disabled={!extractDomainDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '20px',
+                opacity: (!extractDomainDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning) ? 0.6 : 1,
+                cursor: (!extractDomainDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {!extractDomainDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractDomainRunning ? '⏳ 正在导出...' : '🏷️ 开始导出')}
+            </button>
+
+            {/* 输出日志区域 */}
+            <div style={{ 
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '4px',
+              padding: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                <button 
+                  onClick={handleClearToolboxOutput}
+                  style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                >
+                  清空
+                </button>
+              </div>
+              <pre style={{ 
+                margin: 0,
+                padding: '10px',
+                background: 'var(--vscode-textCodeBlock-background)',
+                borderRadius: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontSize: '0.9em'
+              }}>
+                {toolboxOutput || '准备就绪，请选择导出目录并点击"开始导出"按钮...'}
+              </pre>
+            </div>
+          </div>
+        )}
+
         {/* 计划导出页面 */}
         {activeSection === 'scheduledExport' && (
           <div className="section active">
@@ -2671,6 +2887,7 @@ const App: React.FC = () => {
                   >
                     <option value="extractMaxobject">导出 MAXOBJECT</option>
                     <option value="extractMessage">导出消息</option>
+                    <option value="extractDomain">导出域</option>
                     <option value="extractScript">导出脚本</option>
                     <option value="extractAppXml">导出应用XML</option>
                   </select>
@@ -2715,7 +2932,7 @@ const App: React.FC = () => {
                         />
                         精简模式
                       </label>
-                    ) : task.exportFunction === 'extractMessage' ? (
+                    ) : task.exportFunction === 'extractMessage' || task.exportFunction === 'extractDomain' ? (
                       <>
                         <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>
                         <input
