@@ -2147,6 +2147,8 @@ MaxObject.prototype.setMboValues = function (mbo) {
     } else if (!mbo.isBasedOn("MAXOBJECTCFG")) {
         throw new MXApplicationException("","The mbo parameter must be based on the MAXOBJECTCFG Maximo object.");
     }
+    //应该迁移管理器中会设置该值
+    mbo.setMeaFlag(true)
 
     if (mbo.toBeAdded()) {
         mbo.setValue("OBJECTNAME", this.object);
@@ -2164,25 +2166,25 @@ MaxObject.prototype.setMboValues = function (mbo) {
             throw new MXApplicationException("#","objectName="+this.object+" 的描述不能为空");
         }
 
-        mbo.setValue("DESCRIPTION", this.description);
+        mbo.setValue("DESCRIPTION", this.description,2);
 
         if(mbo.toBeAdded()){
 
             if (this.entity != null) {
-                mbo.setValue("ENTITYNAME", this.entity);
+                mbo.setValue("ENTITYNAME", this.entity,2);
             }
         }
         if (this.service != null) {
-            mbo.setValue("SERVICENAME", this.service);
+            mbo.setValue("SERVICENAME", this.service,2);
         }
 
         if (this.class != null) {
-            mbo.setValue("CLASSNAME", this.class);
+            mbo.setValue("CLASSNAME", this.class,2);
         }
 
         if (mbo.toBeAdded()) {
             if (this.extendsObject != null) {
-                mbo.setValue("EXTENDSOBJECT", this.extendsObject);
+                mbo.setValue("EXTENDSOBJECT", this.extendsObject,2);
             }
         }
 
@@ -2199,7 +2201,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
         }
 
         if (typeof this.mainObject!=='undefined'&&this.mainObject != null) {
-            mbo.setValue("MAINOBJECT", this.mainObject);
+            mbo.setValue("MAINOBJECT", this.mainObject,2);
         }
 
       }
@@ -2226,7 +2228,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
         //忽略maximo主表信息更新,只有更新时候才设置为true,有些主表信息不能更改,只能增加字段
         if(ignoreObjectMain) {
           if (this.storagePartition != null) {
-            mbo.setValue("STORAGEPARTITION", this.storagePartition);
+            mbo.setValue("STORAGEPARTITION", this.storagePartition,2);
           }
           if (!mbo.getMboValueData("LANGTABLENAME").isReadOnly()) {
             this.languageTable != null ? mbo.setValue("LANGTABLENAME", this.languageTable) : mbo.setValueNull("LANGTABLENAME");
