@@ -12,6 +12,7 @@ interface LogViewerProps {
 const LogViewer: React.FC<LogViewerProps> = ({ vscode }) => {
   const [loggers, setLoggers] = useState<LoggerInfo[]>([]);
   const [filter, setFilter] = useState('');
+  const [matchMode, setMatchMode] = useState<'fuzzy' | 'exact'>('fuzzy');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [changingLevels, setChangingLevels] = useState<{[key: string]: string}>({});
@@ -116,10 +117,21 @@ const LogViewer: React.FC<LogViewerProps> = ({ vscode }) => {
   };
 
   // 过滤日志器
-  const filteredLoggers = loggers.filter(logger =>
-    logger.loggerName.toLowerCase().includes(filter.toLowerCase()) ||
-    logger.level.toLowerCase().includes(filter.toLowerCase())
-  );
+  // 精确: 不区分大小写，日志器名称与搜索词全部相同才显示
+  // 模糊: 搜索词按空格分割，不区分大小写，日志器名称必须包含所有词才显示
+  const filteredLoggers = loggers.filter(logger => {
+    const keyword = filter.trim();
+    if (!keyword) return true;
+    const loggerNameLower = logger.loggerName.toLowerCase();
+
+    if (matchMode === 'exact') {
+      return loggerNameLower === keyword.toLowerCase();
+    }
+
+    // 模糊匹配：空格分割后，所有词都必须包含在日志器名称中
+    const terms = keyword.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    return terms.every(term => loggerNameLower.includes(term));
+  });
 
   // 获取日志级别颜色
   const getLevelColor = (level: string) => {
@@ -146,9 +158,19 @@ const LogViewer: React.FC<LogViewerProps> = ({ vscode }) => {
         <button onClick={queryAllLoggers} className="btn btn-primary" disabled={loading}>
           🔍 查询所有日志级别
         </button>
+        <select
+          value={matchMode}
+          onChange={(e) => setMatchMode(e.target.value as 'fuzzy' | 'exact')}
+          className="search-input"
+          style={{ flex: '0 0 80px', width: '80px' }}
+          title="匹配方式：模糊（空格分隔，需全部包含）或精确（与日志器名称完全相同）"
+        >
+          <option value="fuzzy">模糊</option>
+          <option value="exact">精确</option>
+        </select>
         <input
           type="text"
-          placeholder="🔎 搜索日志器名称或级别..."
+          placeholder="🔎 搜索日志器名称（模糊/精确）..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="search-input"

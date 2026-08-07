@@ -36,6 +36,7 @@ Maximo自动化脚本开发助手，为VSCode提供智能代码补全、语法�
 - 🔧 **模块配置**：计划导出任务列表中按导出类型动态显示模块专属配置项（单文件行数、精简模式）
 - 📊 **任务级进度条**：每个导出任务独立显示实时进度，直观查看各任务执行状态
 - 🌐 **任务级语言参数**：计划导出每个任务可独立配置语言，`_langcode` 参数按任务行语言生效
+- 📥 **Node.js 导入模块**：配置面板新增「导入」菜单，提供 `sks-maximo-utils` 模块批量导入 Maximo 配置的说明与示例
 
 ## 安装
 
@@ -445,6 +446,16 @@ MIT License
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
 
 ## 版本更新历史
+
+### v1.4.31 (2026-07-30)
+
+**新增功能**：
+- 📥 配置面板新增「导入」菜单（位于「日志」和「关于」之间）
+  - 提供使用 Node.js 模块批量导入 Maximo 配置的说明
+  - maximo请求模块：[maximo_request](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request)
+  - 示例：[maximo_request_demo](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request_demo)
+  - 包含安装方式（`npm install -g sks-maximo-utils`）、初始化配置（`sks-maximo`）、脚本中使用示例
+  - 推荐在执行时通过命令行参数指定环境（如 `node 脚本.js loc`）
 
 ### v1.4.27 (2026-07-30)
 

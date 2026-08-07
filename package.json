@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.30",
+  "version": "1.4.31",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -391,7 +391,7 @@
         },
         "maximoScript.exportDomainPageSize": {
           "type": "number",
-          "default": 5000,
+          "default": 50000,
           "description": "域导出单文件行数（分页大小，根据分页查询导出多个文件）"
         },
         "maximoScript.exportDomainIgnoreDefVal": {

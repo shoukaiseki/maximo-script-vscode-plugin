@@ -128,7 +128,7 @@ const App: React.FC = () => {
     exportDomainDirectory: '',
     exportDomainThreadCount: 5,
     exportDomainZipEnabled: true,
-    exportDomainPageSize: 5000,
+    exportDomainPageSize: 50000,
     exportDomainIgnoreDefVal: false,
     scheduledExportBaseDir: '',
   });
@@ -940,7 +940,6 @@ const App: React.FC = () => {
   const handleQueryScripts = () => {
     setIsQueryingScripts(true);
     setScriptList([]);
-    setSearchKeyword(''); // 清空搜索关键词
     getVsCodeApi().postMessage({
       command: 'queryScripts'
     });
@@ -1025,6 +1024,7 @@ const App: React.FC = () => {
     { id: 'scheduledExport', label: '计划导出' },
     { id: 'queryScripts', label: '查询脚本' },
     { id: 'logger', label: '日志' },
+    { id: 'import', label: '导入' },
     { id: 'about', label: '关于' }
   ];
 
@@ -2468,8 +2468,6 @@ const App: React.FC = () => {
                 </div>
              </div>
             )}
-          </div>
-        )}
 
         {/* 消息导出标签页 */}
         {activeToolboxTab === 'extractMessage' && (
@@ -2670,7 +2668,7 @@ const App: React.FC = () => {
                   min="100"
                   max="50000"
                   value={config.exportDomainPageSize}
-                  onChange={(e) => updateConfig({ exportDomainPageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) })}
+                  onChange={(e) => updateConfig({ exportDomainPageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 50000)) })}
                   style={{ width: '100px', textAlign: 'center' }}
                 />
               </label>
@@ -2772,6 +2770,8 @@ const App: React.FC = () => {
                 {toolboxOutput || '准备就绪，请选择导出目录并点击"开始导出"按钮...'}
               </pre>
             </div>
+          </div>
+        )}
           </div>
         )}
 
@@ -3272,6 +3272,58 @@ const App: React.FC = () => {
             <p><strong>Maximo Script Helper</strong></p>
             <p>版本：1.0.0</p>
             <p>作者：shoukaiseki</p>
+          </div>
+        )}
+
+        {activeSection === 'import' && (
+          <div className="section active">
+            <h2>导入</h2>
+            <p>使用 <strong>Node.js</strong> 的模块进行导入（批量部署 Maximo 配置）。</p>
+            <p>
+              maximo请求模块：
+              <a href="https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request" target="_blank" rel="noopener noreferrer">
+                https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request
+              </a>
+            </p>
+            <p>
+              示例：
+              <a href="https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request_demo" target="_blank" rel="noopener noreferrer">
+                https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request_demo
+              </a>
+            </p>
+
+            <h3>安装</h3>
+            <pre><code>npm install -g sks-maximo-utils</code></pre>
+            <p>项目中引用：</p>
+            <pre><code>npm install sks-maximo-utils</code></pre>
+
+            <h3>初始化配置</h3>
+            <p>首次运行自动生成配置文件（位于 <code>~/.sks/nodeutils/config.json</code>），也可执行：</p>
+            <pre><code>sks-maximo</code></pre>
+
+            <h3>脚本中使用</h3>
+            <p>执行时通过命令行参数指定环境（如：<code>node 脚本.js loc</code>）：</p>
+            <pre><code>{`import {
+  importMaxObject,
+  importMaxPresentation,
+  importMaxDomain,
+  importMaxAutoKey,
+  importMaxScript,
+  importMaxAppInfo
+} from 'sks-maximo-utils';
+
+// 导入自动化脚本（fileName 为 JSON 配置，同目录需有同名 .js 文件）
+importMaxScript({ fileName: 'scripts/TEST.json' });
+
+// 导入对象配置
+importMaxObject({ fileName: 'DBCONFIGJSON/test.json', logname: '测试' });`}</code></pre>
+
+            <h3>运行示例</h3>
+            <p>克隆仓库后进入 demo 目录执行：</p>
+            <pre><code>cd maximo_request_demo
+node demo01.js loc</code></pre>
+            <p>PowerShell 批量部署多个环境：</p>
+            <pre><code>node demo01.js loc; node demo01.js hd; node demo01.js dev</code></pre>
           </div>
         )}
 

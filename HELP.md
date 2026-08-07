@@ -27,6 +27,7 @@
   - [清除脚本](#清除脚本)
   - [修复应用XML重复ID](#修复应用xml重复id)
 - [计划导出](#-计划导出)
+- [导入](#-导入)
 - [Pull 应用 XML](#pull-应用-xml)
 - [修复应用xml推送](#修复应用xml推送)
 - [脚本 Pull 和 Push](#-脚本-pull-和-push)
@@ -1074,6 +1075,77 @@ app_xml_backup_20260610_143025/
 
 ---
 
+## 📥 导入
+
+**功能**：使用 **Node.js** 的模块进行导入（批量部署 Maximo 配置）。
+
+- **maximo请求模块**：[maximo_request](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request)
+- **示例**：[maximo_request_demo](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request_demo)
+
+### 安装
+
+```bash
+# 全局安装（CLI 使用）
+npm install -g sks-maximo-utils
+```
+
+```bash
+# 项目中安装（引用使用）
+npm install sks-maximo-utils
+```
+
+### 初始化配置
+
+首次运行自动生成配置文件（位于 `~/.sks/nodeutils/config.json`），也可执行：
+
+```bash
+sks-maximo
+```
+
+### 脚本中使用
+
+执行时通过命令行参数指定环境（如：`node 脚本.js loc`）：
+
+```javascript
+import {
+  importMaxObject,
+  importMaxPresentation,
+  importMaxDomain,
+  importMaxAutoKey,
+  importMaxScript,
+  importMaxAppInfo
+} from 'sks-maximo-utils';
+
+// 导入自动化脚本（fileName 为 JSON 配置，同目录需有同名 .js 文件）
+importMaxScript({ fileName: 'scripts/TEST.json' });
+
+// 导入对象配置
+importMaxObject({ fileName: 'DBCONFIGJSON/test.json', logname: '测试' });
+```
+
+### 运行示例
+
+克隆仓库后进入 demo 目录执行：
+
+```bash
+cd maximo_request_demo
+node demo01.js loc
+```
+
+PowerShell 批量部署多个环境：
+
+```powershell
+node demo01.js loc; node demo01.js hd; node demo01.js dev
+```
+
+### 注意事项
+
+- ⚠️ 环境名称需与配置文件中的环境名一致（如 loc/hd/dev）
+- ⚠️ 首次使用需执行 `sks-maximo` 生成配置文件
+- ⚠️ 支持批量导入 MaxObject、域、消息、应用配置及自动化脚本
+
+---
+
 ## Pull 应用 XML
 
 **功能**：从 Maximo 服务器拉取单个应用的 Presentation XML，自动备份原文件并刷新编辑器。
@@ -1643,4 +1715,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-07-30 | 版本：1.4.27*
+*最后更新：2026-07-30 | 版本：1.4.31*

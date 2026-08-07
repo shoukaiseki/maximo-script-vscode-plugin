@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.31] - 2026-07-30
+
+### 新增功能
+
+#### 导入菜单
+- ✨ 配置面板新增「导入」菜单（位于「日志」和「关于」之间）
+  - 提供使用 Node.js 模块批量导入 Maximo 配置的说明
+  - maximo请求模块：[maximo_request](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request)
+  - 示例：[maximo_request_demo](https://gitee.com/shoukaiseki/maximo-helper-box/tree/master/maximo_request_demo)
+  - 包含安装方式（`npm install -g sks-maximo-utils` / `npm install sks-maximo-utils`）
+  - 包含初始化配置（`sks-maximo`，配置文件位于 `~/.sks/nodeutils/config.json`）
+  - 包含脚本中使用示例（`importMaxScript` / `importMaxObject` 等导入方法）
+  - 推荐在执行时通过命令行参数指定环境（如 `node 脚本.js loc`）
+
+### 技术实现
+
+- 🔧 修改文件
+  - `webview-ui/src/App.tsx` - 新增「导入」菜单项及说明页面
+
+---
+
 ## [1.4.27] - 2026-07-30
 
 ### 新增功能

@@ -423,6 +423,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('exportMessageZipEnabled', data.exportMessageZipEnabled !== undefined ? data.exportMessageZipEnabled : true, vscode.ConfigurationTarget.Global);
       await config.update('exportMessagePageSize', data.exportMessagePageSize !== undefined ? data.exportMessagePageSize : 5000, vscode.ConfigurationTarget.Global);
       await config.update('exportMessageIgnoreDefVal', data.exportMessageIgnoreDefVal !== undefined ? data.exportMessageIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
+      await config.update('exportDomainDirectory', data.exportDomainDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportDomainThreadCount', data.exportDomainThreadCount !== undefined ? data.exportDomainThreadCount : 5, vscode.ConfigurationTarget.Global);
+      await config.update('exportDomainZipEnabled', data.exportDomainZipEnabled !== undefined ? data.exportDomainZipEnabled : true, vscode.ConfigurationTarget.Global);
+      await config.update('exportDomainPageSize', data.exportDomainPageSize !== undefined ? data.exportDomainPageSize : 50000, vscode.ConfigurationTarget.Global);
+      await config.update('exportDomainIgnoreDefVal', data.exportDomainIgnoreDefVal !== undefined ? data.exportDomainIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
       await config.update('scheduledExportBaseDir', data.scheduledExportBaseDir || '', vscode.ConfigurationTarget.Global);
       
       // 验证保存结果
@@ -803,6 +808,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       exportMessageZipEnabled: config.get('exportMessageZipEnabled', true),
       exportMessagePageSize: config.get('exportMessagePageSize', 5000),
       exportMessageIgnoreDefVal: config.get('exportMessageIgnoreDefVal', false),
+      exportDomainDirectory: config.get('exportDomainDirectory', ''),
+      exportDomainThreadCount: config.get('exportDomainThreadCount', 5),
+      exportDomainZipEnabled: config.get('exportDomainZipEnabled', true),
+      exportDomainPageSize: config.get('exportDomainPageSize', 50000),
+      exportDomainIgnoreDefVal: config.get('exportDomainIgnoreDefVal', false),
       scheduledExportBaseDir: config.get('scheduledExportBaseDir', '')
     };
     
@@ -4214,7 +4224,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     try {
       const config = vscode.workspace.getConfiguration('maximoScript');
       const serverUrl = config.get<string>('serverUrl', '');
-      const pageSize = config.get<number>('exportDomainPageSize', 5000);
+      const pageSize = config.get<number>('exportDomainPageSize', 50000);
       const ignoreDefVal = config.get<boolean>('exportDomainIgnoreDefVal', false);
       const threadCount = config.get<number>('exportDomainThreadCount', 5);
       const langcode = config.get<string>('langcode', 'EN');
@@ -4587,7 +4597,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         break;
       case 'extractDomain':
         this._sendScheduledLog(`  🔄 正在导出域到 ${taskDir}，线程数: ${task.threadCount || 5}`);
-        await this._extractDomainsForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 5000, taskIndex);
+        await this._extractDomainsForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 50000, taskIndex);
         break;
       case 'extractScript':
         this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
