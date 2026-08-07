@@ -37,7 +37,7 @@ logger.info("[" + scriptName + "]----------------Starting execution of script " 
 /** @type {psdi.security.UserInfo} */
 var uInfo = userInfo;
 var _langcode = "EN";
-if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
+if (typeof request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
   _langcode = request.getQueryParam("_langcode").toUpperCase();
   uInfo.setLangCode(_langcode);
   logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + uInfo.getLocale().getLanguage());
@@ -52,16 +52,16 @@ if (action !== "export" && action !== "list") {
   action = "export";
 }
 
-// 忽略可选字段(默认值), 仅导出必填字段, 简化JSON
+// 精简模式(ignoreDefVal): 省略空值或与默认值相同的属性, 非默认值仍导出, 简化JSON
 var ignoreDefVal = false;
-if (request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryParam("ignoreDefVal") == "true") {
+if (typeof request.getQueryParam("ignoreDefVal") !== 'undefined' && request.getQueryParam("ignoreDefVal") == "true") {
   ignoreDefVal = true;
 }
 
 // 分页参数
 var pageNum = request.getQueryParam("pageNum");
 var pageSize = request.getQueryParam("pageSize");
-var hasPagination = pageNum && pageSize && pageNum !== 'undefined' && pageSize !== 'undefined';
+var hasPagination = pageNum && pageSize && typeof pageNum !== 'undefined' && typeof pageSize !== 'undefined';
 var pageNumInt = hasPagination ? parseInt(pageNum) : 1;
 var pageSizeInt = hasPagination ? parseInt(pageSize) : 0;
 
@@ -177,16 +177,20 @@ function buildDomainListObject(domainMbo) {
 
   obj.put("domainid", getString(domainMbo, "DOMAINID"));
   obj.put("domaintype", getString(domainMbo, "DOMAINTYPE"));
-  obj.put("description", getString(domainMbo, "DESCRIPTION"));
+  putIfNotDef(obj, "description", getString(domainMbo, "DESCRIPTION"));
   if (apiType !== 'exp') {
     putLangField(obj, domainMbo, "description_zh", "DESCRIPTION", "ZH");
     putLangField(obj, domainMbo, "description_en", "DESCRIPTION", "EN");
   }
-  putIfHas(obj, domainMbo, "maxtype", "MAXTYPE");
-  putIfNotNull(obj, "length", getInt(domainMbo, "LENGTH"));
-  putIfNotNull(obj, "scale", getInt(domainMbo, "SCALE"));
-  putIfNotNull(obj, "internal", getInt(domainMbo, "INTERNAL"));
-  putIfNotNull(obj, "nevercache", getInt(domainMbo, "NEVERCACHE"));
+  putIfNotDef(obj, "maxtype", getString(domainMbo, "MAXTYPE"));
+  putIfNotDef(obj, "length", getInt(domainMbo, "LENGTH"));
+  // scale 仅数字域/数字范围域需要
+  var domainType = getString(domainMbo, "DOMAINTYPE");
+  if (domainType === "NUMERIC" || domainType === "NUMRANGE") {
+    putIfNotDef(obj, "scale", getInt(domainMbo, "SCALE"));
+  }
+  putIfNotDef(obj, "internal", getInt(domainMbo, "INTERNAL"), 0);
+  putIfNotDef(obj, "nevercache", getInt(domainMbo, "NEVERCACHE"), 0);
 
   return obj;
 }
@@ -204,22 +208,24 @@ function buildDomainObject(domainMbo) {
   obj.put("domainid", getString(domainMbo, "DOMAINID"));
   obj.put("domaintype", getString(domainMbo, "DOMAINTYPE"));
 
-  if (!ignoreDefVal) {
-    obj.put("description", getString(domainMbo, "DESCRIPTION"));
-    // 非导出模式额外返回多语言描述(备份查看用)
-    if (apiType !== 'exp') {
-      putLangField(obj, domainMbo, "description_zh", "DESCRIPTION", "ZH");
-      putLangField(obj, domainMbo, "description_en", "DESCRIPTION", "EN");
-    }
-    putIfHas(obj, domainMbo, "maxtype", "MAXTYPE");
-    putIfNotNull(obj, "length", getInt(domainMbo, "LENGTH"));
-    putIfNotNull(obj, "scale", getInt(domainMbo, "SCALE"));
-    putIfNotNull(obj, "internal", getInt(domainMbo, "INTERNAL"));
-    putIfNotNull(obj, "nevercache", getInt(domainMbo, "NEVERCACHE"));
+  // 可选字段: 精简模式(ignoreDefVal)下省略空值或与默认值相同的属性, 非默认值仍导出
+  putIfNotDef(obj, "description", getString(domainMbo, "DESCRIPTION"));
+  // 非导出模式额外返回多语言描述(备份查看用)
+  if (apiType !== 'exp') {
+    putLangField(obj, domainMbo, "description_zh", "DESCRIPTION", "ZH");
+    putLangField(obj, domainMbo, "description_en", "DESCRIPTION", "EN");
   }
+  putIfNotDef(obj, "maxtype", getString(domainMbo, "MAXTYPE"));
+  putIfNotDef(obj, "length", getInt(domainMbo, "LENGTH"));
+  // scale 仅数字域/数字范围域需要
+  var domainType = getString(domainMbo, "DOMAINTYPE");
+  if (domainType === "NUMERIC" || domainType === "NUMRANGE") {
+    putIfNotDef(obj, "scale", getInt(domainMbo, "SCALE"));
+  }
+  putIfNotDef(obj, "internal", getInt(domainMbo, "INTERNAL"), 0);
+  putIfNotDef(obj, "nevercache", getInt(domainMbo, "NEVERCACHE"), 0);
 
   // 按 domaintype 读取对应的域值子表(ALN/SYNONYM/NUMERIC/NUMRANGE/CROSSOVER/TABLE)
-  var domainType = getString(domainMbo, "DOMAINTYPE");
   var relName = DOMAIN_VALUE_REL[domainType];
   if (relName) {
     var valueArr = buildDomainValues(domainMbo, relName, domainType);
@@ -269,11 +275,9 @@ function buildAlnValue(mbo) {
   /** @type {com.ibm.json.java.OrderedJSONObject} */
   var o = new OrderedJSONObject();
   o.put("value", getString(mbo, "VALUE"));
-  if (!ignoreDefVal) {
-    putDescFields(o, mbo);
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putDescFields(o, mbo);
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
   return o;
 }
 
@@ -287,12 +291,10 @@ function buildSynonymValue(mbo) {
   var o = new OrderedJSONObject();
   o.put("maxvalue", getString(mbo, "MAXVALUE"));
   o.put("value", getString(mbo, "VALUE"));
-  if (!ignoreDefVal) {
-    putDescFields(o, mbo);
-    putIfHas(o, mbo, "defaults", "DEFAULTS");
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putDescFields(o, mbo);
+  putIfNotDef(o, "defaults", getString(mbo, "DEFAULTS"), "0");
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
   return o;
 }
 
@@ -305,11 +307,9 @@ function buildNumericValue(mbo) {
   /** @type {com.ibm.json.java.OrderedJSONObject} */
   var o = new OrderedJSONObject();
   o.put("value", getString(mbo, "VALUE"));
-  if (!ignoreDefVal) {
-    putDescFields(o, mbo);
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putDescFields(o, mbo);
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
   return o;
 }
 
@@ -322,13 +322,11 @@ function buildNumRangeValue(mbo) {
   /** @type {com.ibm.json.java.OrderedJSONObject} */
   var o = new OrderedJSONObject();
   o.put("rangesegment", getInt(mbo, "RANGESEGMENT"));
-  if (!ignoreDefVal) {
-    putIfNotNull(o, "rangeminimum", getDouble(mbo, "RANGEMINIMUM"));
-    putIfNotNull(o, "rangemaximum", getDouble(mbo, "RANGEMAXIMUM"));
-    putIfNotNull(o, "rangeinterval", getDouble(mbo, "RANGEINTERVAL"));
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putIfNotDef(o, "rangeminimum", getDouble(mbo, "RANGEMINIMUM"));
+  putIfNotDef(o, "rangemaximum", getDouble(mbo, "RANGEMAXIMUM"));
+  putIfNotDef(o, "rangeinterval", getDouble(mbo, "RANGEINTERVAL"));
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
   return o;
 }
 
@@ -342,15 +340,13 @@ function buildCrossoverValue(mbo) {
   var o = new OrderedJSONObject();
   o.put("sourcefield", getString(mbo, "SOURCEFIELD"));
   o.put("destfield", getString(mbo, "DESTFIELD"));
-  if (!ignoreDefVal) {
-    putIfHas(o, mbo, "sourcecondition", "SOURCECONDITION");
-    putIfHas(o, mbo, "destcondition", "DESTCONDITION");
-    putIfHas(o, mbo, "copyevenifsrcnull", "COPYEVENIFSRCNULL");
-    putIfHas(o, mbo, "copyonlyifdestnull", "COPYONLYIFDESTNULL");
-    putIfNotNull(o, "sequence", getInt(mbo, "SEQUENCE"));
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putIfNotDef(o, "sourcecondition", getString(mbo, "SOURCECONDITION"));
+  putIfNotDef(o, "destcondition", getString(mbo, "DESTCONDITION"));
+  putIfNotDef(o, "copyevenifsrcnull", getString(mbo, "COPYEVENIFSRCNULL"), "0");
+  putIfNotDef(o, "copyonlyifdestnull", getString(mbo, "COPYONLYIFDESTNULL"), "0");
+  putIfNotDef(o, "sequence", getInt(mbo, "SEQUENCE"));
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
   return o;
 }
 
@@ -365,14 +361,12 @@ function buildTableValue(mbo, domainType) {
   /** @type {com.ibm.json.java.OrderedJSONObject} */
   var o = new OrderedJSONObject();
   o.put("objectname", getString(mbo, "OBJECTNAME"));
-  if (!ignoreDefVal) {
-    putIfHas(o, mbo, "validtnwhereclause", "VALIDTNWHERECLAUSE");
-    putIfHas(o, mbo, "listwhereclause", "LISTWHERECLAUSE");
-    putIfHas(o, mbo, "errorresourcbundle", "ERRORRESOURCBUNDLE");
-    putIfHas(o, mbo, "erroraccesskey", "ERRORACCESSKEY");
-    putIfHas(o, mbo, "orgid", "ORGID");
-    putIfHas(o, mbo, "siteid", "SITEID");
-  }
+  putIfNotDef(o, "validtnwhereclause", getString(mbo, "VALIDTNWHERECLAUSE"));
+  putIfNotDef(o, "listwhereclause", getString(mbo, "LISTWHERECLAUSE"));
+  putIfNotDef(o, "errorresourcbundle", getString(mbo, "ERRORRESOURCBUNDLE"));
+  putIfNotDef(o, "erroraccesskey", getString(mbo, "ERRORACCESSKEY"));
+  putIfNotDef(o, "orgid", getString(mbo, "ORGID"));
+  putIfNotDef(o, "siteid", getString(mbo, "SITEID"));
 
   // CROSSOVER 类型: MAXTABLEDOMAIN 下还有 CROSSOVERDOMAIN 子记录
   if (domainType === "CROSSOVER") {
@@ -455,29 +449,17 @@ function getDouble(mbo, attr) {
 }
 
 /**
- * 如果 MBO 有值则添加到 JSON 对象
- * @param {com.ibm.json.java.JSONObject} obj
- * @param {psdi.mbo.MboRemote} mbo
- * @param {java.lang.String} jsonKey
- * @param {java.lang.String} attr
- */
-function putIfHas(obj, mbo, jsonKey, attr) {
-  var val = getString(mbo, attr);
-  if (val !== null && val !== "") {
-    obj.put(jsonKey, val);
-  }
-}
-
-/**
- * 如果值非空则添加到 JSON 对象
+ * 添加属性值到 JSON 对象
+ * 规则: 空值(null/undefined/"")不导出; 精简模式(ignoreDefVal)下与默认值相同的属性不导出, 非默认值仍导出
  * @param {com.ibm.json.java.JSONObject} obj
  * @param {java.lang.String} jsonKey
- * @param {*} val
+ * @param {*} val - 属性值
+ * @param {*} defVal - 默认值(可选), 精简模式下等于该值的属性省略
  */
-function putIfNotNull(obj, jsonKey, val) {
-  if (val !== null && val !== undefined && val !== "") {
-    obj.put(jsonKey, val);
-  }
+function putIfNotDef(obj, jsonKey, val, defVal) {
+  if (val === null || val === undefined || val === "") return;
+  if (ignoreDefVal && defVal !== undefined && defVal !== null && String(val) == String(defVal)) return;
+  obj.put(jsonKey, val);
 }
 
 /**

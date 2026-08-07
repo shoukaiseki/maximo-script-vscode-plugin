@@ -46,10 +46,10 @@ if (sksBool) {
         var sw = new StringWriter();
         var pw = new PrintWriter(sw);
         // Throwable 不需要导入,查看堆栈信息
-        new Throwable("[" + scriptName + "]----------堆栈信息").printStackTrace(pw);
+        new java.lang.Throwable("[" + scriptName + "]----------堆栈信息").printStackTrace(pw);
         var errorMessage = sw.toString();
         // mxerrormsg=errorMessage
-        loggerMX.warn("[" + scriptName + "]----------", errorMessage)
+        loggerMX.warn("[" + scriptName + "]----------"+ errorMessage)
     } catch (e) {
         loggerMX.error("[" + scriptName + "]----------", e)
         sksBool = false

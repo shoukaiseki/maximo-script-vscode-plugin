@@ -24,11 +24,15 @@ var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX,
 
 //_lang=zh ,_lang=en,
 // _langcode=zh , _langcode=en
-if(request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
+if(typeof request.getQueryParam("_langcode")!=='undefined'&&request.getQueryParam("_langcode")){
     var _langcode = request.getQueryParam("_langcode");
     // uInfo.setLocale(lang);
     userInfo.setLangCode(_langcode)
     logger.info("------------------_langcode=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry());
+}
+var _ignoreResultSuccess=false;
+if(typeof request.getQueryParam("_ignoreResultSuccess")!=='undefined'&&request.getQueryParam("_ignoreResultSuccess")){
+    _ignoreResultSuccess = request.getQueryParam("_ignoreResultSuccess")==="true";
 }
 main();
 
@@ -84,7 +88,7 @@ function main() {
                 });
 
             } catch (error) {
-                logger.error("处理第 " + (i + 1) + " 个域定义失败: " + error.message);
+                logger.error("处理第 " + (i + 1) + " 个域定义失败: ", error);
                 
                 // 记录失败
                 resultList.push({
@@ -101,11 +105,16 @@ function main() {
         /** @type {java.lang.Integer} */
         var failedCount = 0;
         
+        var resultListTmp=[]
         for (var j = 0; j < resultList.length; j++) {
             if (resultList[j].status === "SUCCESS") {
                 successCount++;
+                if(!_ignoreResultSuccess){
+                    resultListTmp.push(resultList[j]);
+                }
             } else {
                 failedCount++;
+                    resultListTmp.push(resultList[j]);
             }
         }
 
@@ -121,12 +130,12 @@ function main() {
                 success: successCount,
                 failed: failedCount
             },
-            result: resultList
+            result: resultListTmp
         };
         responseBody = JSON.stringify(responseData, null, 4);
 
     } catch (error) {
-        logger.error("批量导入域定义失败: " + error.message);
+        logger.error("批量导入域定义失败: ", error);
         
         /** @type {Object} */
         var errorData = {
@@ -158,9 +167,9 @@ function saveOrUpdateDomain(domainData, index) {
     if (!domainType) {
         throw new MXApplicationException("#", "第 " + index + " 个域定义的 domaintype（域类型）不能为空");
     }
-    if(!description){
-        throw new MXApplicationException("#", "第 " + index + " 个域定义的 description（描述）不能为空");
-    }
+    // if(!description){
+    //     throw new MXApplicationException("#", "第 " + index + " 个域定义的 description（描述）不能为空");
+    // }
 
     /** @type {java.lang.Integer} */
     var length = domainData.length ;
@@ -212,38 +221,42 @@ function saveOrUpdateDomain(domainData, index) {
         }
 
         
-        if(!domainMbo.getMboValueData("DOMAINTYPE").isReadOnly()&&domainType!== 'undefined'){
+        if(!domainMbo.getMboValueData("DOMAINTYPE").isReadOnly()&&typeof domainType !== 'undefined'){
             // 设置字段值
             domainMbo.setValue("DOMAINTYPE", domainType,2);
         }
         logger.info("----------002")
         
-        if (description!== 'undefined') {
+        if (typeof description!== 'undefined'&&description!==null&&description!=="") {
             domainMbo.setValue("DESCRIPTION", description);
         }
         
         logger.info("----------003")
+        // TABLE/CROSSOVER 类型不设置 MAXTYPE 和 LENGTH
+        var isTableType = domainType === "TABLE" || domainType === "CROSSOVER";
         /** @type {java.lang.String} */
         var maxType = domainData.maxtype;
-        if (maxType !== 'undefined') {
+        if (!isTableType && typeof maxType !== 'undefined' && maxType !== null) {
             domainMbo.setValue("MAXTYPE", maxType, 11);
         }
         
-        if (length!== 'undefined') {
-            domainMbo.setValue("LENGTH", length);
+        if (!isTableType && typeof length!== 'undefined') {
+            domainMbo.setValue("LENGTH", length,2);
         }
         logger.info("----------004.scale="+scale)
         
-        if (scale !== 'undefined'&&scale!=null) {
-            domainMbo.setValue("SCALE", scale);
+        if (typeof scale !== 'undefined'&&scale!=null) {
+            if(domainMbo.getString("DOMAINTYPE")==="NUMERIC"||domainMbo.getString("DOMAINTYPE")==="NUMRANGE"){
+                domainMbo.setValue("SCALE", scale,2);
+            }
         }
         
         logger.info("----------005")
-        if (internal !== 'undefined' && internal) {
+        if (typeof internal !== 'undefined' && internal) {
             domainMbo.setValue("INTERNAL", internal, 2);
         }
-        logger.info("----------006")
-        if (neverCache !== 'undefined') {
+        logger.info("----------neverCache="+neverCache)
+        if (typeof neverCache !== 'undefined' && neverCache !== null) {
             domainMbo.setValue("NEVERCACHE", neverCache);
         }
 
@@ -256,8 +269,8 @@ function saveOrUpdateDomain(domainData, index) {
         logger.info("域定义保存成功: DOMAINID=" + domainId + ", DOMAINTYPE=" + domainType);
         
     } catch (error) {
-        logger.error("保存MAXDOMAIN表失败: " + error.message);
-        throw new MXApplicationException("#", "保存域定义失败: " + error.message);
+        logger.error("保存MAXDOMAIN表失败: " , error);
+        throw new MXApplicationException("#", "保存域定义失败: " , error);
     } finally {
         __mboSetClose(domainSet)
     }
@@ -372,12 +385,12 @@ function saveOrUpdateAlnDomain(alndomainSet, alndomainDatas) {
                 alnMbo=alndomainSet.add()
                 alnMbo.setValue("VALUE", alnData.value)
             }
-            if (description !== 'undefined' && description) {
+            if (typeof description !== 'undefined' && description) {
                 alnMbo.setValue("DESCRIPTION", description);
             }
 
             // 设置可选字段
-            if (alnData.maxvalue !== 'undefined' && alnData.maxvalue) {
+            if (typeof alnData.maxvalue !== 'undefined' && alnData.maxvalue) {
                 alnMbo.setValue("MAXVALUE", alnData.maxvalue);
             }
 
@@ -397,7 +410,7 @@ function saveOrUpdateAlnDomain(alndomainSet, alndomainDatas) {
 
 
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 ALNDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 ALNDOMAIN 记录失败: " , error);
             // 继续处理下一条记录
         }
     }
@@ -487,7 +500,7 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
                 logger.info("已保存 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
             }
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " , error);
         }
     }
     logger.info("SYNONYMDOMAIN 记录处理完成");
@@ -537,7 +550,7 @@ function saveOrUpdateNumericDomain(numericdomainSet, datas) {
                 logger.info("已保存 NUMERICDOMAIN 记录: VALUE=" + value);
             }
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 NUMERICDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 NUMERICDOMAIN 记录失败: " , error);
         }
     }
     logger.info("NUMERICDOMAIN 记录处理完成");
@@ -589,7 +602,7 @@ function saveOrUpdateNumRangeDomain(numrangedomainSet, datas) {
                 logger.info("已保存 NUMRANGEDOMAIN 记录: RANGESEGMENT=" + rangesegment);
             }
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 NUMRANGEDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 NUMRANGEDOMAIN 记录失败: " , error);
         }
     }
     logger.info("NUMRANGEDOMAIN 记录处理完成");
@@ -648,7 +661,7 @@ function saveOrUpdateTableDomain(tabledomainSet, datas, domainType) {
                 try { saveOrUpdateCrossoverDomain(coSet, data.crossoverdomain); } finally { __mboSetClose(coSet); }
             }
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 MAXTABLEDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 MAXTABLEDOMAIN 记录失败: " , error);
         }
     }
     logger.info("MAXTABLEDOMAIN 记录处理完成");
@@ -704,7 +717,7 @@ function saveOrUpdateCrossoverDomain(crossoverdomainSet, datas) {
                 logger.info("已保存 CROSSOVERDOMAIN 记录: " + sourcefield + "->" + destfield);
             }
         } catch (error) {
-            logger.error("处理第 " + (i + 1) + " 条 CROSSOVERDOMAIN 记录失败: " + error.message);
+            logger.error("处理第 " + (i + 1) + " 条 CROSSOVERDOMAIN 记录失败: ", error);
         }
     }
     logger.info("CROSSOVERDOMAIN 记录处理完成");
