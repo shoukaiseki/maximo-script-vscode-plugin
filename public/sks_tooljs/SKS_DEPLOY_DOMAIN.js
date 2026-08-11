@@ -407,8 +407,6 @@ function saveOrUpdateAlnDomain(alndomainSet, alndomainDatas) {
             }
             logger.info("已添加 ALNDOMAIN 记录: VALUE=" + value);
         }
-
-
         } catch (error) {
             logger.error("处理第 " + (i + 1) + " 条 ALNDOMAIN 记录失败: " , error);
             // 继续处理下一条记录
@@ -428,28 +426,28 @@ function saveOrUpdateDomainValues(domainMbo, domainData, domainType) {
     // ALN
     if (domainData.alndomain) {
         var alnSet = domainMbo.getMboSet("ALNDOMAINVALUE");
-        try { saveOrUpdateAlnDomain(alnSet, domainData.alndomain); } finally { __mboSetClose(alnSet); }
+        try { saveOrUpdateAlnDomain(alnSet, domainData.alndomain);alnSet.save(); } finally { __mboSetClose(alnSet); }
     }
     // SYNONYM
     if (domainData.synonymdomain) {
         var synSet = domainMbo.getMboSet("SYNONYMDOMAIN");
-        try { saveOrUpdateSynonymDomain(synSet, domainData.synonymdomain); } finally { __mboSetClose(synSet); }
+        try { saveOrUpdateSynonymDomain(synSet, domainData.synonymdomain);synSet.save(); } finally { __mboSetClose(synSet); }
     }
     // NUMERIC
     if (domainData.numericdomain) {
         var numSet = domainMbo.getMboSet("NUMDOMAINVALUE");
-        try { saveOrUpdateNumericDomain(numSet, domainData.numericdomain); } finally { __mboSetClose(numSet); }
+        try { saveOrUpdateNumericDomain(numSet, domainData.numericdomain);numSet.save(); } finally { __mboSetClose(numSet); }
     }
     // NUMRANGE
     if (domainData.numrangedomain) {
         var nrSet = domainMbo.getMboSet("RANGEDOMSEGMENT");
-        try { saveOrUpdateNumRangeDomain(nrSet, domainData.numrangedomain); } finally { __mboSetClose(nrSet); }
+        try { saveOrUpdateNumRangeDomain(nrSet, domainData.numrangedomain);nrSet.save(); } finally { __mboSetClose(nrSet); }
     }
     // TABLE / CROSSOVER (值记录在 MAXTABLEDOMAIN)
     if (domainData.tabledomain) {
         var tbRel = domainType === "CROSSOVER" ? "MAXTABLEDOMAINFORCROSSOVER" : "MAXTABLEDOMAIN";
         var tbSet = domainMbo.getMboSet(tbRel);
-        try { saveOrUpdateTableDomain(tbSet, domainData.tabledomain, domainType); } finally { __mboSetClose(tbSet); }
+        try { saveOrUpdateTableDomain(tbSet, domainData.tabledomain, domainType);tbSet.save(); } finally { __mboSetClose(tbSet); }
     }
 }
 
