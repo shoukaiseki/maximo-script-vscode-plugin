@@ -1,0 +1,43 @@
+# 快捷插入代码配置
+# 文件位置: ~/.sks/maximo-script-helper/quick-code.yaml
+# 代码块使用 | 或 |- 保留换行格式
+
+# 当前模板中使用的变量和描述
+tmplenv:
+  objectName: 
+    desc: "对象名称"
+    remark: "例如ITEM"
+  attributeName:
+    desc: "属性名称"
+    remark: "例如ITEMNUM"
+
+
+#自动化脚本(js)插入
+javascript:
+  - name: "COMMON.UTILS通用工具"
+    childrens:
+      - name: 获取appName
+        remark: "通过mbo获取appName"
+        code: |
+          /** @type {java.lang.String} */
+          var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
+#应用程序设计器xml
+maxappxml:
+  - name: "组件属性"
+    childrens:
+      - name: textbox组件
+        childrens:
+          - name: applinkkey属性
+            componentName: "textbox"
+            remark: "转到应用时候,当前表对应目标应用主键的属性"
+            code: "applinkkey"
+# MAXOBJECT导入配置json
+maxobjectjson:
+  - name: "导入MAXOBJECT配置json"
+    childrens:
+      - name:  MAXOBJECT
+        childrens:
+          - name: sameAs等同对象
+            remark: "MAXOBJECT配置json中的 sameAsObject和sameAsAttribute属性,设置之后将忽略length和scale属性(不支持变更字段长度)"
+            code: |
+                "sameAsObject": "${objectName}","sameAsAttribute": "${attributeName}",

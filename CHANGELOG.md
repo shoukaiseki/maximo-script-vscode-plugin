@@ -5,6 +5,26 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.32] - 2026-07-30
+
+### 新增功能
+
+#### 创建脚本 DataBean 增强
+- ✨ 选择 DataBean 脚本时，填写 APPNAME (beanapp) 和 Bean ID (beanid) 即可自动生成脚本名
+  - 两个字段均为必填，提供填写提示（应用 URL 参数中的 value、根据日志查找 beanid）
+  - 脚本名自动生成为 `DATABEAN.<appname>.<beanid>`（如 DATABEAN.ITEM.RESULTS_SHOWLIST）
+  - 脚本名称输入框自动变为只读模式并以绿色显示
+  - 自动在 JSON 配置的 `variables` 中生成 beanapp / beanid 变量（含 `sks:` 备注）
+  - 命名规范提示更新为 `DATABEAN.<应用名>.<Bean ID>`
+
+### 技术实现
+
+- 🔧 修改文件
+  - `webview-ui/src/components/CreateScriptModal.tsx` - 新增 beanapp/beanid 输入框、脚本名自动生成逻辑、必填校验、只读脚本名
+  - `src/createScriptPanel.ts` - 接收 beanApp/beanId 参数，为 DATABEAN 脚本生成 variables 配置
+
+---
+
 ## [1.4.31] - 2026-07-30
 
 ### 新增功能

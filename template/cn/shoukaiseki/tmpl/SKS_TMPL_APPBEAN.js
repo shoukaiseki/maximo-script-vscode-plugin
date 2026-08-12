@@ -152,6 +152,37 @@ function _close(set) {
 
 
 /**
+ * 获取mbo
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ * @return {psdi.mbo.MboRemote}   主Mbo
+ */
+function getMainMbo(dbctx) {
+  logger.info("[" + scriptName + "] getMainMbo")
+
+  /** @type {psdi.webclient.system.controller.AppInstance} */
+  var appInstance = dbctx.getAppInstance();
+  /** @type {psdi.webclient.system.session.WebClientSession} */
+  var clientsession = dbctx.webclientsession();
+  /** @type {psdi.webclient.system.beans.DataBean} */
+  var appBean = appInstance.getAppBean();
+  /** @type {psdi.mbo.MboRemote} */
+  var mbo = appBean.getMbo();
+  if (!mbo) {
+    var appInstance = dbctx.getAppInstance()
+    logger.info("[" + scriptName + "] appInstance= " + appInstance)
+    var appBean = appInstance.getAppBean()
+    logger.info("[" + scriptName + "] appBean= " + appBean)
+    //应用主列表按钮的mbo获取
+    mbo = appBean.getMbo()
+    logger.info("[" + scriptName + "] mbo= " + mbo)
+  }
+  if (!mbo) {
+    throw new MXApplicationException("#", "error,can't find mbo")
+  }
+  return mbo;
+}
+
+/**
  * 特别注意: 如果在选择操作中想执行APPBEAN的方法,在签名选项中: 高级签名选项要选 (无) 不要做任何高级签名选项的修改
  *                      如果选择了: 此操作必须由用户在UI中调用,则不会执行APPBEAN的方法
  *                      此操作必须由用户在UI中调用勾选了,触发的会是 操作脚本

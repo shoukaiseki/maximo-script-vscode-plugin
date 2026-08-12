@@ -1377,7 +1377,15 @@ Push 和 Pull 操作都会自动进行版本检查，防止数据覆盖。
    - 输入对象名称或应用名称后脚本名自动生成
    - 脚本名称输入框变为只读模式，以绿色显示自动生成的名称
 
-6. **命名规范提示**
+6. **DataBean 脚本自动命名**
+   - 在普通脚本标签页选择 **DataBean脚本** 类型
+   - 填写 **APPNAME (beanapp)**：应用中 URL 参数中的 value，即应用名称（如 ITEM、WOTRACK）
+   - 填写 **Bean ID (beanid)**：将 maximo.script 日志级别设为 debug，根据日志 `attempting to find databean script for <appName>~<bean.getId()>` 查找正确的 beanid
+   - 脚本名自动生成为 `DATABEAN.<appname>.<beanid>`（如 DATABEAN.ITEM.RESULTS_SHOWLIST）
+   - 脚本名称输入框变为只读模式，以绿色显示自动生成的名称
+   - 自动在 JSON 配置的 `variables` 中生成 beanapp / beanid 变量
+
+7. **命名规范提示**
    - 选择脚本类型后，下方自动显示对应的命名规范建议
    - 例如选择 OBJECT.SAVE 时提示：`建议命名: <对象>.PRESAVE / .AFTSAVE / .AFTTXSAVE`
    - 例如选择 APPBEAN 时提示：`建议命名: APPBEAN.<应用> （如 APPBEAN.WOTRACK）`
@@ -1715,4 +1723,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-07-30 | 版本：1.4.31*
+*最后更新：2026-07-30 | 版本：1.4.32*

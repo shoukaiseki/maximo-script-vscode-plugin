@@ -21,24 +21,10 @@ var scriptName=service.getScriptName()
 
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
-/** @type {org.apache.log4j.Level} */
-Level = Java.type("org.apache.log4j.Level");
-/** @type {psdi.util.logging.MXLoggerFactory} */
-MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
-/** @type {psdi.util.logging.MXLogger} */
-var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
-/** @type {jscustom.sksLogAnsiUtils} */
-var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
-loggerMX.error("["+scriptName+"]----------1");
-/** @type {jscustom.AnsiLogger} */
-var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
-// logger.setLevel(Level.INFO);
-logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
-logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
 
-var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
-logger.info("---------------appName=" + appName)
+// var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
+var appName = getAppNameByMbo(mbo)
 
 /** @type {java.lang.String} */
 var app = app
@@ -79,10 +65,50 @@ if(appName=="IBM_ITEM"){
     }
 }
 
-var clientsession = service.webclientsession();
-clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
+// var clientsession = service.webclientsession();
+// clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "----删除----" + mbo.getString("STATUS"), 1);
 
 
+/**
+ * 因为调用其他脚本耗时更长,初始化又是最影响速度的脚本类型,所以需要使用最小执行效率来编写
+ * 
+ * 获取应用名称,通常用于子表获取appName
+ var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
+ * @param {*} mbo
+ * @param {*} frequency
+ * @returns
+ */
+function getAppNameByMbo(mbo, frequency) {
+    // 防止无限递归，设置最大递归深度
+    var maxDepth = 5;
+    var currentDepth = (frequency === undefined || frequency == null) ? 0 : frequency;
+
+    if (currentDepth >= maxDepth) {
+        return null;
+    }
+
+    if (mbo == null) {
+        return null;
+    }
+
+    // 获取当前MBO的应用名称
+    var app = mbo.getThisMboSet().getApp();
+
+    // 如果当前应用名称有效，直接返回
+    if (app != null && app !== "") {
+        return app;
+    }
+
+    // 如果当前没有应用名称，尝试从父级获取
+    var parent = mbo.getOwner();
+    if (parent != null) {
+        // 递归调用，深度+1
+        return getAppNameByMbo(parent, currentDepth + 1);
+    }
+
+    // 没有父级且当前也没有应用名称，返回null
+    return null;
+}
 /**
 {
   "owneremail": "",

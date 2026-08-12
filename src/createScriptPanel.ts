@@ -131,9 +131,11 @@ export class CreateScriptPanel {
     description: string;
     ibmPackagepath?: string;
     launchPointConfig?: any;
+    beanApp?: string;
+    beanId?: string;
   }) {
     try {
-      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig } = data;
+      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig, beanApp, beanId } = data;
 
       if (!scriptName || !scriptName.trim()) {
         this._panel.webview.postMessage({
@@ -163,7 +165,7 @@ export class CreateScriptPanel {
 
       templateContent = this._processTemplateVariables(templateContent, scriptName);
 
-      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig);
+      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig, beanApp, beanId);
 
       const jsFilePath = path.join(this._targetDir, `${scriptName}.js`);
       const jsonFilePath = path.join(this._targetDir, `${scriptName}.json`);
@@ -302,7 +304,7 @@ function main() {
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }
 
-  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any): ScriptConfig {
+  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
     
     const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC';
@@ -323,6 +325,27 @@ function main() {
       autoscriptid: 0,
       ibm_packagepath: ibmPackagepath
     };
+
+    if (scriptType === 'DATABEAN' && beanApp && beanId) {
+      scriptConfig.variables = [
+        {
+          varbindingtype: 'LITERAL',
+          vartype: 'IN',
+          allowoverride: 'Y',
+          'sks:varbindingvalue:remark': '应用中URL参数中的value=' + beanApp + ',应用名称转为大写',
+          varbindingvalue: beanApp,
+          varname: 'beanapp'
+        },
+        {
+          varbindingtype: 'LITERAL',
+          vartype: 'IN',
+          allowoverride: 'Y',
+          'sks:varbindingvalue:remark': '通过日志 attempting to find databean script for <appName>~<bean.getId()> 查找设置正确的beanid',
+          varbindingvalue: beanId,
+          varname: 'beanid'
+        }
+      ];
+    }
 
     if (typeInfo.category === 'object' || typeInfo.category === 'attribute') {
       if (launchPointConfig) {

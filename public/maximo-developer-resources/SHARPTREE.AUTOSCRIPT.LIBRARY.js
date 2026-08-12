@@ -2390,13 +2390,13 @@ MaxObject.prototype.setMboValues = function (mbo) {
                             attributeConfig.alias == null ? attribute.setValueNull("ALIAS", 2) : attribute.setValue("ALIAS", attributeConfig.alias, 2);
                         }
 
-                        if(attributeConfig.persistent!==null||typeof attributeConfig.persistent!=="undefined"){
+                        if(attributeConfig.persistent!==null&&typeof attributeConfig.persistent!=="undefined"){
                             attribute.setValue("PERSISTENT", attributeConfig.persistent,2);
                         }
 
 
                         logger.info("attribute.isModified=" + attribute.isModified())
-                        if(attributeConfig.mustBe!==null||typeof attributeConfig.mustBe!=="undefined"){
+                        if(attributeConfig.mustBe!==null&&typeof attributeConfig.mustBe!=="undefined"){
                         // if (!attribute.getMboValueData("MUSTBE").isReadOnly()) {
                             attribute.setValue("MUSTBE", attributeConfig.mustBe,2);
                         // }

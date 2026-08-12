@@ -3,6 +3,7 @@ import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
 import { CreateScriptPanel } from './createScriptPanel';
 import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse, fetchClassReflection, fetchClassReflectionLocal } from './httpRequest';
+import { QuickCodeManager } from './quickCodeManager';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };

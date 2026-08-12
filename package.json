@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.4.32",
+  "version": "1.4.33",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -414,6 +414,7 @@
     ]
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.75.0",
     "@vscode/vsce": "^2.19.0",
@@ -424,6 +425,7 @@
     "webpack-cli": "^5.1.0"
   },
   "dependencies": {
-    "axios": "^1.4.0"
+    "axios": "^1.4.0",
+    "js-yaml": "^5.2.3"
   }
 }

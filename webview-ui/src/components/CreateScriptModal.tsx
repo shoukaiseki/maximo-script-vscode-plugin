@@ -56,7 +56,7 @@ const scriptTypes: ScriptTypeItem[] = [
 const namingHints: Record<string, string> = {
   'APISCRIPT': '建议命名: <对象名>API （如 MXASSETAPI）',
   'CONDITION': '建议命名: COND.<应用名>.<自定义> （如 COND.WOTRACK.CHECKSTATUS）',
-  'DATABEAN': '建议命名: DATABEAN.<自定义名> （如 DATABEAN.RESULT_LIST）',
+  'DATABEAN': '建议命名: DATABEAN.<应用名>.<Bean ID> （如 DATABEAN.ITEM.RESULTS_SHOWLIST）',
   'CRONTASK': '建议命名: <对象>.crontask.<任务名> （如 SR.crontask.CLEANUP）',
   'APPBEAN': '建议命名: APPBEAN.<应用> （如 APPBEAN.WOTRACK）',
   'COMMON_FUNC': '建议命名: <脚本名>.common （如 UTILS.common）',
@@ -83,6 +83,9 @@ const CreateScriptModal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [ibmPackagepath, setIbmPackagepath] = useState('');
   const [fixedName, setFixedName] = useState('');
+  const [beanApp, setBeanApp] = useState('');
+  const [beanId, setBeanId] = useState('');
+  const [appBeanName, setAppBeanName] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -214,6 +217,24 @@ const CreateScriptModal: React.FC = () => {
       }
     }
 
+    if (selectedType === 'DATABEAN') {
+      if (!beanApp.trim()) {
+        setErrorMessage('APPNAME (beanapp) 不能为空');
+        return;
+      }
+      if (!beanId.trim()) {
+        setErrorMessage('Bean ID (beanid) 不能为空');
+        return;
+      }
+    }
+
+    if (selectedType === 'APPBEAN') {
+      if (!appBeanName.trim()) {
+        setErrorMessage('应用名称 (appName) 不能为空');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -223,6 +244,15 @@ const CreateScriptModal: React.FC = () => {
       description: description.trim(),
       ibmPackagepath: ibmPackagepath.trim()
     };
+
+    if (selectedType === 'DATABEAN') {
+      data.beanApp = beanApp.trim();
+      data.beanId = beanId.trim();
+    }
+
+    if (selectedType === 'APPBEAN') {
+      data.appBeanName = appBeanName.trim();
+    }
 
     if (activeTab === 'object' && (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute')) {
       data.launchPointConfig = {
@@ -253,6 +283,15 @@ const CreateScriptModal: React.FC = () => {
   const handleTypeChange = (type: string) => {
     setSelectedType(type);
     const typeInfo = scriptTypes.find(t => t.value === type);
+    
+    if (type === 'DATABEAN') {
+      setBeanApp('');
+      setBeanId('');
+    }
+    
+    if (type === 'APPBEAN') {
+      setAppBeanName('');
+    }
     
     if (typeInfo?.category === 'fixed') {
       setScriptName('');
@@ -329,7 +368,26 @@ const CreateScriptModal: React.FC = () => {
     }
   };
 
+  const handleBeanAppChange = (value: string) => {
+    const trimmedValue = value.trim().toUpperCase();
+    setBeanApp(trimmedValue);
+    setScriptName(trimmedValue && beanId ? `DATABEAN.${trimmedValue}.${beanId.toUpperCase()}` : '');
+  };
+
+  const handleBeanIdChange = (value: string) => {
+    const trimmedValue = value.trim();
+    setBeanId(trimmedValue);
+    setScriptName(beanApp && trimmedValue ? `DATABEAN.${beanApp.toUpperCase()}.${trimmedValue.toUpperCase()}` : '');
+  };
+
+  const handleAppBeanNameChange = (value: string) => {
+    const trimmedValue = value.trim().toUpperCase();
+    setAppBeanName(trimmedValue);
+    setScriptName(trimmedValue ? `APPBEAN.${trimmedValue}` : '');
+  };
+
   const isSaveEvent = selectedTypeInfo?.category === 'object' && launchPointConfig.eventtype === '4';
+  const isScriptNameReadOnly = (activeTab === 'fixed' && !!selectedType) || selectedType === 'DATABEAN' || selectedType === 'APPBEAN';
 
   return (
     <div style={{ 
@@ -533,6 +591,129 @@ const CreateScriptModal: React.FC = () => {
             </div>
           )}
 
+          {selectedType === 'DATABEAN' && (
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px',
+                    fontWeight: '500',
+                    color: 'var(--vscode-foreground)'
+                  }}>
+                    APPNAME (beanapp) <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={beanApp}
+                    onChange={(e) => handleBeanAppChange(e.target.value)}
+                    placeholder="例如: ITEM, WOTRACK"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      background: 'var(--vscode-input-background)',
+                      color: 'var(--vscode-input-foreground)',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                    应用中 URL 参数中的 value，即应用名称
+                  </div>
+                </div>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px',
+                    fontWeight: '500',
+                    color: 'var(--vscode-foreground)'
+                  }}>
+                    Bean ID (beanid) <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={beanId}
+                    onChange={(e) => handleBeanIdChange(e.target.value)}
+                    placeholder="例如: RESULTS_SHOWLIST"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      background: 'var(--vscode-input-background)',
+                      color: 'var(--vscode-input-foreground)',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                    将 maximo.script 日志级别设为 debug，根据日志 attempting to find databean script for &lt;appName&gt;~&lt;bean.getId()&gt; 查找正确的 beanid
+                  </div>
+                </div>
+              </div>
+              {scriptName && (
+                <div style={{
+                  marginTop: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  color: 'var(--vscode-charts-green)',
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--vscode-charts-green)'
+                }}>
+                  ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedType === 'APPBEAN' && (
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '5px',
+                fontWeight: '500',
+                color: 'var(--vscode-foreground)'
+              }}>
+                应用名称 (appName) <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={appBeanName}
+                onChange={(e) => handleAppBeanNameChange(e.target.value)}
+                placeholder="例如: WOTRACK, ITEM"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                输入 Maximo 应用名称，脚本名自动生成为 APPBEAN.&lt;应用名&gt;
+              </div>
+              {scriptName && (
+                <div style={{
+                  marginTop: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  color: 'var(--vscode-charts-green)',
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--vscode-charts-green)'
+                }}>
+                  ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ marginBottom: '15px' }}>
             <label style={{ 
               display: 'block', 
@@ -547,18 +728,18 @@ const CreateScriptModal: React.FC = () => {
               value={scriptName}
               onChange={(e) => handleScriptNameChange(e.target.value)}
               placeholder="输入脚本名称，例如: MY_SCRIPT 或 ITEM.INIT"
-              readOnly={activeTab === 'fixed' && !!selectedType}
+              readOnly={isScriptNameReadOnly}
               style={{
                 width: '100%',
                 padding: '8px 12px',
                 border: '1px solid var(--vscode-input-border)',
                 borderRadius: '4px',
-                background: activeTab === 'fixed' && selectedType ? 'var(--vscode-editor-background)' : 'var(--vscode-input-background)',
-                color: activeTab === 'fixed' && selectedType ? 'var(--vscode-charts-green)' : 'var(--vscode-input-foreground)',
+                background: isScriptNameReadOnly ? 'var(--vscode-editor-background)' : 'var(--vscode-input-background)',
+                color: isScriptNameReadOnly ? 'var(--vscode-charts-green)' : 'var(--vscode-input-foreground)',
                 fontSize: '14px',
                 boxSizing: 'border-box',
-                opacity: activeTab === 'fixed' && selectedType ? 0.8 : 1,
-                cursor: activeTab === 'fixed' && selectedType ? 'default' : 'text'
+                opacity: isScriptNameReadOnly ? 0.8 : 1,
+                cursor: isScriptNameReadOnly ? 'default' : 'text'
               }}
             />
             {selectedType && namingHints[selectedType] && (

@@ -27,7 +27,7 @@ Maximo自动化脚本开发助手，为VSCode提供智能代码补全、语法�
 - 🔧 **修复XML重复ID**：右键菜单快速修复应用XML中重复的 id 属性
 - ⬇️ **Pull 应用XML**：右键菜单拉取 Maximo 应用 XML，自动备份原文件并刷新编辑器
 - 🔄 **修复应用xml推送**：右键菜单获取 SCREENS 脚本源代码并推送修复
-- ✏️ **创建脚本**：右键菜单弹出对话框创建新脚本，支持多种脚本类型、启动点配置、固定脚本名称和命名规范提示
+- ✏️ **创建脚本**：右键菜单弹出对话框创建新脚本，支持多种脚本类型、启动点配置、固定脚本名称、DataBean 自动命名和命名规范提示
 - 📥 **导入脚本**：右键 JSON 文件导入脚本到 Maximo，支持创建和更新脚本
 - 🚀 **多线程导出**：导出脚本/应用XML/MAXOBJECT 支持多线程并发，大幅提升导出速度
 - ⚙️ **可调线程数**：每个导出功能可独立配置线程数（1~20），持久化保存
@@ -446,6 +446,14 @@ MIT License
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
 
 ## 版本更新历史
+
+### v1.4.32 (2026-07-30)
+
+**新增功能**：
+- ✨ 创建脚本选择 DataBean 类型时，填写 APPNAME (beanapp) 和 Bean ID (beanid) 自动生成脚本名
+  - 脚本名自动生成为 `DATABEAN.<appname>.<beanid>`（如 DATABEAN.ITEM.RESULTS_SHOWLIST）
+  - 脚本名称输入框自动变为只读并以绿色显示
+  - 自动在 JSON 配置的 variables 中生成 beanapp / beanid 变量
 
 ### v1.4.31 (2026-07-30)
 
