@@ -5,6 +5,46 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.34] - 2026-07-30
+
+### 新增功能
+
+#### 快捷代码插入
+- ✨ 侧边栏 MaximoScriptHelper 新增「快捷代码」标签页
+  - 基于 YAML 配置文件，支持代码片段快速插入到编辑器
+  - 支持 JavaScript / 应用XML / MAXOBJECT配置 三种类型同时显示
+  - 支持搜索过滤、可折叠树形结构
+  - 叶子节点 hover 显示「插入」/「复制」按钮，避免误操作
+  - 「插入」按钮：弹出变量替换对话框（支持 tmplenv 描述显示、实时预览），确认后插入到编辑器光标处
+  - 「复制」按钮：直接复制代码到剪贴板并提示
+  - 「全部收缩/展开」按钮，默认全部展开
+  - 「显示备注」勾选框，状态持久化保存（globalState）
+  - 「打开配置」按钮，快速打开用户自定义 YAML 文件
+
+#### YAML 配置机制
+- ✨ 支持默认配置 + 用户自定义配置合并
+  - 默认配置：`public/quick-code.yaml`（随插件安装）
+  - 用户配置：`~/.sks/maximo-script-helper/quick-code.yaml`（首次打开时自动从模板复制）
+  - 合并策略：tmplenv 合并、各类型数组追加
+  - 代码中支持 `${变量名}` 格式变量替换
+
+### 技术实现
+
+- 📦 新增文件
+  - `src/quickCodeManager.ts` - YAML 配置管理器（加载/合并/变量提取/替换）
+  - `public/quick-code.yaml` - 默认快捷代码配置
+
+- 🔧 修改文件
+  - `src/extension.ts`
+    - HelperViewProvider 构造函数新增 `context: vscode.ExtensionContext` 参数
+    - 新增「快捷代码」标签页 HTML 模板（标签页切换、搜索、树形结构、变量对话框）
+    - 新增消息处理：`loadQuickCode`、`insertCode`、`copyCode`、`openQuickCodeConfig`、`saveRemarkVisibility`
+    - 所有 Webview 事件改用 `addEventListener` + 事件委托（解决 CSP 限制）
+    - 树容器事件委托处理分组头/子分组/叶子节点点击
+  - `package.json` - 新增 `js-yaml` 依赖
+
+---
+
 ## [1.4.32] - 2026-07-30
 
 ### 新增功能

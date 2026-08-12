@@ -68,7 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
   ConfigPanel.initVersionStatusBar(context);
 
   // 注册活动栏视图（左侧扩展图标下方，永久显示）
-  const helperViewProvider = new HelperViewProvider(context.extensionUri);
+  const helperViewProvider = new HelperViewProvider(context.extensionUri, context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(HelperViewProvider.viewType, helperViewProvider)
   );
@@ -1238,14 +1238,19 @@ class CompletionModeSwitcher implements vscode.Disposable {
 }
 
 /**
- * 活动栏视图提供者：在左侧活动栏（扩展图标下方）提供 Maximo 配置入口
+ * 活动栏视图提供者：在左侧活动栏（扩展图标下方）提供 Maximo 配置入口和快捷代码插入
  */
 class HelperViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'maximoScript.helperView';
 
   private _view?: vscode.WebviewView;
+  private _quickCodeManager: QuickCodeManager;
+  private _context: vscode.ExtensionContext;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  constructor(private readonly _extensionUri: vscode.Uri, context: vscode.ExtensionContext) {
+    this._quickCodeManager = new QuickCodeManager(_extensionUri);
+    this._context = context;
+  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -1261,8 +1266,7 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtml();
 
-    // 处理视图内按钮点击消息
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'openConfig':
           vscode.commands.executeCommand('maximoScript.showConfig');
@@ -1270,13 +1274,45 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
         case 'showLogs':
           vscode.commands.executeCommand('maximoScript.showLogs');
           break;
+        case 'loadQuickCode':
+          this._quickCodeManager.refresh();
+          const data = this._quickCodeManager.loadConfig();
+          const showRemark = this._context.globalState.get('quickCodeShowRemark', true);
+          this._postMessage({ command: 'quickCodeData', data, showRemark });
+          break;
+        case 'insertCode':
+          await this._insertCode(message.code);
+          break;
+        case 'copyCode':
+          await vscode.env.clipboard.writeText(message.code);
+          vscode.window.showInformationMessage('代码已复制到剪贴板');
+          break;
+        case 'openQuickCodeConfig':
+          await this._quickCodeManager.openUserYaml();
+          break;
+        case 'saveRemarkVisibility':
+          await this._context.globalState.update('quickCodeShowRemark', message.showRemark);
+          break;
       }
     });
   }
 
-  /**
-   * 生成视图 HTML
-   */
+  private _postMessage(message: any): void {
+    this._view?.webview.postMessage(message);
+  }
+
+  /** 插入代码到当前编辑器光标位置 */
+  private async _insertCode(code: string): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage('请先打开一个文件');
+      return;
+    }
+    await editor.edit(editBuilder => {
+      editBuilder.insert(editor.selection.active, code);
+    });
+  }
+
   private _getHtml(): string {
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1285,59 +1321,254 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body {
-    padding: 0;
-    margin: 0;
+    padding: 0; margin: 0;
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
     color: var(--vscode-foreground);
     background-color: var(--vscode-sideBar-background);
   }
-  .container {
-    padding: 10px;
-  }
   .header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; margin-bottom: 0;
+    font-size: 13px; font-weight: 600;
     color: var(--vscode-sideBarTitle-foreground);
     border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border);
   }
-  .header .logo {
-    font-size: 16px;
+  .header .logo { font-size: 16px; }
+
+  /* 标签页 */
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--vscode-panel-border);
   }
+  .tab {
+    flex: 1; padding: 8px 0; text-align: center;
+    font-size: 12px; cursor: pointer;
+    color: var(--vscode-foreground); opacity: 0.7;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+  .tab.active {
+    opacity: 1;
+    border-bottom-color: var(--vscode-textLink-foreground);
+    color: var(--vscode-textLink-foreground);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* 快捷操作 */
   .btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 8px 10px;
-    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 8px 10px; margin-bottom: 8px;
     border: 1px solid var(--vscode-button-border, transparent);
     border-radius: 4px;
     background-color: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
-    font-size: 13px;
-    cursor: pointer;
-    text-align: left;
-    box-sizing: border-box;
+    font-size: 13px; cursor: pointer; text-align: left; box-sizing: border-box;
   }
-  .btn:hover {
-    background-color: var(--vscode-button-secondaryHoverBackground);
-  }
-  .btn .icon {
-    font-size: 14px;
-  }
+  .btn:hover { background-color: var(--vscode-button-secondaryHoverBackground); }
+  .btn .icon { font-size: 14px; }
+  .container { padding: 10px; }
   .desc {
-    padding: 0 10px;
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
-    line-height: 1.6;
+    padding: 0 10px; margin-top: 10px;
+    font-size: 12px; color: var(--vscode-descriptionForeground); line-height: 1.6;
   }
+
+  /* 快捷代码 */
+  .qc-type-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 8px; margin-top: 8px;
+    font-size: 12px; font-weight: 700;
+    color: var(--vscode-textLink-foreground);
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border);
+    user-select: none;
+  }
+  .qc-type-header .type-icon { font-size: 13px; }
+  .qc-toolbar {
+    padding: 8px 10px 4px;
+  }
+  .qc-search {
+    width: 100%;
+    padding: 4px 6px 4px 22px; font-size: 12px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px; outline: none;
+    box-sizing: border-box;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 6px center;
+  }
+  .qc-actions {
+    display: flex; gap: 4px; padding: 0 10px 6px;
+    flex-wrap: wrap; align-items: center;
+  }
+  .qc-action-btn {
+    padding: 3px 8px; font-size: 11px;
+    background: transparent; color: var(--vscode-textLink-foreground);
+    border: 1px solid var(--vscode-textLink-foreground);
+    border-radius: 3px; cursor: pointer;
+  }
+  .qc-action-btn:hover {
+    background: var(--vscode-textLink-foreground); color: white;
+  }
+  .qc-checkbox {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--vscode-foreground);
+    cursor: pointer; margin-left: auto;
+    user-select: none;
+  }
+  .qc-checkbox input {
+    margin: 0; cursor: pointer;
+  }
+
+  /* 树形结构 */
+  .qc-tree { padding: 0 6px 10px; }
+  .qc-group {
+    margin-bottom: 2px;
+  }
+  .qc-group-header {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 8px; cursor: pointer;
+    border-radius: 3px; font-size: 12px; font-weight: 600;
+    color: var(--vscode-foreground);
+    user-select: none;
+  }
+  .qc-group-header:hover { background: var(--vscode-list-hoverBackground); }
+  .qc-group-header .arrow {
+    font-size: 10px; transition: transform 0.15s;
+    color: var(--vscode-descriptionForeground);
+    width: 14px; text-align: center; flex-shrink: 0;
+  }
+  .qc-group-header .arrow.open { transform: rotate(90deg); }
+  .qc-group-body { display: none; padding-left: 12px; }
+  .qc-group-body.open { display: block; }
+
+  .qc-item {
+    padding: 4px 8px 4px 20px;
+    border-radius: 3px; cursor: pointer;
+    font-size: 12px; color: var(--vscode-foreground);
+    user-select: none; position: relative;
+  }
+  .qc-item:hover { background: var(--vscode-list-hoverBackground); }
+  .qc-item.has-children {
+    font-weight: 500; padding-left: 8px;
+  }
+  .qc-item .item-arrow {
+    display: inline-block; width: 14px; font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    transition: transform 0.15s;
+  }
+  .qc-item .item-arrow.open { transform: rotate(90deg); }
+  .qc-item-children { display: none; padding-left: 12px; }
+  .qc-item-children.open { display: block; }
+
+  .qc-leaf {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 3px 8px 3px 28px;
+    border-radius: 3px;
+    font-size: 12px; color: var(--vscode-foreground);
+    user-select: none;
+  }
+  .qc-leaf:hover { background: var(--vscode-list-hoverBackground); }
+  .qc-leaf .leaf-name {
+    display: flex; align-items: center; gap: 4px;
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  }
+  .qc-leaf .leaf-icon {
+    color: var(--vscode-textLink-foreground); flex-shrink: 0;
+  }
+  .qc-leaf-btns {
+    display: none; gap: 3px; flex-shrink: 0; margin-left: 6px;
+  }
+  .qc-leaf:hover .qc-leaf-btns { display: flex; }
+  .qc-leaf-btn {
+    padding: 1px 6px; font-size: 10px;
+    background: transparent; color: var(--vscode-textLink-foreground);
+    border: 1px solid var(--vscode-textLink-foreground);
+    border-radius: 3px; cursor: pointer;
+    line-height: 1.4;
+  }
+  .qc-leaf-btn:hover {
+    background: var(--vscode-textLink-foreground); color: white;
+  }
+  .qc-remark {
+    font-size: 11px; color: var(--vscode-descriptionForeground);
+    padding: 1px 8px 4px 28px; line-height: 1.4;
+    display: none;
+  }
+  .qc-remark.show { display: block; }
+
+  .qc-empty {
+    padding: 20px 10px; text-align: center;
+    font-size: 12px; color: var(--vscode-descriptionForeground);
+  }
+
+  /* 变量对话框 */
+  .var-dialog-overlay {
+    display: none; position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .var-dialog-overlay.show { display: flex; }
+  .var-dialog {
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px; padding: 16px;
+    width: 300px; max-width: 90vw;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .var-dialog h4 {
+    margin: 0 0 12px; font-size: 13px; font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+  .var-field { margin-bottom: 10px; }
+  .var-field label {
+    display: block; margin-bottom: 3px;
+    font-size: 12px; font-weight: 500;
+    color: var(--vscode-foreground);
+  }
+  .var-field .var-hint {
+    font-size: 11px; color: var(--vscode-descriptionForeground);
+    margin-bottom: 3px;
+  }
+  .var-field input {
+    width: 100%; padding: 5px 8px;
+    font-size: 12px; box-sizing: border-box;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px; outline: none;
+  }
+  .var-field input:focus { border-color: var(--vscode-focusBorder); }
+  .var-preview {
+    margin-top: 8px; padding: 8px;
+    background: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    border-radius: 3px; font-size: 11px;
+    font-family: monospace;
+    color: var(--vscode-foreground);
+    max-height: 100px; overflow-y: auto;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .var-btns {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;
+  }
+  .var-btns button {
+    padding: 5px 14px; font-size: 12px;
+    border: none; border-radius: 3px; cursor: pointer;
+  }
+  .var-btn-cancel {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+  .var-btn-insert {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+  .var-btn-insert:hover { opacity: 0.9; }
 </style>
 </head>
 <body>
@@ -1345,27 +1576,385 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
     <span class="logo">⚙</span>
     <span>Maximo Script Helper</span>
   </div>
-  <div class="container">
-    <button class="btn" onclick="openConfig()">
-      <span class="icon">⚙</span>
-      <span>打开配置</span>
-    </button>
-    <button class="btn" onclick="showLogs()">
-      <span class="icon">📄</span>
-      <span>查看日志</span>
-    </button>
-    <div class="desc">
-      Maximo 自动化脚本开发助手<br/>
-      配置 · 导出 · 补全
+
+  <div class="tabs">
+    <div class="tab active" data-tab="actions">快捷操作</div>
+    <div class="tab" data-tab="quickcode">快捷代码</div>
+  </div>
+
+  <!-- 快捷操作标签页 -->
+  <div id="tab-actions" class="tab-content active">
+    <div class="container">
+      <button class="btn" id="btnOpenConfig">
+        <span class="icon">⚙</span><span>打开配置</span>
+      </button>
+      <button class="btn" id="btnShowLogs">
+        <span class="icon">📄</span><span>查看日志</span>
+      </button>
+      <div class="desc">
+        Maximo 自动化脚本开发助手<br/>
+        配置 · 导出 · 补全
+      </div>
     </div>
   </div>
+
+  <!-- 快捷代码标签页 -->
+  <div id="tab-quickcode" class="tab-content">
+    <div class="qc-toolbar">
+      <input class="qc-search" id="searchInput" type="text" placeholder="搜索快捷代码..." />
+    </div>
+    <div class="qc-actions">
+      <button class="qc-action-btn" id="btnToggleAll">📂 全部收缩</button>
+      <button class="qc-action-btn" id="btnRefreshQC">🔄 刷新</button>
+      <button class="qc-action-btn" id="btnEditConfig">📝 编辑配置</button>
+      <label class="qc-checkbox">
+        <input type="checkbox" id="chkShowRemark" checked />
+        <span>显示备注</span>
+      </label>
+    </div>
+    <div class="qc-tree" id="treeContainer">
+      <div class="qc-empty">加载中...</div>
+    </div>
+  </div>
+
+  <!-- 变量对话框 -->
+  <div class="var-dialog-overlay" id="varDialog">
+    <div class="var-dialog">
+      <h4 id="varDialogTitle">填写变量</h4>
+      <div id="varFields"></div>
+      <div class="var-preview" id="varPreview"></div>
+      <div class="var-btns">
+        <button class="var-btn-cancel" id="btnCancelVar">取消</button>
+        <button class="var-btn-insert" id="btnInsertVar">插入</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   const vscode = acquireVsCodeApi();
-  function openConfig() {
+
+  // === 事件绑定（避免 onclick 被 CSP 阻止） ===
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+  document.getElementById('btnOpenConfig').addEventListener('click', () => {
     vscode.postMessage({ command: 'openConfig' });
-  }
-  function showLogs() {
+  });
+  document.getElementById('btnShowLogs').addEventListener('click', () => {
     vscode.postMessage({ command: 'showLogs' });
+  });
+  document.getElementById('searchInput').addEventListener('input', () => renderTree());
+  document.getElementById('btnToggleAll').addEventListener('click', () => toggleAll());
+  document.getElementById('btnRefreshQC').addEventListener('click', () => refreshQC());
+  document.getElementById('btnEditConfig').addEventListener('click', () => {
+    vscode.postMessage({ command: 'openQuickCodeConfig' });
+  });
+  document.getElementById('btnCancelVar').addEventListener('click', () => cancelVarDialog());
+  document.getElementById('btnInsertVar').addEventListener('click', () => confirmInsert());
+  document.getElementById('chkShowRemark').addEventListener('change', (e) => {
+    _showRemark = e.target.checked;
+    vscode.postMessage({ command: 'saveRemarkVisibility', showRemark: _showRemark });
+    updateRemarkVisibility();
+  });
+
+  // 树容器事件委托
+  document.getElementById('treeContainer').addEventListener('click', (e) => {
+    const el = e.target;
+    // 点击分组头
+    const groupHeader = el.closest('.qc-group-header');
+    if (groupHeader) {
+      const body = groupHeader.nextElementSibling;
+      const arrow = groupHeader.querySelector('.arrow');
+      if (body) body.classList.toggle('open');
+      if (arrow) arrow.classList.toggle('open');
+      return;
+    }
+    // 点击子分组头
+    const itemHeader = el.closest('.qc-item.has-children');
+    if (itemHeader) {
+      const children = itemHeader.nextElementSibling;
+      const arrow = itemHeader.querySelector('.item-arrow');
+      if (children) children.classList.toggle('open');
+      if (arrow) arrow.classList.toggle('open');
+      return;
+    }
+    // 点击叶子节点的插入/复制按钮
+    const insertBtn = el.closest('.qc-leaf-btn.insert-btn');
+    if (insertBtn) {
+      const leaf = insertBtn.closest('.qc-leaf');
+      const codeIdx = leaf.dataset.codeIdx;
+      const name = leaf.dataset.name;
+      if (codeIdx !== undefined && _allCodes[codeIdx] !== undefined) {
+        selectLeaf(_allCodes[codeIdx], name);
+      }
+      return;
+    }
+    const copyBtn = el.closest('.qc-leaf-btn.copy-btn');
+    if (copyBtn) {
+      const leaf = copyBtn.closest('.qc-leaf');
+      const codeIdx = leaf.dataset.codeIdx;
+      if (codeIdx !== undefined && _allCodes[codeIdx] !== undefined) {
+        vscode.postMessage({ command: 'copyCode', code: _allCodes[codeIdx] });
+      }
+      return;
+    }
+  });
+
+  // === 标签页切换 ===
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => {
+      c.classList.toggle('active', c.id === 'tab-' + name);
+    });
+    if (name === 'quickcode' && !window._qcLoaded) {
+      loadQuickCode();
+    }
+  }
+
+  // === 快捷操作 ===
+  // (已在顶部绑定事件)
+
+  // === 快捷代码 ===
+  let _configData = null;
+  let _tmplenv = {};
+  let _currentCode = '';
+  let _currentVars = [];
+  let _allCodes = []; // 存储所有叶子节点的 code，通过索引引用
+  let _showRemark = true; // 是否显示备注
+  window._qcLoaded = false;
+
+  function loadQuickCode() {
+    window._qcLoaded = true;
+    vscode.postMessage({ command: 'loadQuickCode' });
+  }
+
+  function refreshQC() {
+    window._qcLoaded = false;
+    loadQuickCode();
+  }
+
+  function editConfig() {
+    vscode.postMessage({ command: 'openQuickCodeConfig' });
+  }
+
+  // 接收后端数据
+  window.addEventListener('message', event => {
+    const msg = event.data;
+    if (msg.command === 'quickCodeData') {
+      _configData = msg.data;
+      _tmplenv = msg.data.tmplenv || {};
+      _showRemark = msg.showRemark !== false; // 默认显示
+      document.getElementById('chkShowRemark').checked = _showRemark;
+      renderTree();
+      updateRemarkVisibility();
+    }
+  });
+
+  // 更新备注显示/隐藏状态
+  function updateRemarkVisibility() {
+    const remarks = document.querySelectorAll('.qc-remark');
+    remarks.forEach(r => {
+      if (_showRemark) {
+        r.classList.add('show');
+      } else {
+        r.classList.remove('show');
+      }
+    });
+  }
+
+  function renderTree() {
+    const container = document.getElementById('treeContainer');
+    if (!_configData) { container.innerHTML = '<div class="qc-empty">加载中...</div>'; return; }
+
+    const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    _allCodes = [];
+
+    const typeKeys = Object.keys(_configData).filter(k => k !== 'tmplenv' && Array.isArray(_configData[k]) && _configData[k].length > 0);
+    if (!typeKeys.length) {
+      container.innerHTML = '<div class="qc-empty">暂无配置</div>';
+      return;
+    }
+
+    const typeIcons = { javascript: 'JS', maxappxml: 'XML', maxobjectjson: 'DB' };
+    const typeLabels = { javascript: 'JavaScript', maxappxml: '应用XML', maxobjectjson: 'MAXOBJECT配置' };
+
+    let html = '';
+    let globalIdx = 0;
+    typeKeys.forEach(typeKey => {
+      const groups = _configData[typeKey] || [];
+      let typeHtml = '';
+      let typeHasContent = false;
+
+      groups.forEach((group, gi) => {
+        const groupBodyId = 'gb_' + typeKey + '_' + gi;
+        const visibleChildren = filterItems(group.childrens || [], search);
+        if (search && !visibleChildren.length) return;
+        typeHasContent = true;
+
+        typeHtml += '<div class="qc-group">';
+        typeHtml += '<div class="qc-group-header">';
+        typeHtml += '<span class="arrow open" id="arr_' + groupBodyId + '">▶</span>';
+        typeHtml += '<span>' + escHtml(group.name) + '</span>';
+        typeHtml += '</div>';
+        typeHtml += '<div class="qc-group-body open" id="' + groupBodyId + '">';
+        typeHtml += renderItems(visibleChildren, search, typeKey + '_' + gi);
+        typeHtml += '</div></div>';
+        globalIdx++;
+      });
+
+      if (typeHasContent) {
+        html += '<div class="qc-type-header">';
+        html += '<span class="type-icon">' + (typeIcons[typeKey] || '⚙') + '</span>';
+        html += '<span>' + (typeLabels[typeKey] || typeKey) + '</span>';
+        html += '</div>';
+        html += typeHtml;
+      }
+    });
+
+    container.innerHTML = html || '<div class="qc-empty">无匹配结果</div>';
+    // 重置全部收缩/展开按钮文字（默认全部展开）
+    const toggleBtn = document.getElementById('btnToggleAll');
+    if (toggleBtn) toggleBtn.textContent = '📂 全部收缩';
+  }
+
+  function filterItems(items, search) {
+    if (!search) return items;
+    return items.filter(item => {
+      if ((item.name || '').toLowerCase().includes(search)) return true;
+      if ((item.remark || '').toLowerCase().includes(search)) return true;
+      if (item.childrens && filterItems(item.childrens, search).length > 0) return true;
+      return false;
+    });
+  }
+
+  function renderItems(items, search, parentIdx) {
+    let html = '';
+    items.forEach((item, ii) => {
+      const id = parentIdx + '_' + ii;
+      if (item.childrens && item.childrens.length > 0) {
+        const visChildren = filterItems(item.childrens, search);
+        html += '<div class="qc-item has-children">';
+        html += '<span class="item-arrow open" id="iarr_' + id + '">▶</span>';
+        html += '<span>' + escHtml(item.name) + '</span>';
+        html += '</div>';
+        html += '<div class="qc-item-children open" id="ich_' + id + '">';
+        html += renderItems(visChildren, search, id);
+        html += '</div>';
+      } else if (item.code) {
+        const codeIdx = _allCodes.length;
+        _allCodes.push(item.code);
+        html += '<div class="qc-leaf" data-code-idx="' + codeIdx + '" data-name="' + escHtml(item.name) + '">';
+        html += '<span class="leaf-name"><span class="leaf-icon">⊕</span>' + escHtml(item.name) + '</span>';
+        html += '<span class="qc-leaf-btns">';
+        html += '<button class="qc-leaf-btn insert-btn">插入</button>';
+        html += '<button class="qc-leaf-btn copy-btn">复制</button>';
+        html += '</span>';
+        html += '</div>';
+        if (item.remark) {
+          html += '<div class="qc-remark' + (_showRemark ? ' show' : '') + '">' + escHtml(item.remark) + '</div>';
+        }
+      }
+    });
+    return html;
+  }
+
+  function toggleAll() {
+    const container = document.getElementById('treeContainer');
+    const allBodies = container.querySelectorAll('.qc-group-body, .qc-item-children');
+    const allArrows = container.querySelectorAll('.arrow, .item-arrow');
+    const btn = document.getElementById('btnToggleAll');
+
+    // 检查当前是否全部展开
+    let allOpen = true;
+    allBodies.forEach(b => { if (!b.classList.contains('open')) allOpen = false; });
+
+    if (allOpen) {
+      // 全部收缩
+      allBodies.forEach(b => b.classList.remove('open'));
+      allArrows.forEach(a => a.classList.remove('open'));
+      btn.textContent = '📂 全部展开';
+    } else {
+      // 全部展开
+      allBodies.forEach(b => b.classList.add('open'));
+      allArrows.forEach(a => a.classList.add('open'));
+      btn.textContent = '📂 全部收缩';
+    }
+  }
+
+  // === 变量对话框 ===
+  function selectLeaf(code, name) {
+    _currentCode = code;
+    const varSet = new Set();
+    const varMatches = code.match(/\$\{\w+\}/g) || [];
+    varMatches.forEach(vm => {
+      const vn = vm.replace('\${', '').replace('}', '');
+      varSet.add(vn);
+    });
+    _currentVars = Array.from(varSet);
+
+    if (_currentVars.length === 0) {
+      // 无变量，直接插入
+      vscode.postMessage({ command: 'insertCode', code: code });
+      return;
+    }
+
+    showVarDialog(name, _currentVars);
+  }
+
+  function showVarDialog(name, vars) {
+    document.getElementById('varDialogTitle').textContent = '填写变量 - ' + name;
+    const fields = document.getElementById('varFields');
+    let html = '';
+    vars.forEach(v => {
+      const env = _tmplenv[v];
+      html += '<div class="var-field">';
+      html += '<label>' + escHtml(v) + '</label>';
+      if (env) {
+        html += '<div class="var-hint">' + escHtml(env.desc || '') + (env.remark ? ' (' + escHtml(env.remark) + ')' : '') + '</div>';
+      }
+      html += '<input type="text" id="var_' + escHtml(v) + '" />';
+      html += '</div>';
+    });
+    fields.innerHTML = html;
+    // 绑定 input 事件和聚焦
+    fields.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => updatePreview());
+    });
+    const firstInput = fields.querySelector('input');
+    if (firstInput) setTimeout(() => firstInput.focus(), 100);
+    updatePreview();
+    document.getElementById('varDialog').classList.add('show');
+  }
+
+  function updatePreview() {
+    let code = _currentCode;
+    _currentVars.forEach(v => {
+      const input = document.getElementById('var_' + v);
+      const val = input ? input.value : '';
+      code = code.replace(new RegExp('\\$\\{' + v + '\\}', 'g'), val || '\${' + v + '}');
+    });
+    document.getElementById('varPreview').textContent = code;
+  }
+
+  function cancelVarDialog() {
+    document.getElementById('varDialog').classList.remove('show');
+  }
+
+  function confirmInsert() {
+    let code = _currentCode;
+    _currentVars.forEach(v => {
+      const input = document.getElementById('var_' + v);
+      const val = input ? input.value : '';
+      code = code.replace(new RegExp('\\$\\{' + v + '\\}', 'g'), val);
+    });
+    document.getElementById('varDialog').classList.remove('show');
+    vscode.postMessage({ command: 'insertCode', code: code });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 </script>
 </body>
