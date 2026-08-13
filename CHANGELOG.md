@@ -23,8 +23,8 @@
 
 #### YAML 配置机制
 - ✨ 支持默认配置 + 用户自定义配置合并
-  - 默认配置：`public/quick-code.yaml`（随插件安装）
-  - 用户配置：`~/.sks/maximo-script-helper/quick-code.yaml`（首次打开时自动从模板复制）
+  - 默认配置：`public/quick-code-pub/quick-code-default.yaml`（随插件安装，优先加载，不做 copy）
+  - 用户配置：`~/.sks/maximo-script-helper/quick-code/` 目录（目录下所有 .yaml/.yml 文件按文件名排序加载，目录不存在或 `01-quick-code.yml` 缺失时自动从模板复制）
   - 合并策略：tmplenv 合并、各类型数组追加
   - 代码中支持 `${变量名}` 格式变量替换
 
@@ -32,7 +32,8 @@
 
 - 📦 新增文件
   - `src/quickCodeManager.ts` - YAML 配置管理器（加载/合并/变量提取/替换）
-  - `public/quick-code.yaml` - 默认快捷代码配置
+  - `public/quick-code-pub/quick-code-default.yaml` - 默认快捷代码配置（优先加载）
+  - `public/quick-code-pub/quick-code-loc-tmpl.yaml` - 本地配置模板（copy 为 `01-quick-code.yml`）
 
 - 🔧 修改文件
   - `src/extension.ts`

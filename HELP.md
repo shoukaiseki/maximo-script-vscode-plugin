@@ -1482,8 +1482,9 @@ masscript/
 
 快捷代码基于 YAML 配置文件，支持默认配置和用户自定义配置合并：
 
-- **默认配置**：`public/quick-code.yaml`（随插件安装，只读）
-- **用户配置**：`~/.sks/maximo-script-helper/quick-code.yaml`（首次打开时自动从模板复制）
+- **默认配置**：`public/quick-code-pub/quick-code-default.yaml`（随插件安装，只读，优先加载）
+- **用户配置**：`~/.sks/maximo-script-helper/quick-code/` 目录（首次打开时自动创建并复制模板 `01-quick-code.yml`）
+- 目录下所有 `.yaml`/`.yml` 文件按文件名排序依次加载并合并
 
 **配置文件格式示例**：
 
@@ -1539,7 +1540,8 @@ maxobjectjson:
 ### 注意事项
 
 - ⚠️ YAML 文件中代码块使用 `|` 或 `|-` 保留换行格式
-- ⚠️ 用户配置文件首次打开时自动从默认模板复制
+- ⚠️ 用户配置为 `quick-code` 目录，目录下所有 `.yaml`/`.yml` 文件按文件名排序加载
+- ⚠️ 编辑配置时弹出 QuickPick 文件列表，点击选择要编辑的文件
 - ⚠️ 「显示备注」勾选状态持久化保存，重新加载窗口后自动恢复
 - ⚠️ 修改 YAML 配置后，点击「刷新」按钮重新加载配置
 

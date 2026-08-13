@@ -1,0 +1,91 @@
+# 快捷插入代码配置
+# 自定义文件位置: ~/.sks/maximo-script-helper/quick-code目录下,会扫描所有yml/yaml文件
+#            目录下会按照文件名加载配置
+# 代码块使用 | 或 |- 保留换行格式
+
+# 当前模板中使用的变量和描述
+tmplenv:
+  objectName: 
+    desc: "对象名称"
+    remark: "例如ITEM"
+  attributeName:
+    desc: "属性名称"
+    remark: "例如ITEMNUM"
+
+
+#自动化脚本(js)插入
+javascript:
+  # - name: "SKS_LOG_ANSI_UTILS通用工具"
+  #   childrens:
+  #     - name: getErrorStackTrace获取错误堆栈跟踪
+  #       remark: "通过error获取错误堆栈跟踪"
+  #       code: |
+  #         var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+  #         /** @type {java.lang.String} */
+  #         var errorMessage = sksLogAnsiUtils.getErrorStackTrace(error)
+  #     - name: "logger代理 sksLogAnsiUtils.newAnsiLogger"
+  #       remark: |
+  #         logger输出linux终端显示高亮
+  #         注意:不要用于对象init和字段init脚本中,会影响执行效率
+  #       code: |
+  #         /** @type {org.apache.log4j.Level} */
+  #         Level = Java.type("org.apache.log4j.Level");
+  #         /** @type {psdi.util.logging.MXLoggerFactory} */
+  #         MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+  #         /** @type {psdi.util.logging.MXLogger} */
+  #         var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+  #         var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+  #         /** @type {psdi.util.logging.MXLogger} */
+  #         var logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+  # - name: "SKS_COMMONS_UTILS通用工具"
+  #   childrens:
+  #     - name: printComponentInfo遍历打印组件信息
+  #       remark: "遍历打印组件信息,用于调试"
+  #       code: |
+  #         var sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+  #         var cont = appBean ? appBean.getCreator() : null;
+  #         /** @type {java.util.List} */
+  #         var componentInfo = sksCommonsUtils.printComponentInfo(cont, "-")
+  #     - name: findComponentFromApp遍历查找组件
+  #       remark: "遍历查找组件"
+  #       code: |
+  #         var sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+  #         //我这里id是按钮的id,所以直接用pushbutton作为变量
+  #         var pushbutton = sksCommonsUtils.findComponentFromApp(appInstance,"1780382003239");
+  #         logger.info("[" + scriptName + "] pushbutton=" + pushbutton);
+  #         if (pushbutton) {
+  #           logger.info("[" + scriptName + "] pushbutton=" + pushbutton.getClass());
+  #           // pushbutton.render()
+  #           // pushbutton.sigOptionCheckForLookups();
+  #           // pushbutton.setProperty("label", "213");
+  #         }
+
+#应用程序设计器xml
+maxappxml:
+  # - name: "组件属性"
+  #   childrens:
+  #     - name: presentation组件
+  #       childrens:
+  #         - name: keyattribute属性
+  #           componentName: "presentation"
+  #           remark: |
+  #             例如:设置为 WONUM [7.1:选择操作左边的查找框以WONUM为精确查找字段]
+  #                              [9.1:右上角工具栏按钮最左边精确查找框以WONUM为精确查找字段]
+  #           code: "keyattribute"
+  #     - name: textbox组件
+  #       childrens:
+  #         - name: applinkkey属性
+  #           componentName: "textbox"
+  #           remark: "转到应用时候,当前表对应目标应用主键的属性"
+  #           code: "applinkkey"
+
+# MAXOBJECT导入配置json
+maxobjectjson:
+  # - name: "导入MAXOBJECT配置json"
+  #   childrens:
+  #     - name:  MAXOBJECT
+  #       childrens:
+  #         - name: sameAs等同对象
+  #           remark: "MAXOBJECT配置json中的 sameAsObject和sameAsAttribute属性,设置之后将忽略length和scale属性(不支持变更字段长度)"
+  #           code: |
+  #               "sameAsObject": "${objectName}","sameAsAttribute": "${attributeName}",

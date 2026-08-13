@@ -36,14 +36,14 @@ var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName(
 function getAppNameByMbo(mbo, frequency) {
     // 防止无限递归，设置最大递归深度
     var maxDepth = 5;
-    var currentDepth = (frequency === undefined || frequency == null) ? 0 : frequency;
+    var currentDepth = (typeof frequency === "undefined" || frequency == null) ? 0 : frequency;
 
     if (currentDepth >= maxDepth) {
-        return null;
+        return "";
     }
 
     if (mbo == null) {
-        return null;
+        return "";
     }
 
     // 获取当前MBO的应用名称
@@ -62,7 +62,7 @@ function getAppNameByMbo(mbo, frequency) {
     }
 
     // 没有父级且当前也没有应用名称，返回null
-    return null;
+    return "";
 }
 
 /**
@@ -318,4 +318,145 @@ function parseDateString(dateStr) {
   } catch (e) {}
     //{ "msgGroup": "ibm_common", "msgKey": "canNotParseDate", "value": "无法解析日期: {0}", "displayMethod": "MSGBOX", "options": ["close"], "msgIdPrefix": "BMXAA", "msgIdSuffix": "W" }
   throw new MXApplicationException("ibm_common","canNotParseDate" [dateStr]);
+}
+
+/**
+ * 遍历打印所有组件信息(对应 Java 版 bianliPrint, 递归前缀 qianzui+qianzui 翻倍).
+  // var cont = appBean ? appBean.getCreator() : null;
+  // logger.info("[" + scriptName + "] ===== appBean.getCreator() 子树 =====");
+  // printComponentInfo(cont, "-");
+ * 
+ * @param {any} base 当前组件
+ * @param {string} qianzui 打印的前缀,推荐使用 ---
+ */
+function printComponentInfo(base, qianzui) {
+  if (base != null) {
+    logger.info("[" + scriptName + "] bianliPrint." + qianzui+"=" + base);
+    var children = null;
+    try { children = base.getChildren(); } catch (e) { children = null; }
+    if (children != null) {
+      for (var i = 0; i < children.length; i++) {
+        printComponentInfo(children[i], qianzui + (i+1));
+      }
+    }
+  }
+}
+
+/**
+ * 在整个应用里查找 id 组件.
+ * 
+  var pushbutton = findComponentFromApp(appInstance, "1780382003239");
+  logger.info("[" + scriptName + "] pushbutton=" + pushbutton);
+  if (pushbutton) {
+    logger.info("[" + scriptName + "] pushbutton=" + pushbutton.getClass());
+    // pushbutton.render()
+    // pushbutton.sigOptionCheckForLookups();
+    // pushbutton.setProperty("label", "213");
+  }
+ * 
+ * 采用与 printComponentInfo 相同的遍历范围(已验证能覆盖所有组件):
+ *   1) appBean.getCreator() 子树;
+ *   2) 遍历 getPageStack() 里每个 page, 对 page.getDataBean().getCreator() 子树.
+ * 每个 creator 子树用 findComponentByCompId 递归匹配 xml中的组件id, 找到即返回.
+ * @param {any} appInstance AppInstance
+ * @param {string} compId   组件 id (如 "main")
+ * @return {any} 找到的组件, 找不到返回 null
+ */
+function findComponentFromApp(appInstance, compId) {
+  if (appInstance == null) {
+    return null;
+  }
+  // 1) appBean.getCreator() 子树
+  var appBean = null;
+  try { appBean = appInstance.getAppBean(); } catch (eb) { appBean = null; }
+  var appCreator = null;
+  try { appCreator = appBean ? appBean.getCreator() : null; } catch (e0) { appCreator = null; }
+  if (appCreator != null) {
+    var found = findComponentByCompId(appCreator, compId);
+    if (found != null) {
+      return found;
+    }
+  }
+
+  // 2) 遍历 pageStack, 对每个 page 的 DataBean.getCreator() 子树查找
+  var pageStack = null;
+  try { pageStack = appInstance.getPageStack(); } catch (e1) { pageStack = null; }
+  if (pageStack != null) {
+    var size = pageStack.size();
+    for (var i = 0; i < size; i++) {
+      /** @type {psdi.webclient.system.controller.PageInstance} */
+      var page = pageStack.get(i);
+      var pdb = null;
+      try { pdb = page.getDataBean(); } catch (ed) { pdb = null; }
+      if (pdb != null) {
+        var creator = null;
+        try { creator = pdb.getCreator(); } catch (ec) { creator = null; }
+        if (creator != null) {
+          var found2 = findComponentByCompId(creator, compId);
+          if (found2 != null) {
+            return found2;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 从任意根节点(AppInstance/ControlInstance/ComponentInstance)递归查找
+ * descriptor id 等于 compId 的组件.
+ * 注意: AppInstance/PageInstance 本身没有 findComponentByDescriptorId 方法,
+ * 只能靠 getChildren() 递归. 匹配的是设计态 id( XML 里的 id 属性 ),
+ * 用 getDescriptor().getProperty("id") 取得, 而非 getId()(渲染态,可能带行标记).
+ * @param {any} node 当前节点
+ * @param {string} compId 要查找的 descriptor id (如 "results_showlist")
+ * @return {any} 匹配到的组件, 找不到返回 null
+ */
+function findComponentByCompId(node, compId) {
+  if (node == null) {
+    return null;
+  }
+  // 判断当前节点是否匹配
+  try {
+    if (compId === node.getId()) {
+      return node
+    }
+  } catch (ignored) { }
+
+  // 递归子节点
+  try {
+    var children = node.getChildren ? node.getChildren() : null;
+    if (children != null) {
+      for (var i = 0; i < children.length; i++) {
+        var found = findComponentByCompId(children[i], compId);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+  } catch (ignored2) { }
+  return null;
+}
+
+
+
+/**
+ * 清除字符串前后空格及特殊空白字符
+ *
+ * 除常规空白字符(空格/制表符/换行等)外，还会清除中文全角空格(\u3000)、
+ * 不间断空格(\u00A0)等 Unicode 空白字符。
+ *
+ * 调用示例：
+ *   var str = service.invokeScript("COMMON.UTILS", "trimAll", [rawStr]);
+ *   var str = trimAll(mbo.getString("DESCRIPTION"));
+ *
+ * @param {string} str - 输入字符串
+ * @returns {string} 清除前后空白后的字符串，null/undefined 返回空字符串
+ */
+function trimAll(str) {
+    if (str === null ||typeof str === "undefined") {
+        return "";
+    }
+    return String(str).replace(/^[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+|[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+$/g, "");
 }

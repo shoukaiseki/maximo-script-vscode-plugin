@@ -50,16 +50,20 @@ export class QuickCodeManager {
     this._extensionUri = extensionUri;
   }
 
-  /** 获取用户自定义 YAML 路径 */
-  private _getUserYamlPath(): string {
+  /** 获取用户自定义配置目录路径 */
+  private _getUserDir(): string {
     const homeDir = process.env.USERPROFILE || process.env.HOME || '';
-    return path.join(homeDir, '.sks', 'maximo-script-helper', 'quick-code.yaml');
+    return path.join(homeDir, '.sks', 'maximo-script-helper', 'quick-code');
   }
 
-  /** 获取插件内置 YAML 路径 */
+  /** 获取插件内置默认 YAML 路径（优先加载，不做 copy） */
   private _getDefaultYamlPath(): string {
-    // extensionUri 指向插件安装目录
-    return path.join(this._extensionUri.fsPath, 'public', 'quick-code.yaml');
+    return path.join(this._extensionUri.fsPath, 'public', 'quick-code-pub', 'quick-code-default.yaml');
+  }
+
+  /** 获取插件内置模板 YAML 路径（copy 到本地目录） */
+  private _getTemplateYamlPath(): string {
+    return path.join(this._extensionUri.fsPath, 'public', 'quick-code-pub', 'quick-code-loc-tmpl.yaml');
   }
 
   /** 读取并解析单个 YAML 文件 */
@@ -99,6 +103,36 @@ export class QuickCodeManager {
     return merged;
   }
 
+  /** 扫描目录下所有 yaml/yml 文件，按文件名排序后依次加载并合并 */
+  private _loadUserDir(): QuickCodeConfig {
+    const userDir = this._getUserDir();
+    if (!fs.existsSync(userDir)) {
+      logger.info(`[QuickCode] 用户配置目录不存在: ${userDir}`);
+      return {};
+    }
+
+    const files = fs.readdirSync(userDir)
+      .filter(f => /\.(ya?ml)$/i.test(f))
+      .sort((a, b) => a.localeCompare(b));
+
+    if (files.length === 0) {
+      logger.info(`[QuickCode] 用户配置目录为空: ${userDir}`);
+      return {};
+    }
+
+    let merged: QuickCodeConfig = {};
+    for (const file of files) {
+      const filePath = path.join(userDir, file);
+      const config = this._loadYaml(filePath);
+      if (config) {
+        merged = this._mergeConfigs(merged, config);
+        logger.info(`[QuickCode] 已合并用户文件: ${file}`);
+      }
+    }
+    logger.info(`[QuickCode] 用户配置目录共加载 ${files.length} 个文件`);
+    return merged;
+  }
+
   /** 加载并合并配置（带缓存） */
   public loadConfig(forceRefresh = false): QuickCodeConfig {
     if (this._mergedConfig && !forceRefresh) {
@@ -106,10 +140,8 @@ export class QuickCodeManager {
     }
 
     const defaultPath = this._getDefaultYamlPath();
-    const userPath = this._getUserYamlPath();
-
     const defaultConfig = this._loadYaml(defaultPath) || {};
-    const userConfig = this._loadYaml(userPath) || {};
+    const userConfig = this._loadUserDir();
 
     this._mergedConfig = this._mergeConfigs(defaultConfig, userConfig);
     logger.info(`[QuickCode] 配置已合并，tmplenv 条目: ${Object.keys(this._mergedConfig.tmplenv || {}).length}`);
@@ -163,26 +195,58 @@ export class QuickCodeManager {
     });
   }
 
-  /** 打开用户自定义 YAML 文件（不存在则从模板复制） */
-  public async openUserYaml(): Promise<void> {
-    const userPath = this._getUserYamlPath();
-    if (!fs.existsSync(userPath)) {
-      const dir = path.dirname(userPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      // 从默认模板复制
-      const defaultPath = this._getDefaultYamlPath();
-      if (fs.existsSync(defaultPath)) {
-        fs.copyFileSync(defaultPath, userPath);
-        logger.info(`[QuickCode] 已从模板复制用户配置: ${userPath}`);
-      } else {
-        // 创建空模板
-        fs.writeFileSync(userPath, '# 快捷插入代码配置（用户自定义）\n# 代码块使用 | 或 |- 保留换行格式\n\ntmplenv: {}\n\njavascript: []\nmaxappxml: []\nmaxobjectjson: []\n', 'utf-8');
+  /** 确保本地配置目录和模板文件存在，返回目录路径 */
+  private _ensureUserDir(): string {
+    const userDir = this._getUserDir();
+    const tmplFile = path.join(userDir, '01-quick-code.yml');
+
+    if (fs.existsSync(userDir) && fs.existsSync(tmplFile)) {
+      return userDir;
+    }
+
+    // 目录不存在则创建
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+      logger.info(`[QuickCode] 已创建用户配置目录: ${userDir}`);
+    }
+
+    // 01-quick-code.yml 不存在则从模板 copy
+    if (!fs.existsSync(tmplFile)) {
+      const tmplSrc = this._getTemplateYamlPath();
+      if (fs.existsSync(tmplSrc)) {
+        fs.copyFileSync(tmplSrc, tmplFile);
+        logger.info(`[QuickCode] 已从模板复制: ${tmplFile}`);
       }
     }
-    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(userPath));
-    await vscode.window.showTextDocument(doc);
+
+    return userDir;
+  }
+
+  /** 打开用户自定义配置目录（QuickPick 选择文件） */
+  public async openUserYaml(): Promise<void> {
+    const userDir = this._ensureUserDir();
+
+    // 列出目录下所有 yaml/yml 文件
+    const files = fs.readdirSync(userDir)
+      .filter(f => /\.(ya?ml)$/i.test(f))
+      .sort((a, b) => a.localeCompare(b));
+
+    if (files.length === 0) {
+      logger.info(`[QuickCode] 用户配置目录为空: ${userDir}`);
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(userDir));
+      return;
+    }
+
+    // 显示 QuickPick 文件列表
+    const picked = await vscode.window.showQuickPick(
+      files.map(f => ({ label: f, description: path.join(userDir, f) })),
+      { placeHolder: '选择要编辑的快捷代码配置文件' }
+    );
+
+    if (picked) {
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(picked.description!));
+      await vscode.window.showTextDocument(doc);
+    }
   }
 
   /** 刷新缓存 */
