@@ -292,6 +292,7 @@ function main() {
       { value: 'OBJECT.INIT', label: '对象初始化', description: '在对象创建时触发', category: 'object' },
       { value: 'OBJECT.SAVE', label: '对象保存', description: '在对象保存时触发', category: 'object' },
       { value: 'OBJECT.INITZOMBIE', label: '对象僵尸初始化', description: '僵尸对象初始化', category: 'object' },
+      { value: 'FLD_INIT', label: '字段初始化', description: '字段初始化时触发', category: 'attribute' },
       { value: 'FLD_ACTION', label: '字段动作', description: '字段值变更后触发', category: 'attribute' },
       { value: 'FLD_VALIDATE', label: '字段验证', description: '字段值验证', category: 'attribute' },
       { value: 'FLD_LOOKUP', label: '字段查找', description: '字段查找功能', category: 'attribute' },

@@ -73,7 +73,6 @@ if(appName=="IBM_ITEM"){
  * 因为调用其他脚本耗时更长,初始化又是最影响速度的脚本类型,所以需要使用最小执行效率来编写
  * 
  * 获取应用名称,通常用于子表获取appName
- var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
  * @param {*} mbo
  * @param {*} frequency
  * @returns
