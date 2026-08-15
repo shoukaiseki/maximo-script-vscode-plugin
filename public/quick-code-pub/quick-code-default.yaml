@@ -151,12 +151,48 @@ maxappxml:
               例如:设置为 WONUM [7.1:选择操作左边的查找框以WONUM为精确查找字段]
                                [9.1:右上角工具栏按钮最左边精确查找框以WONUM为精确查找字段]
             code: "keyattribute"
-      - name: textbox组件
+      - name: textbox文本框组件
         childrens:
-          - name: applinkkey属性
+          - name: textbox组件属性说明
             componentName: "textbox"
-            remark: "转到应用时候,当前表对应目标应用主键的属性"
-            code: "applinkkey"
+            remark: "文本框"
+            code: |
+                    <!--<textbox dataattribute="SOURCE" id="1778174194703" applinkkey="转到应用时候,当前表对应目标应用主键的属性" /> -->
+                    <textbox dataattribute="SOURCE" id="1778174194703" applinkkey="ITEMNUM" /> 
+      - name: multilinetextbox多行文本框组件
+        childrens:
+          - name: 多行文本框组件
+            componentName: "multilinetextbox"
+            remark: "多行文本框"
+            code: |
+                    <!--<multilinetextbox dataattribute="SOURCE" id="1778174194703" rows="行数" span="列数"/> -->
+                    <multilinetextbox dataattribute="SOURCE" id="1778174194703" rows="40" span="80"/>
+      - name: multiparttextbox多部分文本框组件
+        childrens:
+          - name: 多部分文本框组件
+            componentName: "multiparttextbox"
+            remark: "多部分文本框"
+            code: |
+                  <!-- <multiparttextbox
+                      id="多部分文本框" 
+                      label="标签" 
+                      dataattribute="属性"
+                      lookup="查找"
+                      inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
+                      ondatachange="变更事件:REFRESHTABLE(刷新表),RESETCHILDREN(复位子表)"
+                      smartfilloff="关闭只能填充:false,true" 
+                      applink="转到应用程序"
+                            "移动到数据源标识(不能用)"
+                      descdataattribute="部件2的属性"
+                      desclookup="查找部件2"
+                      descinputmode="部件2的输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)"
+                      longdescreadonly="只读详细描述:false,true" 
+                      datasrc="数据源标识"
+                      sigoption="签名选项" 
+                      size="宽度"
+                      sigoptiondatasrc="签名数据源标识"/>
+                      -->
+                    <multiparttextbox dataattribute="ORDERUNIT" descdataattribute="MEASUREUNIT_ORDERUNIT.DESCRIPTION" descinputmode="readonly" id="1780329548595" inputmode="required" label="计量单位(采购)" lookup="measureunit" size="10"/>
 
 # MAXOBJECT导入配置json
 maxobjectjson:
