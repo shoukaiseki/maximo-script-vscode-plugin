@@ -4938,37 +4938,91 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const index = currentIndex++;
       if (index >= total) return false;
       const scriptInfo = scriptNames[index];
-      const scriptName = typeof scriptInfo === 'string' ? scriptInfo : (scriptInfo.autoscript || scriptInfo.AUTOSCRIPT || '');
+      // 与工具箱 _extractScripts 保持一致的字段提取方式
+      const scriptName = scriptInfo.autoScript || scriptInfo['oslc:autoscript'] || scriptInfo.autoscript || scriptInfo.AUTOSCRIPT || '';
       
+      if (!scriptName) {
+        logger.warn(`[_extractScriptsForScheduled] 跳过无效脚本 [${index + 1}]: ${JSON.stringify(scriptInfo)}`);
+        completedCount++;
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, '(无效)');
+        return false;
+      }
+
       try {
-        const scriptUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME/${encodeURIComponent(scriptName)}?_langcode=${language}`;
-        const scriptResult = await httpRequestToMaximo({
-          url: scriptUrl,
-          method: 'GET'
+        // 使用 POST + body 方式获取元数据（与工具箱 _extractScripts 一致）
+        const metadataResult = await httpRequestToMaximo({
+          url: `script/SKS_GET_AUTOSCRIPTINFOBYNAME?_langcode=${language}`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { 'AUTOSCRIPT': scriptName }
         });
 
-        if (scriptResult.status !== 200 || !scriptResult.data) {
+        if (metadataResult.status !== 200 || !metadataResult.data) {
+          failCount++;
           completedCount++;
-          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName}`);
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName} ❌`);
           return false;
         }
 
-        let scriptData = scriptResult.data;
-        if (typeof scriptData === 'string') {
-          try { scriptData = JSON.parse(scriptData); } catch (e) { }
+        // 解析返回的JSON数据
+        let metadata: any;
+        try {
+          metadata = typeof metadataResult.data === 'string' ? JSON.parse(metadataResult.data) : metadataResult.data;
+        } catch (parseErr: any) {
+          failCount++;
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName} ❌`);
+          return false;
         }
 
+        if (metadata.code !== 200 || !metadata.data) {
+          logger.warn(`[_extractScriptsForScheduled] 元数据响应错误: ${scriptName} - ${metadata.message || 'unknown'}`);
+          failCount++;
+          completedCount++;
+          this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName} ❌`);
+          return false;
+        }
+
+        const scriptData = metadata.data;
+
+        // 按 ibm_packagepath 创建包目录结构（与工具箱 _extractScripts 一致）
+        const packagePathValue = scriptData.ibm_packagepath || scriptData.PACKAGEPATH || scriptData.IBM_PACKAGEPATH;
+        let scriptExportDir = taskDir;
+        if (packagePathValue && packagePathValue.trim() !== '') {
+          const packagePath = packagePathValue.replace(/\./g, path.sep);
+          scriptExportDir = path.join(taskDir, packagePath);
+          if (!fs.existsSync(scriptExportDir)) {
+            fs.mkdirSync(scriptExportDir, { recursive: true });
+          }
+        }
+
+        // 保存配置文件（JSON格式）
         const jsonFileName = `${scriptName}.json`;
-        const jsonFilePath = path.join(taskDir, jsonFileName);
+        const jsonFilePath = path.join(scriptExportDir, jsonFileName);
         fs.writeFileSync(jsonFilePath, JSON.stringify(scriptData, null, 2), 'utf-8');
 
-        // 如果有源代码也保存
-        const sourceCode = scriptData.source || scriptData.SOURCE || '';
-        if (sourceCode) {
-          const ext = (scriptData.scriptlanguage || '').toLowerCase() === 'python' ? '.py' : '.js';
-          const codeFileName = `${scriptName}${ext}`;
-          const codeFilePath = path.join(taskDir, codeFileName);
+        // 获取源代码（使用 POST + body 方式，与工具箱一致）
+        const exportResult = await httpRequestToMaximo({
+          url: `script/SKS_EXP_AUTOSCRIPTBYNAME?_langcode=${language}`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: { 'AUTOSCRIPT': scriptName }
+        });
+
+        if (exportResult.status === 200 && exportResult.data) {
+          const sourceCode = typeof exportResult.data === 'string' ? exportResult.data : JSON.stringify(exportResult.data);
+          const scriptLanguage = (scriptData.SCRIPTLANGUAGE || scriptData.scriptlanguage || 'javascript').toLowerCase();
+          const extMap: Record<string, string> = {
+            'javascript': 'js', 'js': 'js', 'python': 'py', 'jython': 'py', 'py': 'py',
+            'nashorn': 'js', 'ecmascript': 'js', 'JavaScript': 'js', 'JS': 'js', 'ECMAScript': 'js', 'MBR': 'py'
+          };
+          const ext = extMap[scriptLanguage] || 'js';
+          const codeFileName = `${scriptName}.${ext}`;
+          const codeFilePath = path.join(scriptExportDir, codeFileName);
           fs.writeFileSync(codeFilePath, sourceCode, 'utf-8');
+          successCount++;
+        } else {
+          failCount++;
         }
 
         completedCount++;
@@ -4976,8 +5030,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return true;
 
       } catch (error: any) {
+        failCount++;
         completedCount++;
-        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName}`);
+        this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${scriptName} ❌`);
         return false;
       }
     };
@@ -4990,7 +5045,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     });
 
     await Promise.all(workers);
-    this._sendScheduledLog(`  ✅ 脚本导出完成`);
+    this._sendScheduledLog(`  ✅ 脚本导出完成，成功: ${successCount}, 失败: ${failCount}`);
   }
 
   /**
