@@ -141,7 +141,7 @@ javascript:
 
 #应用程序设计器xml
 maxappxml:
-  - name: "组件属性"
+  - name: "组件"
     childrens:
       - name: presentation组件
         childrens:
@@ -189,7 +189,7 @@ maxappxml:
                       longdescreadonly="只读详细描述:false,true" 
                       datasrc="数据源标识"
                       sigoption="签名选项" 
-                      size="宽度"
+                      size="宽度,只能两个部分同时调整,因为只有一个参数"
                       sigoptiondatasrc="签名数据源标识"/>
                       -->
                     <multiparttextbox dataattribute="ORDERUNIT" descdataattribute="MEASUREUNIT_ORDERUNIT.DESCRIPTION" descinputmode="readonly" id="1780329548595" inputmode="required" label="计量单位(采购)" lookup="measureunit" size="10"/>
