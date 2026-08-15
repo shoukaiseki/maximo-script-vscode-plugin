@@ -2244,15 +2244,18 @@ MaxObject.prototype.setMboValues = function (mbo) {
           if (!mbo.getMboValueData("TEXTSEARCHENABLED").isReadOnly()) {
             mbo.setValue("TEXTSEARCHENABLED", this.textSearchEnabled);
           }
-          if (!mbo.getMboValueData("EAUDITENABLED").isReadOnly()) {
-            mbo.setValue("EAUDITENABLED", this.auditEnabled);
-          }
+            if (this.auditEnabled !== null && typeof this.auditEnabled !== undefined) {
+                if (!mbo.getMboValueData("EAUDITENABLED").isReadOnly()) {
+                    mbo.setValue("EAUDITENABLED", this.auditEnabled);
+                }
+                //如果配置中没有设置审计,则忽略
+                if (mbo.getBoolean("EAUDITENABLED")) {
+                    this.auditTable != null ? mbo.setValue("EAUDITTBNAME", this.auditTable) : mbo.setValueNull("EAUDITTBNAME");
+                    this.eAuditFilter != null ? mbo.setValue("EAUDITFILTER", this.eAuditFilter) : mbo.setValueNull("EAUDITFILTER");
+                    this.eSignatureFilter != null ? mbo.setValue("ESIGFILTER", this.eSignatureFilter) : mbo.setValueNull("ESIGFILTER");
+                }
+            }
 
-          if (mbo.getBoolean("EAUDITENABLED")) {
-            this.auditTable != null ? mbo.setValue("EAUDITTBNAME", this.auditTable) : mbo.setValueNull("EAUDITTBNAME");
-            this.eAuditFilter != null ? mbo.setValue("EAUDITFILTER", this.eAuditFilter) : mbo.setValueNull("EAUDITFILTER");
-            this.eSignatureFilter != null ? mbo.setValue("ESIGFILTER", this.eSignatureFilter) : mbo.setValueNull("ESIGFILTER");
-          }
         }
     } else {
         if (mbo.toBeAdded()) {
@@ -2496,8 +2499,13 @@ MaxObject.prototype.setMboValues = function (mbo) {
                         }
                         logger.info("attribute.isModified=" + attribute.isModified())
 
-                        if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
-                            attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled);
+                            logger.info("\x1b[32m[" + serverName + "] " + "attribute=" + attributeConfig.attribute + ",eAuditEnabled=" + (attributeConfig.eAuditEnabled) + "\x1b[0m")
+                        if (typeof attributeConfig.eAuditEnabled !== "undefined" && attributeConfig.eAuditEnabled !== null) {
+                            if (!attribute.getMboValueData("EAUDITENABLED").isReadOnly()) {
+                                attribute.setValue("EAUDITENABLED", attributeConfig.eAuditEnabled);
+                            }
+                            logger.info("\x1b[32m[" + serverName + "] " + "attribute=" + attributeConfig.attribute +",EAUDITENABLED.isReadOnly="+attribute.getMboValueData("EAUDITENABLED").isReadOnly()+ ",eAuditEnabled=" + (attributeConfig.eAuditEnabled) + "\x1b[0m")
+                            
                         }
                         if (!attribute.getMboValueData("MLINUSE").isReadOnly()) {
                             attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse);
@@ -2729,9 +2737,10 @@ MaxObject.prototype.setMboValues = function (mbo) {
                                     : attribute.setValue("COMPLEXEXPRESSION", attributeConfig.typeOfComplexExpression, 2);
                             }
                         }
+                        
 
-                        if (typeof attributeConfig.eAuditEanbled !== "undefined") {
-                            attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEanbled === "undefined" ? false : attributeConfig.eAuditEanbled, 2);
+                        if (typeof attributeConfig.eAuditEnabled !== "undefined"&&attributeConfig.eAuditEnabled!==null) {
+                            attribute.setValue("EAUDITENABLED", typeof attributeConfig.eAuditEnabled === "undefined" ? false : attributeConfig.eAuditEnabled, 2);
                         }
                         if (typeof attributeConfig.multiLanguageInUse !== "undefined") {
                             attribute.setValue("MLINUSE", typeof attributeConfig.multiLanguageInUse === "undefined" ? false : attributeConfig.multiLanguageInUse, 2);
