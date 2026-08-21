@@ -66,6 +66,12 @@ function notJavaErrorOrIsMXErrorToThrow(error){
         logger.error("Nashorn NativeReferenceError: " + errorMessage);
         throw new MXApplicationException("#", "" + errorMessage);
     }
+    if (error instanceof org.openjdk.nashorn.api.scripting.ScriptObjectMirror) {
+        logger.warn("\x1b[31m[" + scriptName + "] Nashorn ScriptObjectMirror \x1b[0m")
+        errorMessage = error.getStackTrace();
+        logger.error("Nashorn ScriptObjectMirror: " + errorMessage);
+        throw new MXApplicationException("#", "" + errorMessage);
+    }
     if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
         logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeTypeError \x1b[0m")
         errorMessage = error.getStackTrace();
