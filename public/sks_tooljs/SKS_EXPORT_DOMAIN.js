@@ -111,6 +111,9 @@ function main() {
 
     // 仅支持 where 过滤, 为空时导出全部
     var whereClause = requestData.where || "1=1";
+    // MAXDOMAIN 查询会 right outer join 语言表 L_MAXDOMAIN(含 DESCRIPTION 列),
+    // 裸 DESCRIPTION 会产生列歧义(SQLCODE=-203/42702), 改写为同时匹配两个表
+    whereClause = qualifyDescriptionWhere(whereClause);
 
     /** @type {psdi.mbo.MboSetRemote} */
     var domainSet = null;
@@ -164,6 +167,27 @@ function main() {
     errorData.put("message", error.message ? error.message : error.toString());
     return errorData.serialize();
   }
+}
+
+/**
+ * 处理 where 子句中 DESCRIPTION 列的歧义问题
+ * Maximo 查询 MAXDOMAIN 时会 right outer join 语言表 L_MAXDOMAIN(该表也有 DESCRIPTION 列),
+ * 若 where 中使用裸 DESCRIPTION(如 UPPER(DESCRIPTION) LIKE ...), DB2 报 SQLCODE=-203 列歧义。
+ * 改为同时匹配 L_MAXDOMAIN.DESCRIPTION 与 MAXDOMAIN.DESCRIPTION。
+ * @param {string} whereClause - 原始 where 条件
+ * @returns {string} 处理后的 where 条件
+ */
+function qualifyDescriptionWhere(whereClause) {
+  if (!whereClause || whereClause === "1=1") return whereClause;
+  // UPPER(DESCRIPTION) LIKE UPPER('...') / UPPER(DESCRIPTION) = UPPER('...')
+  whereClause = whereClause.replace(/UPPER\(\s*DESCRIPTION\s*\)\s*(LIKE|=|<>|!=)\s*UPPER\(\s*'([^']*)'\s*\)/gi, function (m, op, val) {
+    return "(UPPER(L_MAXDOMAIN.DESCRIPTION) " + op + " UPPER('" + val + "') OR UPPER(MAXDOMAIN.DESCRIPTION) " + op + " UPPER('" + val + "'))";
+  });
+  // 裸 DESCRIPTION LIKE '...' / DESCRIPTION = '...'
+  whereClause = whereClause.replace(/\bDESCRIPTION\b\s*(LIKE|=|<>|!=)\s*'([^']*)'/gi, function (m, op, val) {
+    return "(L_MAXDOMAIN.DESCRIPTION " + op + " '" + val + "' OR MAXDOMAIN.DESCRIPTION " + op + " '" + val + "')";
+  });
+  return whereClause;
 }
 
 /**

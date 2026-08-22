@@ -353,17 +353,30 @@ maxappxml:
               子元素:tablebody(主体),tabledetails(详细信息),buttongroup(按钮组)
             code: |
                   <!-- <table
-                      id="唯一标识"
-                      label="表格标题"
-                      mboname="业务对象名称"
-                      relationship="关系名称(主子表关联)"
+                      id="表" 
+                      label="标签" 
+                      width="宽度:默认为空"
+                      description="描述"
+                      titleattributes="标题属性"
+                      startempty="开始清空:false,true"
+                      rowdetailsexpanded="扩展行详细信息"
+                      collapsed="折叠"
+                      collapsedemptylabel="折叠的空标签"
+                      collapsedlabel="折叠的标签"
+                      parentemptylabel="父级空标签"
+                      beanclass="Bean类"
+                      selectmode="选择方式:MULTIPLE(多个),SINGLE(单个)"
+                      inputmode="输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)" 
                       datasrc="数据源标识"
-                      selectmode="选择模式:SINGLE(单选),MULTIPLE(多选)"
-                      inputmode="输入方式:DEFAULT(缺省),READONLY(只读),REQUIRED(必需),QUERY(查询)"
-                      displayrowsperpage="每页显示行数"
-                      filterable="是否可过滤:true,false"
-                      filterexpanded="过滤器是否展开:true,false"
-                      startempty="开始是否为空:true,false"/>
+                      mboname="业务对象名称"
+                      parentdatasrc="父级数据源标识"
+                      relationship="关系名称(主子表关联)"
+                      orderby="排序条件"
+                      apprestrictions="应用程序限制"
+                      listeners="侦听器"
+                            "可过滤"
+                      sigoption="签名选项" 
+                      sigoptiondatasrc="签名数据源标识"/>
                       -->
                     <table id="itemapplyline_table" label="零件明细" mboname="IBM_ITEM_APPLYLINE" relationship="IBM_ITEM_APPLYLINE" selectmode="multiple">
                       <tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="itemapplyline_tablebody">
@@ -533,6 +546,27 @@ maxappxml:
                       <range classname="rowcolor_priority_medium" id="range2" lower="4" upper="6"/>
                       <range classname="rowcolor_priority_low" id="range3" lower="7" upper="10"/>
                     </displayrule>
+  - name: "其它"
+    childrens:
+      - name: 缺省值
+        childrens:
+          - name: defaultvalue
+            componentName: "defaultvalue"
+            remark: |
+              缺省值,通常放在table里面或者tab中
+            code: |
+            		<defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
+                <!--
+                <defaultvalue
+                id="控制标识" 
+                dataattribute="属性"
+                value="值" 
+                fromdatasrc="原数据标识-主表的数据源标识。mainrecord 主表"
+                fromattribute="来自属性"
+                defaulttype="缺省类型:INSERT(插入),QUERY(查询)"
+                sigoption="签名选项" 
+                sigoptiondatasrc="签名数据源标识"/>
+                -->
 
 # MAXOBJECT导入配置json
 maxobjectjson:
