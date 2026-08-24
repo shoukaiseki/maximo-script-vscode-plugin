@@ -106,6 +106,10 @@
       {
         "command": "maximoScript.importScriptFromJson",
         "title": "Maximo Script: 导入脚本"
+      },
+      {
+        "command": "maximoScript.pullScriptFromJs",
+        "title": "Maximo Script: Pull 自动化脚本"
       }
     ],
     "menus": {
@@ -114,6 +118,11 @@
           "command": "maximoScript.pushToMaximo",
           "when": "editorLangId == javascript",
           "group": "navigation@1"
+        },
+        {
+          "command": "maximoScript.pullScriptFromJs",
+          "when": "editorLangId == javascript",
+          "group": "navigation@2"
         },
         {
           "command": "maximoScript.pushXmlToMaximo",
@@ -161,6 +170,11 @@
           "command": "maximoScript.importScriptFromJson",
           "when": "resourceLangId == json",
           "group": "navigation@3"
+        },
+        {
+          "command": "maximoScript.pullScriptFromJs",
+          "when": "resourceLangId == javascript",
+          "group": "navigation@4"
         }
       ]
     },

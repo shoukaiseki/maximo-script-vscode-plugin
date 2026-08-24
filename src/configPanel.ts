@@ -157,7 +157,7 @@ export class ConfigPanel {
             await this._queryScripts();
             return;
           case 'pullScript':
-            await this._pullScript(message.scriptName, message.storagePath);
+            await ConfigPanel._pullScript(message.scriptName, message.storagePath);
             return;
           case 'loadLoggerConfig':
             await this._loadLoggerConfig();
@@ -3084,7 +3084,63 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * Pull 单个脚本到本地目录
    */
-  private async _pullScript(scriptName: string, storagePath: string) {
+  /**
+   * 根据 JS 文件拉取自动化脚本（右键菜单入口）
+   * 校验逻辑：
+   *   1. 同目录下必须存在同名 .json 文件
+   *   2. JSON 中 autoscript 属性必须与 JS 文件名一致
+   * @param jsFilePath JS 文件路径
+   * @param logger 日志输出通道
+   */
+  public static async pullScriptFromJs(jsFilePath: string, logger: vscode.LogOutputChannel): Promise<void> {
+    try {
+      if (!fs.existsSync(jsFilePath)) {
+        vscode.window.showErrorMessage('文件不存在');
+        return;
+      }
+
+      // 1. 从 JS 文件名获取脚本名（去掉扩展名）
+      const scriptName = path.basename(jsFilePath, path.extname(jsFilePath));
+      if (!scriptName) {
+        vscode.window.showErrorMessage('无效的脚本文件名');
+        return;
+      }
+      logger.info(`[pullScriptFromJs] 脚本名: ${scriptName}`);
+
+      // 2. 检查同目录下是否存在同名 .json 文件
+      const jsDir = path.dirname(jsFilePath);
+      const jsonFilePath = path.join(jsDir, `${scriptName}.json`);
+      if (!fs.existsSync(jsonFilePath)) {
+        vscode.window.showErrorMessage(`未找到 ${scriptName}.json 配置文件，不是有效的自动化脚本`);
+        return;
+      }
+
+      // 3. 解析 JSON，校验 autoscript 属性
+      let jsonConfig: any;
+      try {
+        jsonConfig = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
+      } catch (parseErr: any) {
+        vscode.window.showErrorMessage(`解析 ${scriptName}.json 失败: ${parseErr.message}`);
+        return;
+      }
+
+      const jsonAutoScript = jsonConfig.autoscript || jsonConfig.AUTOSCRIPT;
+      if (jsonAutoScript !== scriptName) {
+        vscode.window.showErrorMessage(`JSON 配置的 autoscript(${jsonAutoScript || '空'}) 与 Pull 的自动化脚本(${scriptName})不符`);
+        return;
+      }
+      logger.info(`[pullScriptFromJs] JSON 校验通过: autoscript=${jsonAutoScript}`);
+
+      // 4. 校验通过，调用 Pull 逻辑（拉取到 JS 文件所在目录）
+      await ConfigPanel._pullScript(scriptName, '', jsDir);
+
+    } catch (error: any) {
+      logger.error(`[pullScriptFromJs] Pull 自动化脚本失败: ${error.message}`);
+      vscode.window.showErrorMessage(`Pull 自动化脚本失败: ${error.message}`);
+    }
+  }
+
+  private static async _pullScript(scriptName: string, storagePath: string, targetDirOverride?: string) {
     try {
       // 获取配置
       const config = vscode.workspace.getConfiguration('maximoScript');
@@ -3110,13 +3166,19 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 获取工作区根目录
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        vscode.window.showErrorMessage('未打开工作区');
-        return;
-      }
+      let targetDir: string;
+      if (targetDirOverride) {
+        // 使用指定的目标目录（右键 JS 文件 Pull 场景）
+        targetDir = targetDirOverride;
+      } else {
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          vscode.window.showErrorMessage('未打开工作区');
+          return;
+        }
 
-      const workspaceRoot = workspaceFolders[0].uri.fsPath;
-      let targetDir = path.join(workspaceRoot, storagePath || 'masscript');
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        targetDir = path.join(workspaceRoot, storagePath || 'masscript');
+      }
 
       // 先获取接口 JSON 数据（元数据）
       const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;

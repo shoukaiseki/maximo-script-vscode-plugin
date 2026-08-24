@@ -566,6 +566,34 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(importScriptFromJsonCommand);
 
+  // 注册 Pull 自动化脚本命令（右键 JS 文件）
+  const pullScriptFromJsCommand = vscode.commands.registerCommand('maximoScript.pullScriptFromJs', async (uri?: vscode.Uri) => {
+    try {
+      // 支持编辑器右键和资源管理器右键
+      let jsFilePath: string | undefined;
+      if (uri && uri.fsPath) {
+        jsFilePath = uri.fsPath;
+      } else {
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'javascript') {
+          jsFilePath = editor.document.uri.fsPath;
+        }
+      }
+
+      if (!jsFilePath) {
+        vscode.window.showErrorMessage('请打开或选中要 Pull 的 JS 文件');
+        return;
+      }
+
+      await ConfigPanel.pullScriptFromJs(jsFilePath, logger);
+
+    } catch (error: any) {
+      logger.error(`[PullScriptFromJs] ❌ Pull 自动化脚本失败: ${error.message}`);
+      vscode.window.showErrorMessage(`Pull 自动化脚本失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(pullScriptFromJsCommand);
+
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
     try {
