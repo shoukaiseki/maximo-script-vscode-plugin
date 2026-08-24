@@ -3131,8 +3131,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
       logger.info(`[pullScriptFromJs] JSON 校验通过: autoscript=${jsonAutoScript}`);
 
-      // 4. 校验通过，调用 Pull 逻辑（拉取到 JS 文件所在目录）
-      await ConfigPanel._pullScript(scriptName, '', jsDir);
+      // 4. 校验通过，调用 Pull 逻辑（以配置的脚本存放目录为基准，由 _pullScript 自动追加 ibm_packagepath）
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const storagePath = config.get<string>('scriptStoragePath', 'masscript');
+      await ConfigPanel._pullScript(scriptName, storagePath);
 
     } catch (error: any) {
       logger.error(`[pullScriptFromJs] Pull 自动化脚本失败: ${error.message}`);
@@ -3140,7 +3142,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     }
   }
 
-  private static async _pullScript(scriptName: string, storagePath: string, targetDirOverride?: string) {
+  private static async _pullScript(scriptName: string, storagePath: string) {
     try {
       // 获取配置
       const config = vscode.workspace.getConfiguration('maximoScript');
@@ -3166,19 +3168,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 获取工作区根目录
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      let targetDir: string;
-      if (targetDirOverride) {
-        // 使用指定的目标目录（右键 JS 文件 Pull 场景）
-        targetDir = targetDirOverride;
-      } else {
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-          vscode.window.showErrorMessage('未打开工作区');
-          return;
-        }
-
-        const workspaceRoot = workspaceFolders[0].uri.fsPath;
-        targetDir = path.join(workspaceRoot, storagePath || 'masscript');
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('未打开工作区');
+        return;
       }
+
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      let targetDir = path.join(workspaceRoot, storagePath || 'masscript');
 
       // 先获取接口 JSON 数据（元数据）
       const metadataUrl = `script/SKS_GET_AUTOSCRIPTINFOBYNAME`;
