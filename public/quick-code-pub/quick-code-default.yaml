@@ -357,6 +357,7 @@ maxappxml:
                       label="标签" 
                       width="宽度:默认为空"
                       description="描述"
+                      whereclause="条件查询,可在LOOKUPS中设置默认过滤条件"
                       titleattributes="标题属性"
                       startempty="开始清空:false,true"
                       rowdetailsexpanded="扩展行详细信息"
@@ -555,18 +556,18 @@ maxappxml:
             remark: |
               缺省值,通常放在table里面或者tab中
             code: |
-            		<defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
-                <!--
-                <defaultvalue
-                id="控制标识" 
-                dataattribute="属性"
-                value="值" 
-                fromdatasrc="原数据标识-主表的数据源标识。mainrecord 主表"
-                fromattribute="来自属性"
-                defaulttype="缺省类型:INSERT(插入),QUERY(查询)"
-                sigoption="签名选项" 
-                sigoptiondatasrc="签名数据源标识"/>
-                -->
+                  <!--
+                  <defaultvalue
+                  id="控制标识"
+                  dataattribute="属性"
+                  value="值"
+                  fromdatasrc="原数据标识-主表的数据源标识。mainrecord 主表"
+                  fromattribute="来自属性"
+                  defaulttype="缺省类型:INSERT(插入),QUERY(查询)"
+                  sigoption="签名选项"
+                  sigoptiondatasrc="签名数据源标识"/>
+                  -->
+                  <defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
 
 # MAXOBJECT导入配置json
 maxobjectjson:

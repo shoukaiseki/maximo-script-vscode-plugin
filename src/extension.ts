@@ -1604,7 +1604,7 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
       <input class="qc-search" id="searchInput" type="text" placeholder="搜索快捷代码..." />
     </div>
     <div class="qc-actions">
-      <button class="qc-action-btn" id="btnToggleAll">📂 全部收缩</button>
+      <button class="qc-action-btn" id="btnToggleAll">📂 全部展开</button>
       <button class="qc-action-btn" id="btnRefreshQC">🔄 刷新</button>
       <button class="qc-action-btn" id="btnEditConfig">📝 编辑配置</button>
       <label class="qc-checkbox">
@@ -1770,7 +1770,6 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
 
     const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
     _allCodes = [];
-
     const typeKeys = Object.keys(_configData).filter(k => k !== 'tmplenv' && Array.isArray(_configData[k]) && _configData[k].length > 0);
     if (!typeKeys.length) {
       container.innerHTML = '<div class="qc-empty">暂无配置</div>';
@@ -1793,12 +1792,15 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
         if (search && !visibleChildren.length) return;
         typeHasContent = true;
 
+        // 无搜索时默认全部收缩；搜索时自动展开便于查看结果
+        const isOpen = search ? ' open' : '';
+
         typeHtml += '<div class="qc-group">';
         typeHtml += '<div class="qc-group-header">';
-        typeHtml += '<span class="arrow open" id="arr_' + groupBodyId + '">▶</span>';
+        typeHtml += '<span class="arrow' + isOpen + '" id="arr_' + groupBodyId + '">▶</span>';
         typeHtml += '<span>' + escHtml(group.name) + '</span>';
         typeHtml += '</div>';
-        typeHtml += '<div class="qc-group-body open" id="' + groupBodyId + '">';
+        typeHtml += '<div class="qc-group-body' + isOpen + '" id="' + groupBodyId + '">';
         typeHtml += renderItems(visibleChildren, search, typeKey + '_' + gi);
         typeHtml += '</div></div>';
         globalIdx++;
@@ -1814,9 +1816,9 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
     });
 
     container.innerHTML = html || '<div class="qc-empty">无匹配结果</div>';
-    // 重置全部收缩/展开按钮文字（默认全部展开）
+    // 更新全部收缩/展开按钮文字（无搜索时默认全部收缩）
     const toggleBtn = document.getElementById('btnToggleAll');
-    if (toggleBtn) toggleBtn.textContent = '📂 全部收缩';
+    if (toggleBtn) toggleBtn.textContent = search ? '📂 全部收缩' : '📂 全部展开';
   }
 
   function filterItems(items, search) {
@@ -1824,6 +1826,8 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
     return items.filter(item => {
       if ((item.name || '').toLowerCase().includes(search)) return true;
       if ((item.remark || '').toLowerCase().includes(search)) return true;
+      // 同时搜索 code 内容（不区分大小写）
+      if ((item.code || '').toLowerCase().includes(search)) return true;
       if (item.childrens && filterItems(item.childrens, search).length > 0) return true;
       return false;
     });
@@ -1835,11 +1839,13 @@ class HelperViewProvider implements vscode.WebviewViewProvider {
       const id = parentIdx + '_' + ii;
       if (item.childrens && item.childrens.length > 0) {
         const visChildren = filterItems(item.childrens, search);
+        // 无搜索时默认收缩；搜索时自动展开
+        const isOpen = search ? ' open' : '';
         html += '<div class="qc-item has-children">';
-        html += '<span class="item-arrow open" id="iarr_' + id + '">▶</span>';
+        html += '<span class="item-arrow' + isOpen + '" id="iarr_' + id + '">▶</span>';
         html += '<span>' + escHtml(item.name) + '</span>';
         html += '</div>';
-        html += '<div class="qc-item-children open" id="ich_' + id + '">';
+        html += '<div class="qc-item-children' + isOpen + '" id="ich_' + id + '">';
         html += renderItems(visChildren, search, id);
         html += '</div>';
       } else if (item.code) {
