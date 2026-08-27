@@ -15,7 +15,7 @@
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "SHARPTREE.AUTOSCRIPT.DEPLOY.HISTORY",
+  "autoscript": "SKS.AUTOSCRIPT.DEPLOY.HISTORY",
   "ownername": "",
   "changeby": "MAXADMIN",
   "autoscriptid": 224,

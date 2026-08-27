@@ -5169,7 +5169,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           return false;
         }
 
-        const xmlFilePath = path.join(taskDir, `${screenName}.xml`);
+        const xmlFilePath = path.join(taskDir, `${screenName.toLowerCase()}.xml`);
         fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
         completedCount++;
         this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);

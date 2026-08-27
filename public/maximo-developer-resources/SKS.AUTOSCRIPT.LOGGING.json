@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "Sharptree Automation Script Log Streaming",
+  "description": "SKS Automation Script Log Streaming",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -15,7 +15,7 @@
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "SHARPTREE.AUTOSCRIPT.LOGGING",
+  "autoscript": "SKS.AUTOSCRIPT.LOGGING",
   "ownername": "",
   "changeby": "MAXADMIN",
   "autoscriptid": 252,

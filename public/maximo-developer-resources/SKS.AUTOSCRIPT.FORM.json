@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "Sharptree Forms Script",
+  "description": "SKS Forms Script",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -15,7 +15,7 @@
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "SHARPTREE.AUTOSCRIPT.FORM",
+  "autoscript": "SKS.AUTOSCRIPT.FORM",
   "ownername": "",
   "changeby": "MAXADMIN",
   "autoscriptid": 255,

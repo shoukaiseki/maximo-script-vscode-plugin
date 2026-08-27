@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "Sharptree Deployment Library Script",
+  "description": "SKS Deployment Library Script",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -15,7 +15,7 @@
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "SHARPTREE.AUTOSCRIPT.LIBRARY",
+  "autoscript": "SKS.AUTOSCRIPT.LIBRARY",
   "ownername": "",
   "changeby": "MAXADMIN",
   "autoscriptid": 256,

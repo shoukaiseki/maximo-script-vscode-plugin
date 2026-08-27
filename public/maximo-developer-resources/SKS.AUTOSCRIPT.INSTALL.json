@@ -1,7 +1,7 @@
 {
   "owneremail": "",
   "createdbyid": "",
-  "description": "Sharptree Automation Script Install Script",
+  "description": "SKS Automation Script Install Script",
   "launchPoints": [],
   "createdbyemail": "",
   "interface": 0,
@@ -15,7 +15,7 @@
   "owner": "MAXADMIN",
   "variables": [],
   "comments": "",
-  "autoscript": "SHARPTREE.AUTOSCRIPT.INSTALL",
+  "autoscript": "SKS.AUTOSCRIPT.INSTALL",
   "ownername": "",
   "changeby": "MAXADMIN",
   "autoscriptid": 259,
