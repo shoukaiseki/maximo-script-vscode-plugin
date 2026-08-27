@@ -1356,7 +1356,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       const hostname = require('os').hostname();
       const aliasNameConfig = config.get('aliasName', '');
-      let deployUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      let deployUrl = `script/SKS.AUTOSCRIPT.SCREENS`;
       const queryParams: string[] = [];
       if (hostname) {
         queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
@@ -1438,7 +1438,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
-   * 修复应用 XML 推送：获取 SHARPTREE.AUTOSCRIPT.SCREENS 脚本内容并通过 MXAPIAUTOSCRIPT 接口推送（静态方法，供 extension.ts 调用）
+   * 修复应用 XML 推送：获取 SKS.AUTOSCRIPT.SCREENS 脚本内容并通过 MXAPIAUTOSCRIPT 接口推送（静态方法，供 extension.ts 调用）
    * @returns { success: boolean, errorMessage?: string }
    */
   public static async repairAppXmlPush(
@@ -1462,7 +1462,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         return { success: false, errorMessage: errorMsg };
       }
 
-      const scriptName = 'SHARPTREE.AUTOSCRIPT.SCREENS';
+      const scriptName = 'SKS.AUTOSCRIPT.SCREENS';
 
       // 步骤1: 通过 SKS_EXP_AUTOSCRIPTBYNAME 获取脚本源代码
       logger.info(`[RepairAppXmlPush] 正在获取脚本源代码: ${scriptName}`);
@@ -2298,7 +2298,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 部署并执行 bootstrap 脚本（install）
       this._sendToolboxOutput('\n📦 步骤 1/2: 部署并执行 bootstrap 脚本...');
       
-      const installFilePath = path.join(scriptsDir, 'SHARPTREE.AUTOSCRIPT.INSTALL.json');
+      const installFilePath = path.join(scriptsDir, 'SKS.AUTOSCRIPT.INSTALL.json');
       if (!fs.existsSync(installFilePath)) {
         this._sendToolboxOutput(`❌ install 脚本不存在: ${installFilePath}`);
         return;
@@ -2316,7 +2316,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       
       // 执行 bootstrap 脚本
       this._sendToolboxOutput('⚙️ 正在执行 bootstrap 脚本...');
-      const execUrl = `${serverUrl}/api/script/SHARPTREE.AUTOSCRIPT.INSTALL`;
+      const execUrl = `${serverUrl}/api/script/SKS.AUTOSCRIPT.INSTALL`;
       
       const execResult = await httpRequestToMaximo({
         url: execUrl,
@@ -2656,7 +2656,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 步骤1: 获取所有应用名称
       this._sendToolboxOutput('\n📋 正在获取应用列表...');
-      const screensUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS`;
+      const screensUrl = `script/SKS.AUTOSCRIPT.SCREENS`;
       
       const screensResult = await httpRequestToMaximo({
         url: screensUrl,
@@ -2691,7 +2691,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${index + 1}/${totalCount}] 正在导出: ${screenName}`);
 
-          const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}`;
+          const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}`;
           const screenResult = await httpRequestToMaximo({
             url: screenUrl,
             method: 'GET'
@@ -5123,7 +5123,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
     // 获取所有应用名称
     const screensResult = await httpRequestToMaximo({
-      url: `script/SHARPTREE.AUTOSCRIPT.SCREENS?_langcode=${language}`,
+      url: `script/SKS.AUTOSCRIPT.SCREENS?_langcode=${language}`,
       method: 'GET'
     });
 
@@ -5150,7 +5150,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const screenName = screenNames[index];
 
       try {
-        const screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}`;
+        const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}`;
         const screenResult = await httpRequestToMaximo({
           url: screenUrl,
           method: 'GET'

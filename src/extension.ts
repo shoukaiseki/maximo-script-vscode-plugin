@@ -340,7 +340,7 @@ export function activate(context: vscode.ExtensionContext) {
 
           const hostname = require('os').hostname();
           const aliasNameConfig = vscode.workspace.getConfiguration('maximoScript').get('aliasName', '');
-          let screenUrl = `script/SHARPTREE.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
+          let screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
           const queryParams: string[] = [];
           if (hostname) {
             queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
