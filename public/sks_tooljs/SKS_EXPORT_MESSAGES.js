@@ -343,99 +343,100 @@ function buildFieldCondition(col, val) {
   }
 }
 
-/**
- * 构建消息 JSON 对象
- * @param {psdi.mbo.MboRemote} msgMbo
- * @returns {com.ibm.json.java.JSONObject}
- */
-function buildMessageObject(msgMbo) {
-  /** @type {com.ibm.json.java.OrderedJSONObject} */
-  var obj = new OrderedJSONObject();
+// /**
+//  * 构建消息 JSON 对象
+//  * @param {psdi.mbo.MboRemote} msgMbo
+//  * @returns {com.ibm.json.java.JSONObject}
+//  */
+// function buildMessageObject(msgMbo) {
+//   /** @type {com.ibm.json.java.OrderedJSONObject} */
+//   var obj = new OrderedJSONObject();
 
-  // 必填字段
-  obj.put("msgGroup", getString(msgMbo, "MSGGROUP"));
-  obj.put("msgKey", getString(msgMbo, "MSGKEY"));
-  obj.put("value", getString(msgMbo, "VALUE"));
-  // 记录ID
-  obj.put("MAXMESSAGESID", getString(msgMbo, "MAXMESSAGESID"));
-  obj.put("displayMethod", getString(msgMbo, "DISPLAYMETHOD"));
+//   // 必填字段
+//   obj.put("msgGroup", getString(msgMbo, "MSGGROUP"));
+//   obj.put("msgKey", getString(msgMbo, "MSGKEY"));
+//   obj.put("value", getString(msgMbo, "VALUE"));
+//   // 记录ID
+//   obj.put("MAXMESSAGESID", getString(msgMbo, "MAXMESSAGESID"));
+//   obj.put("displayMethod", getString(msgMbo, "DISPLAYMETHOD"));
 
-  // options: 整数转字符串数组(与导入格式兼容)
-  var optionsVal = getInt(msgMbo, "OPTIONS");
-  if (optionsVal !== null) {
-    var optionsArr = new JSONArray();
-    // OPTIONS 位掩码: CLOSE=1, OK=2, CANCEL=4, YES=8, NO=16
-    if (optionsVal & 1) { optionsArr.add("close"); }
-    if (optionsVal & 2) { optionsArr.add("ok"); }
-    if (optionsVal & 4) { optionsArr.add("cancel"); }
-    if (optionsVal & 8) { optionsArr.add("yes"); }
-    if (optionsVal & 16) { optionsArr.add("no"); }
-    obj.put("options", optionsArr);
-    obj.put("sks:options", optionsVal);
-  }
+//   // options: 整数转字符串数组(与导入格式兼容)
+//   var optionsVal = getInt(msgMbo, "OPTIONS");
+//   if (optionsVal !== null) {
+//     var optionsArr = new JSONArray();
+//     // OPTIONS 位掩码: CLOSE=1, OK=2, CANCEL=4, YES=8, NO=16
+//     if (optionsVal & 1) { optionsArr.add("close"); }
+//     if (optionsVal & 2) { optionsArr.add("ok"); }
+//     if (optionsVal & 4) { optionsArr.add("cancel"); }
+//     if (optionsVal & 8) { optionsArr.add("yes"); }
+//     if (optionsVal & 16) { optionsArr.add("no"); }
+//     obj.put("options", optionsArr);
+//     obj.put("sks:options", optionsVal);
+//   }
 
-  if (!ignoreDefVal) {
-    // 可选字符串字段
-    putIfHas(obj, msgMbo, "title", "TITLE");
-    putIfHas(obj, msgMbo, "buttonText", "BUTTONTEXT");
-    putIfHas(obj, msgMbo, "explanation", "EXPLANATION");
-    putIfHas(obj, msgMbo, "adminResponse", "ADMINRESPONSE");
-    putIfHas(obj, msgMbo, "operatorResponse", "OPERATORRESPONSE");
-    putIfHas(obj, msgMbo, "systemAction", "SYSTEMACTION");
-    putIfHas(obj, msgMbo, "response", "RESPONSE");
-    putIfHas(obj, msgMbo, "msgId", "MSGID");
-    // 按钮布尔字段(非持久,通过 getBoolean 取值)
-    var ok = msgMbo.getBoolean("OK");
-    if (ok) { obj.put("ok", true); }
-    var yes = msgMbo.getBoolean("YES");
-    if (yes) { obj.put("yes", true); }
-    var no = msgMbo.getBoolean("NO");
-    if (no) { obj.put("no", true); }
-    var cancel = msgMbo.getBoolean("CANCEL");
-    if (cancel) { obj.put("cancel", true); }
-    var close = msgMbo.getBoolean("CLOSE");
-    if (close) { obj.put("close", true); }
+//   if (!ignoreDefVal) {
+//     // 可选字符串字段
+//     putIfHas(obj, msgMbo, "title", "TITLE");
+//     putIfHas(obj, msgMbo, "buttonText", "BUTTONTEXT");
+//     putIfHas(obj, msgMbo, "explanation", "EXPLANATION");
+//     putIfHas(obj, msgMbo, "adminResponse", "ADMINRESPONSE");
+//     putIfHas(obj, msgMbo, "operatorResponse", "OPERATORRESPONSE");
+//     putIfHas(obj, msgMbo, "systemAction", "SYSTEMACTION");
+//     putIfHas(obj, msgMbo, "response", "RESPONSE");
+//     putIfHas(obj, msgMbo, "msgId", "MSGID");
+//     // 按钮布尔字段(非持久,通过 getBoolean 取值)
+//     var ok = msgMbo.getBoolean("OK");
+//     if (ok) { obj.put("ok", true); }
+//     var yes = msgMbo.getBoolean("YES");
+//     if (yes) { obj.put("yes", true); }
+//     var no = msgMbo.getBoolean("NO");
+//     if (no) { obj.put("no", true); }
+//     var cancel = msgMbo.getBoolean("CANCEL");
+//     if (cancel) { obj.put("cancel", true); }
+//     var close = msgMbo.getBoolean("CLOSE");
+//     if (close) { obj.put("close", true); }
 
-    // 图标布尔字段
-    var stop = msgMbo.getBoolean("STOP");
-    if (stop) { obj.put("stop", true); }
-    var warning = msgMbo.getBoolean("WARNING");
-    if (warning) { obj.put("warning", true); }
-    var exclamation = msgMbo.getBoolean("EXCLAMATION");
-    if (exclamation) { obj.put("exclamation", true); }
-  } else {
-    if (msgMbo.isNull("BUTTONTEXT")) {
-      putIfHas(obj, msgMbo, "buttonText", "BUTTONTEXT");
-    }
-    if (msgMbo.isNull("TITLE")) {
-      putIfHas(obj, msgMbo, "title", "TITLE");
-    }
-    if (msgMbo.isNull("EXPLANATION")) {
-      putIfHas(obj, msgMbo, "explanation", "EXPLANATION");
-    }
-    if (msgMbo.isNull("ADMINRESPONSE")) {
-      putIfHas(obj, msgMbo, "adminResponse", "ADMINRESPONSE");
-    }
-    if (msgMbo.isNull("OPERATORRESPONSE")) {
-      putIfHas(obj, msgMbo, "operatorResponse", "OPERATORRESPONSE");
-    }
-    if (msgMbo.isNull("SYSTEMACTION")) {
-      putIfHas(obj, msgMbo, "systemAction", "SYSTEMACTION");
-    }
-    if (msgMbo.isNull("RESPONSE")) {
-      putIfHas(obj, msgMbo, "response", "RESPONSE");
-    }
+//     // 图标布尔字段
+//     var stop = msgMbo.getBoolean("STOP");
+//     if (stop) { obj.put("stop", true); }
+//     var warning = msgMbo.getBoolean("WARNING");
+//     if (warning) { obj.put("warning", true); }
+//     var exclamation = msgMbo.getBoolean("EXCLAMATION");
+//     if (exclamation) { obj.put("exclamation", true); }
+//   } else {
+//     if (msgMbo.isNull("BUTTONTEXT")) {
+//       putIfHas(obj, msgMbo, "buttonText", "BUTTONTEXT");
+//     }
+//     if (msgMbo.isNull("TITLE")) {
+//       putIfHas(obj, msgMbo, "title", "TITLE");
+//     }
+//     if (msgMbo.isNull("EXPLANATION")) {
+//       putIfHas(obj, msgMbo, "explanation", "EXPLANATION");
+//     }
+//     if (msgMbo.isNull("ADMINRESPONSE")) {
+//       putIfHas(obj, msgMbo, "adminResponse", "ADMINRESPONSE");
+//     }
+//     if (msgMbo.isNull("OPERATORRESPONSE")) {
+//       putIfHas(obj, msgMbo, "operatorResponse", "OPERATORRESPONSE");
+//     }
+//     if (msgMbo.isNull("SYSTEMACTION")) {
+//       putIfHas(obj, msgMbo, "systemAction", "SYSTEMACTION");
+//     }
+//     if (msgMbo.isNull("RESPONSE")) {
+//       putIfHas(obj, msgMbo, "response", "RESPONSE");
+//     }
 
-  }
+//   }
 
 
-  // 消息标识相关
-  putIfHas(obj, msgMbo, "prefix", "PREFIX");
-  putIfHas(obj, msgMbo, "msgIdPrefix", "MSGIDPREFIX");
-  putIfHas(obj, msgMbo, "msgIdSuffix", "MSGIDSUFFIX");
+//   // 消息标识相关
+//   putIfHas(obj, msgMbo, "prefix", "PREFIX");
+//   var msgId=rs.getString("MSGID")
+//   obj.put("msgIdPrefix", msgId.substring(0, 5))
+//   obj.put("msgIdSuffix", msgId.substring(msgId.length() - 1))
 
-  return obj;
-}
+//   return obj;
+// }
 
 /**
  * 获取 MBO 字符串值
@@ -500,8 +501,11 @@ function buildMessageObjectFromRS(rs) {
     // EN语言: 取原值
     obj.put("value", getStringFromRS(rs, "VALUE"));
   }
-  // 记录ID(前端详情查询用)
-  obj.put("MAXMESSAGESID", getStringFromRS(rs, "MAXMESSAGESID"));
+  logger.info("[" + scriptName + "] buildMessageObjectFromRS apiType=" + apiType + " ,ignoreDefVal= " + ignoreDefVal)
+  if(apiType !== 'exp'||!ignoreDefVal){
+    // 记录ID(前端详情查询用)
+    obj.put("MAXMESSAGESID", getStringFromRS(rs, "MAXMESSAGESID"));
+  }
   // 导出模式(apiType=exp)不返回翻译字段,仅显示对应语言的value
   if (apiType !== 'exp') {
     // 始终返回中文翻译值(如果有的话)
@@ -573,8 +577,10 @@ function buildMessageObjectFromRS(rs) {
 
   // 消息标识相关
   putIfHasRS(obj, rs, "prefix", "PREFIX");
-  putIfHasRS(obj, rs, "msgIdPrefix", "MSGIDPREFIX");
-  putIfHasRS(obj, rs, "msgIdSuffix", "MSGIDSUFFIX");
+  var msgId=rs.getString("MSGID")
+  obj.put("msgIdPrefix", msgId.substring(0, 5))
+  obj.put("msgIdSuffix", msgId.substring(msgId.length() - 1))
+  logger.info("[" + scriptName + "] buildMessageObjectFromRS end");
 
   return obj;
 }
@@ -618,6 +624,7 @@ function getIntFromRS(rs, col) {
  */
 function putIfHasRS(obj, rs, jsonKey, col) {
   var val = getStringFromRS(rs, col);
+  // logger.info("[" + scriptName + "] putIfHasRS jsonKey=" + jsonKey + ", col=" + col + ",val=" + val)
   if (val !== null && val !== "") {
     obj.put(jsonKey, val);
   }

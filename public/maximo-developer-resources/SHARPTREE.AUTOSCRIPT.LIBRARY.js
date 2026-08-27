@@ -411,8 +411,9 @@ function Message(message) {
     this.msgId = typeof message.msgId === "undefined" ? null : message.msgId;
     this.displayMethod = typeof message.displayMethod === "undefined" ? "MSGBOX" : message.displayMethod;
     this.options = typeof message.options === "undefined" || !Array.isArray(message.options) ? ["ok"] : message.options;
-    this.prefix = typeof message.prefix === "undefined" ? "BMXZZ" : message.prefix;
-    this.suffix = typeof message.suffix === "undefined" ? "E" : message.suffix;
+    this.prefix = typeof message.prefix === "undefined" ? true : message.prefix;
+    this.msgIdPrefix = typeof message.msgIdPrefix === "undefined" ? "BMXZZ" : message.msgIdPrefix;
+    this.msgIdSuffix = typeof message.msgIdSuffix === "undefined" ? "E" : message.msgIdSuffix;
 }
 
 Message.prototype.constructor = Message;
@@ -433,8 +434,8 @@ Message.prototype.setMboValues = function (mbo) {
     if (this.msgId) {
         mbo.setValue("MSGID", this.msgId,2);
     } else {
-        this.prefix ? mbo.setValue("MSGIDPREFIX", this.prefix) : mbo.setValue("MSGIDPREFIX", "BMXZZ");
-        this.suffix ? mbo.setValue("MSGIDSUFFIX", this.suffix) : mbo.setValue("MSGIDSUFFIX", "E");
+        this.msgIdPrefix ? mbo.setValue("MSGIDPREFIX", this.msgIdPrefix,2) : mbo.setValue("MSGIDPREFIX", "BMXZZ");
+        this.msgIdSuffix ? mbo.setValue("MSGIDSUFFIX", this.msgIdSuffix,2) : mbo.setValue("MSGIDSUFFIX", "E");
     }
 
     mbo.setValue("OK", false);
