@@ -9,6 +9,7 @@
 - [启用日志](#-启用日志)
 - [插件配置](#-插件配置)
 - [环境管理](#-环境管理)
+- [🔧 脚本调试 (SKS Debug)](#-脚本调试-sks-debug)
 - [补全设置](#-补全设置)
 - [反射 API 自动生成](#-反射-api-自动生成)
 - [手动获取反射信息](#-手动获取反射信息)
@@ -250,6 +251,50 @@ MaxAuth 和 API Key 输入框右侧有眼睛图标按钮：
 
 ---
 
+## 🔧 脚本调试 (SKS Debug)
+
+Maximo 自动化脚本（JavaScript/Nashorn、Jython）远程调试，调试器运行在 Maximo JVM 内（DAP 协议），VS Code 直接 TCP 连接，无需 JDWP。
+
+### 服务器端准备
+
+在 Maximo 系统属性中创建（描述必填、注意数据类型）：
+
+| 属性名 | 描述（必填） | 数据类型 | 值 |
+|---|---|---|---|
+| `sks.autoscript.debug.enabled` | SKS脚本调试总开关：1=启用，0=关闭；修改后需重启Maximo | YORN | 1 |
+| `sks.autoscript.debug.port` | 脚本调试端口，须与连接配置的"脚本调试端口"一致 | INTEGER | 9229 |
+| `sks.autoscript.debug.host` | 调试适配器监听地址，0.0.0.0=所有网卡 | ALN | 0.0.0.0 |
+
+另需：docker-compose 暴露调试端口；连接账号使用 maxadmin 或拥有 `MXSCRIPT`/`MXAPIDOMAIN` 权限；
+`SKS.AUTOSCRIPT.DEBUG` 脚本部署到 Maximo（由 `public/maximo-developer-resources/SKS.AUTOSCRIPT.DEBUG.js` 统一管理）。
+
+### 连接配置
+
+配置面板 → 连接配置 →「🔧 脚本调试 (Debug)」分区：
+
+- **脚本调试端口**：默认 9229，保存环境时随环境存入 envs.json，切换环境自动切换
+- 点击「**查看说明**」打开《脚本调试说明文档.md》
+
+### 使用
+
+launch.json：
+
+```json
+{
+  "type": "maximo-script-helper",
+  "request": "attach",
+  "name": "Attach to Maximo (SKS)"
+}
+```
+
+F5 attach → 在脚本文件打断点 → 触发脚本 → 断点/单步/变量查看/条件断点（`===`）/手动断点。调试完断开自动卸载驱动，无需重启服务器。
+
+### 日志排障
+
+- 输出频道 **SKS Debug**：attach 全流程日志
+- 常见问题：`BMXAA0024E`（权限不足）、`ECONNREFUSED`（端口/驱动/enabled 问题）、"脚本不存在"提示
+
+详见《脚本调试说明文档.md》。
 ## 💡 补全设置
 
 ### 本地 API 文档路径

@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS.AUTOSCRIPT.DEBUG",
+  "description": "Maximo 自动化脚本调试器的部署/状态/加载/卸载脚本。",
+  "version": "1.0.5",
+  "active": 1,
+  "loglevel": "ERROR",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "sharptree.autoscript"
+}

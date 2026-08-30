@@ -12,3 +12,6 @@ javaapi
 javaapi/
 logs/
 logs
+
+# ===== 脚本调试(SKS Debug)构建产物 =====
+java/build/

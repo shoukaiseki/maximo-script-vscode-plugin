@@ -4,6 +4,7 @@ import { ConfigPanel } from './configPanel';
 import { CreateScriptPanel } from './createScriptPanel';
 import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse, fetchClassReflection, fetchClassReflectionLocal } from './httpRequest';
 import { QuickCodeManager } from './quickCodeManager';
+import { registerSksDebugger } from './debug';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
@@ -22,6 +23,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 初始化 Axios 全局拦截器
   initializeAxiosInterceptors(logger);
+
+  // 注册 SKS 自动化脚本调试器
+  registerSksDebugger(context);
 
   // 注册查看日志命令
   const showLogsCommand = vscode.commands.registerCommand('maximoScript.showLogs', () => {

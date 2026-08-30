@@ -5,6 +5,35 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.5.47] - 2026-08-30
+
+### 新增功能
+
+#### 脚本调试 (SKS Debug)
+- 🐞 新增 Maximo 自动化脚本远程调试功能(JavaScript/Nashorn、Jython)
+  - 调试器运行在 Maximo JVM 内(DAP 协议),VS Code 直接 TCP 连接,无需 JDWP
+  - 调试类型:`maximo-script-helper`,支持断点/单步/变量查看/条件断点/手动断点/print 转发
+  - 连接配置新增「脚本调试 (Debug)」分区:脚本调试端口随环境配置保存,切换环境自动切换
+  - 驱动 jar(`sks-autoscript-debug.jar`)随插件内置,attach 时自动上传激活,断开自动卸载
+  - 调试脚本 `SKS.AUTOSCRIPT.DEBUG` 由 `public/maximo-developer-resources/` 统一管理,
+    attach 时仅检查是否存在,不存在时提示部署路径
+
+### 技术实现
+
+- 📦 新增
+  - `java/src/main/java/cn/shoukaiseki/autoscript/*` - AutoDebug 驱动源码(包名 cn.shoukaiseki)
+  - `resources/sks-autoscript-debug.jar` - 预编译调试驱动
+  - `public/maximo-developer-resources/SKS.AUTOSCRIPT.DEBUG.js/.json` - Maximo 侧调试脚本(统一管理)
+  - `src/debug.ts` - 调试器(attach/驱动安装/卸载/清理)
+  - `compile-autoscript-debug.bat` - 驱动 jar 编译脚本
+  - `脚本调试说明文档.md` - 脚本调试使用说明
+- 🔧 修改
+  - `src/configPanel.ts` / `webview-ui/src/App.tsx` - 连接配置新增调试端口分区与「查看说明」
+  - `src/envConfig.ts` - 环境配置新增 debugPort
+  - `src/extension.ts` - 注册调试器
+  - `package.json` - debuggers 贡献、onDebugResolve 激活、maximoScript.debugPort 设置
+
+---
 ## [1.4.34] - 2026-07-30
 
 ### 新增功能

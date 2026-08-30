@@ -13,6 +13,7 @@ export interface EnvironmentConfig {
   apiKey: string;
   apiType: string;
   version: string;
+  debugPort?: number;  // 调试端口（可选，默认 9229，每个环境独立保存）
   completionMode?: string;
   langcode: string;  // 语言代码，默认 en
   pushXmlAlwaysUseMaxauth?: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true

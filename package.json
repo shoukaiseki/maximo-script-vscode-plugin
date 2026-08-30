@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.5.46",
+  "version": "1.5.47",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -34,7 +34,9 @@
     "onLanguage:javascript",
     "onCommand:maximoScript.showConfig",
     "onCommand:maximoScript.pushToMaximo",
-    "onCommand:extension.triggerComplete"
+    "onCommand:extension.triggerComplete",
+    "onDebug",
+    "onDebugResolve:maximo-script-helper"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -417,9 +419,81 @@
           "type": "string",
           "default": "",
           "description": "计划导出基础目录（支持 ${envName} 变量，示例: E:/tmp/msh-masbackup/${envName}）"
+        },
+        "maximoScript.debugPort": {
+          "type": "number",
+          "default": 9229,
+          "description": "调试端口（每个环境配置可覆盖，默认 9229）"
         }
       }
     },
+    "debuggers": [
+      {
+        "type": "maximo-script-helper",
+        "label": "Maximo Automation Scripts (SKS)",
+        "languages": [
+          "javascript",
+          "python"
+        ],
+        "configurationAttributes": {
+          "attach": {
+            "properties": {
+              "name": {
+                "type": "string",
+                "default": "Attach to Maximo Automation Script (SKS)"
+              },
+              "request": {
+                "type": "string",
+                "enum": [
+                  "attach"
+                ],
+                "default": "attach"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "maximo-script-helper"
+                ],
+                "default": "maximo-script-helper"
+              },
+              "scriptRoots": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "本地脚本目录，用于按文件名映射回 Maximo 脚本",
+                "default": [
+                  "${workspaceFolder}"
+                ]
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "maximo-script-helper",
+            "request": "attach",
+            "name": "Attach to Maximo Automation Script (SKS)",
+            "scriptRoots": [
+              "${workspaceFolder}"
+            ]
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Attach to Maximo Automation Script (SKS)",
+            "body": {
+              "type": "maximo-script-helper",
+              "request": "attach",
+              "name": "Attach to Maximo Automation Script (SKS)",
+              "scriptRoots": [
+                "${workspaceFolder}"
+              ]
+            }
+          }
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "javascript",

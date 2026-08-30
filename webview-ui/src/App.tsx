@@ -33,6 +33,7 @@ interface ConfigData {
   envList: string[];
   langcode: string;  // 语言代码
   pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
+  debugPort?: number;  // 脚本调试端口（脚本调试使用, 默认 9229）
   autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
   maxobjectSimpleMode: boolean;  // MAXOBJECT 导出精简模式（忽略默认值）
   exportMaxobjectDirectory: string;
@@ -111,6 +112,7 @@ const App: React.FC = () => {
     envList: [],
     langcode: '',  // 语言代码，空字符串表示未设置
     pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
+    debugPort: 9229,  // 脚本调试端口，默认 9229
     autoCreateExportDir: true,  // 默认自动生成导出目录
     maxobjectSimpleMode: false,  // MAXOBJECT 导出精简模式（忽略默认值）
     exportMaxobjectDirectory: '',
@@ -448,7 +450,8 @@ const App: React.FC = () => {
             version: envData.version || '7.6',
             completionMode: envData.completionMode || 'vscode',
             langcode: envData.langcode || '',  // 语言代码，空字符串表示未设置
-            pushXmlAlwaysUseMaxauth: envData.pushXmlAlwaysUseMaxauth !== undefined ? envData.pushXmlAlwaysUseMaxauth : true  // 推送 XML 时始终使用 MAXAUTH，默认为 true
+            pushXmlAlwaysUseMaxauth: envData.pushXmlAlwaysUseMaxauth !== undefined ? envData.pushXmlAlwaysUseMaxauth : true,  // 推送 XML 时始终使用 MAXAUTH，默认为 true
+            debugPort: envData.debugPort !== undefined ? envData.debugPort : 9229  // 脚本调试端口
           }));
           setHasChanges(true); // 标记有未保存的变更
           break;
@@ -1245,6 +1248,47 @@ const App: React.FC = () => {
               </div>
               <div className="help-text">
                 开启后，推送 XML 文件时将强制使用 MAXAUTH 认证，避免 API Key 权限不足导致的问题（推荐开启）
+              </div>
+            </div>
+
+            {/* ── 脚本调试 (Debug) 分区 ── */}
+            <div style={{
+              marginTop: '20px',
+              borderTop: '1px dashed var(--vscode-panel-border)',
+              paddingTop: '12px'
+            }}>
+              <div style={{
+                color: 'var(--vscode-textLink-foreground)',
+                fontWeight: 'bold',
+                marginBottom: '10px',
+                fontSize: '13px'
+              }}>
+                🔧 脚本调试 (Debug)
+              </div>
+              <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label htmlFor="debugPort" style={{ margin: 0 }}>脚本调试端口</label>
+                  <a
+                    href="#"
+                    title="查看脚本调试说明文档"
+                    style={{ fontSize: '12px', color: 'var(--vscode-textLink-foreground)' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      getVsCodeApi().postMessage({ command: 'openDebugHelp' });
+                    }}
+                  >
+                    查看说明
+                  </a>
+                </div>
+                <input
+                  type="number"
+                  id="debugPort"
+                  value={config.debugPort ?? 9229}
+                  onChange={(e) => updateConfig({ debugPort: parseInt(e.target.value || '9229', 10) })}
+                />
+                <div className="help-text">
+                  调试器监听端口，需与服务器属性 sks.autoscript.debug.port 一致（默认 9229）
+                </div>
               </div>
             </div>
 

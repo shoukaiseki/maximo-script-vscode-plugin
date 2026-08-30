@@ -38,6 +38,18 @@ Maximo自动化脚本开发助手，为VSCode提供智能代码补全、语法�
 - 🌐 **任务级语言参数**：计划导出每个任务可独立配置语言，`_langcode` 参数按任务行语言生效
 - 📥 **Node.js 导入模块**：配置面板新增「导入」菜单，提供 `sks-maximo-utils` 模块批量导入 Maximo 配置的说明与示例
 - ⚡ **快捷代码插入**：侧边栏新增「快捷代码」标签页，基于 YAML 配置，支持搜索、变量替换、一键插入/复制代码片段到编辑器
+- 🐞 **脚本调试**：Maximo 自动化脚本远程调试（JavaScript/Nashorn、Jython），支持断点/单步/变量查看/条件断点，详见 [脚本调试说明文档](脚本调试说明文档.md)
+
+## 脚本调试 (SKS Debug)
+
+Maximo 自动化脚本远程调试：调试器运行在 Maximo JVM 内（DAP 协议），VS Code 直接 TCP 连接，无需 JDWP，支持 JavaScript/Nashorn、Jython。
+
+- **调试类型**：`maximo-script-helper`（launch.json 直接使用即可，scriptRoots 自动读取"脚本存放目录"）
+- **服务器准备**：Maximo 系统属性 `sks.autoscript.debug.enabled=1`、`sks.autoscript.debug.port`、`sks.autoscript.debug.host=0.0.0.0`（数据类型 YORN/INTEGER/ALN，描述必填），并暴露调试端口
+- **连接配置**：配置面板 → 连接配置 →「🔧 脚本调试 (Debug)」分区，脚本调试端口随环境保存、切换环境自动切换
+- **调试脚本**：`SKS.AUTOSCRIPT.DEBUG` 统一管理于 `public/maximo-developer-resources/`，attach 时仅检查存在性
+
+详细使用说明见 [脚本调试说明文档](脚本调试说明文档.md)。
 
 ## 安装
 
