@@ -96,6 +96,29 @@ var data={
 responseBody = JSON.stringify(data);
 
 /**
+ * 关闭（有close方法的对象）
+ */
+function _closeOnly(f) {
+  try {
+    if (f) {
+      f.close()
+    }
+  } catch (ignored) { }
+}
+
+/**
+ * 关闭MboSet
+ */
+function _close(set) {
+  try {
+    if (set) {
+      try { set.close(); } catch (ignored) { }
+      try { set.cleanup(); } catch (ignored) { }
+    }
+  } catch (ignored) { }
+}
+
+/**
  * 接口脚本
     com.ibm.tivoli.maximo.oslc.provider.ScriptRouteHandler; 类中
  

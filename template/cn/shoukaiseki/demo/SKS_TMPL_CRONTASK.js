@@ -114,12 +114,8 @@ try{
 
 function _close(set){
     if (set) {
-        try {
-            set.cleanup()
-        } catch (ignore) { }
-        try {
-            set.close()
-        } catch (ignore) { }
+        try { set.close(); } catch (ignore) { }
+        try { set.cleanup();} catch (ignore) { }
     }
 }
 

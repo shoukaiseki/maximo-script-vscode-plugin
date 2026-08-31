@@ -84,8 +84,8 @@ function _closeOnly(f) {
 function _close(set) {
   try {
     if (set) {
-      try { set.cleanup(); } catch (ignored) { }
       try { set.close(); } catch (ignored) { }
+      try { set.cleanup(); } catch (ignored) { }
     }
   } catch (ignored) { }
 }
