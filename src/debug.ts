@@ -118,7 +118,7 @@ async function ensureScriptExists(env: any): Promise<any> {
   }
   const msg =
     '服务器上不存在或无法执行自动化脚本 ' + DEBUG_SCRIPT_NAME + '。' + '\n' +
-    '请先将 ' + DEPLOY_SOURCE_PATH + ' 部署到 Maximo(脚本语言: javascript), 然后重新启动调试。' +
+    '请先将 ' + DEBUG_SCRIPT_NAME + ' 部署到 Maximo(脚本语言: javascript),或者进入工具箱进行初始化脚本, 然后重新启动调试。' +
     (errorDetail ? '\n\n服务端返回: ' + errorDetail : '');
   log().error('[SKS-DEBUG] ' + msg);
   vscode.window.showErrorMessage(msg, { modal: true });
@@ -193,7 +193,9 @@ export class SKSDebugConfigurationProvider implements vscode.DebugConfigurationP
       const scriptIndex = buildScriptIndex(scriptRoots);
       log().info('[SKS-DEBUG] 脚本目录: ' + JSON.stringify(scriptRoots));
       const debugPort = Number(env.debugPort || vscode.workspace.getConfiguration('maximoScript').get('debugPort') || 9229);
-      const host = parseHost(env.serverUrl);
+      const settingDebugHostname = String(vscode.workspace.getConfiguration('maximoScript').get('debugHostname') || '').trim();
+      const envDebugHostname = env.debugHostname ? String(env.debugHostname).trim() : '';
+      const host = envDebugHostname || settingDebugHostname || parseHost(env.serverUrl);
       log().info('[SKS-DEBUG] 环境: ' + envnum + ', host=' + host + ', debugPort=' + debugPort + ', auth=' + env.authType);
       await ensureDebuggerInstalled(this.context, env);
       const resolved: vscode.DebugConfiguration = {

@@ -347,6 +347,7 @@ export interface HttpRequestOptions {
   maxauth?: string;
   apiKey?: string;
   apiType?: string;
+  langcode?: string;  // 语言代码（可选）
   logger?: vscode.LogOutputChannel;
 }
 

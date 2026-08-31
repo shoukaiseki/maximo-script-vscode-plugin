@@ -34,6 +34,7 @@ interface ConfigData {
   langcode: string;  // 语言代码
   pushXmlAlwaysUseMaxauth: boolean;  // 推送 XML 时始终使用 MAXAUTH 认证方式
   debugPort?: number;  // 脚本调试端口（脚本调试使用, 默认 9229）
+  debugHostname?: string;  // 脚本调试主机名（可选），留空按服务器地址解析
   autoCreateExportDir: boolean;  // 导出脚本时自动生成带时间戳的目录
   maxobjectSimpleMode: boolean;  // MAXOBJECT 导出精简模式（忽略默认值）
   exportMaxobjectDirectory: string;
@@ -113,6 +114,7 @@ const App: React.FC = () => {
     langcode: '',  // 语言代码，空字符串表示未设置
     pushXmlAlwaysUseMaxauth: true,  // 推送 XML 时始终使用 MAXAUTH 认证方式，默认为 true
     debugPort: 9229,  // 脚本调试端口，默认 9229
+    debugHostname: '',  // 脚本调试主机名（可选），留空按服务器地址解析
     autoCreateExportDir: true,  // 默认自动生成导出目录
     maxobjectSimpleMode: false,  // MAXOBJECT 导出精简模式（忽略默认值）
     exportMaxobjectDirectory: '',
@@ -147,6 +149,7 @@ const App: React.FC = () => {
   const [envToDelete, setEnvToDelete] = useState<string>('');
   // 密码显示状态
   const [showMaxauth, setShowMaxauth] = useState<boolean>(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<boolean>(false);  // 手动停用调试驱动的二次确认
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   // 用户信息弹窗状态
   const [showUserInfoDialog, setShowUserInfoDialog] = useState<boolean>(false);
@@ -451,7 +454,8 @@ const App: React.FC = () => {
             completionMode: envData.completionMode || 'vscode',
             langcode: envData.langcode || '',  // 语言代码，空字符串表示未设置
             pushXmlAlwaysUseMaxauth: envData.pushXmlAlwaysUseMaxauth !== undefined ? envData.pushXmlAlwaysUseMaxauth : true,  // 推送 XML 时始终使用 MAXAUTH，默认为 true
-            debugPort: envData.debugPort !== undefined ? envData.debugPort : 9229  // 脚本调试端口
+            debugPort: envData.debugPort !== undefined ? envData.debugPort : 9229,  // 脚本调试端口
+            debugHostname: envData.debugHostname || ''  // 脚本调试主机名（可选）
           }));
           setHasChanges(true); // 标记有未保存的变更
           break;
@@ -1288,6 +1292,49 @@ const App: React.FC = () => {
                 />
                 <div className="help-text">
                   调试器监听端口，需与服务器属性 sks.autoscript.debug.port 一致（默认 9229）
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="debugHostname">调试主机名（可选）</label>
+                <input
+                  type="text"
+                  id="debugHostname"
+                  placeholder="留空按服务器地址解析；端口转发填 127.0.0.1"
+                  value={config.debugHostname || ''}
+                  onChange={(e) => updateConfig({ debugHostname: e.target.value })}
+                />
+                <div className="help-text">
+                  OCP/SSH 端口转发场景填 127.0.0.1，如 oc port-forward svc/... 30471:30471
+                </div>
+              </div>
+
+              <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                      color: 'var(--vscode-button-secondaryForeground)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      if (!confirmDeactivate) {
+                        setConfirmDeactivate(true);
+                        setTimeout(() => setConfirmDeactivate(false), 3000);
+                      } else {
+                        setConfirmDeactivate(false);
+                        getVsCodeApi().postMessage({ command: 'debugManualDeactivate' });
+                      }
+                    }}
+                  >
+                    {confirmDeactivate ? '再次点击确认停用' : '手动停用调试驱动'}
+                  </button>
+                  <small style={{ color: 'var(--vscode-descriptionForeground)' }}>
+                    特殊情况手动调用接口停用驱动（POST script/SKS.AUTOSCRIPT.DEBUG, 请求体 deactivate=true）
+                  </small>
                 </div>
               </div>
             </div>

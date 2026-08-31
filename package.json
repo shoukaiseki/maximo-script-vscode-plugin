@@ -424,6 +424,11 @@
           "type": "number",
           "default": 9229,
           "description": "调试端口（每个环境配置可覆盖，默认 9229）"
+        },
+        "maximoScript.debugHostname": {
+          "type": "string",
+          "default": "",
+          "description": "脚本调试主机名（可选）：留空按服务器地址解析；OCP/SSH 端口转发场景填 127.0.0.1"
         }
       }
     },

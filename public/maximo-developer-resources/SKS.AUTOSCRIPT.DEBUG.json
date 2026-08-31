@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS.AUTOSCRIPT.DEBUG",
   "description": "Maximo 自动化脚本调试器的部署/状态/加载/卸载脚本。",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "active": 1,
   "loglevel": "ERROR",
   "scriptlanguage": "JavaScript",

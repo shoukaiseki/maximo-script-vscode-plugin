@@ -111,6 +111,9 @@ export class ConfigPanel {
           case 'openDebugHelp':
             await this._openDebugHelp();
             return;
+          case 'debugManualDeactivate':
+            await this._debugManualDeactivate();
+            return;
           case 'addJarDirectory':
             await this._addJarDirectory(message.path);
             return;
@@ -405,6 +408,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('langcode', data.langcode || '', vscode.ConfigurationTarget.Global);  // 语言代码，空字符串表示未设置
       await config.update('pushXmlAlwaysUseMaxauth', data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true, vscode.ConfigurationTarget.Global);  // 推送 XML 时始终使用 MAXAUTH
       await config.update('debugPort', typeof data.debugPort === 'number' ? data.debugPort : 9229, vscode.ConfigurationTarget.Global);  // 脚本调试端口
+      await config.update('debugHostname', data.debugHostname || '', vscode.ConfigurationTarget.Global);  // 脚本调试主机名（可选）
       await config.update('autoCreateExportDir', data.autoCreateExportDir !== undefined ? data.autoCreateExportDir : true, vscode.ConfigurationTarget.Global);  // 导出脚本时自动生成目录
       await config.update('exportMaxobjectDirectory', data.exportMaxobjectDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('maxobjectSimpleMode', data.maxobjectSimpleMode !== undefined ? data.maxobjectSimpleMode : false, vscode.ConfigurationTarget.Global);
@@ -457,7 +461,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         version: data.version,
         langcode: data.langcode || '',  // 语言代码，空字符串表示未设置
         pushXmlAlwaysUseMaxauth: data.pushXmlAlwaysUseMaxauth !== undefined ? data.pushXmlAlwaysUseMaxauth : true,  // 推送 XML 时始终使用 MAXAUTH
-        debugPort: typeof data.debugPort === 'number' ? data.debugPort : 9229  // 脚本调试端口
+        debugPort: typeof data.debugPort === 'number' ? data.debugPort : 9229,  // 脚本调试端口
+        debugHostname: data.debugHostname || ''  // 脚本调试主机名（可选），留空按服务器地址解析
       };
       
       const saveResult = envConfig.upsertEnvironment(environmentConfig);
@@ -515,6 +520,51 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         <button onclick="removeJarDir(${index})" style="margin-left: 10px; padding: 2px 8px; cursor: pointer;">❌ 删除</button>
       </div>
     `).join('');
+  }
+
+  private async _debugManualDeactivate(): Promise<void> {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const envnum = String(config.get('envnum') || 'default');
+      const envData = envConfig.findEnvironment(envnum);
+      const serverUrl = (envData && envData.serverUrl) || config.get<string>('serverUrl', '');
+      const authType = (envData && envData.authType) || config.get<string>('authType', 'maxauth');
+      const maxauth = (envData && envData.maxauth) || config.get<string>('maxauth', '');
+      const apiKey = (envData && envData.apiKey) || config.get<string>('apiKey', '');
+      const apiType = (envData && envData.apiType) || config.get<string>('apiType', 'oslc');
+      const langcode = (envData && envData.langcode) || config.get<string>('langcode', '');
+
+      if (!serverUrl) {
+        vscode.window.showWarningMessage('未配置服务器地址，无法调用调试接口');
+        return;
+      }
+      logger.info('[DebugManualDeactivate] POST script/SKS.AUTOSCRIPT.DEBUG {deactivate:true}');
+      const res = await httpRequestToMaximo({
+        method: 'POST',
+        url: 'script/SKS.AUTOSCRIPT.DEBUG',
+        data: { deactivate: true },
+        serverUrl: serverUrl,
+        authTypeIn: authType,
+        maxauth: maxauth,
+        apiKey: apiKey,
+        apiType: apiType,
+        langcode: langcode,
+        timeout: 30000,
+        logger: logger
+      });
+      const body = res && res.data ? res.data : {};
+      if (body.status === 'success') {
+        vscode.window.showInformationMessage('调试驱动已停用: ' + JSON.stringify(body));
+      } else {
+        vscode.window.showErrorMessage('停用失败: ' + JSON.stringify(body));
+      }
+      logger.info('[DebugManualDeactivate] 响应: ' + JSON.stringify(body));
+    } catch (error) {
+      const err: any = error;
+      const msg = err && err.message ? err.message : String(err);
+      logger.error('[DebugManualDeactivate] 调用失败: ' + msg);
+      vscode.window.showErrorMessage('手动停用调试驱动失败: ' + msg);
+    }
   }
 
   private async _openDebugHelp(): Promise<void> {
@@ -815,6 +865,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       langcode: config.get('langcode', ''),  // 语言代码，空字符串表示未设置
       pushXmlAlwaysUseMaxauth: config.get('pushXmlAlwaysUseMaxauth', true),  // 推送 XML 时始终使用 MAXAUTH，默认为 true
       debugPort: config.get('debugPort', 9229),  // 脚本调试端口，默认 9229
+      debugHostname: config.get('debugHostname', ''),  // 脚本调试主机名（可选），留空按服务器地址解析
       autoCreateExportDir: config.get('autoCreateExportDir', true),  // 导出脚本时自动生成目录，默认为 true
       exportMaxobjectDirectory: config.get('exportMaxobjectDirectory', ''),
       maxobjectSimpleMode: config.get('maxobjectSimpleMode', false),
@@ -851,7 +902,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         version: envConfigData.version || initialConfigData.version,
         langcode: envConfigData.langcode || '',  // 语言代码，空字符串表示未设置
         pushXmlAlwaysUseMaxauth: envConfigData.pushXmlAlwaysUseMaxauth !== undefined ? envConfigData.pushXmlAlwaysUseMaxauth : true,  // 推送 XML 时始终使用 MAXAUTH，默认为 true
-        debugPort: envConfigData.debugPort !== undefined ? envConfigData.debugPort : initialConfigData.debugPort  // 脚本调试端口
+        debugPort: envConfigData.debugPort !== undefined ? envConfigData.debugPort : initialConfigData.debugPort,  // 脚本调试端口
+        debugHostname: envConfigData.debugHostname !== undefined ? envConfigData.debugHostname : initialConfigData.debugHostname  // 脚本调试主机名（可选）
       };
     } else {
       logger.info(`[ConfigPanel] 环境配置不存在，使用 VSCode 配置: ${currentEnvnum}`);

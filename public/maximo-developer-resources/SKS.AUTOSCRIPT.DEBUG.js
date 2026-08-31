@@ -268,24 +268,15 @@ function deactivateDriver() {
         };
     }
 
-    var parentLoader = ScriptDriverFactory.class.getClassLoader();
-    var urlArray = Java.to([new File(System.getProperty('java.io.tmpdir'), DRIVER_JAR_NAME).toURI().toURL()], 'java.net.URL[]');
-    // Load the jar in an isolated URLClassLoader so the current JVM can see the new driver immediately.
-    var loader = new URLClassLoader(urlArray, parentLoader);
-    var driverClass = java.lang.Class.forName(DRIVER_CLASS, true, loader);
-    var driver = driverClass.getDeclaredConstructor().newInstance();
-
-    // ScriptDriverFactory does not expose a supported live-registration API, so this updates its internals directly.
+    // 卸载时不再 new 新的 DebugDriver 实例:
+    // 新实例由新的 ClassLoader 加载,其静态 DebugAdapterServer 单例(独立类)会再次尝试绑定调试端口,
+    // 而旧驱动(不同 ClassLoader)仍占用端口,导致 BindException: Address already in use。
+    // removeDriver 内部已完成:移除引擎映射 -> releaseResources -> shutdown(关端口) -> closeLoader -> 从列表移除 -> 重建引擎表。
     var driversField = ScriptDriverFactory.class.getDeclaredField('scriptDriversList');
     driversField.setAccessible(true);
-    var enginesField = ScriptDriverFactory.class.getDeclaredField('allsupportedScrEngineMap');
-    enginesField.setAccessible(true);
 
     var drivers = driversField.get(driverFactory);
     removeDriver(drivers);
-
-    var engines = enginesField.get(driverFactory);
-    engines.putAll(driver.getSupportedEngines());
 
     var propertyResult = revertDriverProperty(DRIVER_CLASS);
 
