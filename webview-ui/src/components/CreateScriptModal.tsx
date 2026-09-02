@@ -31,6 +31,7 @@ interface LaunchPointConfig {
 
 const scriptTypes: ScriptTypeItem[] = [
   { value: 'APISCRIPT', label: 'API脚本', description: '通过 REST API 调用', category: 'normal' },
+  { value: 'ROLE', label: '角色脚本', description: '角色脚本', category: 'normal' },
   { value: 'CONDITION', label: '条件脚本', description: '用于条件判断', category: 'normal' },
   { value: 'DATABEAN', label: 'DataBean脚本', description: '数据Bean扩展', category: 'normal' },
   { value: 'CRONTASK', label: '定时任务脚本', description: '定时执行', category: 'normal' },
@@ -56,6 +57,7 @@ const scriptTypes: ScriptTypeItem[] = [
 // 根据 TASK09.md 整理的命名规范提示
 const namingHints: Record<string, string> = {
   'APISCRIPT': '建议命名: <对象名>API （如 MXASSETAPI）',
+  'ROLE': '脚本命名: MAXROLE.<角色名称> （如 MAXROLE.SHOUKAISEKI，脚本名必须 MAXROLE. 开头）',
   'CONDITION': '建议命名: COND.<应用名>.<自定义> （如 COND.WOTRACK.CHECKSTATUS）',
   'DATABEAN': '建议命名: DATABEAN.<应用名>.<Bean ID> （如 DATABEAN.ITEM.RESULTS_SHOWLIST）',
   'CRONTASK': '建议命名: <对象>.crontask.<任务名> （如 SR.crontask.CLEANUP）',
@@ -88,6 +90,7 @@ const CreateScriptModal: React.FC = () => {
   const [beanApp, setBeanApp] = useState('');
   const [beanId, setBeanId] = useState('');
   const [appBeanName, setAppBeanName] = useState('');
+  const [roleName, setRoleName] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -237,6 +240,13 @@ const CreateScriptModal: React.FC = () => {
       }
     }
 
+    if (selectedType === 'ROLE') {
+      if (!roleName.trim()) {
+        setErrorMessage('角色名称 (MAXROLE) 不能为空');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -254,6 +264,10 @@ const CreateScriptModal: React.FC = () => {
 
     if (selectedType === 'APPBEAN') {
       data.appBeanName = appBeanName.trim();
+    }
+
+    if (selectedType === 'ROLE') {
+      data.roleName = roleName.trim();
     }
 
     if (activeTab === 'object' && (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute')) {
@@ -294,6 +308,8 @@ const CreateScriptModal: React.FC = () => {
     if (type === 'APPBEAN') {
       setAppBeanName('');
     }
+
+    setRoleName('');
     
     if (typeInfo?.category === 'fixed') {
       setScriptName('');
@@ -388,8 +404,14 @@ const CreateScriptModal: React.FC = () => {
     setScriptName(trimmedValue ? `APPBEAN.${trimmedValue}` : '');
   };
 
+  const handleRoleNameChange = (value: string) => {
+    const trimmedValue = value.trim().toUpperCase();
+    setRoleName(trimmedValue);
+    setScriptName(trimmedValue ? `MAXROLE.${trimmedValue}` : '');
+  };
+
   const isSaveEvent = selectedTypeInfo?.category === 'object' && launchPointConfig.eventtype === '4';
-  const isScriptNameReadOnly = (activeTab === 'fixed' && !!selectedType) || selectedType === 'DATABEAN' || selectedType === 'APPBEAN';
+  const isScriptNameReadOnly = (activeTab === 'fixed' && !!selectedType) || selectedType === 'DATABEAN' || selectedType === 'APPBEAN' || selectedType === 'ROLE';
 
   return (
     <div style={{ 
@@ -699,6 +721,51 @@ const CreateScriptModal: React.FC = () => {
               />
               <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
                 输入 Maximo 应用名称，脚本名自动生成为 APPBEAN.&lt;应用名&gt;
+              </div>
+              {scriptName && (
+                <div style={{
+                  marginTop: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  color: 'var(--vscode-charts-green)',
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--vscode-charts-green)'
+                }}>
+                  ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedType === 'ROLE' && (
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '5px',
+                fontWeight: '500',
+                color: 'var(--vscode-foreground)'
+              }}>
+                角色名称 (MAXROLE) <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={roleName}
+                onChange={(e) => handleRoleNameChange(e.target.value)}
+                placeholder="例如: SHOUKAISEKI, PLANNER"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                输入角色表中 MAXROLE 字段的值，脚本名自动生成为 MAXROLE.&lt;角色名称&gt;
               </div>
               {scriptName && (
                 <div style={{

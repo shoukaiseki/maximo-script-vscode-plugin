@@ -281,6 +281,7 @@ function main() {
   private _getScriptTypeInfo(scriptType: string): ScriptTypeItem {
     const scriptTypes: ScriptTypeItem[] = [
       { value: 'APISCRIPT', label: 'API脚本', description: '通过 REST API 调用', category: 'normal' },
+      { value: 'ROLE', label: '角色脚本', description: '角色脚本', category: 'normal' },
       { value: 'CONDITION', label: '条件脚本', description: '用于条件判断', category: 'normal' },
       { value: 'DATABEAN', label: 'DataBean脚本', description: '数据Bean扩展', category: 'normal' },
       { value: 'CRONTASK', label: '定时任务脚本', description: '定时执行', category: 'normal' },
@@ -308,7 +309,7 @@ function main() {
   private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
     
-    const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC';
+    const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC' || scriptType === 'ROLE';
     
     const scriptConfig: ScriptConfig = {
       autoscript: scriptName,

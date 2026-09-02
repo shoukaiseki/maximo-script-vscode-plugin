@@ -8,7 +8,7 @@
 // load('nashorn:mozilla_compat.js');
 //-------------------------------------------
 // 直接调用方法的脚本,无任何隐式变量可以使用
-var scriptName="SKS_TMPL_ROLE"//service.getScriptName()
+var scriptName="${sks_scriptName}"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
 /** @type {psdi.util.logging.MXLoggerFactory} */
@@ -81,7 +81,7 @@ function evalToEmail(src){
 {
   "description": "角色脚本",
   "sks:autoscript:remark": "脚本名必须MAXROLE.开头",
-  "sks:autoscript:suggested: "脚本命名:MAXROLE.<角色表MAXROLE字段值>",
+  "sks:autoscript:suggested": "脚本命名:MAXROLE.<角色表MAXROLE字段值>",
   "autoscript": "SKS_TMPL_ROLE",
   "launchPoints": [],
   "sks:interface:remark": "interface的值一定要=1,如果之前是0,pull脚本之后,使用工具箱中的导入功能,导入会更改interface的值",
