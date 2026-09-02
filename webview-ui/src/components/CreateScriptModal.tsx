@@ -58,7 +58,7 @@ const scriptTypes: ScriptTypeItem[] = [
 const namingHints: Record<string, string> = {
   'APISCRIPT': '建议命名: <对象名>API （如 MXASSETAPI）',
   'ROLE': '脚本命名: MAXROLE.<角色名称> （如 MAXROLE.SHOUKAISEKI，脚本名必须 MAXROLE. 开头）',
-  'CONDITION': '建议命名: COND.<应用名>.<自定义> （如 COND.WOTRACK.CHECKSTATUS）',
+  'CONDITION': '脚本命名: COND.<CONDITIONNUM>，启动点名称与条件同名，表达式内容为 <脚本名>:<启动点名称> （如 COND.IBM_ITEM01:IBM_ITEM01）',
   'DATABEAN': '建议命名: DATABEAN.<应用名>.<Bean ID> （如 DATABEAN.ITEM.RESULTS_SHOWLIST）',
   'CRONTASK': '建议命名: <对象>.crontask.<任务名> （如 SR.crontask.CLEANUP）',
   'APPBEAN': '建议命名: APPBEAN.<应用> （如 APPBEAN.WOTRACK）',
@@ -91,6 +91,7 @@ const CreateScriptModal: React.FC = () => {
   const [beanId, setBeanId] = useState('');
   const [appBeanName, setAppBeanName] = useState('');
   const [roleName, setRoleName] = useState('');
+  const [conditionnum, setConditionnum] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -247,6 +248,13 @@ const CreateScriptModal: React.FC = () => {
       }
     }
 
+    if (selectedType === 'CONDITION') {
+      if (!conditionnum.trim()) {
+        setErrorMessage('条件表达式 (CONDITIONNUM) 不能为空');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -268,6 +276,10 @@ const CreateScriptModal: React.FC = () => {
 
     if (selectedType === 'ROLE') {
       data.roleName = roleName.trim();
+    }
+
+    if (selectedType === 'CONDITION') {
+      data.conditionnum = conditionnum.trim();
     }
 
     if (activeTab === 'object' && (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute')) {
@@ -310,6 +322,7 @@ const CreateScriptModal: React.FC = () => {
     }
 
     setRoleName('');
+    setConditionnum('');
     
     if (typeInfo?.category === 'fixed') {
       setScriptName('');
@@ -410,8 +423,14 @@ const CreateScriptModal: React.FC = () => {
     setScriptName(trimmedValue ? `MAXROLE.${trimmedValue}` : '');
   };
 
+  const handleConditionnumChange = (value: string) => {
+    const trimmedValue = value.trim().toUpperCase();
+    setConditionnum(trimmedValue);
+    setScriptName(trimmedValue ? `COND.${trimmedValue}` : '');
+  };
+
   const isSaveEvent = selectedTypeInfo?.category === 'object' && launchPointConfig.eventtype === '4';
-  const isScriptNameReadOnly = (activeTab === 'fixed' && !!selectedType) || selectedType === 'DATABEAN' || selectedType === 'APPBEAN' || selectedType === 'ROLE';
+  const isScriptNameReadOnly = (activeTab === 'fixed' && !!selectedType) || selectedType === 'DATABEAN' || selectedType === 'APPBEAN' || selectedType === 'ROLE' || selectedType === 'CONDITION';
 
   return (
     <div style={{ 
@@ -778,6 +797,51 @@ const CreateScriptModal: React.FC = () => {
                   borderLeft: '3px solid var(--vscode-charts-green)'
                 }}>
                   ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedType === 'CONDITION' && (
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '5px',
+                fontWeight: '500',
+                color: 'var(--vscode-foreground)'
+              }}>
+                条件表达式 (CONDITIONNUM) <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={conditionnum}
+                onChange={(e) => handleConditionnumChange(e.target.value)}
+                placeholder="例如: IBM_ITEM01"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                条件名称无限制，推荐与启动点同名。脚本名自动生成为 COND.&lt;CONDITIONNUM&gt;，启动点名称自动生成为 &lt;CONDITIONNUM&gt;，表达式内容为 &lt;脚本名&gt;:&lt;启动点名称&gt;
+              </div>
+              {scriptName && (
+                <div style={{
+                  marginTop: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  color: 'var(--vscode-charts-green)',
+                  background: 'var(--vscode-textBlockQuote-background)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--vscode-charts-green)'
+                }}>
+                  ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>，启动点: <strong>{conditionnum}</strong>
                 </div>
               )}
             </div>

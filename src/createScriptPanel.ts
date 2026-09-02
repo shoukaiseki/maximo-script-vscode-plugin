@@ -133,9 +133,10 @@ export class CreateScriptPanel {
     launchPointConfig?: any;
     beanApp?: string;
     beanId?: string;
+    conditionnum?: string;
   }) {
     try {
-      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig, beanApp, beanId } = data;
+      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig, beanApp, beanId, conditionnum } = data;
 
       if (!scriptName || !scriptName.trim()) {
         this._panel.webview.postMessage({
@@ -163,9 +164,10 @@ export class CreateScriptPanel {
         templateContent = this._generateDefaultScriptContent(scriptType);
       }
 
-      templateContent = this._processTemplateVariables(templateContent, scriptName);
+      const launchPointName = scriptType === 'CONDITION' ? (conditionnum || '').toUpperCase() : '';
+      templateContent = this._processTemplateVariables(templateContent, scriptName, launchPointName);
 
-      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig, beanApp, beanId);
+      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig, beanApp, beanId, conditionnum);
 
       const jsFilePath = path.join(this._targetDir, `${scriptName}.js`);
       const jsonFilePath = path.join(this._targetDir, `${scriptName}.json`);
@@ -196,8 +198,12 @@ export class CreateScriptPanel {
    * @param scriptName 脚本名称
    * @returns 替换变量后的内容
    */
-  private _processTemplateVariables(content: string, scriptName: string): string {
-    return content.replace(/\$\{sks_scriptName\}/g, scriptName);
+  private _processTemplateVariables(content: string, scriptName: string, launchPointName?: string): string {
+    let result = content.replace(/\$\{sks_scriptName\}/g, scriptName);
+    if (launchPointName) {
+      result = result.replace(/\$\{sks_launchPoint\}/g, launchPointName);
+    }
+    return result;
   }
 
   private _generateDefaultScriptContent(scriptType: string): string {
@@ -306,7 +312,7 @@ function main() {
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }
 
-  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string): ScriptConfig {
+  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string, conditionnum?: string): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
     
     const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC' || scriptType === 'ROLE';
@@ -345,6 +351,19 @@ function main() {
           'sks:varbindingvalue:remark': '通过日志 attempting to find databean script for <appName>~<bean.getId()> 查找设置正确的beanid',
           varbindingvalue: beanId,
           varname: 'beanid'
+        }
+      ];
+    }
+
+    if (scriptType === 'CONDITION' && conditionnum) {
+      const conditionName = conditionnum.toUpperCase();
+      scriptConfig.launchPoints = [
+        {
+          launchpointname: conditionName,
+          launchpointtype: 'CUSTOMCONDITION',
+          objectevent: 0,
+          active: true,
+          description: description || `${scriptName} - 条件表达式脚本`
         }
       ];
     }

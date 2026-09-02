@@ -69,19 +69,21 @@ var launchPointTmp=launchPoint//来自 ACTION.PARAMETER 第2个参数
 //表达式最后的结果,必须在方法外声明
 evalresult=false
 
+//条件表达式内容 ${sks_scriptName}:${sks_launchPoint}
 
 
 /**
  * 条件表达式
-      条件名称:      SKS_TMPLCT 应该无限制,我使用的是启动点同名 
+      条件名称:      IBM_ITEM01 应该无限制,我使用的是启动点同名 
       表达式内容:    <脚本名>:<启动点名称>
-              例如: SKS_TMPL_CONDITION:SKS_TMPLCT 
+              例如: COND.IBM_ITEM01:IBM_ITEM01 
       条件表达式绑定类 com.ibm.tivoli.maximo.script.ScriptCustomCondition
  
 {
 
-  "sks:autoscript:remark":"条件表达式绑定类表达式内容 SKS_TMPL_CONDITION:SKS_TMPL_CON",
-  "autoscript": "SKS_TMPL_CONDITION",
+  "sks:autoscript:remark":"条件表达式绑定类表达式内容 COND.IBM_ITEM01:IBM_ITEM01",
+  "sks:autoscript:remark2":"脚本推荐命名: COND.<条件表达式CONDITIONNUM>:<条件表达式CONDITIONNUM>",
+  "autoscript": "COND.IBM_ITEM01",
   "description": "条件表达式脚本",
   "scriptlanguage": "JavaScript",
   "loglevel": "INFO",
@@ -91,11 +93,10 @@ evalresult=false
   "variables": [],
   "launchPoints": [
     {
-      "launchpointname": "SKS_TMPLCT",
+      "launchpointname": "IBM_ITEM01",
       "description": "条件表达式脚本",
       "launchpointtype": "CUSTOMCONDITION",
       "objectevent": 0,
-      "sks:eventtype": "验证",
       "active": true
     }
   ],
