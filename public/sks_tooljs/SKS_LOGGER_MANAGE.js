@@ -49,6 +49,10 @@ JSONObject = Java.type("com.ibm.json.java.JSONObject");
 
 /** @type {psdi.mbo.MboConstants} */
 MboConstants = Java.type("psdi.mbo.MboConstants");
+
+/** @type {psdi.mbo.SqlFormat} */
+SqlFormat = Java.type("psdi.mbo.SqlFormat");
+
 var scriptName=service.getScriptName()
 
 /** @type {java.lang.System} */
@@ -67,6 +71,9 @@ logger.info("["+scriptName+"]----------------Starting execution of script " + se
 main();
 
 function main() {
+    if(logger.isInfoEnabled()){
+        logger.info("[" + scriptName + "] requestBody=" + requestBody)
+    }
     if (typeof requestBody === "undefined" || !requestBody) {
         responseBody = JSON.stringify({ status: "error", message: "请求体不能为空" });
         return;
@@ -75,7 +82,11 @@ function main() {
     var items;
     try {
         items = JSON.parse(requestBody);
+        if (logger.isInfoEnabled()) {
+            logger.info("[" + scriptName + "] requestBody 解析成功" )
+        }
     } catch (e) {
+        logger.error("[" + scriptName + "] error " + e)
         responseBody = JSON.stringify({ status: "error", message: "JSON 解析失败: " + e.message });
         return;
     }
@@ -109,6 +120,9 @@ function main() {
  * @returns {Object}
  */
 function processMainLogger(item) {
+    if (logger.isInfoEnabled()) {
+        logger.info("[" + scriptName + "] processing logger: " + item.logger)
+    }
     var loggerName = item.logger;
     if (!loggerName) {
         return { logger: "(空)", status: "error", message: "logger 名称不能为空" };
@@ -118,7 +132,11 @@ function processMainLogger(item) {
     try {
         // 按 LOGGER 名称查找主记录
         mainSet = MXServer.getMXServer().getMboSet("MAXLOGGER", userInfo);
-        mainSet.setWhere("LOGGER='" + loggerName.replace(/'/g, "''") + "'");
+        var sqlFormat = new SqlFormat("LOGGER=:1 and PARENTLOGGERID is null")
+        sqlFormat.setString(1, loggerName)
+        mainSet.setWhere(sqlFormat.format());
+
+        logger.info('[' + scriptName + '] setWhere: LOGGER.completeWhere=' + mainSet.getCompleteWhere() + '')
         mainSet.reset();
 
         if (mainSet.isEmpty()) {
@@ -149,6 +167,7 @@ function processMainLogger(item) {
             if (item.children && Array.isArray(item.children) && item.children.length > 0) {
                 mainResult.children = processChildLoggers(mainMbo, item.children);
             }
+            mainSet.save();
             return mainResult;
         }
 
@@ -162,13 +181,14 @@ function processMainLogger(item) {
             mainMbo.setValue("ACTIVE", item.active, MboConstants.NOACCESSCHECK);
         }
 
-        mainSet.save();
 
         var childResults = [];
         // 处理子记录
         if (item.children && Array.isArray(item.children) && item.children.length > 0) {
             childResults = processChildLoggers(mainMbo, item.children);
         }
+        mainSet.save();
+        logger.info("["+scriptName+"] 更新主记录: LOGGER=" + loggerName)
 
         var mainResult = {
             logger: loggerName,
@@ -198,34 +218,39 @@ function processMainLogger(item) {
  * @returns {Array}
  */
 function processChildLoggers(parentMbo, children) {
+    if (logger.isInfoEnabled()) {
+        logger.info("[" + scriptName + "] processing child loggers")
+    }
     var results = [];
 
-    // 获取当前已有的子记录,按 LOGGER 建立映射
+    // 获取当前已有的子记录集合
     var childSet = parentMbo.getMboSet("CHILDLOGGERS");
     try {
+        // 只在循环前 reset 一次加载初始数据；不能在循环内 reset,否则会丢弃未保存的新增/修改
         childSet.reset();
-        var existingMap = {};
-        if (!childSet.isEmpty()) {
-            var childMbo = childSet.moveFirst();
-            while (childMbo) {
-                var childLogger = childMbo.getString("LOGGER");
-                if (childLogger) {
-                    existingMap[childLogger] = childMbo;
-                }
-                childMbo = childSet.moveNext();
-            }
-        }
-
         for (var i = 0; i < children.length; i++) {
             var child = children[i];
             var childLoggerName = child.logger;
+            if (logger.isInfoEnabled()) {
+                logger.info("[" + scriptName + "] processing child logger: " + childLoggerName)
+            }
             if (!childLoggerName) {
                 results.push({ logger: "(空)", status: "error", message: "子记录 logger 名称不能为空" });
                 continue;
             }
 
             try {
-                var childMbo = existingMap[childLoggerName];
+                // 遍历 childSet 查找同名的 logger 子记录 (moveFirst 自动定位到第一条)
+                var childMbo = null;
+                var cur = childSet.moveFirst();
+                while (cur) {
+                    if (cur.getString("LOGGER") == childLoggerName) {
+                        childMbo = cur;
+                        break;
+                    }
+                    cur = childSet.moveNext();
+                }
+                logger.info("[" + scriptName + "] childMbo: " + childMbo)
 
                 if (childMbo) {
                     // 更新已有子记录
@@ -235,8 +260,10 @@ function processChildLoggers(parentMbo, children) {
                     if (child.active !== null && child.active !== undefined) {
                         childMbo.setValue("ACTIVE", child.active, MboConstants.NOACCESSCHECK);
                     }
+                    
                     results.push({
                         logger: childLoggerName,
+                        loglevel: childMbo.getString("LOGLEVEL"),
                         status: "success",
                         message: "子记录更新成功"
                     });
@@ -252,6 +279,7 @@ function processChildLoggers(parentMbo, children) {
                     }
                     results.push({
                         logger: childLoggerName,
+                        loglevel: newChild.getString("LOGLEVEL"),
                         status: "success",
                         message: "子记录新增成功"
                     });
@@ -262,7 +290,6 @@ function processChildLoggers(parentMbo, children) {
             }
         }
 
-        childSet.save();
 
     } catch (e) {
         logger.error("["+scriptName+"] 获取子记录集合失败: " + e);
