@@ -96,6 +96,8 @@ evalresult=false
       "launchpointname": "IBM_ITEM01",
       "description": "条件表达式脚本",
       "launchpointtype": "CUSTOMCONDITION",
+      "sks:objectname:remark": "更新脚本信息时候,如果这个属性没值,导入会报错,而条件表达式对于这个属性没有限制,挑个不会扩展脚本的对象写死即可",
+      "objectname": "MAXUSER",
       "objectevent": 0,
       "active": true
     }

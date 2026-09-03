@@ -363,6 +363,7 @@ function main() {
           launchpointtype: 'CUSTOMCONDITION',
           objectevent: 0,
           active: true,
+          objectname: 'MAXUSER',
           description: description || `${scriptName} - 条件表达式脚本`
         }
       ];
