@@ -275,37 +275,31 @@ function doDeploy(requestData) {
   logger.info("[" + scriptName + "] 开始批量导入 " + conditionsArray.length + " 个条件");
 
   /** @type {Array} */
-  var resultList = [];
+  var resultFailed = [];
+  var successCount = 0;
+  var failedCount = 0;
 
   for (var i = 0; i < conditionsArray.length; i++) {
     /** @type {Object} */
     var condData = conditionsArray[i];
     try {
       saveOrUpdateCondition(condData, i + 1);
-      resultList.push({
-        conditionnum: condData.conditionnum || "未知",
-        status: "SUCCESS",
-        message: "条件保存成功"
-      });
+      successCount++;
     } catch (error) {
+      failedCount++;
+      var messageTmp = error.message ? error.message : error.toString();
+      // if (conditionnum === 'BMXAA1003') {
+      //   messageTmp = "系统自带的," + messageTmp
+      // }
       logger.error("[" + scriptName + "] 处理第 " + (i + 1) + " 个条件失败: ", error);
-      resultList.push({
+      resultFailed.push({
         conditionnum: condData.conditionnum || "未知",
         status: "FAILED",
-        message: error.message ? error.message : error.toString()
+        message: messageTmp
       });
     }
   }
 
-  var successCount = 0;
-  var failedCount = 0;
-  for (var j = 0; j < resultList.length; j++) {
-    if (resultList[j].status === "SUCCESS") {
-      successCount++;
-    } else {
-      failedCount++;
-    }
-  }
 
   logger.info("[" + scriptName + "] 批量导入完成: 成功 " + successCount + " 个, 失败 " + failedCount + " 个");
 
@@ -318,7 +312,7 @@ function doDeploy(requestData) {
       success: successCount,
       failed: failedCount
     },
-    result: resultList
+    resultFailed: resultFailed,
   };
   return JSON.stringify(responseData, null, 4);
 }
@@ -358,9 +352,14 @@ function saveOrUpdateCondition(condData, index) {
       }
       logger.info("[" + scriptName + "] 创建新条件: " + conditionnum);
       condMbo = condSet.add();
-      condMbo.setValue("CONDITIONNUM", conditionnum);
+      condMbo.setValue("CONDITIONNUM", conditionnum,2);
     } else {
       condMbo = condSet.getMbo(0);
+      if((condMbo.getFlags()&2)==2){
+        logger.info("[" + scriptName + "] 条件只读before.conditionnum=" + conditionnum+",flag="+((condMbo.getFlags()&2)==2));
+        condMbo.setFlag(2, false);
+        logger.info("[" + scriptName + "] 条件只读after.conditionnum=" + conditionnum+",flag="+((condMbo.getFlags()&2)==2));
+      }
       if (condData._delete) {
         logger.info("[" + scriptName + "] 删除条件: " + conditionnum);
         condMbo.delete();
@@ -371,10 +370,10 @@ function saveOrUpdateCondition(condData, index) {
     }
 
     // 字段设置(TYPE/EXPRESSION/CLASSNAME 字符串, NOCACHING 整数0允许)
-    setIfDef(condMbo, "TYPE", condData.type);
-    setIfDef(condMbo, "EXPRESSION", condData.expression);
-    setIfDef(condMbo, "CLASSNAME", condData.classname);
-    setIfDef(condMbo, "NOCACHING", condData.nocaching);
+    setIfDef(condMbo, "TYPE", condData.type,2);
+    setIfDef(condMbo, "EXPRESSION", condData.expression,2);
+    setIfDef(condMbo, "CLASSNAME", condData.classname,2);
+    setIfDef(condMbo, "NOCACHING", condData.nocaching,2);
 
     // 描述多语言写入
     saveDescription(condMbo, condData);
