@@ -139,6 +139,58 @@ javascript:
           appBean.fireChildChangedEvent();
           appBean.fireStructureChangedEvent();			//刷新方法
 
+      - name: "initLogger"
+        remark: "initLogger方法"
+        code: |
+          /** @type {psdi.util.logging.MXLoggerFactory} */
+          MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+          /** @type {psdi.util.logging.MXLogger} */
+          var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+          /** @type {psdi.util.MXApplicationException} */
+          MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
+          loggerMX.info("["+scriptName+"]----------");
+
+          /** @type {jscustom.AnsiLogger} */
+          var logger=null
+          /** @type {jscustom.sksLogAnsiUtils} */
+          var sksLogAnsiUtils = null
+
+          /**
+          * 初始化日志记录器,在通用脚本中,每次都需要调用该方法以初始化logger
+          * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 脚本服务
+          */
+          function initLogger(service){
+              if(logger!=null){
+                  return
+              }
+              sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+              logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+          // logger.setLevel(Level.INFO);
+
+              logger.info("[" + scriptName + "] initialize")
+          }
+
+  - name: "导入java常用包"
+    childrens:
+      - name: "mbo相关"
+        remark: "SqlFormat MboConstants"
+        code: |
+          /** @type {psdi.mbo.SqlFormat} */
+          SqlFormat = Java.type("psdi.mbo.SqlFormat");
+          /** @type {psdi.mbo.MboConstants} */
+          MboConstants = Java.type("psdi.mbo.MboConstants");
+      - name: "json相关"
+        remark: "SqlFormat MboConstants"
+        code: |
+          /** @type {com.ibm.json.java.JSONArray} */
+          JSONArray = Java.type("com.ibm.json.java.JSONArray");
+          /** @type {com.ibm.json.java.JSONObject} */
+          JSONObject = Java.type("com.ibm.json.java.JSONObject");
+          /** @type {com.ibm.json.java.OrderedJSONObject} */
+          OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
+
+  
+
 #应用程序设计器xml
 maxappxml:
   - name: "组件"

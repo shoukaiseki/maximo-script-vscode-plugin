@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS_TEST_BR_SYSTEMLOCALE",
+  "description": "服务器环境信息脚本",
+  "version": "1.0.2",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.test"
+}
