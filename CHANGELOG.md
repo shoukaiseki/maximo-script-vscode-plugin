@@ -5,6 +5,40 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.7.7] - 2026-09-04
+
+### 新增功能
+
+#### 创建脚本模板增强
+- ✨ 创建自动化脚本「普通脚本」新增「角色脚本」选项
+  - 只需填写角色名称 (MAXROLE)，脚本名自动生成为 `MAXROLE.<角色名称>`（如 MAXROLE.SHOUKAISEKI）
+  - 生成 JSON 自动设置 `interface=1`（角色脚本必需）
+- ✨ 创建自动化脚本「条件脚本」新增条件表达式 (CONDITIONNUM) 输入
+  - 脚本名自动生成为 `COND.<CONDITIONNUM>`，启动点名称与条件同名
+  - 模板占位符 `${sks_scriptName}:${sks_launchPoint}` 创建时自动替换，生成 `//条件表达式内容 COND.xxx:xxx` 便于复制到条件表达式绑定类
+  - 生成 JSON 自动携带 `CUSTOMCONDITION` 启动点
+
+#### 条件表达式管理器导出
+- 🧪 工具箱新增「条件表达式管理器导出」标签页
+  - 调用 `SKS_CONDITION_MANAGE?_action=export` 导出条件表达式 (CONDITION)
+  - 支持自定义 `where` 过滤条件（多行文本框，默认 `1=1`），输入内容持久化保存
+  - 导出结果为 `conditions.json`，可直接用于 `_action=deploy` 批量导入
+- 📅 计划导出新增「导出条件表达式」任务选项，任务行可配置 where 过滤条件
+- 📦 新增工具脚本 `SKS_CONDITION_MANAGE`（条件表达式管理：查询/导出/导入）
+
+### 技术实现
+
+- 🔧 修改
+  - `webview-ui/src/App.tsx` - 工具箱新增条件表达式导出标签页；计划导出新增任务类型与 where 配置
+  - `src/configPanel.ts` - 新增条件表达式导出命令与计划导出任务执行；新增 `exportConditionDirectory` / `exportConditionWhere` 配置
+  - `src/createScriptPanel.ts` - ROLE/CONDITION 模板支持、`${sks_launchPoint}` 变量替换、CUSTOMCONDITION 启动点生成
+  - `template/cn/shoukaiseki/tmpl/SKS_TMPL_ROLE.js` - 角色脚本模板（脚本名占位符）
+  - `template/cn/shoukaiseki/tmpl/SKS_TMPL_CONDITION.js` - 条件脚本模板（启动点示例、表达式内容占位符）
+  - `public/sks_tooljs/SKS_CONDITION_MANAGE.js/.json` - 条件表达式管理器脚本
+  - `package.json` - 版本 1.7.7，新增 `exportConditionDirectory` / `exportConditionWhere` 配置项
+
+---
+
 ## [1.5.47] - 2026-08-30
 
 ### 新增功能

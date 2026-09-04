@@ -50,6 +50,8 @@ interface ConfigData {
   exportMessagePageSize: number;  // 消息导出单文件行数
   exportMessageIgnoreDefVal: boolean;  // 消息导出忽略默认值
   exportDomainDirectory: string;  // 域导出目录
+  exportConditionDirectory: string;  // 条件表达式导出目录
+  exportConditionWhere: string;  // 条件表达式导出 where 过滤条件
   exportDomainThreadCount: number;  // 域导出线程数
   exportDomainZipEnabled: boolean;  // 域导出打包ZIP
   exportDomainPageSize: number;  // 域导出单文件行数
@@ -79,6 +81,9 @@ const App: React.FC = () => {
   const [isExtractMessageRunning, setIsExtractMessageRunning] = useState<boolean>(false);
   const [extractDomainDirectoryPath, setExtractDomainDirectoryPath] = useState<string>('');
   const [isExtractDomainRunning, setIsExtractDomainRunning] = useState<boolean>(false);
+  const [extractConditionDirectoryPath, setExtractConditionDirectoryPath] = useState<string>('');
+  const [isExtractConditionRunning, setIsExtractConditionRunning] = useState<boolean>(false);
+  const [extractConditionWhere, setExtractConditionWhere] = useState<string>('1=1');
   const [scheduledExportPlan, setScheduledExportPlan] = useState<any>({ baseDir: '', tasks: [] });
   const [isScheduledExportRunning, setIsScheduledExportRunning] = useState<boolean>(false);
   const [scheduledExportProgress, setScheduledExportProgress] = useState<{ current: number; total: number; statusText: string }>({ current: 0, total: 0, statusText: '' });
@@ -130,6 +135,8 @@ const App: React.FC = () => {
     exportMessagePageSize: 5000,
     exportMessageIgnoreDefVal: false,
     exportDomainDirectory: '',
+    exportConditionDirectory: '',
+    exportConditionWhere: '1=1',
     exportDomainThreadCount: 5,
     exportDomainZipEnabled: true,
     exportDomainPageSize: 50000,
@@ -361,6 +368,12 @@ const App: React.FC = () => {
           if (message.data.exportDomainDirectory) {
             setExtractDomainDirectoryPath(message.data.exportDomainDirectory);
           }
+          if (message.data.exportConditionDirectory) {
+            setExtractConditionDirectoryPath(message.data.exportConditionDirectory);
+          }
+          if (message.data.exportConditionWhere) {
+            setExtractConditionWhere(message.data.exportConditionWhere);
+          }
           // 加载计划导出配置
           getVsCodeApi().postMessage({ command: 'loadScheduledExportConfig' });
           break;
@@ -523,6 +536,15 @@ const App: React.FC = () => {
         case 'extractDomainComplete':
           // 域导出完成
           setIsExtractDomainRunning(false);
+          break;
+        case 'setExtractConditionDirectoryPath':
+          // 设置条件表达式导出目录路径
+          setExtractConditionDirectoryPath(message.path);
+          setConfig(prev => ({ ...prev, exportConditionDirectory: message.path }));
+          break;
+        case 'extractConditionComplete':
+          // 条件表达式导出完成
+          setIsExtractConditionRunning(false);
           break;
         case 'loadScheduledExportConfig':
           // 加载计划导出配置
@@ -905,6 +927,31 @@ const App: React.FC = () => {
     });
   };
 
+  // 工具箱 - 选择条件表达式导出目录
+  const handleSelectExtractConditionDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractCondition'
+    });
+  };
+
+  // 工具箱 - 开始导出条件表达式
+  const handleStartExtractCondition = () => {
+    if (!extractConditionDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractConditionRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractCondition',
+      directoryPath: extractConditionDirectoryPath,
+      where: extractConditionWhere,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
   // 工具箱 - 添加计划导出任务
   const handleAddScheduledTask = () => {
     const newTasks = [...(scheduledExportPlan.tasks || [])];
@@ -1727,6 +1774,21 @@ const App: React.FC = () => {
                 }}
               >
                 🏷️ 导出域
+              </button>
+              <button
+                onClick={() => setActiveToolboxTab('extractCondition')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractCondition' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractCondition' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractCondition' ? 'bold' : 'normal'
+                }}
+              >
+                🧪 条件表达式管理器导出
               </button>
               <button
                 onClick={() => setActiveToolboxTab('initProject')}
@@ -2863,7 +2925,120 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+        {/* 条件表达式管理器导出标签页 */}
+        {activeToolboxTab === 'extractCondition' && (
+          <div>
+            <div style={{ 
+              padding: '15px', 
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderLeft: '4px solid var(--vscode-terminal-ansiMagenta)',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🧪 条件表达式管理器导出</p>
+              <p style={{ margin: '0 0 10px 0' }}>
+                此功能将通过 SKS_CONDITION_MANAGE 接口从 Maximo 服务器导出条件表达式（CONDITION），支持自定义 where 过滤条件。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                📌 <strong>使用说明：</strong><br/>
+                1. 选择要保存条件表达式 JSON 的本地目录<br/>
+                2. 输入 where 过滤条件（SQL 表达式），默认 1=1 导出全部<br/>
+                3. 点击"开始导出"按钮，结果为单个 conditions.json 文件，可直接用于 SKS_CONDITION_MANAGE 导入
+              </p>
+            </div>
+
+            {/* 导出目录选择 */}
+            <div className="form-group">
+              <label>选择导出目录：</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={extractConditionDirectoryPath}
+                  readOnly
+                  placeholder="选择要保存条件表达式 JSON 的目录"
+                  style={{ flex: 1 }}
+                />
+                <button onClick={handleSelectExtractConditionDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+              </div>
+            </div>
+
+            {/* where 条件配置（多行文本框） */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: 'var(--vscode-foreground)' }}>
+                🔍 where 过滤条件（SQL 表达式）：
+              </label>
+              <textarea
+                value={extractConditionWhere}
+                onChange={(e) => {
+                  setExtractConditionWhere(e.target.value);
+                  updateConfig({ exportConditionWhere: e.target.value });
+                }}
+                rows={4}
+                placeholder="例如: 1=1 或 CONDITIONNUM LIKE 'IBM%'"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  fontFamily: 'monospace'
+                }}
+              />
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                支持多行 SQL 表达式，默认 1=1 导出全部条件
+              </p>
+            </div>
+
+            <button 
+              onClick={handleStartExtractCondition}
+              disabled={!extractConditionDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '20px',
+                opacity: (!extractConditionDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning) ? 0.6 : 1,
+                cursor: (!extractConditionDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {!extractConditionDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractConditionRunning ? '⏳ 正在导出...' : '🧪 开始导出')}
+            </button>
+
+            {/* 输出日志区域 */}
+            <div style={{ 
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '4px',
+              padding: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                <button 
+                  onClick={handleClearToolboxOutput}
+                  style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                >
+                  清空
+                </button>
+              </div>
+              <pre style={{ 
+                margin: 0,
+                padding: '10px',
+                background: 'var(--vscode-textCodeBlock-background)',
+                borderRadius: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontSize: '0.9em'
+              }}>
+                {toolboxOutput || '准备就绪，请选择导出目录并点击"开始导出"按钮...'}
+              </pre>
+            </div>
           </div>
+        )}          </div>
         )}
 
         {/* 计划导出页面 */}
@@ -2979,6 +3154,7 @@ const App: React.FC = () => {
                     <option value="extractMaxobject">导出 MAXOBJECT</option>
                     <option value="extractMessage">导出消息</option>
                     <option value="extractDomain">导出域</option>
+                    <option value="extractCondition">导出条件表达式</option>
                     <option value="extractScript">导出脚本</option>
                     <option value="extractAppXml">导出应用XML</option>
                   </select>
@@ -3023,6 +3199,19 @@ const App: React.FC = () => {
                         />
                         精简模式
                       </label>
+                    ) : task.exportFunction === 'extractCondition' ? (
+                      <input
+                        type="text"
+                        value={task.where !== undefined && task.where !== '' ? task.where : '1=1'}
+                        onChange={(e) => {
+                          const newTasks = [...(scheduledExportPlan.tasks || [])];
+                          newTasks[index] = { ...newTasks[index], where: e.target.value };
+                          setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                        }}
+                        placeholder="where，如 1=1"
+                        style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
+                        disabled={isScheduledExportRunning}
+                      />
                     ) : task.exportFunction === 'extractMessage' || task.exportFunction === 'extractDomain' ? (
                       <>
                         <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>

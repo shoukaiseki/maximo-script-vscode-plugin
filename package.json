@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.6.6",
+  "version": "1.7.7",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -394,6 +394,16 @@
           "type": "string",
           "default": "",
           "description": "域导出目录（用于存储导出的 MAXDOMAIN JSON，持久化保存）"
+        },
+        "maximoScript.exportConditionDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "条件表达式导出目录（用于存储 SKS_CONDITION_MANAGE 导出的 conditions JSON，持久化保存）"
+        },
+        "maximoScript.exportConditionWhere": {
+          "type": "string",
+          "default": "1=1",
+          "description": "条件表达式导出 where 过滤条件（SQL 表达式，默认 1=1 导出全部，工具箱->条件表达式管理器导出）"
         },
         "maximoScript.exportDomainThreadCount": {
           "type": "number",

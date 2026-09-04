@@ -230,6 +230,12 @@ export class ConfigPanel {
           case 'extractDomain':
             await this._extractDomains(message.directoryPath, message.autoCreateExportDir);
             return;
+          case 'selectDirectoryForExtractCondition':
+            await this._selectDirectoryForExtractCondition();
+            return;
+          case 'extractCondition':
+            await this._extractConditions(message.directoryPath, message.where, message.autoCreateExportDir);
+            return;
           case 'saveScheduledExportConfig':
             await this._saveScheduledExportConfig(message.config);
             return;
@@ -432,6 +438,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('exportMessagePageSize', data.exportMessagePageSize !== undefined ? data.exportMessagePageSize : 5000, vscode.ConfigurationTarget.Global);
       await config.update('exportMessageIgnoreDefVal', data.exportMessageIgnoreDefVal !== undefined ? data.exportMessageIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
       await config.update('exportDomainDirectory', data.exportDomainDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportConditionDirectory', data.exportConditionDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportConditionWhere', data.exportConditionWhere !== undefined && data.exportConditionWhere !== '' ? data.exportConditionWhere : '1=1', vscode.ConfigurationTarget.Global);
       await config.update('exportDomainThreadCount', data.exportDomainThreadCount !== undefined ? data.exportDomainThreadCount : 5, vscode.ConfigurationTarget.Global);
       await config.update('exportDomainZipEnabled', data.exportDomainZipEnabled !== undefined ? data.exportDomainZipEnabled : true, vscode.ConfigurationTarget.Global);
       await config.update('exportDomainPageSize', data.exportDomainPageSize !== undefined ? data.exportDomainPageSize : 50000, vscode.ConfigurationTarget.Global);
@@ -881,6 +889,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       exportMessagePageSize: config.get('exportMessagePageSize', 5000),
       exportMessageIgnoreDefVal: config.get('exportMessageIgnoreDefVal', false),
       exportDomainDirectory: config.get('exportDomainDirectory', ''),
+      exportConditionDirectory: config.get('exportConditionDirectory', ''),
+      exportConditionWhere: config.get('exportConditionWhere', '1=1'),
       exportDomainThreadCount: config.get('exportDomainThreadCount', 5),
       exportDomainZipEnabled: config.get('exportDomainZipEnabled', true),
       exportDomainPageSize: config.get('exportDomainPageSize', 50000),
@@ -4192,6 +4202,38 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 选择条件表达式导出目录
+   */
+  private async _selectDirectoryForExtractCondition() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportConditionDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportConditionDirectory] 条件表达式导出目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractConditionDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '条件表达式导出目录已保存'
+      });
+    }
+  }
+
+  /**
    * 消息导出（通过 SKS_EXPORT_MESSAGES 接口）
    */
   private async _extractMessages(directoryPath: string, autoCreateExportDir: boolean = true) {
@@ -4508,6 +4550,90 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 条件表达式管理器导出（通过 SKS_CONDITION_MANAGE 接口）
+   */
+  private async _extractConditions(directoryPath: string, where: string, autoCreateExportDir: boolean = true) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const langcode = config.get<string>('langcode', 'EN');
+      const whereClause = (where || '1=1').trim();
+
+      this._sendToolboxOutput('🧪 开始导出条件表达式...');
+      this._sendToolboxOutput(`🔍 where: ${whereClause}, 语言: ${langcode}`);
+
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `condition_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      const exportUrl = `script/SKS_CONDITION_MANAGE?_action=export&_langcode=${langcode}&ignoreDefVal=false`;
+      const exportResult = await httpRequestToMaximo({
+        url: exportUrl,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { where: whereClause }
+      });
+
+      if (exportResult.status !== 200 || !exportResult.data) {
+        this._sendToolboxOutput(`❌ 导出条件表达式失败: HTTP ${exportResult.status}`);
+        return;
+      }
+
+      let responseData = exportResult.data;
+      if (typeof responseData === 'string') {
+        try { responseData = JSON.parse(responseData); } catch (e) { }
+      }
+
+      if (responseData.status === 'error') {
+        this._sendToolboxOutput(`❌ 导出条件表达式失败: ${responseData.message || '未知错误'}`);
+        return;
+      }
+
+      const conditions = responseData.conditions || [];
+      if (conditions.length === 0) {
+        this._sendToolboxOutput('⚠️ 没有符合 where 条件的条件表达式记录');
+        return;
+      }
+
+      const fileName = 'conditions.json';
+      const filePath = path.join(exportDir, fileName);
+      fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+
+      this._sendToolboxOutput(`✅ 已保存: ${fileName}（${conditions.length} 条条件表达式）`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+      this._sendToolboxOutput('📝 恢复方法: 将该文件内容 POST 到 SKS_CONDITION_MANAGE?_action=deploy 可批量导入');
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractConditions] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractConditionComplete' });
+    }
+  }
+
+  /**
    * 获取计划导出配置文件路径
    */
   private _getScheduledExportConfigPath(): string {
@@ -4706,6 +4832,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       'extractMaxobject': '导出 MAXOBJECT',
       'extractMessage': '导出消息',
       'extractDomain': '导出域',
+      'extractCondition': '导出条件表达式',
       'extractScript': '导出脚本',
       'extractAppXml': '导出应用XML'
     };
@@ -4730,6 +4857,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       case 'extractDomain':
         this._sendScheduledLog(`  🔄 正在导出域到 ${taskDir}，线程数: ${task.threadCount || 5}`);
         await this._extractDomainsForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, task.pageSize || 50000, taskIndex);
+        break;
+      case 'extractCondition':
+        this._sendScheduledLog(`  🔄 正在导出条件表达式到 ${taskDir}`);
+        await this._extractConditionsForScheduled(taskDir, task.language || 'EN', task.where || '1=1', taskIndex);
         break;
       case 'extractScript':
         this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
@@ -5022,6 +5153,58 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
     await Promise.all(workers);
     this._sendScheduledLog(`  ✅ 域导出完成，共 ${totalPages} 页`);
+  }
+
+  /**
+   * 计划导出中的条件表达式导出
+   */
+  private async _extractConditionsForScheduled(taskDir: string, language: string, where: string, taskIndex: number): Promise<void> {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    const serverUrl = config.get<string>('serverUrl', '');
+
+    if (!serverUrl) {
+      throw new Error('请先在设置中配置服务器地址');
+    }
+
+    if (!ConfigPanel.checkConfig()) {
+      throw new Error('配置不完整，请先在配置面板中设置服务器信息');
+    }
+
+    const whereClause = (where || '1=1').trim();
+    this._sendScheduledLog(`  🔍 where: ${whereClause}`);
+
+    const exportUrl = `script/SKS_CONDITION_MANAGE?_action=export&_langcode=${language}&ignoreDefVal=false`;
+    const exportResult = await httpRequestToMaximo({
+      url: exportUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { where: whereClause }
+    });
+
+    if (exportResult.status !== 200 || !exportResult.data) {
+      throw new Error(`导出条件表达式失败: HTTP ${exportResult.status}`);
+    }
+
+    let responseData = exportResult.data;
+    if (typeof responseData === 'string') {
+      try { responseData = JSON.parse(responseData); } catch (e) { }
+    }
+
+    if (responseData.status === 'error') {
+      throw new Error(`导出条件表达式失败: ${responseData.message || '未知错误'}`);
+    }
+
+    const conditions = responseData.conditions || [];
+    if (conditions.length === 0) {
+      throw new Error('没有符合 where 条件的条件表达式记录');
+    }
+
+    const fileName = 'conditions.json';
+    const filePath = path.join(taskDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+
+    this._sendScheduledLog(`    ✅ 已保存: ${fileName}（${conditions.length} 条）`);
+    this._updateScheduledTaskProgress(taskIndex, 1, 1, 'conditions.json');
   }
 
   /**
