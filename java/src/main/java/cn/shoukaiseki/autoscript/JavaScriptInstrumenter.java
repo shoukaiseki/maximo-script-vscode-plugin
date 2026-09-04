@@ -377,11 +377,11 @@ final class JavaScriptInstrumenter {
         }
 
         private void wrapControlledStatement(StatementTree statement) {
-            if (statement == null || statement instanceof BlockTree) {
+            if (statement == null || statement instanceof BlockTree || statement instanceof IfTree) {
                 return;
             }
             plan.insert(statement.getStartPosition(), "{", 50);
-            plan.insert(statement.getEndPosition(), "}", 0);
+            plan.insert(plan.safeEnd(statement.getEndPosition()), "}", 20);
         }
 
         private void instrumentLoopBody(StatementTree statement, int lineNumber, Scope scope) {
@@ -393,7 +393,7 @@ final class JavaScriptInstrumenter {
                 return;
             }
             plan.insert(statement.getStartPosition(), "{" + traceCall(lineNumber, scope), 50);
-            plan.insert(statement.getEndPosition(), "}", 0);
+            plan.insert(plan.safeEnd(statement.getEndPosition()), "}", 20);
         }
 
         private void instrumentFunctionBody(Tree body, String functionName, int lineNumber) {
@@ -405,7 +405,7 @@ final class JavaScriptInstrumenter {
                     DEBUGGER_ALIAS + ".enter_js(" + stringLiteral(functionName) + "," + lineNumber + ");try{",
                     60
             );
-            plan.insert(blockTree.getEndPosition(), "}finally{" + DEBUGGER_ALIAS + ".exit_js();}", 10);
+            plan.insert(plan.safeEnd(blockTree.getEndPosition()), "}finally{" + DEBUGGER_ALIAS + ".exit_js();}", 10);
         }
 
         private String functionName(IdentifierTree identifierTree) {
@@ -450,6 +450,29 @@ final class JavaScriptInstrumenter {
 
         private int lineNumber(long position) {
             return (int) lineMap.getLineNumber(position);
+        }
+
+        /**
+         * Nashorn sometimes reports a block/statement end position at the closing quote of a
+         * trailing string literal instead of after it. An insertion at that position would land
+         * inside the string (e.g. a "finally" clause corrupting "return '...'"). Advance past a
+         * closing quote and following whitespace so end-based insertions land at the real boundary.
+         */
+        private int safeEnd(long endLong) {
+            int end = (int) endLong;
+            if (end < source.length()) {
+                char c = source.charAt(end);
+                if (c == '\'' || c == '"' || c == '`') {
+                    end++; // closing quote of a trailing string literal
+                }
+                while (end < source.length() && Character.isWhitespace(source.charAt(end))) {
+                    end++;
+                }
+                if (end < source.length() && source.charAt(end) == ';') {
+                    end++; // keep the semicolon inside the wrapped/closed block so "if ... else" stays attached
+                }
+            }
+            return end;
         }
 
         private String apply() {

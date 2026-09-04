@@ -55,7 +55,8 @@ function main() {
                 version: getDriverVersion(),
                 canInstall: userCanInstall,
                 driverLoaded: driverLoaded(ScriptDriverFactory.getInstance()),
-                driverClassAvailable: driverClassAvailable
+                driverClassAvailable: driverClassAvailable,
+                driverJarSize: getDriverJarSize()
             });
             return;
         }
@@ -253,6 +254,33 @@ function getDriverVersion() {
 }
 
 /**
+ * Returns the size of the driver jar currently on disk (0 when missing),
+ * used by the VS Code extension to detect stale drivers.
+ *
+ * @returns {number} jar file size in bytes, or 0
+ */
+function getDriverJarSize() {
+    var jarFile = new File(System.getProperty('java.io.tmpdir'), DRIVER_JAR_NAME);
+    return jarFile.exists() ? jarFile.length() : 0;
+}
+
+/**
+ * Best-effort removal of the driver jar from the server temp directory.
+ */
+function deleteDriverJar() {
+    try {
+        var jarFile = new File(System.getProperty('java.io.tmpdir'), DRIVER_JAR_NAME);
+        if (jarFile.exists()) {
+            jarFile.delete();
+        }
+    } catch (ignore) {
+        /* nothing to do */
+    }
+}
+
+/**
+
+/**
  * Tries to load and register the debugger driver into the live ScriptDriverFactory state.
  *
  * @returns {Object} Activation details for the current JVM.
@@ -261,6 +289,7 @@ function deactivateDriver() {
     var driverFactory = ScriptDriverFactory.getInstance();
 
     if (!driverLoaded(driverFactory)) {
+        deleteDriverJar();
         return {
             deactivated: true,
             status: 'success',
@@ -281,6 +310,8 @@ function deactivateDriver() {
     var propertyResult = revertDriverProperty(DRIVER_CLASS);
 
     MXServer.getMXServer().reloadMaximoCache('SCRIPT', true);
+
+    deleteDriverJar();
 
     return {
         deactivated: true,

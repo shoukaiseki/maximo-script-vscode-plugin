@@ -127,17 +127,30 @@ async function ensureScriptExists(env: any): Promise<any> {
 
 async function ensureDebuggerInstalled(context: vscode.ExtensionContext, env: any): Promise<void> {
   const info = await ensureScriptExists(env);
+  const jarPath = resourcePath(context, JAR_NAME);
+  if (!fs.existsSync(jarPath)) {
+    throw new Error('缺少驱动 jar: ' + jarPath);
+  }
+  const localJarSize = fs.statSync(jarPath).size;
+  const serverJarSize = Number(info.driverJarSize || 0);
   log().info(
     '[SKS-DEBUG] 服务端状态: version=' + info.version + ', driverAvailable=' + info.driverClassAvailable +
-    ', driverLoaded=' + info.driverLoaded
+    ', driverLoaded=' + info.driverLoaded + ', 服务端jar=' + serverJarSize + 'B, 本地jar=' + localJarSize + 'B'
   );
-  if (!info.driverClassAvailable) {
-    const jarPath = resourcePath(context, JAR_NAME);
-    if (!fs.existsSync(jarPath)) {
-      throw new Error('缺少驱动 jar: ' + jarPath);
+
+  // 驱动缺失或 jar 与本地不一致(旧驱动未卸载/版本过期)时, 先卸载旧驱动再重新上传
+  const needsReinstall = !info.driverClassAvailable || serverJarSize !== localJarSize;
+  if (needsReinstall) {
+    if (info.driverClassAvailable || info.driverLoaded || serverJarSize > 0) {
+      log().info('[SKS-DEBUG] 检测到旧/缺失驱动, 先卸载旧驱动并清理 jar ...');
+      try {
+        await callScriptPost(env, { deactivate: true });
+      } catch (e) {
+        log().warn('[SKS-DEBUG] 卸载旧驱动失败(继续安装): ' + (e && e.message ? e.message : String(e)));
+      }
     }
     const jarB64 = fs.readFileSync(jarPath).toString('base64');
-    log().info('[SKS-DEBUG] 上传并激活驱动(' + fs.statSync(jarPath).size + ' B) ...');
+    log().info('[SKS-DEBUG] 上传并激活驱动(' + localJarSize + ' B) ...');
     const resp = await callScriptPost(env, { jar: jarB64 });
     const d = resp && resp.data ? resp.data : {};
     if (d.status !== 'success') {

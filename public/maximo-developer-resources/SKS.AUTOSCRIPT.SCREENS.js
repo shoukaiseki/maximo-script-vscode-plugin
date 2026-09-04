@@ -73,6 +73,8 @@ try {
     /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
     LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
     classLoadFlag = true
+    var classLoader = request.getClass().getClassLoader();
+    // printClasses(classLoader)
 } catch (ignored) {
     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SHARPTREE.AUTOSCRIPT.SCREENS 应该就可以了" + ignored);
     logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------002");
@@ -80,7 +82,7 @@ try {
     try {
 
         var classLoader = request.getClass().getClassLoader();
-        printClasses(classLoader)
+        // printClasses(classLoader)
         /** @type {psdi.webclient.system.controller.PresentationLoader} */
         PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader", classLoader);
         /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
@@ -97,59 +99,6 @@ try {
     }
 }
 
-function printClasses(tccl) {
-    // 获取线程上下文类加载器
-    // var tccl = java.lang.Thread.currentThread().getContextClassLoader();
-
-    if (tccl == null) {
-        print("TCCL is null");
-    } else {
-        print("TCCL: " + tccl);
-        print("Attempting to list loaded classes via reflection...");
-
-        try {
-            // 1. 获取 ClassLoader 类的 Class 对象
-            var clClass = tccl.getClass();
-
-            // 2. 获取名为 "classes" 的私有字段 (JDK 8 及以前常见)
-            // 注意：JDK 9+ 模块系统可能阻止访问 java.base 内部字段
-            var classesField = clClass.getDeclaredField("classes");
-
-            // 3. 强制设置可访问
-            classesField.setAccessible(true);
-
-            // 4. 获取该字段的值 (是一个 Vector<Class>)
-            var classesVector = classesField.get(tccl);
-
-            if (classesVector != null) {
-                print("Found " + classesVector.size() + " classes.");
-
-                // 5. 遍历并打印类名
-                for (var i = 0; i < classesVector.size(); i++) {
-                    var clazz = classesVector.get(i);
-                    print(clazz.getName());
-                }
-            } else {
-                print("Classes vector is null.");
-            }
-        } catch (e) {
-            print("Error accessing internal classes field: " + e);
-            print("This approach may not work on JDK 9+ due to module system restrictions.");
-
-            // 备选方案：如果无法访问内部字段，只能尝试列出资源（非类列表，但能看出加载路径）
-            print("\n--- Alternative: Listing known resources (not classes) ---");
-            try {
-                var urls = tccl.getResources("");
-                while (urls.hasMoreElements()) {
-                    print(urls.nextElement());
-                }
-            } catch (e2) {
-                print("Failed to list resources: " + e2);
-            }
-        }
-    }
-
-}
 
 // MAS removed support for legacy JDOM, switch to JDOM2 and then fall back to legacy JDOM for older versions.
 try {

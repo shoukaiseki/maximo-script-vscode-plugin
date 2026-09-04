@@ -23,7 +23,7 @@ if errorlevel 1 (
 )
 echo Compile OK.
 
-echo 1.0.0>"%OUT%\sks-autoscript-debug-version.txt"
+echo 1.0.1>"%OUT%\sks-autoscript-debug-version.txt"
 
 echo Packaging jar...
 "%JDK%\bin\jar" --create --file "%JAR_OUT%" -C "%OUT%" .
