@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_LOGGER_MANAGE",
   "description": "MXLOGGER管理,通过 REST API 调用",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
