@@ -339,6 +339,29 @@ maxappxml:
                     </radiobuttongroup>
   - name: "布局结构"
     childrens:
+      - name: tabgroup标签页组组件
+        childrens:
+          - name: tabgroup标签组
+            componentName: "tabgroup"
+            remark: |
+              标签页组
+            code: |
+                  <!--
+                  format属性
+                     carddeck: 卡片堆叠,电源界面list界面时候不显示tab标签名称
+                                主列表所属不要加,加了详情页面就回不到主列表
+                     wizard: 向导模式,上一步,下一步
+                     为空:    不加css渲染
+
+                  <tabgroup format="carddeck" id="maintabs" style="form">
+                  </tabgroup>
+                  -->
+                  <tabgroup format="carddeck" id="maintabs" style="form">
+                  <tab id="tab1" label="标签页1">
+                  </tab>
+                  <tab id="tab2" label="标签页2">
+                  </tab>
+                  </tabgroup>
       - name: section区域组件
         childrens:
           - name: section组件属性说明
@@ -355,6 +378,11 @@ maxappxml:
                       datasrc="数据源标识"
                       mboname="业务对象名称"
                       inputmode="输入方式:DEFAULT(缺省),READONLY(只读),REQUIRED(必需),QUERY(查询)"/>
+                      
+                        <section border="true" collapsed="true" id="maintab_section" label="基本信息"> 默认折叠,折叠无法展开
+                        <section border="false" collapsed="true" id="maintab_section" label="基本信息"> 默认折叠,可展开
+                        <section border="false" id="maintab_section" label="基本信息"> 默认展开,可进行折叠
+                        <section border="true" id="maintab_section" label="基本信息"> 默认展开,无法折叠
                       -->
                     <section border="true" id="main_basicinfo_section" label="基本信息">
                       <sectionrow id="main_basicinfo_row1">
@@ -366,6 +394,9 @@ maxappxml:
                               </sectioncol>
                               <sectioncol id="main_basicinfo_sec1_col2">
                                 <textbox dataattribute="FIELD2" id="main_field2_1"/>
+                              </sectioncol>
+                              <sectioncol id="main_basicinfo_sec1_col3">
+                                <textbox dataattribute="FIELD3" id="main_field3_1"/>
                               </sectioncol>
                             </sectionrow>
                           </section>
@@ -427,9 +458,14 @@ maxappxml:
                       orderby="排序条件"
                       apprestrictions="应用程序限制"
                       listeners="侦听器"
-                            "可过滤"
                       sigoption="签名选项" 
-                      sigoptiondatasrc="签名数据源标识"/>
+                      sigoptiondatasrc="签名数据源标识">
+                      <tablebody id="表主体"
+                      filterable="true:可过滤,false:不可过滤"
+                      filterexpanded="true:展开过滤,false:收起过滤"
+                      >
+                      </tablebody>
+                      </table>
                       -->
                     <table id="itemapplyline_table" label="零件明细" mboname="IBM_ITEM_APPLYLINE" relationship="IBM_ITEM_APPLYLINE" selectmode="multiple">
                       <tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="itemapplyline_tablebody">
@@ -549,7 +585,9 @@ maxappxml:
                       width="对话框宽度"
                       beanclass="Bean类名"/>
                       -->
-                    <dialog id="lookup_item" label="选择零件" relationship="ITEM" width="600">
+                    <dialog
+                      beanclass="psdi.webclient.system.beans.DataBean" 
+                      id="lookup_item" label="选择零件" relationship="ITEM" width="600">
                       <table id="lookup_item_table" label="零件列表" inputmode="readonly" selectmode="single">
                         <tablebody displayrowsperpage="10" filterable="true" id="lookup_item_tablebody">
                           <tablecol filterable="false" id="lookup_item_col1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
