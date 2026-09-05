@@ -61,42 +61,63 @@ System = Java.type("java.lang.System");//59
 logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------001");
 
 var PresentationLoader = null
-try {
-    /** @type {psdi.webclient.system.controller.PresentationLoader} */
-    PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
-    /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
-    WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
-    /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
-    WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime");//53
-    /** @type {psdi.webclient.system.controller.IdProperty} */
-    IdProperty = Java.type("psdi.webclient.system.controller.IdProperty");//51
-    /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
-    LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
-    classLoadFlag = true
-    var classLoader = request.getClass().getClassLoader();
-    // printClasses(classLoader)
-} catch (ignored) {
-    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SHARPTREE.AUTOSCRIPT.SCREENS 应该就可以了" + ignored);
-    logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------002");
-    classLoadFlag = false
-    try {
 
-        var classLoader = request.getClass().getClassLoader();
-        // printClasses(classLoader)
-        /** @type {psdi.webclient.system.controller.PresentationLoader} */
-        PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader", classLoader);
-        /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
-        WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory", classLoader);
-        /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
-        WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime", classLoader);//53
-        /** @type {psdi.webclient.system.controller.IdProperty} */
-        IdProperty = Java.type("psdi.webclient.system.controller.IdProperty", classLoader);//51
-        /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
-        LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr", classLoader);//58
-        classLoadFlag = true
-    } catch (ignored2) {
-        logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败", ignored2)
-    }
+var classLoader
+try {
+    classLoader = java.lang.Thread.currentThread().getContextClassLoader();
+    /** @type {psdi.webclient.system.controller.PresentationLoader} */
+    PresentationLoader = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.PresentationLoader");
+
+    /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
+    WebClientSessionFactory = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.session.WebClientSessionFactory");
+
+    /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
+    WebClientRuntime = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.runtime.WebClientRuntime");
+    /** @type {psdi.webclient.system.controller.IdProperty} */
+    IdProperty = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.IdProperty");
+    /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
+    LabelCacheMgr = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.LabelCacheMgr");
+    classLoadFlag = true
+
+} catch (ignored3) {
+    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败0",ignored3)
+
+    // try {
+    //     /** @type {psdi.webclient.system.controller.PresentationLoader} */
+    //     PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
+    //     /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
+    //     WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory");
+    //     /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
+    //     WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime");//53
+    //     /** @type {psdi.webclient.system.controller.IdProperty} */
+    //     IdProperty = Java.type("psdi.webclient.system.controller.IdProperty");//51
+    //     /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
+    //     LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
+    //     classLoadFlag = true
+    //     logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载成功1")
+    // } catch (ignored) {
+    //     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SHARPTREE.AUTOSCRIPT.SCREENS 应该就可以了" + ignored);
+    //     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败1")
+    //     classLoadFlag = false
+    //     try {
+
+    //         classLoader = request.getClass().getClassLoader();
+    //         /** @type {psdi.webclient.system.controller.PresentationLoader} */
+    //         PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader", classLoader);
+    //         /** @type {psdi.webclient.system.session.WebClientSessionFactory} */
+    //         WebClientSessionFactory = Java.type("psdi.webclient.system.session.WebClientSessionFactory", classLoader);
+    //         /** @type {psdi.webclient.system.runtime.WebClientRuntime} */
+    //         WebClientRuntime = Java.type("psdi.webclient.system.runtime.WebClientRuntime", classLoader);//53
+    //         /** @type {psdi.webclient.system.controller.IdProperty} */
+    //         IdProperty = Java.type("psdi.webclient.system.controller.IdProperty", classLoader);//51
+    //         /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
+    //         LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr", classLoader);//58
+    //         classLoadFlag = true
+    //         logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载成功2")
+    //     } catch (ignored2) {
+    //         logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败2")
+    //     }
+    // }
 }
 
 
@@ -135,7 +156,8 @@ ImportAppScript.prototype.constructor = ImportAppScript;
 ImportAppScript.prototype.importApp = function (app, saveLabels) {
     var xml = this.xml
     //maximo9.1
-    PresentationParser = Java.type("psdi.webclient.system.controller.PresentationParser");
+    /** @type {psdi.webclient.system.controller.PresentationLoader} */
+    PresentationParser = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.PresentationParser")
     /** @type {psdi.webclient.system.controller.PresentationParser} */
     var pp = new PresentationParser(xml);
     this.currentAppID = pp.getApplication();
@@ -570,7 +592,10 @@ function main() {
             if (typeof httpMethod !== "undefined") {
 
                 try {
-                    PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
+                    if(!PresentationLoader){
+                        PresentationLoader = Java.type("psdi.webclient.system.controller.PresentationLoader");
+                    }
+
                 } catch (error) {
                     response.noPresentationLoader = true
                 }
@@ -1082,6 +1107,7 @@ function ScreenError(reason, message) {
     this.reason = reason;
     this.message = message;
 }
+
 
 // ConfigurationError derives from Error
 ScreenError.prototype = Object.create(Error.prototype);

@@ -76,11 +76,12 @@ function main() {
 function getCompleteReflectInfo(className) {
     /** @type {java.lang.Class} */
     var clazz = null;
+    var classLoader = java.lang.Thread.currentThread().getContextClassLoader();
     
     try {
         // 首先尝试使用 Class.forName 加载类（可以加载未初始化的类）
         // 注意：内部类需要使用 $ 符号，如 java.util.Base64$Decoder
-        clazz = Class.forName(className);
+        clazz = Class.forName(className, true, classLoader);
         logger.info("成功加载类: " + className);
         
     } catch (classError) {
@@ -91,7 +92,7 @@ function getCompleteReflectInfo(className) {
             logger.info("尝试作为内部类加载: " + possibleInnerClass);
             
             try {
-                clazz = Class.forName(possibleInnerClass);
+                clazz = Class.forName(possibleInnerClass, true, classLoader);
                 logger.info("成功加载内部类: " + possibleInnerClass);
                 className = possibleInnerClass;  // 更新类名
             } catch (innerError) {

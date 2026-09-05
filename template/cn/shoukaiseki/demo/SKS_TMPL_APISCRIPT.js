@@ -57,6 +57,20 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
   uInfo.setLangCode(_langcode);
   logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + uInfo.getLocale().getLanguage());
 }
+
+/** @type {java.lang.StringBuilder} */
+StringBuilder = Java.type("java.lang.StringBuilder");
+/** @type {java.lang.StringBuilder} */
+var debugMsg = new StringBuilder();
+// 调试参数,设置为true,则会返回debugMsg
+var paramDebug = false
+
+if (request.getQueryParam("_debug") !== 'undefined' && request.getQueryParam("_debug")) {
+  //paramDebug=true
+  paramDebug = request.getQueryParam("_debug") === 'true';
+  logger.info("\x1b[35;40m[" + scriptName + "]------------------paramDebug=" + paramDebug + "\x1b[0m");
+}
+
 //参数中不要包含以下参数,这些是maximo中在用的: action,distinct,maxsso,template,collectioncount,localref,relatedref 
 
 /** @type {java.lang.String} */
@@ -81,19 +95,39 @@ var httpMethodTmp=httpMethod
 // clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 
 
+var data={
+
+}
 // service.
 // /** @type {psdi.security.UserInfo} */
 // var profile = userInfo.getProfile()
-var data={
+var resData={
     "status": "success",
+    "data": data,
     "message": "Script executed successfully"
+}
+if(paramDebug){
+  resData.debugMsg=debugMsg.toString();
 }
 
 //返回的header使用responseHeaders变量设置,默认是"application/json"
 // responseHeaders.put("content-type", "application/json");
 
 //返回的设置到responseBody变量,String类型或者 byte[]类型
-responseBody = JSON.stringify(data);
+responseBody = JSON.stringify(resData);
+
+/**
+ * 调试信息
+ * @param {java.lang.String} msg
+ * @param {boolean} noln            是否不换行
+ */
+function debugMsg(msg,noln) {
+  logger.info("\x1b[35;40m[" + scriptName + "] " + msg + "\x1b[0m")
+  debugMsg.append(msg);
+  if(typeof noln === 'undefined' && !noln){
+    debugMsg.append("\n");
+  }
+}
 
 /**
  * 关闭（有close方法的对象）

@@ -50,6 +50,27 @@ logger.info("["+scriptName+"]----------------Starting execution of script " + se
 logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
 
 
+//如果是多语言的表,通过下面方式设置语言环境的数据
+var _langcode = "EN";
+if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
+  _langcode = request.getQueryParam("_langcode").toUpperCase();
+  uInfo.setLangCode(_langcode);
+  logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + uInfo.getLocale().getLanguage());
+}
+
+/** @type {java.lang.StringBuilder} */
+StringBuilder = Java.type("java.lang.StringBuilder");
+/** @type {java.lang.StringBuilder} */
+var debugMsg = new StringBuilder();
+// 调试参数,设置为true,则会返回debugMsg
+var paramDebug = false
+
+if (request.getQueryParam("_debug") !== 'undefined' && request.getQueryParam("_debug")) {
+  //paramDebug=true
+  paramDebug = request.getQueryParam("_debug") === 'true';
+  logger.info("\x1b[35;40m[" + scriptName + "]------------------paramDebug=" + paramDebug + "\x1b[0m");
+}
+
 
 /** @type {java.lang.String} */
 var requestBodyTmp=requestBody
@@ -73,20 +94,61 @@ var httpMethodTmp=httpMethod
 // clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 
 
+var data={
+
+}
 // service.
 // /** @type {psdi.security.UserInfo} */
 // var profile = userInfo.getProfile()
-var data={
+var resData={
     "status": "success",
+    "data": data,
     "message": "Script executed successfully"
+}
+if(paramDebug){
+  resData.debugMsg=debugMsg.toString();
 }
 
 //返回的header使用responseHeaders变量设置,默认是"application/json"
 // responseHeaders.put("content-type", "application/json");
 
 //返回的设置到responseBody变量,String类型或者 byte[]类型
-responseBody = JSON.stringify(data);
+responseBody = JSON.stringify(resData);
 
+/**
+ * 调试信息
+ * @param {java.lang.String} msg
+ * @param {boolean} noln            是否不换行
+ */
+function debugMsg(msg,noln) {
+  logger.info("\x1b[35;40m[" + scriptName + "] " + msg + "\x1b[0m")
+  debugMsg.append(msg);
+  if(typeof noln === 'undefined' && !noln){
+    debugMsg.append("\n");
+  }
+}
+/**
+ * 关闭（有close方法的对象）
+ */
+function _closeOnly(f) {
+  try {
+    if (f) {
+      f.close()
+    }
+  } catch (ignored) { }
+}
+
+/**
+ * 关闭MboSet
+ */
+function _close(set) {
+  try {
+    if (set) {
+      try { set.close(); } catch (ignored) { }
+      try { set.cleanup(); } catch (ignored) { }
+    }
+  } catch (ignored) { }
+}
 /**
  * 接口脚本
     com.ibm.tivoli.maximo.oslc.provider.ScriptRouteHandler; 类中

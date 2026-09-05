@@ -4,9 +4,10 @@
 /* eslint-disable no-undef */
 // @ts-nocheck
 /// <reference path="@javaapi/global.d.ts" />
+var scriptName = "SKS_LOG_ANSI_UTILS";
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
-var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
-logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init start\x1b[0m")
+var logger = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+logger.info("\x1b[31m[" + scriptName + "] init start\x1b[0m")
 logger.info('\x1b[31m红色文本\x1b[0m'); // 红色文本，\x1b[0m重置颜色
 logger.info('\x1b[32m绿色文本\x1b[0m'); // 绿色文本
 logger.info('\x1b[33m黄色文本\x1b[0m'); // 黄色文本
@@ -20,6 +21,9 @@ var MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
 
 /** @type {psdi.util.MXException} */
 var MXException = Java.type("psdi.util.MXException");//9
+
+/** @type {jdk.dynalink.beans.StaticClass} */
+var StaticClass = Java.type("jdk.dynalink.beans.StaticClass");
 
 if(logger.isInfoEnabled()){
     logger.info("\x1b[31m[SKS_LOG_ANSI_UTILS] init debug\x1b[0m")
@@ -267,4 +271,40 @@ AnsiLogger.prototype.isErrorEnabled = function () {
 }
 AnsiLogger.prototype.isTraceEnabled = function () {
     return this.logger.isTraceEnabled()
+}
+
+
+/**
+ * 加载类,适用于 WebClientRuntime 等DataBean之类,在context才能获取到的脚本
+ * @param {java.lang.Class} className 类名,需包含包名
+ * @returns 
+ */
+function autoJavaType(className) {
+  var clzTmp = null
+  try {
+    var classLoader = java.lang.Thread.currentThread().getContextClassLoader();
+      //须 Class.forName + StaticClass.forClass 包装
+    clzTmp = StaticClass.forClass(java.lang.Class.forName(className, true, classLoader));
+
+    logger.warn("\x1b[33m[" + scriptName + "] 方式一类加载成功:" + className+ "\x1b[0m")
+  } catch (error) {
+    logger.warn("\x1b[33m[" + scriptName + "] 方式一加载类失败:" + className+ "\x1b[0m");
+  }
+  if (clzTmp) {
+    // logger.warn("\x1b[33m[" + scriptName + "] 方式一类加载成功clzTmp not null:" + className+ "\x1b[0m")
+    return clzTmp;
+  }
+  try {
+  // nashorn-core 15.6: Java.type 不认 Class 对象/第二个 classLoader 参数
+    clzTmp = Java.type(className, classLoader);
+    logger.warn("\x1b[33m[" + scriptName + "] 方式二类加载成功:" + className+ "\x1b[0m")
+  } catch (error) {
+    logger.warn("\x1b[33m[" + scriptName + "] 方式二加载类失败:" + className+ "\x1b[0m");
+  }
+  if (clzTmp) {
+    logger.warn("\x1b[33m[" + scriptName + "] 方式二类加载成功clzTmp not null:" + className+ "\x1b[0m")
+    return clzTmp;
+  }
+  logger.error("\x1b[33m[" + scriptName + "] 类加载失败:" + className+ "\x1b[0m")
+  return clzTmp;
 }

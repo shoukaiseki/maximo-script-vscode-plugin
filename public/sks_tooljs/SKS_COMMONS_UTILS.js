@@ -34,35 +34,35 @@ var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName(
  * @returns
  */
 function getAppNameByMbo(mbo, frequency) {
-    // 防止无限递归，设置最大递归深度
-    var maxDepth = 5;
-    var currentDepth = (typeof frequency === "undefined" || frequency == null) ? 0 : frequency;
+  // 防止无限递归，设置最大递归深度
+  var maxDepth = 5;
+  var currentDepth = (typeof frequency === "undefined" || frequency == null) ? 0 : frequency;
 
-    if (currentDepth >= maxDepth) {
-        return "";
-    }
-
-    if (mbo == null) {
-        return "";
-    }
-
-    // 获取当前MBO的应用名称
-    var app = mbo.getThisMboSet().getApp();
-
-    // 如果当前应用名称有效，直接返回
-    if (app != null && app !== "") {
-        return app;
-    }
-
-    // 如果当前没有应用名称，尝试从父级获取
-    var parent = mbo.getOwner();
-    if (parent != null) {
-        // 递归调用，深度+1
-        return getAppNameByMbo(parent, currentDepth + 1);
-    }
-
-    // 没有父级且当前也没有应用名称，返回null
+  if (currentDepth >= maxDepth) {
     return "";
+  }
+
+  if (mbo == null) {
+    return "";
+  }
+
+  // 获取当前MBO的应用名称
+  var app = mbo.getThisMboSet().getApp();
+
+  // 如果当前应用名称有效，直接返回
+  if (app != null && app !== "") {
+    return app;
+  }
+
+  // 如果当前没有应用名称，尝试从父级获取
+  var parent = mbo.getOwner();
+  if (parent != null) {
+    // 递归调用，深度+1
+    return getAppNameByMbo(parent, currentDepth + 1);
+  }
+
+  // 没有父级且当前也没有应用名称，返回null
+  return "";
 }
 
 /**
@@ -72,12 +72,11 @@ function getAppNameByMbo(mbo, frequency) {
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.Boolean} 属性值
  */
-function getMboBooleanValue(service, mbo, attributeName)
-{
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    return mbo.getBoolean(attributeName);
+function getMboBooleanValue(service, mbo, attributeName) {
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return mbo.getBoolean(attributeName);
 }
 
 
@@ -88,12 +87,11 @@ function getMboBooleanValue(service, mbo, attributeName)
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.Integer} 属性值
  */
-function getMboIntValue(service, mbo, attributeName)
-{
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    return mbo.getInt(attributeName);
+function getMboIntValue(service, mbo, attributeName) {
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return mbo.getInt(attributeName);
 }
 
 
@@ -105,11 +103,11 @@ function getMboIntValue(service, mbo, attributeName)
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.Long} 属性值
  */
-function getMboLongValue(service, mbo, attributeName){
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    return mbo.getLong(attributeName);
+function getMboLongValue(service, mbo, attributeName) {
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return mbo.getLong(attributeName);
 }
 
 /**
@@ -119,14 +117,13 @@ function getMboLongValue(service, mbo, attributeName){
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.String} 属性值
  */
-function getMboStringValue(service, mbo, attributeName)
-{
+function getMboStringValue(service, mbo, attributeName) {
 
-    logger.debug("getMboStringValue")
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    return mbo.getString(attributeName);
+  logger.debug("getMboStringValue")
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return mbo.getString(attributeName);
 }
 
 /**
@@ -136,15 +133,15 @@ function getMboStringValue(service, mbo, attributeName)
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.String} 属性值
  */
-function getMboDateTimeToString(service,mbo,attributeName){
-    logger.debug("getMboStringValue")
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    var d = mbo.getDate(attributeName);
-    var df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    df.setTimeZone(TimeZone.getDefault());
-    return df.format(d);
+function getMboDateTimeToString(service, mbo, attributeName) {
+  logger.debug("getMboStringValue")
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  var d = mbo.getDate(attributeName);
+  var df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  df.setTimeZone(TimeZone.getDefault());
+  return df.format(d);
 }
 /**
  * 获取MBO的日期值字符串，格式为yyyy-MM-dd
@@ -153,12 +150,12 @@ function getMboDateTimeToString(service,mbo,attributeName){
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.String} 属性值
  */
-function getMboDateToString(service,mbo,attributeName){
-    logger.debug("getMboStringValue")
-    if (mbo.isNull(attributeName)) {
-        return null
-    }
-    return MXFormat.dateToSQLString(mbo.getDate(attributeName))
+function getMboDateToString(service, mbo, attributeName) {
+  logger.debug("getMboStringValue")
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return MXFormat.dateToSQLString(mbo.getDate(attributeName))
 }
 
 /**
@@ -168,8 +165,8 @@ function getMboDateToString(service,mbo,attributeName){
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.String} 属性值
  */
-function getMboDateValue(service, mbo, attributeName){
-    return formatDateTime(mbo.getDate(attributeName))
+function getMboDateValue(service, mbo, attributeName) {
+  return formatDateTime(mbo.getDate(attributeName))
 }
 
 // 辅助函数：格式化日期时间
@@ -204,9 +201,9 @@ function formatDateTime(date) {
  * @param {java.lang.String} attributeName - 属性名称
  * @returns {java.lang.Object} 属性值
  */
-function getValueAutoType(service,mbo,attributeName){
-    //Date,DateTime
-    return ScriptUtil.getValueFromMaxType(mbo.getMboValue(attributeName).getMaxType())
+function getValueAutoType(service, mbo, attributeName) {
+  //Date,DateTime
+  return ScriptUtil.getValueFromMaxType(mbo.getMboValue(attributeName).getMaxType())
 }
 
 
@@ -235,57 +232,57 @@ function getValueAutoType(service,mbo,attributeName){
  * @param {string} attrName - 属性名
  * @returns {*} - 字段值(字符串/数字/布尔/Base64字符串)
  */
-function getValueByMaxType(service,mbo, attrName) {
-    try {
-        var mboValueInfo = mbo.getThisMboSet().getMboSetInfo().getAttribute(attrName);
-        var maxType = mboValueInfo.getTypeAsInt();
-        switch (maxType) {
-            case 0:  
-            case 1:  
-            case 2:  
-            case 13: 
-            case 14: 
-            case 17: 
-                return mbo.getString(attrName);
-            case 3:  
-            case 4:  
-            case 5:  
-                if (mbo.isNull(attrName)) {
-                    return null;
-                }
-                var dateVal = mbo.getDate(attrName);
-                return ConversionUtil.dateToString(dateVal);
-            case 6:  
-            case 7:  
-            case 19: 
-                return mbo.getLong(attrName);
-            case 8:  
-            case 9:  
-            case 10: 
-            case 11: 
-                return mbo.getDouble(attrName);
-            case 12: 
-                return mbo.getBoolean(attrName);
-            case 15: 
-                var clearTextVal = mbo.getString(attrName);
-                if (clearTextVal == null) {
-                    return null;
-                }
-                var encData = MXServer.getMXServer().getMXCipher().encData(clearTextVal);
-                return DatatypeConverter.printBase64Binary(encData);
-            case 18: 
-                var bytes = mbo.getBytes(attrName);
-                if (bytes == null) {
-                    return null;
-                }
-                return DatatypeConverter.printBase64Binary(bytes);
-            default:
-                return mbo.getString(attrName);
+function getValueByMaxType(service, mbo, attrName) {
+  try {
+    var mboValueInfo = mbo.getThisMboSet().getMboSetInfo().getAttribute(attrName);
+    var maxType = mboValueInfo.getTypeAsInt();
+    switch (maxType) {
+      case 0:
+      case 1:
+      case 2:
+      case 13:
+      case 14:
+      case 17:
+        return mbo.getString(attrName);
+      case 3:
+      case 4:
+      case 5:
+        if (mbo.isNull(attrName)) {
+          return null;
         }
-    } catch (e) {
-        logger.error("["+scriptName+"] getValueByMaxType error for " + attrName + ": " + e);
-        return null;
+        var dateVal = mbo.getDate(attrName);
+        return ConversionUtil.dateToString(dateVal);
+      case 6:
+      case 7:
+      case 19:
+        return mbo.getLong(attrName);
+      case 8:
+      case 9:
+      case 10:
+      case 11:
+        return mbo.getDouble(attrName);
+      case 12:
+        return mbo.getBoolean(attrName);
+      case 15:
+        var clearTextVal = mbo.getString(attrName);
+        if (clearTextVal == null) {
+          return null;
+        }
+        var encData = MXServer.getMXServer().getMXCipher().encData(clearTextVal);
+        return DatatypeConverter.printBase64Binary(encData);
+      case 18:
+        var bytes = mbo.getBytes(attrName);
+        if (bytes == null) {
+          return null;
+        }
+        return DatatypeConverter.printBase64Binary(bytes);
+      default:
+        return mbo.getString(attrName);
     }
+  } catch (e) {
+    logger.error("[" + scriptName + "] getValueByMaxType error for " + attrName + ": " + e);
+    return null;
+  }
 }
 
 
@@ -299,13 +296,13 @@ function getValueByMaxType(service,mbo, attrName) {
 function parseDateString(dateStr) {
   if (!dateStr) return null;
   // 1. 中文格式: yyyy年M月d日
-  try { return new java.text.SimpleDateFormat("yyyy年M月d日").parse(dateStr); } catch (e) {}
+  try { return new java.text.SimpleDateFormat("yyyy年M月d日").parse(dateStr); } catch (e) { }
   // 2. 标准横杠格式: yyyy-MM-dd
-  try { return new java.text.SimpleDateFormat("yyyy-MM-dd").parse(dateStr); } catch (e) {}
+  try { return new java.text.SimpleDateFormat("yyyy-MM-dd").parse(dateStr); } catch (e) { }
   // 3. 斜杠格式: yyyy/MM/dd
-  try { return new java.text.SimpleDateFormat("yyyy/MM/dd").parse(dateStr); } catch (e) {}
+  try { return new java.text.SimpleDateFormat("yyyy/MM/dd").parse(dateStr); } catch (e) { }
   // 4. 无分隔符: yyyyMMdd
-  try { return new java.text.SimpleDateFormat("yyyyMMdd").parse(dateStr); } catch (e) {}
+  try { return new java.text.SimpleDateFormat("yyyyMMdd").parse(dateStr); } catch (e) { }
   // 5. Excel序列号(纯数字, 如 46171)
   try {
     var serialNum = java.lang.Double.parseDouble(dateStr);
@@ -315,9 +312,9 @@ function parseDateString(dateStr) {
       var msOffset = Math.round(serialNum * msPerDay);
       return new java.util.Date(baseDate.getTime() + msOffset);
     }
-  } catch (e) {}
-    //{ "msgGroup": "ibm_common", "msgKey": "canNotParseDate", "value": "无法解析日期: {0}", "displayMethod": "MSGBOX", "options": ["close"], "msgIdPrefix": "BMXAA", "msgIdSuffix": "W" }
-  throw new MXApplicationException("ibm_common","canNotParseDate" [dateStr]);
+  } catch (e) { }
+  //{ "msgGroup": "ibm_common", "msgKey": "canNotParseDate", "value": "无法解析日期: {0}", "displayMethod": "MSGBOX", "options": ["close"], "msgIdPrefix": "BMXAA", "msgIdSuffix": "W" }
+  throw new MXApplicationException("ibm_common", "canNotParseDate"[dateStr]);
 }
 
 /**
@@ -331,12 +328,12 @@ function parseDateString(dateStr) {
  */
 function printComponentInfo(base, qianzui) {
   if (base != null) {
-    logger.info("[" + scriptName + "] bianliPrint." + qianzui+"=" + base);
+    logger.info("[" + scriptName + "] bianliPrint." + qianzui + "=" + base);
     var children = null;
     try { children = base.getChildren(); } catch (e) { children = null; }
     if (children != null) {
       for (var i = 0; i < children.length; i++) {
-        printComponentInfo(children[i], qianzui + (i+1));
+        printComponentInfo(children[i], qianzui + (i + 1));
       }
     }
   }
@@ -455,8 +452,9 @@ function findComponentByCompId(node, compId) {
  * @returns {string} 清除前后空白后的字符串，null/undefined 返回空字符串
  */
 function trimAll(str) {
-    if (str === null ||typeof str === "undefined") {
-        return "";
-    }
-    return String(str).replace(/^[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+|[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+$/g, "");
+  if (str === null || typeof str === "undefined") {
+    return "";
+  }
+  return String(str).replace(/^[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+|[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+$/g, "");
 }
+
