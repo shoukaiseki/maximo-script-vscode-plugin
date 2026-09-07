@@ -4,6 +4,7 @@ import com.ibm.tivoli.maximo.script.JSR223ScriptDriver;
 import com.ibm.tivoli.maximo.script.ScriptInfo;
 
 import org.openjdk.nashorn.api.scripting.NashornException;
+import org.openjdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.python.core.Py;
 import org.python.core.PyFrame;
 import org.python.core.ThreadState;
@@ -246,7 +247,6 @@ public final class DebugDriver extends JSR223ScriptDriver {
             return;
         }
 
-
         String sourceToExecute = JavaScriptInstrumenter.instrument(scriptInfo.getName(), source);
         ScriptEngine engine = SCRIPT_ENGINE_MANAGER.getEngineByName(scriptInfo.getScriptLanguge());
         if (engine == null) {
@@ -277,11 +277,26 @@ public final class DebugDriver extends JSR223ScriptDriver {
             scriptContext.setAttribute(ScriptEngine.FILENAME, scriptInfo.getName() + ".js", ScriptContext.ENGINE_SCOPE);
 
             Object evalResult = engine.eval(new StringReader(sourceToExecute), scriptContext);
-            context.putAll(engineBindings);
-            context.put("evalresult", evalResult);
+
+            if (scriptInfo.isInterfaceScript()) {
+                // interface scripts (APPBEAN / OBJECT etc.) have their entry function invoked by
+                // Maximo through context.invokeFunction / invokeArgs. The original
+                // JSR223ScriptDriver.evalScript resolves the function and invokes it in its
+                // interface-script branch, writing back invokeStatus / invokeResponse. Without
+                // that step, SAVE(dbctx) etc. are never executed while debugging. In a custom
+                // SimpleScriptContext Nashorn does not expose function definitions to
+                // Invocable.invokeFunction, so grab the ScriptObjectMirror produced by the
+                // instrumented eval and call it directly; semantics match the base driver and
+                // scripts stay isolated from the shared engine global scope.
+                invokeJavaScriptFunction(scriptInfo, context, engineBindings);
+            } else {
+                context.putAll(engineBindings);
+                context.put("evalresult", evalResult);
+            }
+
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("JavaScript script " + scriptInfo.getName()
-                        + " completed; merged " + engineBindings.size() + " bindings into context");
+                        + " completed; " + engineBindings.size() + " bindings in engine scope");
             }
         } catch (ScriptException e) {
             // Notify the debug adapter before converting so the client can pause at the throw
@@ -293,6 +308,43 @@ public final class DebugDriver extends JSR223ScriptDriver {
             }
             DEBUG_ADAPTER_SERVER.traceJavaScriptException(scriptInfo, context, lineNumber, e, null, true);
             throw toScriptException(scriptInfo, e);
+        }
+    }
+
+    /**
+     * Mirrors the interface-script branch of Maximo's {@code JSR223ScriptDriver.evalScript}
+     * for instrumented Nashorn scripts: looks up the function named by
+     * {@code context.invokeFunction} in the eval bindings, marks {@code invokeStatus},
+     * invokes it with {@code invokeArgs}, and stores the result in {@code invokeResponse}.
+     *
+     * @param scriptInfo     active script metadata
+     * @param context        current Maximo script bindings, which carry {@code invokeFunction},
+     *                       {@code invokeArgs}, {@code invokeStatus} and {@code invokeResponse}
+     * @param engineBindings the ENGINE_SCOPE bindings the instrumented source was evaluated into
+     * @throws ScriptException when the invoked function throws
+     */
+    private void invokeJavaScriptFunction(
+            ScriptInfo scriptInfo,
+            Map<String, Object> context,
+            Bindings engineBindings
+    ) throws ScriptException {
+        String functionName = (String) context.get("invokeFunction");
+        Object scriptFunction = functionName == null ? null : engineBindings.get(functionName);
+        if (!(scriptFunction instanceof ScriptObjectMirror scriptObjectMirror)) {
+            context.put("invokeStatus", false);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("JavaScript interface script " + scriptInfo.getName()
+                        + " has no function " + functionName + "; invokeStatus=false");
+            }
+            return;
+        }
+        context.put("invokeStatus", true);
+        Object[] args = (Object[]) context.get("invokeArgs");
+        Object response = scriptObjectMirror.call(null, args == null ? new Object[0] : args);
+        context.put("invokeResponse", response);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("JavaScript interface script " + scriptInfo.getName()
+                    + " invoked " + functionName + " with " + (args == null ? 0 : args.length) + " args");
         }
     }
 
