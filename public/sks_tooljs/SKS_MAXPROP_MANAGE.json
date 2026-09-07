@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_MAXPROP_MANAGE",
   "description": "maxprop属性管理,查询导入,导出",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

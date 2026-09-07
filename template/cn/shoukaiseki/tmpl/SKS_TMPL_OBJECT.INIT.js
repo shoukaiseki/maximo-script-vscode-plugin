@@ -54,7 +54,7 @@ var userTmp = user
 /** @type {psdi.mbo.MboValue} */
 var evalresultTmp = evalresult
 
-if(appName=="IBM_ITEM"){
+if ("IBM_ITEM".equalsIgnoreCase(appName)) {
     // var clientsession =  service.webclientsession();
     //clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning","----初始化" + mbo.getString("STATUS"), 1);
     var activelist = ["DESCRIPTION"];

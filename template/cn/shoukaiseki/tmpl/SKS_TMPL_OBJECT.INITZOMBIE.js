@@ -17,7 +17,7 @@ importClass(Packages.java.util.HashMap);
 
 /** @type {psdi.mbo.MboConstants} */
 MboConstants = Java.type("psdi.mbo.MboConstants");
-var scriptName=service.getScriptName()
+var scriptName = service.getScriptName()
 
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
@@ -28,13 +28,13 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 /** @type {jscustom.sksLogAnsiUtils} */
-var sksLogAnsiUtils=service.invokeScript("SKS_LOG_ANSI_UTILS");
-loggerMX.error("["+scriptName+"]----------1");
+var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+loggerMX.error("[" + scriptName + "]----------1");
 /** @type {jscustom.AnsiLogger} */
-var logger =sksLogAnsiUtils.newAnsiLogger({logger:loggerMX, ansiOpen:true})
+var logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 // logger.setLevel(Level.INFO);
-logger.info("["+scriptName+"]----------------Starting execution of script " + service.getScriptName());
-logger.info("["+scriptName+"]-------------webclientsession=" + service.webclientsession())
+logger.info("[" + scriptName + "]----------------Starting execution of script " + service.getScriptName());
+logger.info("[" + scriptName + "]-------------webclientsession=" + service.webclientsession())
 
 
 var appName = service.invokeScript("COMMON.UTILS", "getAppNameByMbo", [mbo]);
@@ -68,15 +68,15 @@ var userTmp = user
 /** @type {psdi.mbo.MboValue} */
 var evalresultTmp = evalresult
 
-if(appName=="IBM_ITEM"){
-    // var clientsession =  service.webclientsession();
-    //clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning","----初始化" + mbo.getString("STATUS"), 1);
-    var activelist = ["DESCRIPTION"];
-    if (!mbo.getString("STATUS").equals("DRAFT")) {
-        //mbo.setFlag( MboConstants.READONLY, true);
-        mbo.setFieldFlag(activelist, MboConstants.READONLY, true);
-        mbo.getMboSet("IBM_CUSTOMERADD").setFlag(MboConstants.READONLY, true);
-    }
+if ("IBM_ITEM".equalsIgnoreCase(appName)) {
+  // var clientsession =  service.webclientsession();
+  //clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning","----初始化" + mbo.getString("STATUS"), 1);
+  var activelist = ["DESCRIPTION"];
+  if (!mbo.getString("STATUS").equals("DRAFT")) {
+    //mbo.setFlag( MboConstants.READONLY, true);
+    mbo.setFieldFlag(activelist, MboConstants.READONLY, true);
+    mbo.getMboSet("IBM_CUSTOMERADD").setFlag(MboConstants.READONLY, true);
+  }
 }
 
 var clientsession = service.webclientsession();

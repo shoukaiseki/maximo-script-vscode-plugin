@@ -189,6 +189,50 @@ javascript:
           /** @type {com.ibm.json.java.OrderedJSONObject} */
           OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
+  - name: "java常用模板"
+    childrens:
+      - name: "只读设置方法"
+        remark: "只读设置方法"
+        code: |
+          /**
+          * 多次调用方式,脚本配置中 interface=0
+            var itemUtils = service.invokeScript("ITEM_UTILS");
+            var result = itemUtils.itemReadonlyInit(service,mbo)
+          * 单次调用方式,脚本配置中 interface=1
+          * 
+              service.invokeScript("ITEM_UTILS","itemReadonlyInit",[service,mbo]);
+
+          *  被调用的方法
+          * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 脚本服务
+          * @param {psdi.mbo.Mbo} mbo - MBO对象
+          * @returns {string}
+          * 
+          */
+          function itemReadonlyInit(service,mbo){
+              initLogger(service,mbo);
+              var status = mbo.getString("STATUS")
+
+              //要设置只读的字段列表
+              var attrList = ["DESCRIPTION"];
+              if(["CLOSE","CANCEL"].indexOf(status)>-1){
+                  //设置为只读
+                  mbo.setFieldFlag(attrList, MboConstants.READONLY, true);
+                  // mbo.getMboSet("xxx").setFlag(MboConstants.READONLY, true);
+                  return
+              }
+              if(["DRAFT","REVISE",""].indexOf(status)>-1){
+                  mbo.setFieldFlag(attrList, MboConstants.READONLY, false);
+              }
+              //if (!status.equals("DRAFT")) {
+                  //mbo.setFlag( MboConstants.READONLY, true);
+              //    mbo.setFieldFlag(attrList, MboConstants.READONLY, true);
+              //}
+
+              logger.info("[" + scriptName + "] initializeApp")
+              return 
+          }
+
+
   
 
 #应用程序设计器xml
@@ -508,6 +552,7 @@ maxappxml:
                       targetid="目标标识"
                       sigoption="签名选项"
                       sigoptiondatasrc="签名数据源标识"
+                      synchronous="true:始终同步,属性变更后立即会触发action"
                       detailimage="详细信息图像"/>
                       -->
                     <tablecol dataattribute="IBM_PARTNUMBER" id="table_column_partnumber" label="零件编号" sortable="true" filterable="true"/>
