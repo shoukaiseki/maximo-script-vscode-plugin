@@ -12,12 +12,12 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
-loggerMX.error("[SHARPTREE.AUTOSCRIPT.SCREENS]----------1");
+loggerMX.error("[SKS.AUTOSCRIPT.SCREENS]----------1");
 /** @type {jscustom.AnsiLogger} */
 var logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
 logger.setLevel(Level.INFO);
-logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]----------------Starting execution of script " + service.getScriptName());
-logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]-------------webclientsession=" + service.webclientsession())
+logger.info("[SKS.AUTOSCRIPT.SCREENS]----------------Starting execution of script " + service.getScriptName());
+logger.info("[SKS.AUTOSCRIPT.SCREENS]-------------webclientsession=" + service.webclientsession())
 
 var classLoadFlag = false
 RESTRequest = Java.type("com.ibm.tivoli.oslc.RESTRequest");
@@ -30,7 +30,7 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
     // uInfo.setLocale(lang);
     userInfo.setLangCode(_langcode.toLowerCase())
     if (userInfo.getLocale()) {
-        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
+        logger.error("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
     }
 }
 
@@ -58,7 +58,7 @@ MXAccessException = Java.type("psdi.util.MXAccessException");
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");//59
-logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------001");
+logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS]------------------001");
 
 var PresentationLoader = null
 
@@ -80,7 +80,7 @@ try {
     classLoadFlag = true
 
 } catch (ignored3) {
-    logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败0",ignored3)
+    logger.error("[SKS.AUTOSCRIPT.SCREENS] 类加载失败0",ignored3)
 
     // try {
     //     /** @type {psdi.webclient.system.controller.PresentationLoader} */
@@ -94,10 +94,10 @@ try {
     //     /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
     //     LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr");//58
     //     classLoadFlag = true
-    //     logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载成功1")
+    //     logger.warn("[SKS.AUTOSCRIPT.SCREENS] 类加载成功1")
     // } catch (ignored) {
-    //     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SHARPTREE.AUTOSCRIPT.SCREENS 应该就可以了" + ignored);
-    //     logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败1")
+    //     logger.error("[SKS.AUTOSCRIPT.SCREENS] 应该是PresentationLoader not fount,重新push SKS.AUTOSCRIPT.SCREENS 应该就可以了" + ignored);
+    //     logger.error("[SKS.AUTOSCRIPT.SCREENS] 类加载失败1")
     //     classLoadFlag = false
     //     try {
 
@@ -113,9 +113,9 @@ try {
     //         /** @type {psdi.webclient.system.controller.LabelCacheMgr} */
     //         LabelCacheMgr = Java.type("psdi.webclient.system.controller.LabelCacheMgr", classLoader);//58
     //         classLoadFlag = true
-    //         logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载成功2")
+    //         logger.warn("[SKS.AUTOSCRIPT.SCREENS] 类加载成功2")
     //     } catch (ignored2) {
-    //         logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] 类加载失败2")
+    //         logger.error("[SKS.AUTOSCRIPT.SCREENS] 类加载失败2")
     //     }
     // }
 }
@@ -138,15 +138,15 @@ try {
         throw error;
     }
 }
-logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------003");
+logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS]------------------003");
 
 StringReader = Java.type("java.io.StringReader");
 StringWriter = Java.type("java.io.StringWriter");
 logger.setLevel(Level.INFO);
 
-logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------004");
+logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS]------------------004");
 function ImportAppScript(xml) {
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript")
+    logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript")
     this.xml = xml;
     this.currentAppID = null;
 }
@@ -161,7 +161,7 @@ ImportAppScript.prototype.importApp = function (app, saveLabels) {
     /** @type {psdi.webclient.system.controller.PresentationParser} */
     var pp = new PresentationParser(xml);
     this.currentAppID = pp.getApplication();
-    logger.info('[SHARPTREE.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID)
+    logger.info('[SKS.AUTOSCRIPT.SCREENS] ImportAppScript.currentAppID=' + this.currentAppID)
     if (pp.getTrimmedXML().indexOf("<systemlib") < 0) {
         //应用xml
         /** @type {psdi.mbo.MboSetRemote} */
@@ -174,7 +174,7 @@ ImportAppScript.prototype.importApp = function (app, saveLabels) {
             var compAppId = app.getString("app");
             if (compAppId.equalsIgnoreCase(this.currentAppID)) {
                 exists = true;
-                logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.应用存在")
+                logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.应用存在")
                 break;
             }
         }
@@ -189,9 +189,9 @@ ImportAppScript.prototype.importApp = function (app, saveLabels) {
     //在这里增加保存系统当前的历史记录,新增一个保存历史记录的方法,参考 masscript\cn\shoukaiseki\tools\APPBEAN.DESIGNER.js
     // 保存旧版本历史记录（从数据库查询当前已有内容，作为导入前的备份）
     if (!saveOldVersionHistory(pp)) {
-        logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  无旧版本需要备份或保存失败")
+        logger.info("[SKS.AUTOSCRIPT.SCREENS]  无旧版本需要备份或保存失败")
     }
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveHistory")
+    logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveHistory")
     //系统xml 或者 应用xml存在
     var labels = pp.getLabels();
     this.saveXML(this.currentAppID, pp.getTrimmedXML());
@@ -227,7 +227,7 @@ ImportAppScript.prototype.importApp = function (app, saveLabels) {
 }
 
 ImportAppScript.prototype.saveXML = function (appID, xml) {
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML")
+    logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML")
     try {
         /** @type {psdi.mbo.MboSetRemote} */
         var mboset = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
@@ -253,7 +253,7 @@ ImportAppScript.prototype.saveXML = function (appID, xml) {
         var params = new Array("Unable to save xml definition:  IO Error");
         throw new MXApplicationException("importApp", "generic", params);
     }
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML end")
+    logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveXML end")
 
 }
 /**
@@ -264,7 +264,7 @@ ImportAppScript.prototype.saveXML = function (appID, xml) {
  */
 function saveOldVersionHistory(pp) {
     appID = pp.getApplication();
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] saveOldVersionHistory appID=" + appID);
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] saveOldVersionHistory appID=" + appID);
     var presentationSet = null;
     var historySet = null;
     try {
@@ -276,14 +276,14 @@ function saveOldVersionHistory(pp) {
         presentationSet.reset();
 
         if (presentationSet.isEmpty()) {
-            logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] MAXPRESENTATION中无旧版本记录，跳过备份");
+            logger.info("[SKS.AUTOSCRIPT.SCREENS] MAXPRESENTATION中无旧版本记录，跳过备份");
             return true;
         }
 
         var mbo = presentationSet.getMbo(0);
         var oldXml = mbo.getString("PRESENTATION");
         if (!oldXml) {
-            logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS] PRESENTATION为空，跳过备份");
+            logger.info("[SKS.AUTOSCRIPT.SCREENS] PRESENTATION为空，跳过备份");
             return true;
         }
 
@@ -313,10 +313,10 @@ function saveOldVersionHistory(pp) {
         history.setValue("VERSION", "save.after", MboConstants.NOACCESSCHECK);
         history.setValue("SOURCE", pp.getTrimmedXML(), MboConstants.NOACCESSCHECK);
         historySet.save();
-        logger.info("\x1b[32m[SHARPTREE.AUTOSCRIPT.SCREENS] 旧版本历史记录保存成功: " + appID + "\x1b[0m");
+        logger.info("\x1b[32m[SKS.AUTOSCRIPT.SCREENS] 旧版本历史记录保存成功: " + appID + "\x1b[0m");
         return true;
     } catch (e) {
-        logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS] saveOldVersionHistory error", e);
+        logger.error("[SKS.AUTOSCRIPT.SCREENS] saveOldVersionHistory error", e);
         return false;
     } finally {
         _close(presentationSet);
@@ -324,7 +324,7 @@ function saveOldVersionHistory(pp) {
     }
 }
 ImportAppScript.prototype.saveLabels = function (appID, labels) {
-    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")
+    logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")
     try {
         var mboset = MXServer.getMXServer().getMboSet("MAXLABELS", userInfo);
         mboset.resetQbe();
@@ -356,7 +356,7 @@ ImportAppScript.prototype.saveLabels = function (appID, labels) {
                 }
 
                 mboset.save();
-                logger.info("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS] saveLabels end\x1b[0m")
+                logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS] saveLabels end\x1b[0m")
                 return;
             }
 
@@ -403,9 +403,9 @@ ImportAppScript.prototype.refreshApp = function (name) {
                 System.out.println("Refresh not necessary for \"" + name.toUpperCase() + "\" application.");
             }
         }
-        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS] refreshApp end\x1b[0m")
+        logger.error("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS] refreshApp end\x1b[0m")
     } catch (e) {
-        logger.warn("[SHARPTREE.AUTOSCRIPT.SCREENS] refreshApp error,正常现象,api调用肯定异常,MAXAUTH调用也经常会异常", e)
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] refreshApp error,正常现象,api调用肯定异常,MAXAUTH调用也经常会异常", e)
     }
 
 
@@ -439,7 +439,7 @@ function main() {
                         response.screenNames = presentations;
                         responseBody = JSON.stringify(response);
                     } catch (error) {
-                        logger.error("[SHARPTREE.AUTOSCRIPT.SCREENS]", error);
+                        logger.error("[SKS.AUTOSCRIPT.SCREENS]", error);
                     } finally {
                         _close(presentationSet);
                     }
@@ -494,7 +494,7 @@ function main() {
                     // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
 
-                    logger.info("[SHARPTREE.AUTOSCRIPT.SCREENS]request.getMXSession()=" + request.getMXSession());
+                    logger.info("[SKS.AUTOSCRIPT.SCREENS]request.getMXSession()=" + request.getMXSession());
                     // var loader = new PresentationLoader();
                     // var wcsf = WebClientSessionFactory.getWebClientSessionFactory();
                     // var wcs = wcsf.createSession(request.getHttpServletRequest(), request.getHttpServletResponse());
@@ -1116,7 +1116,7 @@ ScreenError.prototype.element;
 
 // eslint-disable-next-line no-unused-vars
 var scriptConfig = {
-    autoscript: "SHARPTREE.AUTOSCRIPT.SCREENS",
+    autoscript: "SKS.AUTOSCRIPT.SCREENS",
     description: "Extract screen definitions.",
     version: "1.0.0",
     active: true,

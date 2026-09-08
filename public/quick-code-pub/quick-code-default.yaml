@@ -398,6 +398,11 @@ maxappxml:
                      为空:    不加css渲染
 
                   <tabgroup format="carddeck" id="maintabs" style="form">
+                  <tab id="tab1" label="标签页1"
+                   tabchangeevent="filterrows,执行对应bean的方法" 
+                   tabchangeeventtarget="poline,table的数据源"
+                  >
+                  </tab>
                   </tabgroup>
                   -->
                   <tabgroup format="carddeck" id="maintabs" style="form">
@@ -406,6 +411,32 @@ maxappxml:
                   <tab id="tab2" label="标签页2">
                   </tab>
                   </tabgroup>
+      - name: tab标签页组件
+        childrens:
+          - name: tab/tabgroup组件属性说明
+            componentName: "tab"
+            remark: |
+              标签页
+              type="list": 仅用于主列表标签页
+              type="insert": 用于详情表单标签页
+              嵌套在详情表单内的子表标签页也使用type="list"
+            code: |
+                  <!-- <tabgroup id="标签页组唯一标识">
+                      <tab id="唯一标识" 
+                      label="标签页标题" type="标签页类型:insert(详情),list(列表)" default="是否默认:true,false"
+                      tabchangeevent="filterrows,执行对应bean的方法" 
+                      tabchangeeventtarget="poline,table的数据源"
+                      />
+                  </tabgroup>
+                      -->
+                    <tabgroup id="main_tabs">
+                      <tab id="results" label="列表" type="list">
+                        <!-- 列表表格 -->
+                      </tab>
+                      <tab id="main" label="详情" type="insert">
+                        <!-- 表单字段 -->
+                      </tab>
+                    </tabgroup>
       - name: section区域组件
         childrens:
           - name: section组件属性说明
@@ -447,28 +478,6 @@ maxappxml:
                         </sectioncol>
                       </sectionrow>
                     </section>
-      - name: tab标签页组件
-        childrens:
-          - name: tab/tabgroup组件属性说明
-            componentName: "tab"
-            remark: |
-              标签页
-              type="list": 仅用于主列表标签页
-              type="insert": 用于详情表单标签页
-              嵌套在详情表单内的子表标签页也使用type="list"
-            code: |
-                  <!-- <tabgroup id="标签页组唯一标识">
-                      <tab id="唯一标识" label="标签页标题" type="标签页类型:insert(详情),list(列表)" default="是否默认:true,false"/>
-                  </tabgroup>
-                      -->
-                    <tabgroup id="main_tabs">
-                      <tab id="results" label="列表" type="list">
-                        <!-- 列表表格 -->
-                      </tab>
-                      <tab id="main" label="详情" type="insert">
-                        <!-- 表单字段 -->
-                      </tab>
-                    </tabgroup>
   - name: "表格"
     childrens:
       - name: table表格组件

@@ -47,7 +47,19 @@ public final class DebugDriver extends JSR223ScriptDriver {
             "NAVIAM.AUTOSCRIPT.OBJECTS",
             "NAVIAM.AUTOSCRIPT.REPORT",
             "NAVIAM.AUTOSCRIPT.SCREENS",
-            "NAVIAM.AUTOSCRIPT.STORE"
+            "NAVIAM.AUTOSCRIPT.STORE",
+            "SKS.AUTOSCRIPT.ADMIN",
+            "SKS.AUTOSCRIPT.DBC",
+            "SKS.AUTOSCRIPT.DEPLOY",
+            "SKS.AUTOSCRIPT.DEPLOY.HISTORY",
+            "SKS.AUTOSCRIPT.EXTRACT",
+            "SKS.AUTOSCRIPT.FORM",
+            "SKS.AUTOSCRIPT.LIBRARY",
+            "SKS.AUTOSCRIPT.LOGGING",
+            "SKS.AUTOSCRIPT.OBJECTS",
+            "SKS.AUTOSCRIPT.REPORT",
+            "SKS.AUTOSCRIPT.SCREENS",
+            "SKS.AUTOSCRIPT.STORE"
     );
 
 
