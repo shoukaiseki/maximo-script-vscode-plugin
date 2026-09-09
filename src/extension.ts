@@ -308,7 +308,7 @@ export function activate(context: vscode.ExtensionContext) {
       const presentationId = idMatch[1];
       logger.info(`[PullAppXml] 文件名: ${fileName}, ${elementType} id: ${presentationId}`);
 
-      if (fileName !== presentationId) {
+      if (fileName.toLowerCase() !== presentationId.toLowerCase()) {
         const choice = await vscode.window.showWarningMessage(
           `文件名与 id 属性值不同，是否继续？\n文件名: ${fileName}\nid属性: ${presentationId}`,
           { modal: true },
