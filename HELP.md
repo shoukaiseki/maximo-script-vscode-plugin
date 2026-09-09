@@ -97,6 +97,10 @@
   - 开启后，推送 XML 文件时将强制使用 MAXAUTH 认证
   - 避免 API Key 权限不足导致的问题
   - 不同环境可独立配置
+- **右键菜单 Pull 应用XML时忽略 metadata**（默认关闭）：
+  - 开启后，右键点击 XML 文件 / 编辑器右键 **Pull 应用 XML** 时仅获取应用原始界面 XML
+  - 不导出控制组/权限组/条件表达式等附加 metadata
+  - 配置自动持久化保存
 
 ### 测试连接
 
@@ -268,6 +272,8 @@ Maximo 自动化脚本（JavaScript/Nashorn、Jython）远程调试，调试器�
 
 另需：docker-compose 暴露调试端口；连接账号使用 maxadmin 或拥有 `MXSCRIPT`/`MXAPIDOMAIN` 权限；
 `SKS.AUTOSCRIPT.DEBUG` 脚本部署到 Maximo（由 `public/maximo-developer-resources/SKS.AUTOSCRIPT.DEBUG.js` 统一管理）。
+
+> 💡 **自动导入**：attach 时若检测到服务器不存在 `SKS.AUTOSCRIPT.DEBUG` 脚本，插件会弹窗询问是否立即导入；点击「是」将自动从插件资源目录读取脚本并部署（不存在则 POST 创建，已存在则 PATCH 更新），导入成功后自动重新检查脚本状态即可继续调试。
 
 ### 连接配置
 
@@ -931,6 +937,9 @@ org/
   - 配置自动持久化保存
 - **📦 导出完成后自动打包为ZIP**：勾选后导出完成自动打包为ZIP并删除源目录
   - 仅当自动生成时间戳子目录时有效
+- **🚫 忽略metadata**（默认关闭）
+  - 开启后仅导出应用原始界面 XML，不导出控制组/权限组/条件表达式等附加信息
+  - 配置自动持久化保存
 
 **目录结构示例**：
 ```
@@ -1123,7 +1132,7 @@ condition_backup_YYYYMMDD_HHMMSS/
 | 导出功能 | 选择任务类型：MAXOBJECT/消息/域/条件表达式/脚本/应用XML |
 | 目录 | 每个任务独立导出子目录，支持变量替换 |
 | 语言 | 任务级语言参数，作为 API 请求的 `_langcode` 值 |
-| 模块配置 | 根据导出类型动态显示配置项（where 条件/精简模式/单文件行数） |
+| 模块配置 | 根据导出类型动态显示配置项（导出应用XML显示「忽略metadata」；条件表达式显示 where 条件；消息/域显示单文件行数与精简模式；MAXOBJECT 显示精简模式） |
 | 压缩 | 勾选后任务完成后自动打包 ZIP |
 | 线程数 | 并发导出线程数（范围 1~20） |
 | 启用 | 勾选的任务才会被执行 |
@@ -1270,6 +1279,7 @@ node demo01.js loc; node demo01.js hd; node demo01.js dev
 - ⚠️ 需要 Maximo 系统中部署 `SHARPTREE.AUTOSCRIPT.SCREENS` 脚本
 - ⚠️ 备份文件按时间戳命名，不会覆盖已有备份
 - ⚠️ 原文件会被直接覆盖，请确保已正确备份
+- ⚠️ 在**其它配置**中开启「右键菜单 Pull 应用XML时忽略 metadata」后，将仅拉取应用原始界面 XML，不含控制组/权限组等 metadata
 
 ---
 
@@ -1901,4 +1911,4 @@ langcode = ""
 - 📚 [Skills 文档](https://gitee.com/shoukaiseki/maximo-script-vscode-plugin/tree/master/AIDOC/SKILLS)
 ---
 
-*最后更新：2026-07-30 | 版本：1.4.34*
+*最后更新：2026-07-30 | 版本：1.8.16*

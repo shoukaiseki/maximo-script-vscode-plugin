@@ -5,6 +5,35 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.16] - 2026-07-30
+
+### 新增功能
+
+#### 应用 XML 导出/Pull 忽略 metadata
+- 🚫 工具箱「导出应用XML」新增「忽略metadata」开关（`maximoScript.extractXmlIgnoreMetadata`），持久化保存
+  - 开启后仅导出应用原始界面 XML，不附带控制组/权限组/条件表达式等 metadata
+- 📅 计划导出「导出应用XML」任务新增「忽略metadata」选项，按任务单独配置
+- 🖱️ 工具箱「其它配置」新增「右键菜单 Pull 应用XML时忽略 metadata」开关（`maximoScript.pullAppXmlIgnoreMetadata`），持久化保存
+- 🛠 服务端脚本 `SKS.AUTOSCRIPT.SCREENS.js` 生效 `ignoreMetadata` url 参数
+  - 请求携带 `ignoreMetadata=true` 时直接返回原始 XML，跳过 metadata 附加
+
+#### 脚本调试自动导入
+- 🐞 调试启动时若服务器不存在 `SKS.AUTOSCRIPT.DEBUG` 脚本，弹窗询问是否立即导入
+  - 点击「是」从插件资源目录读取脚本并通过 `os/MXAPIAUTOSCRIPT` 接口自动部署（不存在则 POST 创建，已存在则 PATCH 更新）
+  - 导入成功后自动重新检查脚本状态，可继续调试流程；失败提示手动部署
+
+### 技术实现
+
+- 🔧 修改
+  - `public/maximo-developer-resources/SKS.AUTOSCRIPT.SCREENS.js` - `ignoreMetadata` 参数生效（extractScreen 直接返回原始 XML）
+  - `src/configPanel.ts` - 工具箱/计划导出支持 ignoreMetadata；新增 `extractXmlIgnoreMetadata` / `pullAppXmlIgnoreMetadata` 配置保存与加载
+  - `src/extension.ts` - Pull 应用 XML 读取 `pullAppXmlIgnoreMetadata` 配置并追加请求参数
+  - `src/debug.ts` - 新增 `importDebugScript` 自动导入调试脚本；`ensureScriptExists` 增加导入确认弹窗
+  - `webview-ui/src/App.tsx` - 工具箱「忽略metadata」开关、计划导出任务配置项、「其它配置」Pull 忽略metadata开关
+  - `package.json` - 新增配置项，版本 1.8.16
+
+---
+
 ## [1.7.7] - 2026-09-04
 
 ### 新增功能

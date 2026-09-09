@@ -40,6 +40,8 @@ Maximo自动化脚本开发助手，为VSCode提供智能代码补全、语法�
 - 📥 **Node.js 导入模块**：配置面板新增「导入」菜单，提供 `sks-maximo-utils` 模块批量导入 Maximo 配置的说明与示例
 - ⚡ **快捷代码插入**：侧边栏新增「快捷代码」标签页，基于 YAML 配置，支持搜索、变量替换、一键插入/复制代码片段到编辑器
 - 🐞 **脚本调试**：Maximo 自动化脚本远程调试（JavaScript/Nashorn、Jython），支持断点/单步/变量查看/条件断点，详见 [脚本调试说明文档](脚本调试说明文档.md)
+- 🚫 **应用XML忽略metadata**：工具箱导出应用XML、计划导出、右键Pull应用XML均可忽略 metadata（控制组/权限组/条件表达式等），按场景独立配置并持久化保存
+- 🐞 **调试脚本自动导入**：调试启动时若服务器缺少 `SKS.AUTOSCRIPT.DEBUG` 脚本，自动询问并一键导入部署
 
 ## 脚本调试 (SKS Debug)
 
@@ -469,6 +471,16 @@ MIT License
 - **[Gitee 仓库 - Maximo Script Editor](https://gitee.com/shoukaiseki/maximo-script-editor)** - Reflection Data JSON 生成工具和预生成的 API 数据
 
 ## 版本更新历史
+
+### v1.8.16 (2026-07-30)
+
+**新增功能**：
+- 🚫 应用 XML 导出/Pull 支持忽略 metadata
+  - 工具箱导出应用 XML 新增「忽略metadata」开关（`extractXmlIgnoreMetadata`），开启后仅导出原始应用 XML
+  - 计划导出「导出应用XML」任务新增「忽略metadata」选项，按任务单独配置
+  - 工具箱「其它配置」新增「右键菜单 Pull 应用XML时忽略 metadata」开关（`pullAppXmlIgnoreMetadata`）
+  - 服务端脚本 `SKS.AUTOSCRIPT.SCREENS.js` 生效 `ignoreMetadata` url 参数
+- 🐞 脚本调试优化：启动时若服务器不存在 `SKS.AUTOSCRIPT.DEBUG` 脚本，弹窗询问是否立即导入并自动部署
 
 ### v1.7.7 (2026-09-04)
 
