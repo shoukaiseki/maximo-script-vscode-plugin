@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.8.15",
+  "version": "1.8.16",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -293,6 +293,16 @@
           "type": "boolean",
           "default": false,
           "description": "导出应用XML完成后自动打包为ZIP文件"
+        },
+        "maximoScript.extractXmlIgnoreMetadata": {
+          "type": "boolean",
+          "default": false,
+          "description": "导出应用XML时忽略metadata（不导出控制组/权限组/条件表达式等附加信息）"
+        },
+        "maximoScript.pullAppXmlIgnoreMetadata": {
+          "type": "boolean",
+          "default": false,
+          "description": "右键菜单Pull应用XML时忽略metadata（不导出控制组/权限组/条件表达式等附加信息）"
         },
         "maximoScript.extractMaxobjectZipEnabled": {
           "type": "boolean",

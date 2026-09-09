@@ -431,6 +431,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('extractMaxobjectThreadCount', data.extractMaxobjectThreadCount !== undefined ? data.extractMaxobjectThreadCount : 5, vscode.ConfigurationTarget.Global);
       await config.update('extractZipEnabled', data.extractZipEnabled !== undefined ? data.extractZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('extractXmlZipEnabled', data.extractXmlZipEnabled !== undefined ? data.extractXmlZipEnabled : false, vscode.ConfigurationTarget.Global);
+      await config.update('extractXmlIgnoreMetadata', data.extractXmlIgnoreMetadata !== undefined ? data.extractXmlIgnoreMetadata : false, vscode.ConfigurationTarget.Global);
+      await config.update('pullAppXmlIgnoreMetadata', data.pullAppXmlIgnoreMetadata !== undefined ? data.pullAppXmlIgnoreMetadata : false, vscode.ConfigurationTarget.Global);
       await config.update('extractMaxobjectZipEnabled', data.extractMaxobjectZipEnabled !== undefined ? data.extractMaxobjectZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('exportMessageDirectory', data.exportMessageDirectory || '', vscode.ConfigurationTarget.Global);
       await config.update('exportMessageThreadCount', data.exportMessageThreadCount !== undefined ? data.exportMessageThreadCount : 5, vscode.ConfigurationTarget.Global);
@@ -882,6 +884,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       extractMaxobjectThreadCount: config.get('extractMaxobjectThreadCount', 5),
       extractZipEnabled: config.get('extractZipEnabled', false),
       extractXmlZipEnabled: config.get('extractXmlZipEnabled', false),
+            extractXmlIgnoreMetadata: config.get('extractXmlIgnoreMetadata', false),
+            pullAppXmlIgnoreMetadata: config.get('pullAppXmlIgnoreMetadata', false),
       extractMaxobjectZipEnabled: config.get('extractMaxobjectZipEnabled', false),
       exportMessageDirectory: config.get('exportMessageDirectory', ''),
       exportMessageThreadCount: config.get('exportMessageThreadCount', 5),
@@ -2740,7 +2744,11 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 步骤1: 获取所有应用名称
       this._sendToolboxOutput('\n📋 正在获取应用列表...');
-      const screensUrl = `script/SKS.AUTOSCRIPT.SCREENS`;
+      const extractXmlIgnoreMetadata = config.get('extractXmlIgnoreMetadata', false);
+      let screensUrl = `script/SKS.AUTOSCRIPT.SCREENS`;
+      if (extractXmlIgnoreMetadata) {
+        screensUrl += '?ignoreMetadata=true';
+      }
       
       const screensResult = await httpRequestToMaximo({
         url: screensUrl,
@@ -2775,7 +2783,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${index + 1}/${totalCount}] 正在导出: ${screenName}`);
 
-          const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}`;
+          const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}${extractXmlIgnoreMetadata ? '?ignoreMetadata=true' : ''}`;
           const screenResult = await httpRequestToMaximo({
             url: screenUrl,
             method: 'GET'
@@ -4868,7 +4876,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         break;
       case 'extractAppXml':
         this._sendScheduledLog(`  🔄 正在导出应用XML到 ${taskDir}，线程数: ${task.threadCount || 5}`);
-        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN');
+        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.ignoreMetadata || false);
         break;
       default:
         throw new Error(`未知的导出功能: ${exportFunction}`);
@@ -5366,7 +5374,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的应用 XML 导出
    */
-  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string): Promise<void> {
+  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, ignoreMetadata: boolean = false): Promise<void> {
     const config = vscode.workspace.getConfiguration('maximoScript');
     const serverUrl = config.get<string>('serverUrl', '');
     
@@ -5379,8 +5387,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     }
 
     // 获取所有应用名称
+    const screensUrl = `script/SKS.AUTOSCRIPT.SCREENS?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
     const screensResult = await httpRequestToMaximo({
-      url: `script/SKS.AUTOSCRIPT.SCREENS?_langcode=${language}`,
+      url: screensUrl,
       method: 'GET'
     });
 
@@ -5407,7 +5416,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const screenName = screenNames[index];
 
       try {
-        const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}`;
+        const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
         const screenResult = await httpRequestToMaximo({
           url: screenUrl,
           method: 'GET'

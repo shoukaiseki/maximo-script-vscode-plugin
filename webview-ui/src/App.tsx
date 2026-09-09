@@ -43,6 +43,8 @@ interface ConfigData {
   extractMaxobjectThreadCount: number;  // 导出MAXOBJECT线程数
   extractZipEnabled: boolean;  // 导出脚本完成后打包ZIP
   extractXmlZipEnabled: boolean;  // 导出应用XML完成后打包ZIP
+  extractXmlIgnoreMetadata: boolean;  // 导出应用XML时忽略metadata
+  pullAppXmlIgnoreMetadata: boolean;  // 右键菜单Pull应用XML时忽略metadata
   extractMaxobjectZipEnabled: boolean;  // 导出MAXOBJECT完成后打包ZIP
   exportMessageDirectory: string;  // 消息导出目录
   exportMessageThreadCount: number;  // 消息导出线程数
@@ -128,6 +130,8 @@ const App: React.FC = () => {
     extractMaxobjectThreadCount: 5,
     extractZipEnabled: false,
     extractXmlZipEnabled: false,
+    extractXmlIgnoreMetadata: false,
+    pullAppXmlIgnoreMetadata: false,
     extractMaxobjectZipEnabled: false,
     exportMessageDirectory: '',
     exportMessageThreadCount: 5,
@@ -1646,6 +1650,21 @@ const App: React.FC = () => {
                 用于推送脚本时保存历史记录的别名字段
               </div>
             </div>
+
+            <div className="form-group">
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="pullAppXmlIgnoreMetadata"
+                  checked={config.pullAppXmlIgnoreMetadata}
+                  onChange={(e) => updateConfig({ pullAppXmlIgnoreMetadata: e.target.checked })}
+                />
+                <label htmlFor="pullAppXmlIgnoreMetadata" style={{ margin: 0 }}>右键菜单 Pull 应用XML时忽略 metadata</label>
+              </div>
+              <div className="help-text">
+                开启后，右键点击/编辑器右键 Pull 应用 XML 时将不导出控制组/权限组/条件表达式等附加 metadata（仅原始界面 XML）
+              </div>
+            </div>
           </div>
         )}
 
@@ -2386,6 +2405,24 @@ const App: React.FC = () => {
                   </label>
                   <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
                     并发导出应用XML数（范围 1~20，推荐 5~10）
+                  </p>
+                </div>
+
+                {/* 忽略metadata选项 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.extractXmlIgnoreMetadata}
+                      onChange={(e) => updateConfig({ extractXmlIgnoreMetadata: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🚫 忽略metadata（不导出控制组/权限组/条件表达式等附加信息）</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {config.extractXmlIgnoreMetadata
+                      ? '✅ 仅导出应用原始XML，不含控制组/权限组等metadata'
+                      : '⚠️ 导出应用XML并附带metadata（控制组/权限组）'}
                   </p>
                 </div>
 
@@ -3243,6 +3280,20 @@ const App: React.FC = () => {
                           精简模式
                         </label>
                       </>
+                    ) : task.exportFunction === 'extractAppXml' ? (
+                      <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={task.ignoreMetadata || false}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], ignoreMetadata: e.target.checked };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        忽略metadata
+                      </label>
                     ) : (
                       <span style={{ textAlign: 'center', color: 'var(--vscode-descriptionForeground)', fontSize: '0.85em', alignSelf: 'center' }}>-</span>
                     )}

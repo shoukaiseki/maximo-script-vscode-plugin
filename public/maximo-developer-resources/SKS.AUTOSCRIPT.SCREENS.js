@@ -34,6 +34,12 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
     }
 }
 
+//如果为true,导出时则不增加metadata信息，默认为false
+var ignoreMetadata = false
+if (request.getQueryParam("ignoreMetadata") !== 'undefined' && request.getQueryParam("ignoreMetadata")=="true") {
+    ignoreMetadata= true
+}
+
 var clentHost = null
 var aliasName = null
 if (request.getQueryParam("_clenthost") !== 'undefined' && request.getQueryParam("_clenthost")) {
@@ -861,7 +867,13 @@ function extractScreen(screenName) {
 
         if (!maxpresentationSet.isEmpty()) {
             var maxpresentation = maxpresentationSet.moveFirst();
-            return addConditionalExpressionsMetaData(maxpresentation.getString("PRESENTATION"), screenName);
+            var xml = maxpresentation.getString("PRESENTATION");
+            if (ignoreMetadata) {
+                // 如果请求ignoreMetadata=true，则直接返回原始XML，不添加metadata（控制组/权限组等附加信息）
+                logger.info("[SKS.AUTOSCRIPT.SCREENS] extractScreen: ignoreMetadata=true, 直接返回原始XML");
+                return xml;
+            }
+            return addConditionalExpressionsMetaData(xml, screenName);
         } else {
             throw new ScreenError("screen_not_found", "The screen definition for " + screenName + " was not found.");
         }

@@ -346,6 +346,10 @@ export function activate(context: vscode.ExtensionContext) {
           const aliasNameConfig = vscode.workspace.getConfiguration('maximoScript').get('aliasName', '');
           let screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(presentationId)}`;
           const queryParams: string[] = [];
+          const pullAppXmlIgnoreMetadata = vscode.workspace.getConfiguration('maximoScript').get('pullAppXmlIgnoreMetadata', false);
+          if (pullAppXmlIgnoreMetadata) {
+            queryParams.push('ignoreMetadata=true');
+          }
           if (hostname) {
             queryParams.push(`_clenthost=${encodeURIComponent(hostname)}`);
           }
