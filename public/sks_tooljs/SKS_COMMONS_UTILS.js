@@ -318,6 +318,34 @@ function parseDateString(dateStr) {
 }
 
 /**
+ * 自动设置MBO属性值,支持null
+ * 
+var sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+sksCommonsUtils.autoMboSetValue(service, mbo, "ITEMNUM", poline.itemnum, 2)
+ * 
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemote} mbo - MBO对象
+ * @param {java.lang.String} attributeName - 属性名称
+ * @param {java.lang.Object} value - 属性值
+ * @param {java.lang.Integer} accessModifier - 访问修饰符
+ */
+function autoMboSetValue(service,mbo, attributeName, value,accessModifier){
+  if(accessModifier==null){
+    accessModifier = 2;
+  } 
+  if (value == null||typeof value === "undefined") {
+    mbo.setValueNull(attributeName);
+  } else {
+    var valueType = getValueAutoType(service, mbo, attributeName);
+    if (valueType == null) {
+      mbo.setValueNull(attributeName);
+    } else {
+      mbo.setValue(attributeName, value,accessModifier);
+    }
+  }
+}
+
+/**
  * 遍历打印所有组件信息(对应 Java 版 bianliPrint, 递归前缀 qianzui+qianzui 翻倍).
   // var cont = appBean ? appBean.getCreator() : null;
   // logger.info("[" + scriptName + "] ===== appBean.getCreator() 子树 =====");

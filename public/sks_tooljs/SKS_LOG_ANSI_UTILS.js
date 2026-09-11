@@ -39,21 +39,22 @@ function throwError(error,configIn) {
     var config = configIn || {};
 // config.errGroup
 // config.errKey
-    if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError) {
-        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeReferenceError \x1b[0m")
-        errorMessage = error.getStackTrace();
-        logger.error("Nashorn NativeReferenceError: " + errorMessage);
-        throw new MXApplicationException("#", "" + errorMessage);
-    }
-    if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
-        logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeTypeError \x1b[0m")
-        errorMessage = error.getStackTrace();
-        logger.error("Nashorn NativeTypeError: " + errorMessage);
-        throw new MXApplicationException("#", "" + errorMessage);
-    }
-    if (error instanceof MXException || error instanceof MXApplicationException) {
-        throw error;
-    }
+    // if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError) {
+    //     logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeReferenceError \x1b[0m")
+    //     errorMessage = error.getStackTrace();
+    //     logger.error("Nashorn NativeReferenceError: " + errorMessage);
+    //     throw new MXApplicationException("#", "" + errorMessage);
+    // }
+    // if (error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+    //     logger.warn("\x1b[31m[" + serviceName + "]Nashorn NativeTypeError \x1b[0m")
+    //     errorMessage = error.getStackTrace();
+    //     logger.error("Nashorn NativeTypeError: " + errorMessage);
+    //     throw new MXApplicationException("#", "" + errorMessage);
+    // }
+    // if (error instanceof MXException || error instanceof MXApplicationException) {
+    //     throw error;
+    // }
+    notJavaErrorOrIsMXErrorToThrow(error)
     throw new MXApplicationException("#", ""+error);
 }
 
