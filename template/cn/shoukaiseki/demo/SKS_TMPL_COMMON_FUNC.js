@@ -11,6 +11,8 @@
 var scriptName="${sks_scriptName}"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
+/** @type {psdi.mbo.MboConstants} */
+MboConstants = Java.type("psdi.mbo.MboConstants");
 /** @type {org.apache.log4j.Level} */
 Level = Java.type("org.apache.log4j.Level");
 /** @type {psdi.util.logging.MXLoggerFactory} */

@@ -3,7 +3,7 @@
 /* eslint-disable no-unused-vars */
 
 // @ts-nocheck
-var serverName="SHARPTREE.AUTOSCRIPT.LIBRARY";
+var serverName="SKS.AUTOSCRIPT.LIBRARY";
 
 MboConstants = Java.type("psdi.mbo.MboConstants");
 SqlFormat = Java.type("psdi.mbo.SqlFormat");

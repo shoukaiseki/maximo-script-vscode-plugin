@@ -30,7 +30,7 @@ function main() {
         var response = {};
 
         try {
-            checkPermissions("SHARPTREE_UTILS", "DEPLOYSCRIPT");
+            checkPermissions("SKS_UTILS", "DEPLOYSCRIPT");
 
             if (httpMethod.toLowerCase() === "get") {
                 var scriptName = getRequestScriptName();

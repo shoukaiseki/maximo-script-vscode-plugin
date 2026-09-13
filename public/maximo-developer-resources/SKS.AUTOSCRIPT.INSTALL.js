@@ -43,6 +43,9 @@ function main() {
         // Set up the Maximo loggers that will be used by the Sharptree Automation Script deploy utility.
         setupLoggers();
 
+        setupProperties();
+
+
         verifyIntegrationObjectSecurity();
 
         setupSigOptions();
@@ -171,6 +174,54 @@ function addOrUpdateLogger(logger, level, parent) {
     }
 }
 
+function setupProperties() {
+    addOrUpdateProperty('sks.autoscript.debug.enabled', 'SKS脚本调试总开关:1=启用Maximo内嵌调试适配器,0=关闭;修改后需重启Maximo生效', 'true', 'YORN', 'PUBLIC');
+    //4711,9229
+    addOrUpdateProperty('sks.autoscript.debug.port', 'SKS脚本调试端口:Maximo内嵌调试适配器监听端口,须与VS Code连接配置里的"脚本调试端口"一致,默认9229;修改后需重启Maximo生效', '4771', 'INTEGER', 'PUBLIC');
+    addOrUpdateProperty('sks.autoscript.debug.host', 'SKS脚本调试端口:Maximo内嵌调试适配器监听端口,须与VS Code连接配置里的"脚本调试端口"一致,默认9229;修改后需重启Maximo生效', '0.0.0.0', 'ALN', 'PUBLIC');
+    addOrUpdateProperty('sks.autoscript.debug.js.exclude', 'JavaScript/Nashorn scripts excluded from debugging', '', 'ALN', 'PUBLIC');
+    addOrUpdateProperty('sks.autoscript.debug.client.idleTimeout', 'Idle period in milliseconds before the debugger disconnects', '0', 'INTEGER', 'PUBLIC');
+    addOrUpdateProperty('sks.autoscript.debug.client.livenessPoll', 'Liveness poll period in milliseconds', '1000', 'INTEGER', 'PUBLIC');
+    MXServer.getMXServer().reloadMaximoCache('MAXPROP', true);
+}
+
+function addOrUpdateProperty(propName, description, value, maxType, secureLevel) {
+    var propertySet;
+    try {
+        propertySet = MXServer.getMXServer().getMboSet('MAXPROP', MXServer.getMXServer().getSystemUserInfo());
+
+        var sqlFormat = new SqlFormat('propname = :1');
+        sqlFormat.setObject(1, 'MAXPROP', 'PROPNAME', propName);
+
+        propertySet.setWhere(sqlFormat.format());
+        var property;
+
+        if (propertySet.isEmpty()) {
+            var translator = MXServer.getMXServer().getMaximoDD().getTranslator();
+            property = propertySet.add();
+            property.setValue('PROPNAME', propName);
+            property.setValue('MAXTYPE', maxType);
+            property.setValue('SECURELEVEL', translator.toExternalDefaultValue('PROPSECURELEVEL', secureLevel, property));
+        } else {
+            property = propertySet.moveFirst();
+        }
+
+        property.setValue('DESCRIPTION', description);
+
+        propertySet.save();
+
+        if (property.isNull('DISPPROPVALUE')) {
+            propertySet.reset();
+            property = propertySet.getMboForUniqueId(property.getUniqueIDValue());
+            property.setValue('DISPPROPVALUE', value);
+            propertySet.save();
+        }
+    } finally {
+        _close(propertySet);
+    }
+}
+
+
 // Verifies that object security has been configured on the STAUTOSCRIPT integration object structure.
 function verifyIntegrationObjectSecurity() {
     logger.setLevel(loglevel)
@@ -183,7 +234,7 @@ function verifyIntegrationObjectSecurity() {
         maxIntObjectSet = MXServer.getMXServer().getMboSet("MAXINTOBJECT", MXServer.getMXServer().getSystemUserInfo());
 
         var sqlFormat = new SqlFormat("intobjectname = :1");
-        sqlFormat.setObject(1, "MAXINTOBJECT", "INTOBJECTNAME", "SHARPTREE_UTILS");
+        sqlFormat.setObject(1, "MAXINTOBJECT", "INTOBJECTNAME", "SKS_UTILS");
 
         maxIntObjectSet.setWhere(sqlFormat.format());
 
@@ -191,13 +242,13 @@ function verifyIntegrationObjectSecurity() {
 
         if (maxIntObjectSet.isEmpty()) {
             maxIntObject = maxIntObjectSet.add();
-            maxIntObject.setValue("INTOBJECTNAME", "SHARPTREE_UTILS");
-            maxIntObject.setValue("DESCRIPTION", "Sharptree Utilities Integration Security");
+            maxIntObject.setValue("INTOBJECTNAME", "SKS_UTILS");
+            maxIntObject.setValue("DESCRIPTION", "shoukaiseki Utilities Integration Security");
             maxIntObject.setValue("USEWITH", "INTEGRATION");
             var maxIntObjDetail = maxIntObject.getMboSet("MAXINTOBJDETAIL").add();
             maxIntObjDetail.setValue("OBJECTNAME", "DUMMY_TABLE");
             maxIntObjectSet.save();
-            logger.info("\x1b[32m[" + scriptName + "] Added the integration object SHARPTREE_UTILS.\x1b[0m");
+            logger.info("\x1b[32m[" + scriptName + "] Added the integration object SKS_UTILS.\x1b[0m");
 
             var id = maxIntObject.getUniqueIDValue();
             maxIntObjectSet.reset();
@@ -207,13 +258,13 @@ function verifyIntegrationObjectSecurity() {
         }
 
         if (!maxIntObject.getBoolean("USEOSSECURITY")) {
-            service.log_info("Object structure security has not be configured for SHARPTREE_UTILS, checking for pre-existing security configurations.");
+            service.log_info("Object structure security has not be configured for SKS_UTILS, checking for pre-existing security configurations.");
 
             // check if the left over options have been granted to any groups and if so then remove them.
             appAuthSet = MXServer.getMXServer().getMboSet("APPLICATIONAUTH", MXServer.getMXServer().getSystemUserInfo());
 
             sqlFormat = new SqlFormat("app = :1");
-            sqlFormat.setObject(1, "APPLICATIONAUTH", "APP", "SHARPTREE_UTILS");
+            sqlFormat.setObject(1, "APPLICATIONAUTH", "APP", "SKS_UTILS");
 
             appAuthSet.setWhere(sqlFormat.format());
 
@@ -226,7 +277,7 @@ function verifyIntegrationObjectSecurity() {
             sigOptionSet = MXServer.getMXServer().getMboSet("SIGOPTION", MXServer.getMXServer().getSystemUserInfo());
 
             sqlFormat = new SqlFormat("app = :1");
-            sqlFormat.setObject(1, "SIGOPTION", "APP", "SHARPTREE_UTILS");
+            sqlFormat.setObject(1, "SIGOPTION", "APP", "SKS_UTILS");
 
             sigOptionSet.setWhere(sqlFormat.format());
 
@@ -235,7 +286,7 @@ function verifyIntegrationObjectSecurity() {
                 sigOptionSet.save();
             }
 
-            service.log_info("Security options are configured for SHARPTREE_UTILS, removing before setting up object structure security.");
+            service.log_info("Security options are configured for SKS_UTILS, removing before setting up object structure security.");
 
             maxIntObject["setValue(String, boolean)"]("USEOSSECURITY", true);
         }
@@ -261,7 +312,7 @@ function setupSigOptions() {
 
         // Query for the STAUTOSCRIPT app with the STADMINACTION option.
         var sqlFormat = new SqlFormat("app = :1 and optionname = :2");
-        sqlFormat.setObject(1, "SIGOPTION", "APP", "SHARPTREE_UTILS");
+        sqlFormat.setObject(1, "SIGOPTION", "APP", "SKS_UTILS");
         sqlFormat.setObject(2, "SIGOPTION", "OPTIONNAME", "DEPLOYSCRIPT");
 
         sigOptionSet.setWhere(sqlFormat.format());
@@ -269,11 +320,11 @@ function setupSigOptions() {
         // If the STADMINACTION does not exist then create it.
         if (sigOptionSet.isEmpty()) {
             service.log_info(
-                "The administrative security option DEPLOYSCRIPT for the SHARPTREE_UTILS integration object structure does not exist, creating it."
+                "The administrative security option DEPLOYSCRIPT for the SKS_UTILS integration object structure does not exist, creating it."
             );
 
             var sigoption = sigOptionSet.add();
-            sigoption.setValue("APP", "SHARPTREE_UTILS");
+            sigoption.setValue("APP", "SKS_UTILS");
             sigoption.setValue("OPTIONNAME", "DEPLOYSCRIPT");
             sigoption.setValue("DESCRIPTION", "Deploy Automation Script");
             sigoption.setValue("ESIGENABLED", false);
@@ -281,7 +332,7 @@ function setupSigOptions() {
             sigOptionSet.save();
             reloadRequired = true;
         } else {
-            service.log_info("The administrative security option DEPLOYSCRIPT for the SHARPTREE_UTILS integration object structure already exists, skipping.");
+            service.log_info("The administrative security option DEPLOYSCRIPT for the SKS_UTILS integration object structure already exists, skipping.");
         }
 
         service.log_info("Set up administrative security options for Sharptree Automation Script deploy utility.");

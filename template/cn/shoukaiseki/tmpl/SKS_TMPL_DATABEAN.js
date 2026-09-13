@@ -7,7 +7,7 @@
 /// <reference path="@javaapi/global.d.ts" />
 // load('nashorn:mozilla_compat.js');
 // 直接调用方法的脚本,无任何隐式变量可以使用
-var scriptName="${sks_scriptName}"//service.getScriptName()
+var scriptName = "${sks_scriptName}"//service.getScriptName()
 /** @type {java.lang.System} */
 System = Java.type("java.lang.System");
 /** @type {org.apache.log4j.Level} */
@@ -16,7 +16,7 @@ Level = Java.type("org.apache.log4j.Level");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 /** @type {psdi.util.logging.MXLogger} */
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
-loggerMX.info("["+scriptName+"]----------");
+loggerMX.info("[" + scriptName + "]----------");
 
 /** @type {psdi.util.MXApplicationException} */
 MXApplicationException = Java.type("psdi.util.MXApplicationException");//8
@@ -28,7 +28,7 @@ MXServer = Java.type("psdi.server.MXServer");//13
 SqlFormat = Java.type("psdi.mbo.SqlFormat");//67
 
 /** @type {jscustom.AnsiLogger} */
-var logger=null
+var logger = null
 /** @type {jscustom.sksLogAnsiUtils} */
 var sksLogAnsiUtils = null
 
@@ -38,59 +38,59 @@ var sksLogAnsiUtils = null
  * 初始化日志记录器
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function initLogger(dbctx){
-    if(logger!=null){
-        return
-    }
-    sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
-    logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
-// logger.setLevel(Level.INFO);
+function initLogger(dbctx) {
+  if (logger != null) {
+    return
+  }
+  sksLogAnsiUtils = dbctx.invokeScript("SKS_LOG_ANSI_UTILS");
+  logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+  // logger.setLevel(Level.INFO);
 
-    logger.info("[" + scriptName + "] initLogger")
+  logger.info("[" + scriptName + "] initLogger")
 }
 
 
 /**
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function initialize(dbctx){
-    initLogger(dbctx);
-    var clientsession = dbctx.webclientsession();
-    clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp!!!", 1);
+function initialize(dbctx) {
+  initLogger(dbctx);
+  var clientsession = dbctx.webclientsession();
+  clientsession.showMessageBox(clientsession.getCurrentEvent(), "Warnning", "APPBEAN.initializeApp!!!", 1);
 
-    /** @type {psdi.webclient.system.controller.AppInstance} */
-    var appInstance = dbctx.getAppInstance();
-    /** @type {psdi.webclient.system.beans.AppBean} */
-    var appBean = appInstance.getAppBean();
-    /** @type {psdi.mbo.MboRemote} */
-    var mbo = appBean.getMbo();
-    // appBean.setQbe("APPLYNUM", 12);
+  /** @type {psdi.webclient.system.controller.AppInstance} */
+  var appInstance = dbctx.getAppInstance();
+  /** @type {psdi.webclient.system.beans.AppBean} */
+  var appBean = appInstance.getAppBean();
+  /** @type {psdi.mbo.MboRemote} */
+  var mbo = getMainMbo(dbctx)
+  // appBean.setQbe("APPLYNUM", 12);
 
 
-    logger.info("[" + scriptName + "] initialize")
+  logger.info("[" + scriptName + "] initialize")
 }
 
 /**
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function test(dbctx){
-    initLogger(dbctx);
-    logger.info("[" + scriptName + "] test")
-    /**
-     * 管理模式下不允许执行
-     {
-        "msgGroup": "ibm_system",
-        "msgKey": "AdminOnThis",
-        "value": "管理方式已开启,页面初始化程序受到影响,NEW/INIT等脚本无法执行,<br/>请在先回启动中心,等待管理方式关闭之后重新进入应用",
-        "displayMethod": "MSGBOX",
-        "options": ["close"],
-        "prefix": "BMXZZ",
-        "suffix": "E"
-    },
-     */
-    if(Java.type("psdi.iface.mic.MicUtil").getAdminModeState()){
-        throw new MXApplicationException("ibm_system","AdminOnThis")
-    }
+function test(dbctx) {
+  initLogger(dbctx);
+  logger.info("[" + scriptName + "] test")
+  /**
+   * 管理模式下不允许执行
+   {
+      "msgGroup": "ibm_system",
+      "msgKey": "AdminOnThis",
+      "value": "管理方式已开启,页面初始化程序受到影响,NEW/INIT等脚本无法执行,<br/>请在先回启动中心,等待管理方式关闭之后重新进入应用",
+      "displayMethod": "MSGBOX",
+      "options": ["close"],
+      "prefix": "BMXZZ",
+      "suffix": "E"
+  },
+   */
+  if (Java.type("psdi.iface.mic.MicUtil").getAdminModeState()) {
+    throw new MXApplicationException("ibm_system", "AdminOnThis")
+  }
 
   /** @type {psdi.webclient.system.controller.AppInstance} */
   var appInstance = dbctx.getAppInstance();
@@ -99,28 +99,19 @@ function test(dbctx){
   /** @type {psdi.webclient.system.beans.AppBean} */
   var appBean = appInstance.getAppBean();
   /** @type {psdi.mbo.MboRemote} */
-  var mbo = appBean.getMbo();
-  if (!mbo) {
-    var appInstance = dbctx.getAppInstance()
-    logger.info("[" + scriptName + "] appInstance= " + appInstance)
-    var appBean = appInstance.getAppBean()
-    logger.info("[" + scriptName + "] appBean= " + appBean)
-    //应用主列表按钮的mbo获取
-    mbo = appBean.getMbo()
-    logger.info("[" + scriptName + "] mbo= " + mbo)
-  }
+  var mbo = getMainMbo(dbctx)
   if (!mbo) {
     throw new MXApplicationException("#", "error,can't find mbo")
   }
-    clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
+  clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 }
 
 /**
  * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
  */
-function addrow(dbctx){
-    initLogger(dbctx);
-    logger.info("[" + scriptName + "] addrow")
+function addrow(dbctx) {
+  initLogger(dbctx);
+  logger.info("[" + scriptName + "] addrow")
 }
 
 

@@ -36,7 +36,7 @@ function main() {
         if (httpMethod === 'GET') {
             var userCanInstall = false;
             try {
-                checkPermissions('NAVIAM_UTILS', 'DEBUGSCRIPT');
+                checkPermissions('SKS_UTILS', 'DEBUGSCRIPT');
                 userCanInstall = true;
             } catch (ignored) {
                 /* empty */
@@ -65,7 +65,7 @@ function main() {
             throw new Error('The installer script requires a JSON request body.');
         }
 
-        checkPermissions('NAVIAM_UTILS', 'DEBUGSCRIPT');
+        checkPermissions('SKS_UTILS', 'DEBUGSCRIPT');
 
         var payload = JSON.parse(requestBody);
         if (typeof payload.deactivate !== 'undefined' && payload.deactivate === true) {

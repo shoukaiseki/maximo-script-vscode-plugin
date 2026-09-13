@@ -49,7 +49,7 @@ if (typeof httpMethod !== "undefined") {
 function main() {
     var response = {};
     try {
-        checkPermissions("SHARPTREE_UTILS", "DEPLOYSCRIPT");
+        checkPermissions("SKS_UTILS", "DEPLOYSCRIPT");
 
         var action;
 

@@ -1,9 +1,9 @@
 {
-  "autoscript": "SKS.AUTOSCRIPT.DEBUG",
-  "description": "Maximo 自动化脚本调试器的部署/状态/加载/卸载脚本。",
-  "version": "1.0.13",
+  "autoscript": "SKS.AUTOSCRIPT.OBJECTS",
+  "description": "用于提取JSON对象配置的SKS脚本。",
+  "version": "1.0.7",
   "active": 1,
-  "loglevel": "ERROR",
+  "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
   "interface": 0,
   "variables": [],

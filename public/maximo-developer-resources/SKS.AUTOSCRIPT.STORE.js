@@ -32,7 +32,7 @@ var sha256 = MessageDigest.getInstance("SHA-256");
 
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
-var configScript = "SHARPTREE.AUTOSCRIPT.DEPLOY.HISTORY";
+var configScript = "SKS.AUTOSCRIPT.DEPLOY.HISTORY";
 
 main();
 

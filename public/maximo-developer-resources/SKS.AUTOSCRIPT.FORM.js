@@ -32,7 +32,7 @@ function main() {
     if (typeof httpMethod !== "undefined") {
         var response = {};
         try {
-            checkPermissions("SHARPTREE_UTILS", "DEPLOYSCRIPT");
+            checkPermissions("SKS_UTILS", "DEPLOYSCRIPT");
 
             if (httpMethod.toLowerCase() === "get") {
                 var formId = getInspectionFormId();

@@ -13,7 +13,7 @@ function main() {
     // if the implicit request variable is present then we are in the context of a REST request
     if (typeof request !== "undefined" && request) {
         try {
-            checkPermissions("SHARPTREE_UTILS", "DEPLOYSCRIPT");
+            checkPermissions("SKS_UTILS", "DEPLOYSCRIPT");
 
             var result = {};
             try {
