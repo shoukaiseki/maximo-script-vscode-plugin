@@ -18,6 +18,11 @@ var ScriptUtil = Java.type("com.ibm.tivoli.maximo.script.ScriptUtil");
 /** @type {psdi.util.MXFormat} */
 var MXFormat = Java.type("psdi.util.MXFormat");
 
+/** @type {java.text.SimpleDateFormat} */
+var SimpleDateFormat = Java.type("java.text.SimpleDateFormat");
+/** @type {java.util.TimeZone} */
+var TimeZone = Java.type("java.util.TimeZone");
+
 /** @type {psdi.iface.mos.ConversionUtil} */
 ConversionUtil = Java.type("psdi.iface.mos.ConversionUtil");
 
@@ -159,6 +164,21 @@ function getMboDateToString(service, mbo, attributeName) {
 }
 
 /**
+ * 获取MBO的日期值字符串，格式为yyyy-MM-dd
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemotea} mbo - MBO对象
+ * @param {java.lang.String} attributeName - 属性名称
+ * @returns {java.lang.String} 属性值
+ */
+function getMboTimeToString(service, mbo, attributeName) {
+  logger.info("\x1b[32m[" + scriptName + "]getMboTimeToString\x1b[0m")
+  if (mbo.isNull(attributeName)) {
+    return null
+  }
+  return MXFormat.timeToSQLString(mbo.getDate(attributeName))
+}
+
+/**
  * 获取MBO的日期值
  * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
  * @param {psdi.mbo.MboRemotea} mbo - MBO对象
@@ -191,6 +211,8 @@ function formatDateTime(date) {
   }
 }
 
+
+
 /**
  * 获取MBO的属性值，自动转换为Java类型,不适合转json时候使用
  * 
@@ -206,6 +228,40 @@ function getValueAutoType(service, mbo, attributeName) {
   return ScriptUtil.getValueFromMaxType(mbo.getMboValue(attributeName).getMaxType())
 }
 
+
+/**
+ * 中国时间格式偏好格式化
+ * ser
+ * 
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {psdi.mbo.MboRemote} mbo - MBO对象
+ * @param {string} attrName - 属性名
+ * @returns {*} - 字段值(字符串/数字/布尔/Base64字符串)
+ */
+function getValueByMaxTypeDateTimeAutoZhcn(service, mbo, attrName) {
+  var mboValueInfo = mbo.getThisMboSet().getMboSetInfo().getAttribute(attrName);
+  if (mboValueInfo == null) {
+    logger.error("[" + scriptName + "] getValueByMaxTypeDateTimeAutoZhcn mboValueInfo is null for " + attrName);
+    service.error("#", mbo.getName() + " 对象的[" + attrName + "] 属性不存在");
+  }
+  var maxType = mboValueInfo.getTypeAsInt();
+  if (maxType == 3 || maxType == 4 || maxType == 5) {
+    if (mbo.isNull(attrName)) {
+      return null;
+    }
+    if (maxType == 3) {
+      return getMboDateToString(service, mbo, attrName)
+    }
+    if (maxType == 4) {
+      return getMboDateTimeToString(service, mbo, attrName)
+    }
+    if (maxType == 5) {
+      return getMboTimeToString(service, mbo, attrName)
+    }
+  }
+
+  return getValueByMaxType(service, mbo, attrName);
+}
 
 /**
  * 根据MaxType类型码获取字段值 (与MboJSONStructure方案一相同的转换策略)
@@ -228,6 +284,7 @@ function getValueAutoType(service, mbo, attributeName) {
  *   15: CRYPTO加密类型
  *   18: BLOB二进制类型
  * 
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
  * @param {psdi.mbo.MboRemote} mbo - MBO对象
  * @param {string} attrName - 属性名
  * @returns {*} - 字段值(字符串/数字/布尔/Base64字符串)
@@ -329,18 +386,18 @@ sksCommonsUtils.autoMboSetValue(service, mbo, "ITEMNUM", poline.itemnum, 2)
  * @param {java.lang.Object} value - 属性值
  * @param {java.lang.Integer} accessModifier - 访问修饰符
  */
-function autoMboSetValue(service,mbo, attributeName, value,accessModifier){
-  if(accessModifier==null){
+function autoMboSetValue(service, mbo, attributeName, value, accessModifier) {
+  if (accessModifier == null) {
     accessModifier = 2;
-  } 
-  if (value == null||typeof value === "undefined") {
+  }
+  if (value == null || typeof value === "undefined") {
     mbo.setValueNull(attributeName);
   } else {
     var valueType = getValueAutoType(service, mbo, attributeName);
     if (valueType == null) {
       mbo.setValueNull(attributeName);
     } else {
-      mbo.setValue(attributeName, value,accessModifier);
+      mbo.setValue(attributeName, value, accessModifier);
     }
   }
 }

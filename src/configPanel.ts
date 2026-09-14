@@ -236,6 +236,12 @@ export class ConfigPanel {
           case 'extractCondition':
             await this._extractConditions(message.directoryPath, message.where, message.autoCreateExportDir);
             return;
+          case 'selectDirectoryForExtractIntObject':
+            await this._selectDirectoryForExtractIntObject();
+            return;
+          case 'extractIntObject':
+            await this._extractIntObjects(message.directoryPath, message.where, message.autoCreateExportDir);
+            return;
           case 'saveScheduledExportConfig':
             await this._saveScheduledExportConfig(message.config);
             return;
@@ -446,6 +452,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('exportDomainZipEnabled', data.exportDomainZipEnabled !== undefined ? data.exportDomainZipEnabled : true, vscode.ConfigurationTarget.Global);
       await config.update('exportDomainPageSize', data.exportDomainPageSize !== undefined ? data.exportDomainPageSize : 50000, vscode.ConfigurationTarget.Global);
       await config.update('exportDomainIgnoreDefVal', data.exportDomainIgnoreDefVal !== undefined ? data.exportDomainIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
+      await config.update('exportIntObjectDirectory', data.exportIntObjectDirectory || '', vscode.ConfigurationTarget.Global);
+      await config.update('exportIntObjectWhere', data.exportIntObjectWhere !== undefined && data.exportIntObjectWhere !== '' ? data.exportIntObjectWhere : '1=1', vscode.ConfigurationTarget.Global);
+      await config.update('exportIntObjectIgnoreDefVal', data.exportIntObjectIgnoreDefVal !== undefined ? data.exportIntObjectIgnoreDefVal : false, vscode.ConfigurationTarget.Global);
+      await config.update('exportIntObjectZipEnabled', data.exportIntObjectZipEnabled !== undefined ? data.exportIntObjectZipEnabled : true, vscode.ConfigurationTarget.Global);
       await config.update('scheduledExportBaseDir', data.scheduledExportBaseDir || '', vscode.ConfigurationTarget.Global);
       
       // 验证保存结果
@@ -899,6 +909,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       exportDomainZipEnabled: config.get('exportDomainZipEnabled', true),
       exportDomainPageSize: config.get('exportDomainPageSize', 50000),
       exportDomainIgnoreDefVal: config.get('exportDomainIgnoreDefVal', false),
+      exportIntObjectDirectory: config.get('exportIntObjectDirectory', ''),
+      exportIntObjectWhere: config.get('exportIntObjectWhere', '1=1'),
+      exportIntObjectIgnoreDefVal: config.get('exportIntObjectIgnoreDefVal', false),
+      exportIntObjectZipEnabled: config.get('exportIntObjectZipEnabled', true),
       scheduledExportBaseDir: config.get('scheduledExportBaseDir', '')
     };
     
@@ -4242,6 +4256,38 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 选择对象结构导出目录
+   */
+  private async _selectDirectoryForExtractIntObject() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: '选择导出目录'
+    });
+
+    if (result && result.length > 0) {
+      const exportPath = result[0].fsPath;
+      
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      await config.update('exportIntObjectDirectory', exportPath, vscode.ConfigurationTarget.Global);
+      
+      logger.info(`[ExportIntObjectDirectory] 对象结构导出目录已保存: ${exportPath}`);
+      
+      this._panel.webview.postMessage({
+        command: 'setExtractIntObjectDirectoryPath',
+        path: exportPath
+      });
+      
+      this._panel.webview.postMessage({
+        command: 'showMessage',
+        type: 'success',
+        text: '对象结构导出目录已保存'
+      });
+    }
+  }
+
+  /**
    * 消息导出（通过 SKS_EXPORT_MESSAGES 接口）
    */
   private async _extractMessages(directoryPath: string, autoCreateExportDir: boolean = true) {
@@ -4400,7 +4446,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
-   * 域导出（通过 SKS_EXPORT_DOMAIN 接口）
+   * 域导出（通过 SKS.AUTOSCRIPT.OBJECTS?_type=domains 接口）
    */
   private async _extractDomains(directoryPath: string, autoCreateExportDir: boolean = true) {
     try {
@@ -4443,7 +4489,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 发送请求获取总记录数
       this._sendToolboxOutput('\n📊 正在获取域定义总数...');
       
-      const countUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=1&pageSize=1`;
+      const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=1&pageSize=1`;
       const countResult = await httpRequestToMaximo({
         url: countUrl,
         method: 'POST',
@@ -4492,7 +4538,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${page}/${totalPages}] 正在导出第 ${page} 页...`);
           
-          const exportUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+          const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=${page}&pageSize=${pageSize}`;
           const exportResult = await httpRequestToMaximo({
             url: exportUrl,
             method: 'POST',
@@ -4638,6 +4684,96 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       logger.error(`[ExtractConditions] 导出失败: ${error.message}`);
     } finally {
       this._panel.webview.postMessage({ command: 'extractConditionComplete' });
+    }
+  }
+
+  /**
+   * 对象结构导出（通过 SKS.AUTOSCRIPT.OBJECTS?_type=integrationobjects 接口）
+   */
+  private async _extractIntObjects(directoryPath: string, where: string, autoCreateExportDir: boolean = true) {
+    try {
+      const config = vscode.workspace.getConfiguration('maximoScript');
+      const serverUrl = config.get<string>('serverUrl', '');
+      const langcode = config.get<string>('langcode', 'EN');
+      const ignoreDefVal = config.get<boolean>('exportIntObjectIgnoreDefVal', false);
+      const whereClause = (where || '1=1').trim();
+
+      this._sendToolboxOutput(`🧩 开始导出对象结构...${ignoreDefVal ? '（精简模式）' : '（完整模式）'}`);
+      this._sendToolboxOutput(`🔍 where: ${whereClause}, 语言: ${langcode}`);
+
+      if (!serverUrl) {
+        this._sendToolboxOutput('❌ 请先在设置中配置服务器地址');
+        return;
+      }
+
+      if (!ConfigPanel.checkConfig()) {
+        this._sendToolboxOutput('❌ 配置不完整，请先在配置面板中设置服务器信息');
+        return;
+      }
+
+      let exportDir: string;
+      if (autoCreateExportDir) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const backupDirName = `intobject_backup_${dateStr}`;
+        exportDir = path.join(directoryPath, backupDirName);
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}（自动生成）`);
+      } else {
+        exportDir = directoryPath;
+        this._sendToolboxOutput(`📁 导出目录: ${exportDir}`);
+      }
+
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=integrationobjects&_action=export`;
+      const exportResult = await httpRequestToMaximo({
+        url: exportUrl,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { where: whereClause }
+      });
+
+      if (exportResult.status !== 200 || !exportResult.data) {
+        this._sendToolboxOutput(`❌ 导出对象结构失败: HTTP ${exportResult.status}`);
+        return;
+      }
+
+      let responseData = exportResult.data;
+      if (typeof responseData === 'string') {
+        try { responseData = JSON.parse(responseData); } catch (e) { }
+      }
+
+      if (responseData.status === 'error') {
+        this._sendToolboxOutput(`❌ 导出对象结构失败: ${responseData.message || '未知错误'}`);
+        return;
+      }
+
+      const intObjects = responseData.integrationobjects || [];
+      if (intObjects.length === 0) {
+        this._sendToolboxOutput('⚠️ 没有符合 where 条件的对象结构记录');
+        return;
+      }
+
+      const fileName = 'integrationobjects.json';
+      const filePath = path.join(exportDir, fileName);
+      fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+
+      this._sendToolboxOutput(`✅ 已保存: ${fileName}（${intObjects.length} 个对象结构）`);
+      this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
+      this._sendToolboxOutput('📝 恢复方法: 将该文件内容 POST 到 SKS.AUTOSCRIPT.OBJECTS?_type=integrationobjects&_action=import 可批量导入');
+
+      const zipCfg = vscode.workspace.getConfiguration('maximoScript');
+      if (zipCfg.get('exportIntObjectZipEnabled', true) && autoCreateExportDir) {
+        await this._zipExportDirectory(exportDir);
+      }
+
+    } catch (error: any) {
+      this._sendToolboxOutput(`❌ 导出过程出错: ${error.message}`);
+      logger.error(`[ExtractIntObjects] 导出失败: ${error.message}`);
+    } finally {
+      this._panel.webview.postMessage({ command: 'extractIntObjectComplete' });
     }
   }
 
@@ -4841,6 +4977,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       'extractMessage': '导出消息',
       'extractDomain': '导出域',
       'extractCondition': '导出条件表达式',
+      'extractIntObject': '导出对象结构',
       'extractScript': '导出脚本',
       'extractAppXml': '导出应用XML'
     };
@@ -4869,6 +5006,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       case 'extractCondition':
         this._sendScheduledLog(`  🔄 正在导出条件表达式到 ${taskDir}`);
         await this._extractConditionsForScheduled(taskDir, task.language || 'EN', task.where || '1=1', taskIndex);
+        break;
+      case 'extractIntObject':
+        this._sendScheduledLog(`  🔄 正在导出对象结构到 ${taskDir}`);
+        await this._extractIntObjectsForScheduled(taskDir, task.language || 'EN', task.where || '1=1', task.ignoreDefVal || false, taskIndex);
         break;
       case 'extractScript':
         this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
@@ -5073,7 +5214,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   private async _extractDomainsForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, pageSize: number, taskIndex: number): Promise<void> {
     
     // 获取总数
-    const countUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&apiType=exp&_action=export&pageNum=1&pageSize=1`;
+    const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&apiType=exp&_action=export&pageNum=1&pageSize=1`;
     const countResult = await httpRequestToMaximo({
       url: countUrl,
       method: 'POST',
@@ -5113,7 +5254,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const page = pageList[pageNum];
 
       try {
-        const exportUrl = `script/SKS_EXPORT_DOMAIN?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+        const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=${page}&pageSize=${pageSize}`;
         const exportResult = await httpRequestToMaximo({
           url: exportUrl,
           method: 'POST',
@@ -5213,6 +5354,58 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
     this._sendScheduledLog(`    ✅ 已保存: ${fileName}（${conditions.length} 条）`);
     this._updateScheduledTaskProgress(taskIndex, 1, 1, 'conditions.json');
+  }
+
+  /**
+   * 计划导出中的对象结构导出
+   */
+  private async _extractIntObjectsForScheduled(taskDir: string, language: string, where: string, ignoreDefVal: boolean, taskIndex: number): Promise<void> {
+    const config = vscode.workspace.getConfiguration('maximoScript');
+    const serverUrl = config.get<string>('serverUrl', '');
+
+    if (!serverUrl) {
+      throw new Error('请先在设置中配置服务器地址');
+    }
+
+    if (!ConfigPanel.checkConfig()) {
+      throw new Error('配置不完整，请先在配置面板中设置服务器信息');
+    }
+
+    const whereClause = (where || '1=1').trim();
+    this._sendScheduledLog(`  🔍 where: ${whereClause}`);
+
+    const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=integrationobjects&_action=export`;
+    const exportResult = await httpRequestToMaximo({
+      url: exportUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { where: whereClause }
+    });
+
+    if (exportResult.status !== 200 || !exportResult.data) {
+      throw new Error(`导出对象结构失败: HTTP ${exportResult.status}`);
+    }
+
+    let responseData = exportResult.data;
+    if (typeof responseData === 'string') {
+      try { responseData = JSON.parse(responseData); } catch (e) { }
+    }
+
+    if (responseData.status === 'error') {
+      throw new Error(`导出对象结构失败: ${responseData.message || '未知错误'}`);
+    }
+
+    const intObjects = responseData.integrationobjects || [];
+    if (intObjects.length === 0) {
+      throw new Error('没有符合 where 条件的对象结构记录');
+    }
+
+    const fileName = 'integrationobjects.json';
+    const filePath = path.join(taskDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(responseData, null, 2), 'utf-8');
+
+    this._sendScheduledLog(`    ✅ 已保存: ${fileName}（${intObjects.length} 个）`);
+    this._updateScheduledTaskProgress(taskIndex, 1, 1, 'integrationobjects.json');
   }
 
   /**

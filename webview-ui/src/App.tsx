@@ -58,6 +58,10 @@ interface ConfigData {
   exportDomainZipEnabled: boolean;  // 域导出打包ZIP
   exportDomainPageSize: number;  // 域导出单文件行数
   exportDomainIgnoreDefVal: boolean;  // 域导出忽略默认值
+  exportIntObjectDirectory: string;  // 对象结构导出目录
+  exportIntObjectWhere: string;  // 对象结构导出 where 过滤条件
+  exportIntObjectIgnoreDefVal: boolean;  // 对象结构导出忽略默认值
+  exportIntObjectZipEnabled: boolean;  // 对象结构导出打包ZIP
   scheduledExportBaseDir: string;  // 计划导出基础目录
 }
 
@@ -86,6 +90,9 @@ const App: React.FC = () => {
   const [extractConditionDirectoryPath, setExtractConditionDirectoryPath] = useState<string>('');
   const [isExtractConditionRunning, setIsExtractConditionRunning] = useState<boolean>(false);
   const [extractConditionWhere, setExtractConditionWhere] = useState<string>('1=1');
+  const [extractIntObjectDirectoryPath, setExtractIntObjectDirectoryPath] = useState<string>('');
+  const [isExtractIntObjectRunning, setIsExtractIntObjectRunning] = useState<boolean>(false);
+  const [extractIntObjectWhere, setExtractIntObjectWhere] = useState<string>('1=1');
   const [scheduledExportPlan, setScheduledExportPlan] = useState<any>({ baseDir: '', tasks: [] });
   const [isScheduledExportRunning, setIsScheduledExportRunning] = useState<boolean>(false);
   const [scheduledExportProgress, setScheduledExportProgress] = useState<{ current: number; total: number; statusText: string }>({ current: 0, total: 0, statusText: '' });
@@ -145,6 +152,10 @@ const App: React.FC = () => {
     exportDomainZipEnabled: true,
     exportDomainPageSize: 50000,
     exportDomainIgnoreDefVal: false,
+    exportIntObjectDirectory: '',
+    exportIntObjectWhere: '1=1',
+    exportIntObjectIgnoreDefVal: false,
+    exportIntObjectZipEnabled: true,
     scheduledExportBaseDir: '',
   });
   
@@ -378,6 +389,12 @@ const App: React.FC = () => {
           if (message.data.exportConditionWhere) {
             setExtractConditionWhere(message.data.exportConditionWhere);
           }
+          if (message.data.exportIntObjectDirectory) {
+            setExtractIntObjectDirectoryPath(message.data.exportIntObjectDirectory);
+          }
+          if (message.data.exportIntObjectWhere) {
+            setExtractIntObjectWhere(message.data.exportIntObjectWhere);
+          }
           // 加载计划导出配置
           getVsCodeApi().postMessage({ command: 'loadScheduledExportConfig' });
           break;
@@ -549,6 +566,15 @@ const App: React.FC = () => {
         case 'extractConditionComplete':
           // 条件表达式导出完成
           setIsExtractConditionRunning(false);
+          break;
+        case 'setExtractIntObjectDirectoryPath':
+          // 设置对象结构导出目录路径
+          setExtractIntObjectDirectoryPath(message.path);
+          setConfig(prev => ({ ...prev, exportIntObjectDirectory: message.path }));
+          break;
+        case 'extractIntObjectComplete':
+          // 对象结构导出完成
+          setIsExtractIntObjectRunning(false);
           break;
         case 'loadScheduledExportConfig':
           // 加载计划导出配置
@@ -953,6 +979,32 @@ const App: React.FC = () => {
       command: 'extractCondition',
       directoryPath: extractConditionDirectoryPath,
       where: extractConditionWhere,
+      autoCreateExportDir: config.autoCreateExportDir
+    });
+  };
+
+  // 工具箱 - 选择对象结构导出目录
+  const handleSelectExtractIntObjectDirectory = () => {
+    getVsCodeApi().postMessage({
+      command: 'selectDirectoryForExtractIntObject'
+    });
+  };
+
+  // 工具箱 - 开始导出对象结构
+  const handleStartExtractIntObject = () => {
+    if (!extractIntObjectDirectoryPath) {
+      getVsCodeApi().postMessage({
+        command: 'showWarning',
+        message: '请先选择导出目录'
+      });
+      return;
+    }
+    setIsExtractIntObjectRunning(true);
+    setToolboxOutput('');
+    getVsCodeApi().postMessage({
+      command: 'extractIntObject',
+      directoryPath: extractIntObjectDirectoryPath,
+      where: extractIntObjectWhere,
       autoCreateExportDir: config.autoCreateExportDir
     });
   };
@@ -1808,6 +1860,21 @@ const App: React.FC = () => {
                 }}
               >
                 🧪 条件表达式管理器导出
+              </button>
+              <button
+                onClick={() => setActiveToolboxTab('extractIntObject')}
+                style={{
+                  padding: '6px 10px',
+                  whiteSpace: 'nowrap',
+                  background: activeToolboxTab === 'extractIntObject' ? 'var(--vscode-button-background)' : 'transparent',
+                  color: activeToolboxTab === 'extractIntObject' ? 'var(--vscode-button-foreground)' : 'var(--vscode-foreground)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: activeToolboxTab === 'extractIntObject' ? 'bold' : 'normal'
+                }}
+              >
+                🧩 导出对象结构
               </button>
               <button
                 onClick={() => setActiveToolboxTab('initProject')}
@@ -3075,6 +3142,152 @@ const App: React.FC = () => {
               </pre>
             </div>
           </div>
+        )}
+        {/* 对象结构导出标签页 */}
+        {activeToolboxTab === 'extractIntObject' && (
+          <div>
+            <div style={{ 
+              padding: '15px', 
+              background: 'var(--vscode-textBlockQuote-background)',
+              borderLeft: '4px solid var(--vscode-terminal-ansiYellow)',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🧩 导出对象结构（Integration Objects）</p>
+              <p style={{ margin: '0 0 10px 0' }}>
+                此功能将通过 SKS.AUTOSCRIPT.OBJECTS?_type=integrationobjects 接口从 Maximo 服务器导出对象结构（MAXINTOBJECT），一次性导出为单个 JSON 文件，兼容 SKS.AUTOSCRIPT.OBJECTS 的 import 批量导入。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
+                📌 <strong>使用说明：</strong><br/>
+                1. 选择要保存对象结构 JSON 的本地目录<br/>
+                2. 输入 where 过滤条件（SQL 表达式），默认 1=1 导出全部<br/>
+                3. 可选勾选忽略默认值（简化 JSON）<br/>
+                4. 点击"开始导出"按钮，结果为单个 integrationobjects.json 文件
+              </p>
+            </div>
+
+            {/* 导出目录选择 */}
+            <div className="form-group">
+              <label>选择导出目录：</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  value={extractIntObjectDirectoryPath}
+                  readOnly
+                  placeholder="选择要保存对象结构 JSON 的目录"
+                  style={{ flex: 1 }}
+                />
+                <button onClick={handleSelectExtractIntObjectDirectory} style={{ whiteSpace: 'nowrap' }}>📁 选择目录</button>
+              </div>
+            </div>
+
+            {/* where 条件配置（多行文本框） */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: 'var(--vscode-foreground)' }}>
+                🔍 where 过滤条件（SQL 表达式）：
+              </label>
+              <textarea
+                value={extractIntObjectWhere}
+                onChange={(e) => {
+                  setExtractIntObjectWhere(e.target.value);
+                  updateConfig({ exportIntObjectWhere: e.target.value });
+                }}
+                rows={4}
+                placeholder="例如: 1=1 或 INTOBJECTNAME LIKE 'SKS%'"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--vscode-input-border)',
+                  borderRadius: '4px',
+                  background: 'var(--vscode-input-background)',
+                  color: 'var(--vscode-input-foreground)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  fontFamily: 'monospace'
+                }}
+              />
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                支持多行 SQL 表达式，默认 1=1 导出全部对象结构
+              </p>
+            </div>
+
+            {/* 忽略默认值选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportIntObjectIgnoreDefVal}
+                  onChange={(e) => updateConfig({ exportIntObjectIgnoreDefVal: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>🔧 忽略默认值（简化 JSON）</span>
+              </label>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                {config.exportIntObjectIgnoreDefVal 
+                  ? '✅ 精简模式已开启，导出时将忽略默认值字段'
+                  : '💡 完整模式（默认），导出时将包含所有字段'}
+              </p>
+            </div>
+
+            {/* 打包ZIP选项 */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.exportIntObjectZipEnabled}
+                  onChange={(e) => updateConfig({ exportIntObjectZipEnabled: e.target.checked })}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>📦 导出完成后自动打包为ZIP</span>
+              </label>
+            </div>
+
+            <button 
+              onClick={handleStartExtractIntObject}
+              disabled={!extractIntObjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning || isExtractIntObjectRunning}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '20px',
+                opacity: (!extractIntObjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning || isExtractIntObjectRunning) ? 0.6 : 1,
+                cursor: (!extractIntObjectDirectoryPath || isInitRunning || isClearRunning || isDeployRunning || isExtractRunning || isExtractXmlRunning || isExtractMaxobjectRunning || isExtractMessageRunning || isExtractDomainRunning || isExtractConditionRunning || isExtractIntObjectRunning) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {!extractIntObjectDirectoryPath ? '⚠️ 请先选择导出目录' : (isExtractIntObjectRunning ? '⏳ 正在导出...' : '🧩 开始导出')}
+            </button>
+
+            {/* 输出日志区域 */}
+            <div style={{ 
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderRadius: '4px',
+              padding: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>📋 输出信息</span>
+                <button 
+                  onClick={handleClearToolboxOutput}
+                  style={{ padding: '4px 12px', fontSize: '0.9em' }}
+                >
+                  清空
+                </button>
+              </div>
+              <pre style={{ 
+                margin: 0,
+                padding: '10px',
+                background: 'var(--vscode-textCodeBlock-background)',
+                borderRadius: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontSize: '0.9em'
+              }}>
+                {toolboxOutput || '准备就绪，请选择导出目录并点击"开始导出"按钮...'}
+              </pre>
+            </div>
+          </div>
         )}          </div>
         )}
 
@@ -3192,6 +3405,7 @@ const App: React.FC = () => {
                     <option value="extractMessage">导出消息</option>
                     <option value="extractDomain">导出域</option>
                     <option value="extractCondition">导出条件表达式</option>
+                    <option value="extractIntObject">导出对象结构</option>
                     <option value="extractScript">导出脚本</option>
                     <option value="extractAppXml">导出应用XML</option>
                   </select>
@@ -3263,6 +3477,34 @@ const App: React.FC = () => {
                             newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
                             setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
                           }}
+                          style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', marginTop: '2px' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.ignoreDefVal || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          精简模式
+                        </label>
+                      </>
+                    ) : task.exportFunction === 'extractIntObject' ? (
+                      <>
+                        <input
+                          type="text"
+                          value={task.where !== undefined && task.where !== '' ? task.where : '1=1'}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], where: e.target.value };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          placeholder="where，如 1=1"
                           style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
                           disabled={isScheduledExportRunning}
                         />

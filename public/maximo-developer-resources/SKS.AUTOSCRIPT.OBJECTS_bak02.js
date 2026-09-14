@@ -46,25 +46,12 @@ var DOMAIN_VALUE_BUILDER = {
   "TABLE": buildTableValue
 };
 
-//对象结构默认值设置
-var INTEGRATION_OBJECT_DEFVAL = {
-  //对象结构主表
-  MAXINTOBJECT: {
-    //ALIASCONFLICT
-    ALIASCONFLICT: false,
-    //可配置的
-    CONFIGURABLE: true,
-    //用户定义
-    USERDEFINED: true,
-  }
-}
-
 MXApplicationException = Java.type("psdi.util.MXApplicationException");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 var scriptName = service.getScriptName();
 /**  @type {psdi.util.logging.MXLogger}*/
-var logger = MXLoggerFactory.getLogger("maximo.script." + scriptName);
+var logger = MXLoggerFactory.getLogger("maximo.script."+scriptName);
 
 if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
   //_langcode=zh
@@ -77,23 +64,13 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
 }
 
 
-// 运行参数:
-//   URL 查询参数: _type(domains/actions/integrationobjects/...), _action(list/detail/export/import),
-//                 _langcode, ignoreDefVal, _ignoreResultSuccess
-//   POST body:
-//     list/detail/export = 查询条件 {id? | where?, pageNum?, pageSize?, apiType?}
-//     import            = 导出格式纯数据 {"domains":[...]} / {"integrationobjects":[...]} / {"actions":[...]},
-//                         可带 syncFlag:true; 也接受裸数组/单对象
-//   body 中不放 _type/_action(Maximo REST 保留名), 导出结果可直接复制到 APIPost 作为导入请求体
+// 以下运行参数中 type/action/id/where/分页等从 POST 请求体(JSON)读取,
+// URL 查询参数仅保留 _langcode 与 ignoreDefVal
 // 精简模式(ignoreDefVal): 省略空值或与默认值相同的属性, 非默认值仍导出, 简化JSON
 var ignoreDefVal = false;
 if (request.getQueryParam("ignoreDefVal") === "true") {
   ignoreDefVal = true;
 }
-
-// 业务类型与动作: 统一从 URL 查询参数 _type/_action 读取
-var objectTypeParam = request.getQueryParam("_type");
-var actionParam = request.getQueryParam("_action");
 
 // API类型: exp=导出(仅返回 _langcode 指定语言的描述), 其它=管理端查询(额外返回 description_zh/en)
 var apiType = null;
@@ -115,38 +92,27 @@ function main() {
     checkPermissions('SKS_UTILS', 'DEPLOYSCRIPT');
 
     // 参数契约:
-    //   URL:  ?_type=domains|integrationobjects|actions|...&_action=list|detail|export|import
-    //   list/detail/export body: {where?|id?, pageNum?, pageSize?, apiType?}
-    //   import body: 导出格式纯数据 {domains:[...]} / {integrationobjects:[...]} / {actions:[...]}, 可带 syncFlag
+    //   list:   {type, action:'list', where?, pageNum?, pageSize?, apiType?}
+    //   detail: {type, action:'detail', id}
+    //   export: {type, action:'export', id? | where?}
+    //   import: {type, action:'import', data:[...], syncFlag?} 或导出格式 {syncFlag?, domains|actions|intobjectnames:[...]}
     //   syncFlag=true 时导入按 JSON 全量同步(删除多余记录/_delete 标记记录), 缺省或 false 仅新增/更新不删除
-    //   其它 URL 查询参数: _langcode, ignoreDefVal, _ignoreResultSuccess
+    //   URL 查询参数: _langcode, ignoreDefVal, _ignoreResultSuccess
     var requestData = parseRequestData();
 
-    // 导入 body 直接使用导出格式, 键名即类型; URL 未显式给 _type/_action 时据此推断(导入场景)
-    var wrapperTypeMap = { domains: 'domains', integrationobjects: 'integrationobjects', actions: 'actions' };
-    var objectType = objectTypeParam;
-    var action = actionParam;
-    if (!objectType || !action) {
-      response = {}
-      response.status = 'error';
-      response.message = 'url 缺少 _type和_action: ';
-      responseBody = JSON.stringify(response);
-      return
-    }
-    var inferredType = null;
-    for (var wrapperKey in wrapperTypeMap) {
-      if (requestData[wrapperKey]) {
-        inferredType = wrapperTypeMap[wrapperKey];
-        break;
+    // 导入支持直接传导出格式: {domains:[...]} / {actions:[...]} / {intobjectnames:[...]}
+    var wrapperTypeMap = { domains: 'domains', actions: 'actions', intobjectnames: 'integrationobjects' };
+    var objectType = requestData.type;
+    if (!objectType) {
+      for (var wrapperKey in wrapperTypeMap) {
+        if (requestData[wrapperKey]) {
+          objectType = wrapperTypeMap[wrapperKey];
+          break;
+        }
       }
     }
-    if (!objectType) {
-      objectType = inferredType;
-    }
+    var action = requestData.action || (objectType && requestData[objectType === 'integrationobjects' ? 'intobjectnames' : objectType] ? 'import' : null);
 
-    if (!action && inferredType) {
-      action = 'import';
-    }
     // apiType 从请求体读取(ignoreDefVal 在顶部从 URL 读取)
     apiType = requestData.apiType;
     // syncFlag 从请求体读取(仅布尔 true 生效, 数组/单对象裸传时为 undefined -> 不删除)
@@ -158,14 +124,14 @@ function main() {
 
     if (!objectType) {
       response.status = 'error';
-      response.message = 'URL 缺少 _type 参数(domains/actions/integrationobjects/...)';
+      response.message = '请求体缺少 type 参数(domains/actions/integrationobjects/...)';
       responseBody = JSON.stringify(response);
       return;
     }
     objectType = objectType.toLowerCase();
     if (!action) {
       response.status = 'error';
-      response.message = 'URL 缺少 _action 参数(list/detail/export/import)';
+      response.message = '请求体缺少 action 参数(list/detail/export/import)';
       responseBody = JSON.stringify(response);
       return;
     }
@@ -241,16 +207,8 @@ function main() {
         } else if (objectType === 'queries') {
           response.data = getQuery(exportId);
         }
-        // 单条导出也包装成与批量导出一致的纯数据格式, 可直接作为导入请求体
-        if (objectType === 'integrationobjects') {
-          responseBody = JSON.stringify({ integrationobjects: [response.data] });
-        } else if (objectType === 'domains') {
-          responseBody = JSON.stringify({ domains: [response.data] });
-        } else if (objectType === 'actions') {
-          responseBody = JSON.stringify({ actions: [response.data] });
-        } else {
-          responseBody = JSON.stringify(response);
-        }
+        //导出格式不同
+        responseBody = JSON.stringify({ intobjectnames: [response.data] });
         return
       } else {
         // 批量导出(按请求体 where), 目前仅 domains / integrationobjects 支持
@@ -522,10 +480,6 @@ function buildIntObject(maxIntObject) {
     intObject.selfReferencing = true;
   }
 
-  if (maxIntObject.getBoolean('ALIASCONFLICT')) {
-    intObject.aliasConflict = true;
-  }
-
   if (!maxIntObject.isNull('AUTHAPP')) {
     intObject.authApp = maxIntObject.getString('AUTHAPP');
   }
@@ -599,17 +553,6 @@ function buildIntObject(maxIntObject) {
 
     if (!maxIntObjDetail.isNull('PARENTOBJNAME')) {
       intObjDetail.parentObjName = maxIntObjDetail.getString('PARENTOBJNAME');
-    } else if (!maxIntObjDetail.isNull('PARENTOBJID')) {
-      // PARENTOBJNAME 为非持久化字段, 新加载的行为空; 按持久化 PARENTOBJID 在明细集中反查父明细名
-      // 用 getMbo(index) 而非 findMboByAttr, 避免移动外层正在遍历的游标
-      var parentIdForLookup = String(maxIntObjDetail.getInt('PARENTOBJID'));
-      for (var pi = 0; pi < maxIntObjDetailSet.count(); pi++) {
-        var parentDetailMbo = maxIntObjDetailSet.getMbo(pi);
-        if (String(parentDetailMbo.getInt('OBJECTID')) === parentIdForLookup) {
-          intObjDetail.parentObjName = parentDetailMbo.getString('OBJECTNAME');
-          break;
-        }
-      }
     }
 
     if (!maxIntObjDetail.isNull('RELATION')) {
@@ -691,34 +634,24 @@ function buildIntObject(maxIntObject) {
       description: sigOption.getString('DESCRIPTION'),
     };
 
-
-    if (ignoreDefVal) {
-      if (!sigOption.isNull('ALSOGRANTS')) {
-        option.alsoGrants = sigOption.getString('ALSOGRANTS');
-      }
-
-      if (!sigOption.isNull('ALSOREVOKES')) {
-        option.alsoRevokes = sigOption.getString('ALSOREVOKES');
-      }
-
-      if (!sigOption.isNull('PREREQUISITE')) {
-        option.prerequisite = sigOption.getString('PREREQUISITE');
-      }
-
-      if (sigOption.getBoolean('ESIGENABLED')) {
-        option.esigEnabled = true;
-      }
-
-      if (!sigOption.getBoolean('VISIBLE')) {
-        option.visible = false;
-      }
-
-    } else {
+    if (!sigOption.isNull('ALSOGRANTS')) {
       option.alsoGrants = sigOption.getString('ALSOGRANTS');
+    }
+
+    if (!sigOption.isNull('ALSOREVOKES')) {
       option.alsoRevokes = sigOption.getString('ALSOREVOKES');
+    }
+
+    if (!sigOption.isNull('PREREQUISITE')) {
       option.prerequisite = sigOption.getString('PREREQUISITE');
-      option.esigEnabled = sigOption.getBoolean('ESIGENABLED');
-      option.visible = sigOption.getBoolean('VISIBLE');
+    }
+
+    if (sigOption.getBoolean('ESIGENABLED')) {
+      option.esigEnabled = true;
+    }
+
+    if (!sigOption.getBoolean('VISIBLE')) {
+      option.esigEnabled = false;
     }
 
     intObject.sigOption.push(option);
@@ -754,18 +687,12 @@ function buildIntObject(maxIntObject) {
         break;
     }
 
-    if (ignoreDefVal) {
-      if (!osOSLCAction.isNull('OPTIONNAME')) {
-        action.optionName = osOSLCAction.getString('OPTIONNAME');
-      }
+    if (!osOSLCAction.isNull('OPTIONNAME')) {
+      action.optionName = osOSLCAction.getString('OPTIONNAME');
+    }
 
-      // COLLECTION 为 YORN, 默认 0; 精简导出仅在为 true 时输出, 保持布尔类型与导入 setYornValue 对齐
-      if (osOSLCAction.getBoolean('COLLECTION')) {
-        action.collection = true;
-      }
-    }else{
-        action.optionName = osOSLCAction.getString('OPTIONNAME');
-        action.collection = osOSLCAction.getBoolean('COLLECTION');
+    if (!osOSLCAction.isNull('COLLECTION')) {
+      action.collection = osOSLCAction.getString('COLLECTION');
     }
 
     intObject.osOSLCAction.push(action);
@@ -800,12 +727,9 @@ function buildIntObject(maxIntObject) {
         query.description = oslcQuery.getString('DESCRIPTION');
         query.clause = oslcQuery.getString('CLAUSE');
         query.isPublic = oslcQuery.getBoolean('ISPUBLIC');
-        if (oslcQuery.getBoolean('FILTER')) {
-          query.filter = true;
-        }
         break;
       case 'script':
-        query.script = oslcQuery.getString('SCRIPTNAME');
+        query.script = oslcQuery.getString('SCRIPT');
         break;
     }
 
@@ -842,12 +766,6 @@ function buildIntObject(maxIntObject) {
     }
     if (!queryTemplate.getBoolean('ISPUBLIC')) {
       template.isPublic = false;
-    }
-    if (queryTemplate.getBoolean('USERDEFINED')) {
-      template.userDefined = true;
-    }
-    if (queryTemplate.getBoolean('DFLTPROJECTION')) {
-      template.dfltProjection = true;
     }
 
     var queryTemplateAttrSet = queryTemplate.getMboSet('QUERYTEMPLATEATTR');
@@ -2879,7 +2797,7 @@ function saveOrUpdateAction(data, name) {
 // =================================================================================
 
 /**
- * 对象结构列表查询(内存分页), 返回 {integrationobjects:[行], total, pageNum, pageSize}
+ * 对象结构列表查询(内存分页), 返回 {intobjectnames:[行], total, pageNum, pageSize}
  */
 function intObjectListResponse(requestData) {
   /** @type {psdi.mbo.MboSetRemote} */
@@ -2910,7 +2828,7 @@ function intObjectListResponse(requestData) {
       mbo = maxIntObjectSet.moveNext();
     }
 
-    var result = { integrationobjects: rows };
+    var result = { intobjectnames: rows };
     if (pager.hasPagination) {
       result.total = total;
       result.pageNum = pager.pageNum;
@@ -2926,7 +2844,7 @@ function intObjectListResponse(requestData) {
 }
 
 /**
- * 对象结构批量完整导出(含 MAXINTOBJDETAIL/COLS/ALIAS 等全部子记录), 返回 {integrationobjects:[...]}
+ * 对象结构批量完整导出(含 MAXINTOBJDETAIL/COLS/ALIAS 等全部子记录), 返回 {intobjectnames:[...]}
  */
 function intObjectExportResponse(requestData) {
   /** @type {psdi.mbo.MboSetRemote} */
@@ -2949,7 +2867,7 @@ function intObjectExportResponse(requestData) {
       mbo = maxIntObjectSet.moveNext();
     }
     logger.info("[" + scriptName + "] integrationobjects export 完成, 共 " + arr.length + " 个");
-    return JSON.stringify({ integrationobjects: arr });
+    return JSON.stringify({ intobjectnames: arr });
   } catch (error) {
     logger.error("[" + scriptName + "] 导出对象结构失败: " + error);
     return JSON.stringify({ status: "error", message: error.message ? error.message : error.toString() });
@@ -3004,10 +2922,10 @@ function qualifyIntObjectDescriptionWhere(whereClause) {
 
 /**
  * 对象结构批量导入
- * 请求体支持: 数组 / {"integrationobjects":[...]} / 单个对象, 导出格式同 buildIntObject
+ * 请求体支持: 数组 / {"intobjectnames":[...]} / 单个对象, 导出格式同 buildIntObject
  */
 function importIntObjects(requestData) {
-  var items = extractItems(requestData, 'integrationobjects');
+  var items = extractItems(requestData, 'intobjectnames');
   if (items.length === 0) {
     throw new MXApplicationException("#", "没有提供对象结构(MAXINTOBJECT)数据");
   }
@@ -3059,12 +2977,8 @@ function saveOrUpdateIntObject(data, name) {
     setYornValue(intObjMbo, "QUERYONLY", data.queryOnly);
     setYornValue(intObjMbo, "FLATSUPPORTED", data.flatSupported);
     setYornValue(intObjMbo, "LOADQUERYFROMAPP", data.loadQueryFromApp);
-    // USEOSSECURITY 为新版字段, 旧版环境 MBO 元数据中不存在时跳过
-    if (_attributeExists("MAXINTOBJECT", "USEOSSECURITY")) {
-      setYornValue(intObjMbo, "USEOSSECURITY", data.useOsSecurity);
-    }
+    setYornValue(intObjMbo, "USEOSSECURITY", data.useOsSecurity);
     setYornValue(intObjMbo, "SELFREFERENCING", data.selfReferencing);
-    // ALIASCONFLICT 为派生只读标记: 框架保存时 setAliasConflictFlag 按 FLATSUPPORTED 结构别名重复自动重算, 不接受导入值
     setStrValue(intObjMbo, "AUTHAPP", data.authApp);
     setStrValue(intObjMbo, "DEFCLASS", data.defClass);
     setStrValue(intObjMbo, "PROCCLASS", data.procClass);
@@ -3072,21 +2986,15 @@ function saveOrUpdateIntObject(data, name) {
     setStrValue(intObjMbo, "RESTRICTWHERE", data.restrictWhere);
     setStrValue(intObjMbo, "MODULE", data.module);
     if (_attributeExists("MAXINTOBJECT", "AUTOPAGINGTHRESHOLD") && data.autoPagingThreshold !== undefined && data.autoPagingThreshold !== null && data.autoPagingThreshold !== -1) {
-      // 值相同跳过(系统对象该字段可能只读)
-      var curAutoPaging = getInt(intObjMbo, "AUTOPAGINGTHRESHOLD");
-      if (curAutoPaging === null || curAutoPaging !== data.autoPagingThreshold) {
-        intObjMbo.setValue("AUTOPAGINGTHRESHOLD", data.autoPagingThreshold);
-      }
+      intObjMbo.setValue("AUTOPAGINGTHRESHOLD", data.autoPagingThreshold);
     }
 
     // 子记录: MAXINTOBJDETAIL(含 MAXINTOBJCOLS / MAXINTOBJALIAS)
     if (data.maxIntObjDetail && Array.isArray(data.maxIntObjDetail) && data.maxIntObjDetail.length > 0) {
       var detailSet = intObjMbo.getMboSet("MAXINTOBJDETAIL");
       try {
-        // 拓扑排序: 父明细必须先于子明细进入同一 MboSet, 否则新增行设置 PARENTOBJNAME 时找不到父(FldParentObjName.validate)
-        var orderedDetails = orderIntObjDetails(data.maxIntObjDetail);
-        for (var i = 0; i < orderedDetails.length; i++) {
-          saveOrUpdateIntObjDetail(detailSet, orderedDetails[i], i + 1);
+        for (var i = 0; i < data.maxIntObjDetail.length; i++) {
+          saveOrUpdateIntObjDetail(detailSet, data.maxIntObjDetail[i], i + 1);
         }
         detailSet.save();
       } finally {
@@ -3094,333 +3002,13 @@ function saveOrUpdateIntObject(data, name) {
       }
     }
 
-    // 子记录: SIGOPTION(关系 app=:authapp, 必须先于 OSOSLCACTION —— action 的 optionName 引用签名选项)
-    if (data.sigOption && Array.isArray(data.sigOption) && data.sigOption.length > 0) {
-      saveOrUpdateSigOptions(intObjMbo, data.sigOption);
-    }
-
-    // 子记录: OSOSLCACTION(关系 intobjectname=:intobjectname)
-    if (data.osOSLCAction && Array.isArray(data.osOSLCAction) && data.osOSLCAction.length > 0) {
-      saveOrUpdateOslcActions(intObjMbo, data.osOSLCAction);
-    }
-
-    // 子记录: OSLCQUERY(关系 intobjectname=:intobjectname, 业务键 CLAUSENAME —— method/script 类型由字段 action 自动回填)
-    if (data.oslcQuery && Array.isArray(data.oslcQuery) && data.oslcQuery.length > 0) {
-      saveOrUpdateOslcQueries(intObjMbo, data.oslcQuery);
-    }
-
-    // 子记录: QUERYTEMPLATE + 孙集 QUERYTEMPLATEATTR(关系 intobjectname=:intobjectname)
-    if (data.queryTemplate && Array.isArray(data.queryTemplate) && data.queryTemplate.length > 0) {
-      saveOrUpdateQueryTemplates(intObjMbo, data.queryTemplate);
-    }
-
     intObjSet.save();
     logger.info("对象结构保存成功: INTOBJECTNAME=" + name);
   } catch (error) {
-    logger.error("保存对象结构失败: " + name + ", " + (error && error.message ? error.message : String(error)));
+    logger.error("保存对象结构失败: " + name + ", " , error);
     throw new MXApplicationException("#", "保存对象结构失败: " + name + ", " + (error.message || String(error)));
   } finally {
     _close(intObjSet);
-  }
-}
-
-/**
- * 保存或更新签名选项 SIGOPTION(关系 SIGOPTION: app=:authapp, 主键 APP+OPTIONNAME)。
- * SigOption.add() 仅当 owner=MAXINTOBJECT 且 AUTHAPP 非空时自动填 APP=AUTHAPP、ESIGENABLED=false;
- * AUTHAPP 为空时 APP(必填) 无值可填, 无法导入 —— 直接报错避免静默丢数据。
- * VISIBLE 元数据默认 1, 故精简 JSON 省略 visible 时新行仍落库正确。
- */
-function saveOrUpdateSigOptions(intObjMbo, options) {
-  if (intObjMbo.isNull("AUTHAPP")) {
-    throw new MXApplicationException("#", "导入签名选项失败: 对象结构 " + intObjMbo.getString("INTOBJECTNAME") + " 的 authApp 为空, SIGOPTION 依赖 APP=AUTHAPP 关联, 请先在主记录设置 authApp");
-  }
-  var sigSet = intObjMbo.getMboSet("SIGOPTION");
-  try {
-    for (var i = 0; i < options.length; i++) {
-      var optData = options[i];
-      if (!optData.optionName) {
-        continue;
-      }
-      // OPTIONNAME 为 UPPER 类型, DB 存大写; 统一大写查找避免手写小写 JSON 误判新增撞唯一键
-      var sigKey = String(optData.optionName).toUpperCase();
-      var sigMbo = findMboByAttr(sigSet, "OPTIONNAME", sigKey);
-      if (optData._delete) {
-        if (sigMbo != null) {
-          sigMbo.delete();
-        }
-        continue;
-      }
-      if (!sigMbo) {
-        sigMbo = sigSet.add(); // add() 自动写 APP=AUTHAPP, ESIGENABLED=false
-        sigMbo.setValue("OPTIONNAME", optData.optionName);
-      }
-      // 系统交付对象子表可能只读, 统一带 NOACCESSCHECK(2)
-      setStrValue(sigMbo, "DESCRIPTION", optData.description, 2);
-      setStrValue(sigMbo, "ALSOGRANTS", optData.alsoGrants, 2);
-      setStrValue(sigMbo, "ALSOREVOKES", optData.alsoRevokes, 2);
-      setStrValue(sigMbo, "PREREQUISITE", optData.prerequisite, 2);
-      setYornValue(sigMbo, "ESIGENABLED", optData.esigEnabled, 2);
-      setYornValue(sigMbo, "VISIBLE", optData.visible, 2);
-    }
-    sigSet.save();
-  } finally {
-    _close(sigSet);
-  }
-}
-
-/**
- * 保存或更新 OSLC 操作 OSOSLCACTION(关系 intobjectname=:intobjectname, 主键 INTOBJECTNAME+NAME)。
- * OslcAction.add() 自动写 IMPLTYPE=system、APP=AUTHAPP、INTOBJECTNAME;
- * init()/appValidate() 按 IMPLTYPE 在 IMPLNAME(持久列) 与 SYSTEMNAME/METHODNAME/PROCESSNAME/SCRIPTNAME
- * 之间联动, 故只写 JSON 中的对应实现名字段, IMPLNAME 由框架 appValidate 回填(为空抛 oslc/missingrequired)。
- */
-function saveOrUpdateOslcActions(intObjMbo, actions) {
-  // APP(必填) 只能由 add() 从 AUTHAPP 自动带出; 仅当确有新增行时才需要校验
-  var needAdd = false;
-  var actSet = intObjMbo.getMboSet("OSOSLCACTION");
-  try {
-    for (var i = 0; i < actions.length; i++) {
-      var actData = actions[i];
-      if (!actData.name) {
-        continue;
-      }
-      // NAME 为 UPPER 类型, DB 存大写; 统一大写查找避免手写小写 JSON 误判新增撞唯一键
-      var actKey = String(actData.name).toUpperCase();
-      var actMbo = findMboByAttr(actSet, "NAME", actKey);
-      if (actData._delete) {
-        if (actMbo != null) {
-          actMbo.delete();
-        }
-        continue;
-      }
-      if (!actMbo) {
-        if (!needAdd && intObjMbo.isNull("AUTHAPP")) {
-          throw new MXApplicationException("#", "导入 OSLC 操作失败: 对象结构 " + intObjMbo.getString("INTOBJECTNAME") + " 的 authApp 为空, OSOSLCACTION.APP(必填) 只能取自主记录 authApp, 请先设置 authApp");
-        }
-        needAdd = true;
-        actMbo = actSet.add(); // add() 自动写 APP=AUTHAPP/INTOBJECTNAME/IMPLTYPE=system
-        actMbo.setValue("NAME", actData.name);
-      }
-      setStrValue(actMbo, "DESCRIPTION", actData.description, 2);
-      setStrValue(actMbo, "IMPLTYPE", actData.implType, 2);
-      // 实现名按类型写到对应 NP 字段, appValidate 自动同步持久列 IMPLNAME
-      if (actData.implType === "system") {
-        setStrValue(actMbo, "SYSTEMNAME", actData.systemName, 2);
-      } else if (actData.implType === "script") {
-        setStrValue(actMbo, "SCRIPTNAME", actData.scriptName, 2);
-      } else if (actData.implType === "workflow") {
-        setStrValue(actMbo, "PROCESSNAME", actData.processName, 2);
-      } else if (actData.implType === "wsmethod") {
-        setStrValue(actMbo, "METHODNAME", actData.methodName, 2);
-      }
-      setStrValue(actMbo, "OPTIONNAME", actData.optionName, 2);
-      setYornValue(actMbo, "COLLECTION", actData.collection, 2);
-    }
-    actSet.save();
-  } finally {
-    _close(actSet);
-  }
-}
-
-/**
- * 保存或更新 OSLC 查询 OSLCQUERY(关系 intobjectname=:intobjectname)。
- * 业务键 CLAUSENAME: appclause/osclause 直接提供; method 由 FldOslcQueryMethodName.validate
- * (反射主记录 DEFCLASS 的 @PreparedQuery 方法, 不存在则报错) 自动写 clausename=method;
- * script 由 FldScriptnameOslcQuery.action 自动写 clausename=scriptname(且脚本必须存在、
- * 命名以 OSQUERY.<intobjectname>. 开头)。
- * OSLCQuery.add() 自动写 INTOBJECTNAME/OWNER/ISPUBLIC=false;
- * FldOslcQueryQueryType.validate 切换类型时清空其他类型字段, 故先写 QUERYTYPE 再写类型专属字段。
- * appclause 必须先写 APP 再写 CLAUSENAME(后者按 app 表域校验 QUERY 表公共查询)。
- */
-function saveOrUpdateOslcQueries(intObjMbo, queries) {
-  var qSet = intObjMbo.getMboSet("OSLCQUERY");
-  try {
-    for (var i = 0; i < queries.length; i++) {
-      var qData = queries[i];
-      if (!qData.queryType) {
-        continue;
-      }
-      // 业务键: 各类型最终都会落到 CLAUSENAME
-      var qKey = qData.clauseName;
-      if (qData.queryType === "method") {
-        qKey = qData.method;
-      } else if (qData.queryType === "script") {
-        qKey = qData.script;
-      }
-      if (!qKey) {
-        continue;
-      }
-      var qMbo = findMboByAttr(qSet, "CLAUSENAME", qKey);
-      if (qData._delete) {
-        if (qMbo != null) {
-          qMbo.delete();
-        }
-        continue;
-      }
-      if (!qMbo) {
-        qMbo = qSet.add(); // 自动写 INTOBJECTNAME/OWNER/ISPUBLIC=false
-      }
-      setStrValue(qMbo, "QUERYTYPE", qData.queryType, 2);
-      if (qData.queryType === "appclause") {
-        setStrValue(qMbo, "APP", qData.app, 2);
-        setStrValue(qMbo, "CLAUSENAME", qData.clauseName, 2);
-      } else if (qData.queryType === "method") {
-        setStrValue(qMbo, "METHOD", qData.method, 2);
-        setStrValue(qMbo, "DESCRIPTION", qData.description, 2);
-      } else if (qData.queryType === "osclause") {
-        setStrValue(qMbo, "CLAUSENAME", qData.clauseName, 2);
-        setStrValue(qMbo, "DESCRIPTION", qData.description, 2);
-        setStrValue(qMbo, "CLAUSE", qData.clause, 2);
-        setYornValue(qMbo, "FILTER", qData.filter, 2);
-        setYornValue(qMbo, "ISPUBLIC", qData.isPublic, 2);
-      } else if (qData.queryType === "script") {
-        setStrValue(qMbo, "SCRIPTNAME", qData.script, 2);
-      }
-    }
-    qSet.save();
-  } finally {
-    _close(qSet);
-  }
-}
-
-/**
- * 保存或更新查询模板 QUERYTEMPLATE 及孙集 QUERYTEMPLATEATTR。
- * OslcQueryTemplate.add() 仅自动写 INTOBJECTNAME(OWNER 只读, 走 &PERSONID& 默认);
- * TEMPLATENAME 为业务键(UPPER, 默认 &AUTOKEY&, 可显式命名)。
- * OslcQueryTemplateAttr.add() 自动带出 TEMPLATENAME/INTOBJECTNAME/OWNER;
- * SORTBYON=true 时 ASCENDING/SORTBYORDER 才放开可写(initFieldFlagsOnMbo 联动), 故先写 SORTBYON;
- * SELECTATTRNAME 保存时 appValidate 强校验主对象属性存在(回导原结构天然满足)。
- * 删模板走框架 delete(级联删 attr), 但 canDelete 要求 USERDEFINED=1 且未被 WORKSCAPELAYOUT 引用。
- */
-function saveOrUpdateQueryTemplates(intObjMbo, templates) {
-  var tSet = intObjMbo.getMboSet("QUERYTEMPLATE");
-  try {
-    for (var i = 0; i < templates.length; i++) {
-      var tData = templates[i];
-      if (!tData.templateName) {
-        continue;
-      }
-      // TEMPLATENAME 为 UPPER, 统一大写查找
-      var tMbo = findMboByAttr(tSet, "TEMPLATENAME", String(tData.templateName).toUpperCase());
-      if (tData._delete) {
-        if (tMbo != null) {
-          tMbo.delete(); // 框架级联删除 QUERYTEMPLATEATTR
-        }
-        continue;
-      }
-      if (!tMbo) {
-        tMbo = tSet.add();
-        tMbo.setValue("TEMPLATENAME", tData.templateName);
-      }
-      setStrValue(tMbo, "DESCRIPTION", tData.description, 2);
-      if (tData.pageSize !== undefined && tData.pageSize !== null) {
-        var curPageSize = getInt(tMbo, "PAGESIZE");
-        if (curPageSize === null || curPageSize !== tData.pageSize) {
-          tMbo.setValue("PAGESIZE", tData.pageSize, 2);
-        }
-      }
-      setStrValue(tMbo, "ROLE", tData.role, 2);
-      setStrValue(tMbo, "SEARCHATTRIBUTES", tData.searchAttributes, 2);
-      setStrValue(tMbo, "TIMELINEATTRIBUTE", tData.timelineAttributes, 2);
-      setYornValue(tMbo, "ISPUBLIC", tData.isPublic, 2);
-      setYornValue(tMbo, "USERDEFINED", tData.userDefined, 2);
-      setYornValue(tMbo, "DFLTPROJECTION", tData.dfltProjection, 2);
-
-      // 孙记录: QUERYTEMPLATEATTR(业务键 SELECTATTRNAME)
-      if (tData.queryTemplateAttr && Array.isArray(tData.queryTemplateAttr)) {
-        var attrSet = tMbo.getMboSet("QUERYTEMPLATEATTR");
-        try {
-          for (var j = 0; j < tData.queryTemplateAttr.length; j++) {
-            var aData = tData.queryTemplateAttr[j];
-            if (!aData.selectAttrName) {
-              continue;
-            }
-            var aMbo = findMboByAttr(attrSet, "SELECTATTRNAME", aData.selectAttrName);
-            if (aData._delete) {
-              if (aMbo != null) {
-                aMbo.delete();
-              }
-              continue;
-            }
-            if (!aMbo) {
-              aMbo = attrSet.add(); // 自动带 TEMPLATENAME/INTOBJECTNAME/OWNER
-              aMbo.setValue("SELECTATTRNAME", aData.selectAttrName);
-            }
-            setStrValue(aMbo, "TITLE", aData.title, 2);
-            setStrValue(aMbo, "ALIAS", aData.alias, 2);
-            // 先写 SORTBYON: true 后 ASCENDING/SORTBYORDER 才解除只读
-            setYornValue(aMbo, "SORTBYON", aData.sortByOn, 2);
-            setYornValue(aMbo, "ASCENDING", aData.ascending, 2);
-            if (aData.selectOrder !== undefined && aData.selectOrder !== null) {
-              aMbo.setValue("SELECTORDER", aData.selectOrder, 2);
-            }
-            if (aData.sortByOrder !== undefined && aData.sortByOrder !== null) {
-              aMbo.setValue("SORTBYORDER", aData.sortByOrder, 2);
-            }
-          }
-          attrSet.save();
-        } finally {
-          _close(attrSet);
-        }
-      }
-    }
-    tSet.save();
-  } finally {
-    _close(tSet);
-  }
-}
-
-/**
- * 明细数组按 parentObjName 拓扑排序(父先于子)。
- * 父不在数组中(已在库中)时无需等待; 环引用时按原顺序保护, 避免死循环。
- */
-function orderIntObjDetails(details) {
-  var byName = {};
-  for (var i = 0; i < details.length; i++) {
-    if (details[i].objectName) {
-      byName[String(details[i].objectName).toUpperCase()] = details[i];
-    }
-  }
-  var state = {}; // 1=访问中, 2=已输出
-  var ordered = [];
-  function visit(d) {
-    var key = String(d.objectName).toUpperCase();
-    if (state[key] === 2) {
-      return;
-    }
-    if (state[key] === 1) {
-      return; // 环保护
-    }
-    state[key] = 1;
-    if (d.parentObjName) {
-      var pKey = String(d.parentObjName).toUpperCase();
-      if (byName[pKey]) {
-        visit(byName[pKey]);
-      }
-    }
-    state[key] = 2;
-    ordered.push(d);
-  }
-  for (var j = 0; j < details.length; j++) {
-    visit(details[j]);
-  }
-  return ordered;
-}
-
-/**
- * 清空明细的 NP/EXCLUDE 非持久化临时集(NONPERSISTENTNP/EXCLUDENP)。
- * 这些临时集在新建明细时由框架自动勾选(如 DOCLINKS 的非持久列默认全选),
- * MaxIntObjectDetail.save() 的 npTOpFillUp 会据勾选自动补插 MAXINTOBJCOLS,
- * 与脚本手动新增的列重复导致唯一索引冲突。清空后 npTOpFillUp 空转, 不影响已落库行。
- */
-function _clearNpTempSet(detailMbo, relName) {
-  var tempSet = null;
-  try {
-    // 注意: 不能 close/cleanup —— 否则 npTOpFillUp 重新 getMboSet 会重新初始化勾选, 修复失效
-    tempSet = detailMbo.getMboSet(relName);
-    tempSet.deleteAndRemoveAll();
-  } catch (e) {
-    logger.warn("清空临时集 " + relName + " 失败: " + (e && e.message ? e.message : String(e)));
   }
 }
 
@@ -3440,37 +3028,24 @@ function saveOrUpdateIntObjDetail(detailSet, detailData, index) {
     }
     return;
   }
-  var isNewDetail = !detailMbo;
-  if (isNewDetail) {
+  if (!detailMbo) {
     logger.info("新增对象结构明细: " + objectName);
     detailMbo = detailSet.add();
     detailMbo.setValue("OBJECTNAME", objectName);
-    // 建立父子层级: PARENTOBJNAME 为非持久化字段, FldParentObjName.action 会在同一明细集中按名字
-    // 找到父明细并写持久化的 PARENTOBJID/HIERARCHYPATH; 必须在 RELATION 之前设置(action 会清空 RELATION),
-    // 且只有新增行可设(已保存行 validate 抛 cant_change_prntmbo_aftersave); 带 2 忽略 CONFIGURABLE=0 的只读,
-    // field class 的 validate/action 仍会执行(2=NOACCESSCHECK 只绕权限不绕校验)
-    if (detailData.parentObjName) {
-      detailMbo.setValue("PARENTOBJNAME", detailData.parentObjName, 2);
-    }
   }
 
-  // 子表保存: setValue 统一带 NOACCESSCHECK(2) 忽略系统交付对象的只读标志
-  setStrValue(detailMbo, "ALTKEY", detailData.altKey, 2);
-  setYornValue(detailMbo, "EXCLUDEBYDEFAULT", detailData.excludeByDefault, 2);
-  setYornValue(detailMbo, "SKIPKEYUPDATE", detailData.skipKeyUpdate, 2);
-  setYornValue(detailMbo, "EXCLUDEPARENTKEY", detailData.excludeParentKey, 2);
-  setYornValue(detailMbo, "DELETEONCREATE", detailData.deleteOnCreate, 2);
-  setYornValue(detailMbo, "PROPAGATEEVENT", detailData.propagateEvent, 2);
-  setYornValue(detailMbo, "INVOKEEXECUTE", detailData.invokeExecute, 2);
-  setStrValue(detailMbo, "FDRESOURCE", detailData.fdResource, 2);
-  setStrValue(detailMbo, "RELATION", detailData.relation, 2);
-  // OBJECTORDER 已存在记录上只读, 带 2 强写以保持导入顺序(新增行 FldParentObjName.action 已按同父兄弟自动编号, 通常与 JSON 一致而跳过)
-  // PARENTOBJID 为持久化外键, 不在此直写——新增行由 PARENTOBJNAME 的 field action 自动解析写入
+  setStrValue(detailMbo, "ALTKEY", detailData.altKey);
+  setYornValue(detailMbo, "EXCLUDEBYDEFAULT", detailData.excludeByDefault);
+  setYornValue(detailMbo, "SKIPKEYUPDATE", detailData.skipKeyUpdate);
+  setYornValue(detailMbo, "EXCLUDEPARENTKEY", detailData.excludeParentKey);
+  setYornValue(detailMbo, "DELETEONCREATE", detailData.deleteOnCreate);
+  setYornValue(detailMbo, "PROPAGATEEVENT", detailData.propagateEvent);
+  setYornValue(detailMbo, "INVOKEEXECUTE", detailData.invokeExecute);
+  setStrValue(detailMbo, "FDRESOURCE", detailData.fdResource);
+  setStrValue(detailMbo, "PARENTOBJNAME", detailData.parentObjName);
+  setStrValue(detailMbo, "RELATION", detailData.relation);
   if (detailData.objectOrder !== undefined && detailData.objectOrder !== null) {
-    var curOrder = getInt(detailMbo, "OBJECTORDER");
-    if (curOrder === null || curOrder !== detailData.objectOrder) {
-      detailMbo.setValue("OBJECTORDER", detailData.objectOrder, 2);
-    }
+    detailMbo.setValue("OBJECTORDER", detailData.objectOrder);
   }
 
   // 子记录: MAXINTOBJCOLS(持久化字段, 主键 NAME)
@@ -3492,15 +3067,9 @@ function saveOrUpdateIntObjDetail(detailSet, detailData, index) {
             colMbo = colsSet.add();
             colMbo.setValue("NAME", colData.name);
           }
-          // INTOBJFLDTYPE 框架保存时按 isExclude/isNonPersistent 重算, 带 2 写回与导出保持一致
-          setStrValue(colMbo, "INTOBJFLDTYPE", colData.intObjFldType, 2);
+          setStrValue(colMbo, "INTOBJFLDTYPE", colData.intObjFldType);
         }
       }
-      // 新建明细时框架自动填充 NONPERSISTENTNP/EXCLUDENP 临时集(如 DOCLINKS 非持久列默认全勾选),
-      // detail.save() 的 npTOpFillUp 会把勾选项自动插入 MAXINTOBJCOLS, 与上面手动 add 的行重复 → DB2 -803。
-      // 清空临时集, 列全部以本脚本手动写入的 MAXINTOBJCOLS 集为准(空集不会触发自动删除已有行)。
-      _clearNpTempSet(detailMbo, "NONPERSISTENTNP");
-      _clearNpTempSet(detailMbo, "EXCLUDENP");
       colsSet.save();
     } finally {
       _close(colsSet);
@@ -3526,7 +3095,7 @@ function saveOrUpdateIntObjDetail(detailSet, detailData, index) {
             aliasMbo = aliasSet.add();
             aliasMbo.setValue("NAME", aliasData.name);
           }
-          setStrValue(aliasMbo, "ALIASNAME", aliasData.aliasName, 2);
+          setStrValue(aliasMbo, "ALIASNAME", aliasData.aliasName);
         }
       }
       aliasSet.save();
@@ -3635,46 +3204,20 @@ function findMboByAttr(mboSet, attr, value) {
   return null;
 }
 
-/**
- * 字符串属性: 值非空且与当前值不同时才写入。
- * 值相同则跳过: 回导/同步场景天然幂等, 同时规避系统交付对象主记录只读字段的 BMXAA0019I。
- * flags=2(NOACCESSCHECK) 时忽略只读标志, 用于子表保存逻辑。
- */
-function setStrValue(mbo, attr, val, flags) {
-  if (val === undefined || val === null || val === "") {
-    return;
-  }
-  try {
-    if (mbo.getString(attr) === String(val)) {
-      return;
-    }
-  } catch (ignoreIgnore) { }
-  if (flags === 2) {
-    mbo.setValue(attr, val, 2);
-  } else {
+/** 字符串属性: 值非空时才写入 */
+function setStrValue(mbo, attr, val) {
+  if (val !== undefined && val !== null && val !== "") {
     mbo.setValue(attr, val);
   }
 }
 
-/**
- * YORN 属性: 显式传入 true/false 且与当前值不同时写入 1/0, undefined 时保持原值。
- * 子表字段统一带 NOACCESSCHECK(2) 忽略只读; flags 可覆盖。
- */
-function setYornValue(mbo, attr, val, flags) {
-  if (val !== true && val !== false) {
-    return;
+/** YORN 属性: 显式传入 true/false 时写入 1/0, undefined 时保持原值 */
+function setYornValue(mbo, attr, val) {
+  if (val === true) {
+    mbo.setValue(attr, 1,2);
+  } else if (val === false) {
+    mbo.setValue(attr, 0,2);
   }
-  var target = val ? 1 : 0;
-  try {
-    var cur = mbo.getString(attr);
-    if ((cur === "1" || cur === "Y") && target === 1) {
-      return;
-    }
-    if ((cur === "0" || cur === "N" || cur === "") && target === 0) {
-      return;
-    }
-  } catch (ignoreIgnore) { }
-  mbo.setValue(attr, target, flags === undefined ? 2 : flags);
 }
 
 /** 向原生 JS 对象写入指定语言的描述字段 */
