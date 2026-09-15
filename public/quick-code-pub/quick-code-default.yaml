@@ -169,6 +169,16 @@ javascript:
 
               logger.info("[" + scriptName + "] initialize")
           }
+      - name: "获取按钮所在DataBean"
+        remark: "获取按钮所在DataBean"
+        code: |
+          /** @type {psdi.webclient.system.controller.WebClientEvent} */
+          var wce = dbctx.getEvent();
+          /** @type {psdi.webclient.system.beans.DataBean} */
+          var dataBean = wce.getSourceControlInstance().getDataBean()
+          /** @type {psdi.mbo.MboSet} */
+          var mboSet = dataBean.getMboSet()
+          logger.info("[" + scriptName + "] mboSet=" + mboSet)
 
   - name: "导入java常用包"
     childrens:
@@ -478,6 +488,14 @@ maxappxml:
                         </sectioncol>
                       </sectionrow>
                     </section>
+      - name: 其它组件
+        childrens:
+          - name: blankline空行
+            componentName: "blankline"
+            remark: |
+              属性:cssclass,width
+            code: |
+                    <blankline id="blankline_01"/>
   - name: "表格"
     childrens:
       - name: table表格组件

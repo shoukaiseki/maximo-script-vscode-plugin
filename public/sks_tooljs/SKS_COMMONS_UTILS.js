@@ -26,6 +26,11 @@ var TimeZone = Java.type("java.util.TimeZone");
 /** @type {psdi.iface.mos.ConversionUtil} */
 ConversionUtil = Java.type("psdi.iface.mos.ConversionUtil");
 
+/** @type {com.ibm.json.java.JSONArray} */
+var JSONArray = Java.type("com.ibm.json.java.JSONArray");
+/** @type {com.ibm.json.java.OrderedJSONObject} */
+var OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
+
 var scriptName = "SKS_COMMONS_UTILS"
 
 /** @type {psdi.util.logging.MaximoLogger} */
@@ -69,6 +74,50 @@ function getAppNameByMbo(mbo, frequency) {
   // 没有父级且当前也没有应用名称，返回null
   return "";
 }
+
+
+/**
+ * MboSet转JSONArray
+  var jsonArray = sksCommonsUtils.mboToOrderJSONObject(dbctx,new JSONArray(), mboset, poAttrAliasNameMap)
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ * @param {psdi.mbo.MboSet} mboset - MboSet
+ * @param {Object.<string, string>} attrAliasNameMap - 属性别名映射
+ * @returns {com.ibm.json.java.OrderedJSONObject}
+ */
+function mboSetToJSONArray(service, jsonArray, mboset, attrAliasNameMap) {
+  logger.info("[" + scriptName + "] mboSetToJSONArray")
+  for (var mbo = mboset.moveFirst(); mbo != null; mbo = mboset.moveNext()) {
+    var jsonObject = mboToOrderJSONObject(service, new OrderedJSONObject(), mbo, attrAliasNameMap)
+    jsonArray.add(jsonObject)
+  }
+  return jsonArray
+}
+
+/**
+ * Mbo转OrderedJSONObject
+ * 
+  var jsonObject = sksCommonsUtils.mboToOrderJSONObject(dbctx, new OrderedJSONObject(), mbo, poAttrAliasNameMap)
+ * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+ * @param {com.ibm.json.java.OrderedJSONObject} orderJSONObject - OrderJSONObject
+ * @param {psdi.mbo.MboRemote} mbo - Mbo
+ * @param {Object.<string, string>} attrAliasNameMap - 属性别名映射
+ * @returns {com.ibm.json.java.OrderedJSONObject}
+ */
+function mboToOrderJSONObject(service, orderJSONObject, mbo, attrAliasNameMap) {
+  logger.info("[" + scriptName + "] mboToOrderJSONObject")
+  // var attrNameList = attrAliasNameMap.keys();
+  for (var attrName in attrAliasNameMap) {
+    // 确保是对象自身的属性，而非原型链继承的
+    if (attrAliasNameMap.hasOwnProperty(attrName)) {
+      var aliasName = attrAliasNameMap[attrName];
+      logger.info("[" + scriptName + "] mboToOrderJSONObject attrName= " + attrName + ",aliasName= " + aliasName)
+      var val = getValueByMaxTypeDateTimeAutoZhcn(service, mbo, attrName)
+      orderJSONObject.put(aliasName, val)
+    }
+  }
+  return orderJSONObject
+}
+
 
 /**
  * 获取MBO的布尔值
@@ -124,7 +173,7 @@ function getMboLongValue(service, mbo, attributeName) {
  */
 function getMboStringValue(service, mbo, attributeName) {
 
-  logger.debug("getMboStringValue")
+  logger.info("getMboStringValue")
   if (mbo.isNull(attributeName)) {
     return null
   }
@@ -139,7 +188,7 @@ function getMboStringValue(service, mbo, attributeName) {
  * @returns {java.lang.String} 属性值
  */
 function getMboDateTimeToString(service, mbo, attributeName) {
-  logger.debug("getMboStringValue")
+  logger.info("getMboStringValue")
   if (mbo.isNull(attributeName)) {
     return null
   }
@@ -156,7 +205,7 @@ function getMboDateTimeToString(service, mbo, attributeName) {
  * @returns {java.lang.String} 属性值
  */
 function getMboDateToString(service, mbo, attributeName) {
-  logger.debug("getMboStringValue")
+  logger.info("getMboStringValue")
   if (mbo.isNull(attributeName)) {
     return null
   }
@@ -391,11 +440,11 @@ function autoMboSetValue(service, mbo, attributeName, value, accessModifier) {
     accessModifier = 2;
   }
   if (value == null || typeof value === "undefined") {
-    mbo.setValueNull(attributeName);
+    mbo.setValueNull(attributeName,accessModifier);
   } else {
     var valueType = getValueAutoType(service, mbo, attributeName);
     if (valueType == null) {
-      mbo.setValueNull(attributeName);
+      mbo.setValueNull(attributeName,value,accessModifier);
     } else {
       mbo.setValue(attributeName, value, accessModifier);
     }
@@ -543,3 +592,52 @@ function trimAll(str) {
   return String(str).replace(/^[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+|[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+$/g, "");
 }
 
+
+
+//调用工具的示例代码
+// var poAttrAliasNameMap = newPoAttrAliasNameMap()
+
+// var jsonObject = sksCommonsUtils.mboToOrderJSONObject(dbctx, new OrderedJSONObject(), mbo, poAttrAliasNameMap)
+// jsonObject.put("objectName", "PO")
+// /** @type {psdi.mbo.MboSetRemote} */
+// var polineSet = mbo.getMboSet("POLINE")
+// polineSet.resetQbe()
+// polineSet.reset()
+// var jsonArray = sksCommonsUtils.mboSetToJSONArray(dbctx, new JSONArray(), polineSet, newPolineAttrAliasNameMap())
+// jsonObject.put("issueItems", jsonArray)
+// var finalJsonStr = dbctx.jsonToString(jsonObject)
+
+
+// /**
+//  * PO 的属性别名映射,new一个保证线程安全
+//  * @returns {Object.<string, string>}
+//  */
+// function newPoAttrAliasNameMap() {
+//   return {
+//     "POID": "maximoId",
+//     "PONUM": "issueNum",
+//     "IBM_PORTALID": "id",
+//     "IBM_POREMARKS": "issueDesc",
+//     "CREATEDDATE": "createdDate",
+//   }
+// }
+
+// /**
+//  * POLINE 的属性别名映射,new一个保证线程安全
+//  * @returns {Object.<string, string>}
+//  */
+// function newPolineAttrAliasNameMap() {
+//   return {
+//     "POLINEID": "maximoId",
+//     "PONUM": "issueNum",
+//     "IBM_PORTALID": "id",
+//     "REMARK": "itemIssueDesc",
+//     "ENTERDATE": "createdDate",
+//     "ORDERQTY": "issueQty",
+//     "IBM_INBQTY": "confirmedInboundQty",//可入库数量
+//     "IBM_PROBQTY": "confirmedIssueQty",//问题数量
+//     "IBM_PROBTYPE": "probType",//问题类别
+//     "IBM_PINQTY": "IBM_PINQTY",//包装问题数
+//     "IBM_PENDQTY": "IBM_PENDQTY",//	零件问题数
+//   }
+// }

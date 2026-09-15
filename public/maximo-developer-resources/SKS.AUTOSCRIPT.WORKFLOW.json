@@ -1,7 +1,7 @@
 {
-  "autoscript": "SKS.AUTOSCRIPT.OBJECTS",
-  "description": "用于提取/导入JSON对象配置(域/操作/对象结构)的SKS脚本。",
-  "version": "1.0.43",
+  "autoscript": "SKS.AUTOSCRIPT.WORKFLOW",
+  "description": "用于导入/导出工作流(WFPROCESS)/操作(ACTION)/角色(MAXROLE)定义的SKS脚本, 支持 _impMode=migration/add。",
+  "version": "1.0.3",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

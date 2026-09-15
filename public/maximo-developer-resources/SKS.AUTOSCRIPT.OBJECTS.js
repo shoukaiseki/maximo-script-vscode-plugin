@@ -561,6 +561,7 @@ function buildIntObject(maxIntObject) {
   }
 
   while (maxIntObjDetail != null) {
+    logger.info("\x1b[32m[" + scriptName + "] intObjectName=" + maxIntObject.getString('INTOBJECTNAME') + " intObjDetail=" + maxIntObjDetail.getString('OBJECTNAME')+"\x1b[0m")
     var intObjDetail = {
       objectName: maxIntObjDetail.getString('OBJECTNAME'),
     };
@@ -597,6 +598,7 @@ function buildIntObject(maxIntObject) {
       intObjDetail.fdResource = maxIntObjDetail.getString('FDRESOURCE');
     }
 
+    logger.info("\x1b[32m[" + scriptName + "] parentObjName=" + maxIntObjDetail.getString('PARENTOBJNAME')+"\x1b[0m")
     if (!maxIntObjDetail.isNull('PARENTOBJNAME')) {
       intObjDetail.parentObjName = maxIntObjDetail.getString('PARENTOBJNAME');
     } else if (!maxIntObjDetail.isNull('PARENTOBJID')) {
@@ -763,9 +765,9 @@ function buildIntObject(maxIntObject) {
       if (osOSLCAction.getBoolean('COLLECTION')) {
         action.collection = true;
       }
-    }else{
-        action.optionName = osOSLCAction.getString('OPTIONNAME');
-        action.collection = osOSLCAction.getBoolean('COLLECTION');
+    } else {
+      action.optionName = osOSLCAction.getString('OPTIONNAME');
+      action.collection = osOSLCAction.getBoolean('COLLECTION');
     }
 
     intObject.osOSLCAction.push(action);
@@ -2951,7 +2953,7 @@ function intObjectExportResponse(requestData) {
     logger.info("[" + scriptName + "] integrationobjects export 完成, 共 " + arr.length + " 个");
     return JSON.stringify({ integrationobjects: arr });
   } catch (error) {
-    logger.error("[" + scriptName + "] 导出对象结构失败: " + error);
+    logger.error("[" + scriptName + "] 导出对象结构失败: ", error);
     return JSON.stringify({ status: "error", message: error.message ? error.message : error.toString() });
   } finally {
     _close(maxIntObjectSet);
