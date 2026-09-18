@@ -92,6 +92,8 @@ const CreateScriptModal: React.FC = () => {
   const [appBeanName, setAppBeanName] = useState('');
   const [roleName, setRoleName] = useState('');
   const [conditionnum, setConditionnum] = useState('');
+  const [wfObjectName, setWfObjectName] = useState('');
+  const [wfLaunchPointName, setWfLaunchPointName] = useState('');
   const [launchPointConfig, setLaunchPointConfig] = useState<LaunchPointConfig>({
     objectname: '',
     attributename: '',
@@ -255,6 +257,17 @@ const CreateScriptModal: React.FC = () => {
       }
     }
 
+    if (selectedType === 'WF_ACTION') {
+      if (!wfObjectName.trim()) {
+        setErrorMessage('对象名不能为空');
+        return;
+      }
+      if (!wfLaunchPointName.trim()) {
+        setErrorMessage('启动点名称不能为空');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -280,6 +293,11 @@ const CreateScriptModal: React.FC = () => {
 
     if (selectedType === 'CONDITION') {
       data.conditionnum = conditionnum.trim();
+    }
+
+    if (selectedType === 'WF_ACTION') {
+      data.wfObjectName = wfObjectName.trim();
+      data.wfLaunchPointName = wfLaunchPointName.trim();
     }
 
     if (activeTab === 'object' && (selectedTypeInfo?.category === 'object' || selectedTypeInfo?.category === 'attribute')) {
@@ -323,6 +341,8 @@ const CreateScriptModal: React.FC = () => {
 
     setRoleName('');
     setConditionnum('');
+    setWfObjectName('');
+    setWfLaunchPointName('');
     
     if (typeInfo?.category === 'fixed') {
       setScriptName('');
@@ -844,6 +864,80 @@ const CreateScriptModal: React.FC = () => {
                   ✏️ 脚本名将自动生成为: <strong>{scriptName}</strong>，启动点: <strong>{conditionnum}</strong>
                 </div>
               )}
+            </div>
+          )}
+
+          {selectedType === 'WF_ACTION' && (
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px',
+                    fontWeight: '500',
+                    color: 'var(--vscode-foreground)'
+                  }}>
+                    对象名 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={wfObjectName}
+                    onChange={(e) => setWfObjectName(e.target.value.trim().toUpperCase())}
+                    placeholder="例如: ITEM, WORKORDER"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      background: 'var(--vscode-input-background)',
+                      color: 'var(--vscode-input-foreground)',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '5px',
+                    fontWeight: '500',
+                    color: 'var(--vscode-foreground)'
+                  }}>
+                    启动点名称 <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={wfLaunchPointName}
+                    onChange={(e) => setWfLaunchPointName(e.target.value.trim().toUpperCase())}
+                    placeholder="例如: SKS_TMPL_WF_ACTION"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--vscode-input-border)',
+                      borderRadius: '4px',
+                      background: 'var(--vscode-input-background)',
+                      color: 'var(--vscode-input-foreground)',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '12px', color: 'var(--vscode-descriptionForeground)', marginTop: '4px' }}>
+                    与操作名称 ACTION.ACTION 相同
+                  </div>
+                </div>
+              </div>
+              <div style={{
+                marginTop: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                color: 'var(--vscode-textLink-foreground)',
+                background: 'var(--vscode-textBlockQuote-background)',
+                borderRadius: '4px',
+                borderLeft: '3px solid var(--vscode-textLink-foreground)',
+                lineHeight: '1.4'
+              }}>
+                💡 启动点描述与脚本描述相同（脚本描述设置后自动同步），生成的 JSON 会追加 sks:action:expdata 配置
+              </div>
             </div>
           )}
 

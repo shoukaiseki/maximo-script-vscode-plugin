@@ -134,9 +134,11 @@ export class CreateScriptPanel {
     beanApp?: string;
     beanId?: string;
     conditionnum?: string;
+    wfObjectName?: string;
+    wfLaunchPointName?: string;
   }) {
     try {
-      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig, beanApp, beanId, conditionnum } = data;
+      const { scriptName, scriptType, description, ibmPackagepath, launchPointConfig, beanApp, beanId, conditionnum, wfObjectName, wfLaunchPointName } = data;
 
       if (!scriptName || !scriptName.trim()) {
         this._panel.webview.postMessage({
@@ -167,7 +169,7 @@ export class CreateScriptPanel {
       const launchPointName = scriptType === 'CONDITION' ? (conditionnum || '').toUpperCase() : '';
       templateContent = this._processTemplateVariables(templateContent, scriptName, launchPointName);
 
-      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig, beanApp, beanId, conditionnum);
+      const scriptConfig = this._generateScriptConfig(scriptName, scriptType, description, ibmPackagepath || '', launchPointConfig, beanApp, beanId, conditionnum, wfObjectName, wfLaunchPointName);
 
       const jsFilePath = path.join(this._targetDir, `${scriptName}.js`);
       const jsonFilePath = path.join(this._targetDir, `${scriptName}.json`);
@@ -312,7 +314,7 @@ function main() {
     return scriptTypes.find(t => t.value === scriptType) || { value: scriptType, label: scriptType, description: '', category: 'normal' };
   }
 
-  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string, conditionnum?: string): ScriptConfig {
+  private _generateScriptConfig(scriptName: string, scriptType: string, description: string, ibmPackagepath: string, launchPointConfig?: any, beanApp?: string, beanId?: string, conditionnum?: string, wfObjectName?: string, wfLaunchPointName?: string): ScriptConfig {
     const typeInfo = this._getScriptTypeInfo(scriptType);
     
     const isInterface = scriptType === 'APPBEAN' || scriptType === 'DATABEAN' || scriptType === 'COMMON_FUNC' || scriptType === 'ROLE';
@@ -333,6 +335,64 @@ function main() {
       autoscriptid: 0,
       ibm_packagepath: ibmPackagepath
     };
+    if(scriptType === 'WF_ACTION'){
+      /**
+       新建工作流操作脚本时候,需要增加启动点信息填写,对象名,(脚本描述设置后自动更改启动点描述与脚本描述相同)
+       启动点名称,下面加备注:与操作名称ACTION.ACTION 相同
+       在生成的json增加额外备注信息
+       "sks:action:expdata":    {
+      "description": "<与启动点描述相同>",
+       "type": "CUSTOM",
+      "useWith": "ALL",
+      "value": "com.ibm.tivoli.maximo.script.ScriptAction",
+      "objectName": "<对象名>",
+      "parameter": "<启动点名称>,<启动点名称>,WF"
+    }
+
+        "launchPoints": [
+    {
+      "launchpointtype": "ACTION",
+      "addupdatedelete": "",
+      "sks:evcontext": "",
+      "condition": "",
+      "attributeevent": "",
+      "objectname": "ITEM",
+      "description": "WF-ITEM",
+      "active": "Y",
+      "eventtype": "",
+      "attributename": "",
+      "launchpointname": "SKS_TMPL_WF_ACTION",
+      "objectevent": ""
+    }
+  ], 
+       */
+      const lpDescription = description || `WF-${wfObjectName || ''}`;
+      scriptConfig.description = lpDescription;
+      scriptConfig['sks:action:expdata'] = {
+        description: lpDescription,
+        type: 'CUSTOM',
+        useWith: 'ALL',
+        value: 'com.ibm.tivoli.maximo.script.ScriptAction',
+        objectName: wfObjectName || '',
+        parameter: `${wfLaunchPointName || ''},${wfLaunchPointName || ''},WF`
+      };
+      scriptConfig.launchPoints = [
+        {
+          launchpointtype: 'ACTION',
+          addupdatedelete: '',
+          'sks:evcontext': '',
+          condition: '',
+          attributeevent: '',
+          objectname: wfObjectName || '',
+          description: lpDescription,
+          active: 'Y',
+          eventtype: '',
+          attributename: '',
+          launchpointname: wfLaunchPointName || '',
+          objectevent: ''
+        }
+      ];
+    }
 
     if (scriptType === 'DATABEAN' && beanApp && beanId) {
       scriptConfig.variables = [

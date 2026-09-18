@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS.AUTOSCRIPT.OBJECTS",
   "description": "用于提取/导入JSON对象配置(域/操作/对象结构)的SKS脚本。",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

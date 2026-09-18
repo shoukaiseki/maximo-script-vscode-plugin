@@ -575,6 +575,7 @@ function buildMessageObjectFromRS(rs) {
     }
   }
 
+  logger.info("[" + scriptName + "] buildMessageObjectFromRS ");
   // 消息标识相关
   putIfHasRS(obj, rs, "prefix", "PREFIX");
   var msgId=rs.getString("MSGID")

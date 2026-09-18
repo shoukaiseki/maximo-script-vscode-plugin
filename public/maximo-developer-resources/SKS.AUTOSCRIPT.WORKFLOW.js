@@ -14,11 +14,12 @@
 //
 // 调用方式(HTTP POST):
 //   http://<host>/maximo/api/script/SKS.AUTOSCRIPT.WORKFLOW?_langcode=ZH&_type=<workflows|actions|maxroles>
-//        &_action=<list|detail|export|import>&_impMode=<migration|add>&_enable=<true|false>
+//        &_action=<list|detail|export|import|deactivate|disable>&_impMode=<migration|add>&_enable=<true|false>
 //        &_refs=<true|false>&_ignoreResultSuccess=<true|false>
 //
 // URL 参数:
-//   _action  必填: list=列表 / detail=单条完整导出 / export=批量完整导出 / import=导入
+//   _action  必填: list=列表 / detail=单条完整导出 / export=批量完整导出 / import=导入 /
+//                  deactivate=取消激活过程(仅 _type=workflows)/ disable=禁用过程(仅 _type=workflows)
 //   _type    可选: workflows(缺省, 工作流) / actions(操作 ACTION) / maxroles(角色 MAXROLE),
 //                  未给时按请求体推断(只含 actions 或 maxroles 时按对应类型导入)
 //   _impMode 可选: migration(缺省)=按 WFPROCESS 的 PROCESSNAME+PROCESSREV 匹配, 存在则修改, 不存在则新增;
@@ -39,6 +40,18 @@
 //   工作流 detail: {"id":<WFPROCESSID>} / {"processName":"PRCHG","processRev":1}
 //   工作流 export: {"where":"..."} / {"processName":"PRCHG"} —— 与 detail 相同条件, 返回 {"workflows":[...]},
 //                  migration 模式(缺省)时前面还会带出流程引用到的 {"actions":[...],"maxroles":[...]}
+//   工作流 状态变更: deactivate(取消激活) / disable(禁用) —— {"id":<WFPROCESSID>} 或
+//                  {"processName":"PRCHG","processRev":1} 或 {"where":"..."}; 必须给出定位条件,
+//                  空条件直接报错(避免误操作全部流程)。
+//                  返回 {status,message,action,workflows:{total,success,failed,result},summary:{total,success,failed}},
+//                  逐条独立事务, 单条失败不影响其它记录, 失败原因在 result[].message 中给出;
+//                  result 每行带最终 enabled/active 状态, 便于界面直接回显。
+//                  成功时框架的提示信息(BMXAA4404I/4405I 等)放在 result[].info, 失败原因放在 result[].warnings,
+//                  界面可据 status 区分成功/失败, 不必把成功也当告警弹。
+//                  deactivate -> WFProcess.deactivateProcess(): ACTIVE=false、AUTOINITIATE=false(变回草稿, 可编辑);
+//                  disable    -> WFProcess.disableProcess(): ENABLED=false, 新记录不再进入该流程;
+//                                该修订仍激活 / 被激活的修订集引用 / 尚有活动实例时框架只加告警不做修改,
+//                                此时返回 status=FAILED 并给出原因(需先 deactivate)。
 //   操作 list/export  : {"where":"..."} / {"action":"ACT_XXX"} / 空=全部操作, 可带 pageNum/pageSize
 //   操作 detail       : {"id":<ACTIONID>} / {"action":"ACT_XXX"}
 //   角色 list/export  : {"where":"..."} / {"maxrole":"ROLE1"} / 空=全部角色, 可带 pageNum/pageSize
@@ -47,6 +60,9 @@
 //                       裸数组或单个对象同样支持
 //                       可带 syncFlag:true —— 仅工作流 migration 模式生效: 删除 JSON 中不存在的子记录
 //                       (节点/操作/分配/通知/分配组)
+//                       子表记录可带 _delete:true —— 不看 syncFlag, 始终按业务键删除该条:
+//                       出线操作 wfactions.ACTIONID(连同其操作级通知) / 任务分配 wfassignment.ASSIGNID /
+//                       分配组 wfasgngroup.GROUPNUM / 通知 wfnotifications.UNIQUEID; 记录不存在时视为已删除(幂等)
 //
 // 导出的 JSON 结构, 可原样作为导入请求体(工作流 migration 模式导出时 actions/maxroles 在最前面):
 //   {
@@ -80,7 +96,8 @@
 //         "wfcondition":  {"condition":"...","customClass":null},                      // WFCONDITION
 //         "wfinput":      {"displayOne":false},                                        // WFINPUT
 //         "wfinteraction":{"app":"...","page":"...","relation":"...","directions":"...",
-//                          "action":"...","tabName":"...","launchProcess":"...","stayCurrentApp":false}, // WFINTERACTION
+//                          "directionsLongDescription":"...","action":"...","tabName":"...",
+//                          "launchProcess":"...","stayCurrentApp":false},                // WFINTERACTION
 //         "wfsubprocess": {"subProcessName":"..."},                                    // WFSUBPROCESS
 //         "wfwaitlist":   {"eventName":"..."},                                         // WFWAITLIST
 //         "wfactions": [                   // WFACTION: 节点的出线, action 引用 ACTION 表的"操作"
@@ -120,6 +137,14 @@
 //   6) add 模式对已存在的记录一律不修改(主记录保持原值, 子记录按业务键匹配, 已存在则跳过、缺失则新增)。
 //   7) syncFlag 仅 migration 模式生效, 用于按 JSON 全量同步(删除 JSON 中不存在的子记录);
 //      缺省只增改不删除, 避免误删目标环境中另有用途的节点/操作/分配。
+//   8) syncFlag 的执行顺序是"先删多余的、再建/改"(节点出线有唯一性约束: 开始/条件节点只允许一条正向出线,
+//      顺序反了会先撞 workflow#NoTakePositive - This node cannot start more actions.)。
+//   9) migration 模式下, 若目标存在同 NODEID 但类型不同的节点(如目标 nodeId=14 是等待节点、JSON 是条件节点),
+//      会按 JSON 重建该节点: 旧节点及其类型子表/出线/通知先删除(独立提交), 再按 JSON 建回同 NODEID。
+//      这类重建会写进返回结果的 result[].info 中。
+//  10) 目标修订已启用(ENABLED=1)时框架会给流程/节点打只读标志(7=NOADD|NOUPDATE|NODELETE):
+//      脚本自身写入都带 NOACCESSCHECK, 同时在导入期间临时放开框架内部的只读检查, 否则会报
+//      BMXAA0024E(The action ADD is not allowed on object WFxxx) 或 BMXAA7120E(删一半回滚 undelete)。
 // =============================================================================
 
 var MXServer = Java.type('psdi.server.MXServer');
@@ -265,8 +290,9 @@ function main() {
   }
   action = String(action).toLowerCase();
 
-  if (action !== 'list' && action !== 'detail' && action !== 'export' && action !== 'import') {
-    responseBody = JSON.stringify({ status: 'error', message: '不支持的 _action: ' + action + ', 仅支持 list/detail/export/import' });
+  if (action !== 'list' && action !== 'detail' && action !== 'export' && action !== 'import' &&
+    action !== 'deactivate' && action !== 'disable') {
+    responseBody = JSON.stringify({ status: 'error', message: '不支持的 _action: ' + action + ', 仅支持 list/detail/export/import/deactivate/disable' });
     return;
   }
 
@@ -297,6 +323,8 @@ function main() {
       responseBody = workflowDetailResponse(requestData);
     } else if (action === 'export') {
       responseBody = workflowExportResponse(requestData);
+    } else if (action === 'deactivate' || action === 'disable') {
+      responseBody = workflowStateChangeResponse(requestData, action);
     } else {
       responseBody = importBundleResponse(requestData);
     }
@@ -441,6 +469,195 @@ function workflowExportResponse(requestData) {
   } finally {
     _close(processSet);
   }
+}
+
+/**
+ * 工作流状态变更(取消激活 / 禁用), 调用框架标准动作 WFProcess.deactivateProcess() / disableProcess()
+ * 请求体: {"id":<WFPROCESSID>} 或 {"processName":"...","processRev":1} 或 {"where":"..."}
+ * 必须给出定位条件; 逐条独立事务, 单条失败不影响其它记录
+ * @param {Object} requestData
+ * @param {string} actionName - deactivate=取消激活(使修订变回草稿, 可编辑) / disable=禁用(新记录不再进入流程)
+ * @returns {string} JSON 字符串
+ */
+function workflowStateChangeResponse(requestData, actionName) {
+  requestData = requestData || {};
+  var isDeactivate = actionName === "deactivate";
+  var actionLabel = isDeactivate ? "取消激活" : "禁用";
+  var hasId = requestData.id !== undefined && requestData.id !== null && String(requestData.id) !== "";
+  if (!hasId && !requestData.where && !getStr(requestData.processName || requestData.processname)) {
+    return JSON.stringify({
+      status: "error",
+      message: actionLabel + "必须给出定位条件(id / processName+processRev / where), 不接受空条件"
+    });
+  }
+
+  // 1) 先只读出目标主键, 后续状态变更会 save/reset, 避免边遍历边改导致游标失效
+  var targets = [];
+  /** @type {psdi.mbo.MboSetRemote} */
+  var processSet = null;
+  try {
+    processSet = MXServer.getMXServer().getMboSet("WFPROCESS", userInfo);
+    if (hasId) {
+      /** @type {psdi.mbo.MboRemote} */
+      var byId = processSet.getMboForUniqueId(parseInt(requestData.id, 10));
+      if (byId == null) {
+        return JSON.stringify({ status: "error", message: "未找到指定的工作流(id=" + requestData.id + ")" });
+      }
+      targets.push({ processName: byId.getString("PROCESSNAME"), processRev: byId.getInt("PROCESSREV"), processId: byId.getUniqueIDValue() });
+    } else {
+      processSet.setWhere(buildWorkflowWhere(requestData));
+      processSet.setOrderBy("PROCESSNAME, PROCESSREV");
+      processSet.reset();
+      for (var i = 0; i < processSet.count(); i++) {
+        var row = processSet.getMbo(i);
+        targets.push({ processName: row.getString("PROCESSNAME"), processRev: row.getInt("PROCESSREV"), processId: row.getUniqueIDValue() });
+      }
+    }
+  } catch (error) {
+    logger.error("[" + scriptName + "] " + actionLabel + " 查询目标工作流失败: " + error);
+    return JSON.stringify({ status: "error", message: errorMessage(error) });
+  } finally {
+    _close(processSet);
+  }
+  if (targets.length === 0) {
+    return JSON.stringify({ status: "error", message: "未找到匹配的工作流" });
+  }
+
+  // 2) 逐条独立事务处理
+  var resultList = [];
+  var successCount = 0;
+  var failedCount = 0;
+  for (var k = 0; k < targets.length; k++) {
+    var target = targets[k];
+    /** @type {psdi.mbo.MboSetRemote} */
+    var oneSet = null;
+    try {
+      oneSet = MXServer.getMXServer().getMboSet("WFPROCESS", userInfo);
+      var sqlf = new SqlFormat("wfprocessid = :1");
+      sqlf.setLong(1, target.processId);
+      oneSet.setWhere(sqlf.format());
+      oneSet.reset();
+      if (oneSet.isEmpty()) {
+        throw new MXApplicationException("#", "记录不存在或已被删除");
+      }
+      var rowResult = applyProcessStateChange(oneSet.getMbo(0), oneSet, actionName, actionLabel);
+      rowResult.processName = target.processName;
+      rowResult.processRev = target.processRev;
+      resultList.push(rowResult);
+      // 逐条按结果行统计: 框架拒绝(如"仍激活不能禁用")时行内 status=FAILED
+      if (rowResult.status === "SUCCESS") {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    } catch (error) {
+      logger.error("[" + scriptName + "] " + actionLabel + " 工作流 " + target.processName + "(" + target.processRev + ") 失败: " + error);
+      failedCount++;
+      resultList.push({
+        processName: target.processName,
+        processRev: target.processRev,
+        status: "FAILED",
+        message: errorMessage(error)
+      });
+    } finally {
+      _close(oneSet);
+    }
+  }
+
+  logger.info("[" + scriptName + "] " + actionLabel + " 完成: 成功 " + successCount + " 个, 失败 " + failedCount + " 个");
+  return JSON.stringify({
+    // 请求级错误(缺少定位条件等)按 status=error 返回; 已进入处理流程时顶层为 success, 逐条结果看 result[].status
+    status: "success",
+    message: actionLabel + "完成: 成功 " + successCount + " 个, 失败 " + failedCount + " 个",
+    action: actionName,
+    workflows: { total: targets.length, success: successCount, failed: failedCount, result: resultList },
+    summary: { total: targets.length, success: successCount, failed: failedCount }
+  });
+}
+
+/**
+ * 对单个工作流执行状态变更并提交, 已是目标状态时不做写操作(幂等)
+ * @param {psdi.mbo.MboRemote} processMbo
+ * @param {psdi.mbo.MboSetRemote} processSet
+ * @param {string} actionName - deactivate / disable
+ * @param {string} actionLabel - 中文动作名(提示用)
+ * @returns {Object} {status,message,warnings?}
+ */
+function applyProcessStateChange(processMbo, processSet, actionName, actionLabel) {
+  var processId = processMbo.getUniqueIDValue();
+  var processName = processMbo.getString("PROCESSNAME");
+  var processRev = processMbo.getInt("PROCESSREV");
+  var wasEnabled = processMbo.getBoolean("ENABLED");
+  var wasActive = processMbo.getBoolean("ACTIVE");
+
+  if (actionName === "deactivate") {
+    if (!wasActive) {
+      // 幂等: 已不是激活状态, 不做写操作
+      return { status: "SUCCESS", message: "该修订不是激活状态, 无需取消激活", enabled: wasEnabled, active: false };
+    }
+    // 框架动作: 取消激活该修订(ACTIVE=false, AUTOINITIATE=false)
+    processMbo.deactivateProcess();
+    processSet.save(NA);
+    logger.info("[" + scriptName + "] 工作流 " + processName + "(" + processRev + ") " + actionLabel + "成功");
+    var row = { status: "SUCCESS", message: "已取消激活该修订(变回草稿状态)" };
+    var warnings = collectWarnings(processSet);
+    if (warnings.length > 0) {
+      // 成功时框架只给提示信息(BMXAA4404I 等), 放到 info 而不是 warnings, 避免界面把成功当告警弹
+      logger.info("[" + scriptName + "] 框架提示: " + warnings.join(" | "));
+      row.info = warnings;
+    }
+    return fillProcessState(row, processSet, processId);
+  }
+
+  if (!wasEnabled) {
+    // 幂等: 本身已禁用
+    return { status: "SUCCESS", message: "该流程已是禁用状态, 无需禁用", enabled: false, active: wasActive };
+  }
+  // 框架动作: 清掉启用标记, 新记录不再进入该流程。
+  // 注意: 该修订仍激活 / 被激活的修订集引用 / 尚有活动流程实例时, disableProcess() 只往告警板写提示、不做修改,
+  //       所以必须回读 ENABLED 判断是否真的禁用成功, 否则会误报成功。
+  processMbo.disableProcess();
+  processSet.save(NA);
+  var disableWarnings = collectWarnings(processSet);
+  var state = fillProcessState({}, processSet, processId);
+  if (state.enabled) {
+    var reason = disableWarnings.length > 0 ? disableWarnings.join("; ") : "该流程仍处于启用状态";
+    if (wasActive) {
+      reason += "; 请先执行 _action=deactivate(取消激活) 后再禁用";
+    }
+    logger.warn("[" + scriptName + "] 工作流 " + processName + "(" + processRev + ") " + actionLabel + "未生效: " + reason);
+    return {
+      status: "FAILED",
+      message: "未执行禁用: " + reason,
+      warnings: disableWarnings,
+      enabled: true,
+      active: state.active
+    };
+  }
+  logger.info("[" + scriptName + "] 工作流 " + processName + "(" + processRev + ") " + actionLabel + "成功");
+  var okRow = { status: "SUCCESS", message: "已禁用该流程, 新记录不再进入该流程", enabled: false, active: state.active };
+  if (disableWarnings.length > 0) {
+    logger.info("[" + scriptName + "] 框架提示: " + disableWarnings.join(" | "));
+    okRow.info = disableWarnings;
+  }
+  return okRow;
+}
+
+/**
+ * save/reset 之后实例可能已被替换, 重新取一次记录回填最终 enabled/active 状态
+ * @param {Object} row
+ * @param {psdi.mbo.MboSetRemote} processSet
+ * @param {number} processId
+ */
+function fillProcessState(row, processSet, processId) {
+  processSet.reset();
+  /** @type {psdi.mbo.MboRemote} */
+  var processMbo = processSet.getMboForUniqueId(processId);
+  if (processMbo != null) {
+    row.enabled = processMbo.getBoolean("ENABLED");
+    row.active = processMbo.getBoolean("ACTIVE");
+  }
+  return row;
 }
 
 /** 列表行(精简字段) */
@@ -664,6 +881,7 @@ function buildNodeDetail(nodeMbo, internalType) {
         page: getStr(detailMbo, "PAGE"),
         relation: getStr(detailMbo, "RELATION"),
         directions: getStr(detailMbo, "DIRECTIONS"),
+        directionsLongDescription: getStr(detailMbo, "DIRECTIONS_LONGDESCRIPTION"),
         action: getStr(detailMbo, "ACTION"),
         tabName: getStr(detailMbo, "TABNAME"),
         launchProcess: getStr(detailMbo, "LAUNCHPROCESS"),
@@ -850,6 +1068,9 @@ function importWorkflowItems(items) {
         if (info.warnings && info.warnings.length > 0) {
           okRow.warnings = info.warnings;
         }
+        if (info.info && info.info.length > 0) {
+          okRow.info = info.info;
+        }
         resultList.push(okRow);
       }
     } catch (error) {
@@ -988,6 +1209,20 @@ function saveOrUpdateWorkflow(data, index) {
     }
 
     // 子表: 节点(含类型子表/出线操作/分配/分配组/节点通知)
+    // 目标修订已启用时先临时放开只读标志, 否则框架内部的 add/deleteAll 会被 NOADD/NODELETE 挡住
+    relaxWorkflowReadonly(processMbo, processSet);
+    // migration 模式下, 若目标已有同 NODEID 但类型不同的节点(例如目标 nodeId=14 是等待节点、JSON 是条件节点),
+    // 先删除这些旧节点并独立提交, 再按 JSON 重建 —— 同一事务内"先插入同 NODEID 后删除"会撞 WFNODE_NDX1 唯一索引
+    var rebuilt = [];
+    if (!isNew && impMode === IMP_MODE_MIGRATION) {
+      rebuilt = rebuildConflictingNodes(processMbo, pickChild(data, WF_NODES, WF_NODES_LEGACY));
+      if (rebuilt.length > 0) {
+        var rebuiltProcessId = processMbo.getUniqueIDValue();
+        processSet.save(NA);
+        processSet.reset();
+        processMbo = processSet.getMboForUniqueId(rebuiltProcessId);
+      }
+    }
     saveOrUpdateNodes(processMbo, pickChild(data, WF_NODES, WF_NODES_LEGACY), index);
     // 子表: 进程级通知(NODEID=0, ACTIONID=0)
     saveOrUpdateNotifications(processMbo, pickChild(data, WF_NOTIFICATIONS, WF_NOTIFICATIONS_LEGACY), true);
@@ -1017,7 +1252,60 @@ function saveOrUpdateWorkflow(data, index) {
     }
     throw new MXApplicationException("#", "保存工作流失败: " + processName + "(" + processRev + "), " + errorMessage(failed));
   }
-  return { message: message, warnings: warnings };
+  var info = [];
+  if (rebuilt.length > 0) {
+    info.push("按 JSON 重建了目标中类型不同的节点: " + rebuilt.join(", "));
+  }
+  return { message: message, warnings: warnings, info: info };
+}
+
+/**
+ * migration 模式下处理"同 NODEID 但节点类型不同"的节点:
+ * 目标里该 nodeId 是另一种类型的节点(如目标 14 是等待节点、JSON 14 是条件节点)时, 按 JSON 重建 ——
+ * 删除旧节点(框架会级联删除它的类型子表、出线、通知, 以及其它节点连到它的出线),
+ * 调用方随后 save() 提交删除、重新取主记录, 再由 saveOrUpdateNodes 按 JSON 建回同 NODEID 的新节点。
+ * (同一事务内"先插入同 NODEID 再删除"会违反 WFNODE_NDX1 唯一索引, 故必须分两次提交。)
+ * @param {psdi.mbo.MboRemote} processMbo
+ * @param {Array} nodeDatas
+ * @returns {Array<string>} 被重建的节点描述 [nodeId:旧类型->新类型]
+ */
+function rebuildConflictingNodes(processMbo, nodeDatas) {
+  var rebuilt = [];
+  if (!nodeDatas || nodeDatas.length === 0) {
+    return rebuilt;
+  }
+  /** @type {psdi.mbo.MboSetRemote} */
+  var nodeSet = processMbo.getMboSet("NODES");
+  try {
+    for (var i = 0; i < nodeDatas.length; i++) {
+      var nodeData = nodeDatas[i] || {};
+      var nodeId = toInt(nodeData.nodeId, -1);
+      if (nodeId < 0) {
+        continue;
+      }
+      var internalType = resolveNodeTypeInternal(nodeData.nodeType, processMbo);
+      if (!internalType) {
+        continue;
+      }
+      /** @type {psdi.mbo.MboRemote} */
+      var nodeMbo = findMboByAttr(nodeSet, "NODEID", nodeId);
+      if (nodeMbo == null) {
+        continue;
+      }
+      var existingType = getNodeTypeInternal(nodeMbo);
+      if (existingType === internalType) {
+        continue;
+      }
+      logger.warn("[" + scriptName + "] 节点 " + nodeId + " 目标类型为 " + existingType + ", JSON 为 " + internalType +
+        ", migration 模式按 JSON 重建该节点(旧节点的类型子表/出线/通知会一并删除后按 JSON 重建)");
+      nodeMbo.delete(NA);
+      rebuilt.push(nodeId + ":" + existingType + "->" + internalType);
+    }
+  } finally {
+    // 集合内有待提交的删除, 主表 save 之后再关闭
+    deferClose(nodeSet);
+  }
+  return rebuilt;
 }
 
 /**
@@ -1058,10 +1346,23 @@ function saveOrUpdateNodes(processMbo, nodeDatas, index) {
       if (!existed) {
         nodeMbo = nodeSet.add(NA);
         nodeMbo.setValue("NODEID", nodeId, NA);
-        // NODETYPE 决定子表类型, 写入时框架会自动创建对应子表记录并初始化标题/描述
+        // 关键: 先按 NOACCESSCHECK 建好"节点类型子表"记录, 再写 NODETYPE。
+        // 框架 FldNodeType.action() 会自动建该子记录, 但它用的是不带 NOACCESSCHECK 的 compSet.add():
+        // 目标修订已启用(ENABLED=1)时 NODES 集合带只读标志(含 NOADD), 子集合继承后会被框架拒绝,
+        // 报 BMXAA0024E - The action ADD is not allowed on object WFCONDITION 之类;
+        // 子记录已存在时框架会跳过这次 add, 从而绕开该限制。
+        ensureNodeDetailRow(nodeMbo, internalType);
         nodeMbo.setValue("NODETYPE", resolveNodeTypeValue(internalType, nodeMbo), NA);
       } else if (getNodeTypeInternal(nodeMbo) !== internalType) {
-        throw new MXApplicationException("#", "工作流节点 " + nodeId + " 已存在的节点类型(" + getNodeTypeInternal(nodeMbo) + ")与导入值(" + internalType + ")不一致, 节点类型不可修改");
+        // migration 模式下类型冲突的节点已在 rebuildConflictingNodes 里删除重建, 正常不会走到这里;
+        // add 模式保持目标原样(不做修改, 也不动它的子表)
+        if (impMode === IMP_MODE_ADD) {
+          logger.warn("[" + scriptName + "] add 模式: 节点 " + nodeId + " 目标类型为 " +
+            getNodeTypeInternal(nodeMbo) + ", 与 JSON 的 " + internalType + " 不同, 跳过该节点(不做修改)");
+          continue;
+        }
+        throw new MXApplicationException("#", "工作流节点 " + nodeId + " 已存在的节点类型(" +
+          getNodeTypeInternal(nodeMbo) + ")与导入值(" + internalType + ")不一致, 节点类型不可修改");
       }
 
       saved.push({ data: nodeData, internalType: internalType, mbo: nodeMbo });
@@ -1077,14 +1378,19 @@ function saveOrUpdateNodes(processMbo, nodeDatas, index) {
       saveOrUpdateNodeDetail(nodeMbo, nodeData, internalType);
     }
 
-    // 第二遍: 节点出线操作/分配(角色,人员组)/分配组/通知
-    for (var s = 0; s < saved.length; s++) {
-      var row = saved[s];
+  // 第二遍: 节点出线操作/分配(角色,人员组)/分配组/通知
+  for (var s = 0; s < saved.length; s++) {
+    var row = saved[s];
+    try {
       saveOrUpdateWfActions(row.mbo, pickChild(row.data, WF_ACTIONS, WF_ACTIONS_LEGACY));
       saveOrUpdateWfAssignments(row.mbo, pickChild(row.data, WF_ASSIGNMENT, WF_ASSIGNMENT_LEGACY), row.internalType);
       saveOrUpdateWfAsgnGroups(row.mbo, pickChild(row.data, WF_ASGNGROUP, WF_ASGNGROUP_LEGACY));
       saveOrUpdateNotifications(row.mbo, pickChild(row.data, WF_NOTIFICATIONS, WF_NOTIFICATIONS_LEGACY), false);
+    } catch (error) {
+      // 带上节点上下文, 便于定位框架报错(如 workflow#NoAddAction / NoTakePositive 之类)
+      throw new MXApplicationException("#", "工作流节点 " + row.data.nodeId + "(" + row.internalType + ") 的子表处理失败: " + errorMessage(error));
     }
+  }
 
     if (impMode === IMP_MODE_MIGRATION && syncFlag) {
       deleteMissing(nodeSet, "NODEID", keep, null);
@@ -1093,6 +1399,62 @@ function saveOrUpdateNodes(processMbo, nodeDatas, index) {
     // 保证单个工作流导入失败时不会留下写了一半的数据
   } finally {
     deferClose(nodeSet);
+  }
+}
+
+/**
+ * 导入期间临时放开"已启用流程"的只读标志。
+ * 目标修订已启用(ENABLED=1)时, 框架会给流程主记录与 NODES 集合打上只读标志 7(NOADD|NOUPDATE|NODELETE),
+ * 子集合(ACTIONS/NOTIFICATIONS/CONDITION...)再继承。本脚本自己的写入都带 NOACCESSCHECK 不受影响,
+ * 但框架内部的动作不带标志, 会被挡住:
+ *   - 写 NODETYPE 时 FldNodeType.action() 内部 compSet.add()  -> BMXAA0024E The action ADD is not allowed on object WFxxx
+ *   - WFNode.delete() 级联删出线时 actions.deleteAll()          -> 删一半失败回滚 undelete -> BMXAA7120E ...
+ * 这里在内存里清掉这些标志(只影响本次请求, 请求结束对象即释放), 让框架内部动作按"未启用流程"执行。
+ */
+function relaxWorkflowReadonly(processMbo, processSet) {
+  try {
+    processMbo.setFlag(7, false);
+  } catch (ignored) { }
+  try {
+    processSet.setFlag(7, false);
+  } catch (ignored) { }
+  /** @type {psdi.mbo.MboSetRemote} */
+  var nodeSet = processMbo.getMboSet("NODES");
+  try {
+    nodeSet.setFlag(7, false);
+  } catch (ignored) { }
+  try {
+    var nodeMbo = nodeSet.moveFirst();
+    while (nodeMbo != null) {
+      try {
+        nodeMbo.setFlag(7, false);
+      } catch (ignored) { }
+      nodeMbo = nodeSet.moveNext();
+    }
+  } catch (ignored) { }
+}
+
+/**
+ * 预建节点的"类型子表"记录(WFTASK/WFCONDITION/WFINPUT/WFINTERACTION/WFSUBPROCESS/WFWAITLIST/WFSTART/WFSTOP),
+ * 全部带 NOACCESSCHECK。
+ * 目的: 规避框架 FldNodeType.action() 内部那次不带 NOACCESSCHECK 的 compSet.add() —— 当目标修订
+ * 已启用(ENABLED=1)时集合带只读(NOADD)标志, 该 add 会被拒绝(BMXAA0024E);
+ * 子记录已存在时框架会跳过这次 add, 因此先建好即可, 之后由 saveOrUpdateNodeDetail 写字段。
+ */
+function ensureNodeDetailRow(nodeMbo, internalType) {
+  var def = NODE_TYPE_DEF[internalType];
+  if (!def) {
+    return;
+  }
+  /** @type {psdi.mbo.MboSetRemote} */
+  var detailSet = nodeMbo.getMboSet(def.relation);
+  try {
+    if (detailSet.isEmpty()) {
+      detailSet.add(NA);
+    }
+  } finally {
+    // 子表与主记录同事务, 统一在主表 save 之后再关闭
+    deferClose(detailSet);
   }
 }
 
@@ -1134,6 +1496,7 @@ function saveOrUpdateNodeDetail(nodeMbo, nodeData, internalType) {
       setStrValue(detailMbo, "PAGE", detailData.page);
       setStrValue(detailMbo, "RELATION", detailData.relation);
       setStrValue(detailMbo, "DIRECTIONS", detailData.directions);
+      setStrValue(detailMbo, "DIRECTIONS_LONGDESCRIPTION", detailData.directionsLongDescription);
       setStrValue(detailMbo, "ACTION", detailData.action);
       setStrValue(detailMbo, "TABNAME", detailData.tabName);
       setStrValue(detailMbo, "LAUNCHPROCESS", detailData.launchProcess);
@@ -1162,11 +1525,37 @@ function saveOrUpdateWfActions(nodeMbo, actionDatas) {
   var actionSet = nodeMbo.getMboSet("ACTIONS");
   try {
     var keep = {};
+    // 先算出 JSON 里要保留的 ACTIONID(用于 syncFlag 全量同步)
+    for (var k = 0; k < actionDatas.length; k++) {
+      var kd = actionDatas[k] || {};
+      if (kd._delete === true) {
+        continue;
+      }
+      var keepId = toInt(kd.actionId, -1);
+      if (keepId >= 0) {
+        keep[String(keepId)] = true;
+      }
+    }
+    // syncFlag: 先删掉 JSON 中不存在的出线, 再建/改。
+    // 节点出线有唯一性约束(如开始/条件节点只允许一条正向出线), 必须先腾出位置,
+    // 否则新增正向出线会被框架拒绝: workflow#NoTakePositive (This node cannot start more actions.)
+    if (impMode === IMP_MODE_MIGRATION && syncFlag) {
+      deleteMissing(actionSet, "ACTIONID", keep, null);
+    }
     for (var i = 0; i < actionDatas.length; i++) {
       var d = actionDatas[i] || {};
       var actionId = toInt(d.actionId, -1);
       /** @type {psdi.mbo.MboRemote} */
       var actionMbo = actionId >= 0 ? findMboByAttr(actionSet, "ACTIONID", actionId) : null;
+      if (d._delete === true) {
+        // _delete 标记: 存在则连同该操作的操作级通知一起删除, 不存在视为已删除(幂等)
+        if (actionMbo != null) {
+          clearOwnerNotifications(actionMbo);
+          actionMbo.delete(NA);
+          logger.info("[" + scriptName + "] 已删除节点 " + nodeId + " 的出线操作 ACTIONID=" + actionId);
+        }
+        continue;
+      }
       if (actionMbo == null) {
         if (d.isPositive !== true && d.isPositive !== false) {
           throw new MXApplicationException("#", "节点 " + nodeId + " 的操作缺少 isPositive(正向/逆向出线)标记");
@@ -1174,13 +1563,9 @@ function saveOrUpdateWfActions(nodeMbo, actionDatas) {
         actionMbo = actionSet.add(NA);
         if (actionId >= 0) {
           actionMbo.setValue("ACTIONID", actionId, NA);
-          keep[String(actionId)] = true;
         }
-      } else {
-        keep[String(actionId)] = true;
-        if (impMode === IMP_MODE_ADD) {
-          continue;
-        }
+      } else if (impMode === IMP_MODE_ADD) {
+        continue;
       }
 
       // 顺序要求: MEMBERNODEID 的 action 会用目标节点的标题/描述覆盖 INSTRUCTION, 故 INSTRUCTION 最后写
@@ -1194,9 +1579,6 @@ function saveOrUpdateWfActions(nodeMbo, actionDatas) {
       setIntValue(actionMbo, "SEQUENCE", d.sequence);
       setStrValue(actionMbo, "INSTRUCTION", d.instruction);
       saveOrUpdateNotifications(actionMbo, pickChild(d, WF_NOTIFICATIONS, WF_NOTIFICATIONS_LEGACY), false);
-    }
-    if (impMode === IMP_MODE_MIGRATION && syncFlag) {
-      deleteMissing(actionSet, "ACTIONID", keep, null);
     }
     // 子表与主记录同事务, 统一在 saveOrUpdateWorkflow 末尾保存
   } finally {
@@ -1227,6 +1609,14 @@ function saveOrUpdateWfAssignments(nodeMbo, asgnDatas, nodeType) {
       }
       /** @type {psdi.mbo.MboRemote} */
       var asgnMbo = findMboByAttr(asgnSet, "ASSIGNID", assignId);
+      if (d._delete === true) {
+        // _delete 标记: 存在则删除, 不存在视为已删除(幂等)
+        if (asgnMbo != null) {
+          asgnMbo.delete(NA);
+          logger.info("[" + scriptName + "] 已删除任务节点 " + nodeMbo.getInt("NODEID") + " 的分配记录 ASSIGNID=" + assignId);
+        }
+        continue;
+      }
       if (asgnMbo == null) {
         // add() 自动填 ASSIGNID/APP/TIMELIMIT/NODEID/PROCESSNAME/PROCESSREV/WFID=0/OWNERTABLE
         asgnMbo = asgnSet.add(NA);
@@ -1289,6 +1679,14 @@ function saveOrUpdateWfAsgnGroups(nodeMbo, groupDatas) {
       }
       /** @type {psdi.mbo.MboRemote} */
       var groupMbo = findMboByAttr(groupSet, "GROUPNUM", groupNum);
+      if (d._delete === true) {
+        // _delete 标记: 存在则删除, 不存在视为已删除(幂等)
+        if (groupMbo != null) {
+          groupMbo.delete(NA);
+          logger.info("[" + scriptName + "] 已删除节点 " + nodeMbo.getInt("NODEID") + " 的分配组 GROUPNUM=" + groupNum);
+        }
+        continue;
+      }
       if (groupMbo == null) {
         groupMbo = groupSet.add(NA);
         groupMbo.setValue("GROUPNUM", groupNum, NA);
@@ -1329,12 +1727,21 @@ function saveOrUpdateNotifications(ownerMbo, noteDatas, processLevel) {
     var keep = {};
     for (var i = 0; i < noteDatas.length; i++) {
       var d = noteDatas[i] || {};
-      if (!d.templateId) {
-        throw new MXApplicationException("#", "通知记录缺少 templateId(通讯模板)");
-      }
       var uniqueId = toInt(d.uniqueId, -1);
       /** @type {psdi.mbo.MboRemote} */
       var noteMbo = uniqueId >= 0 ? findMboByAttr(noteSet, "UNIQUEID", uniqueId) : null;
+      if (d._delete === true) {
+        // _delete 标记: 存在则删除(幂等); 进程 owner 的通知集含节点/操作级通知, 只删进程级
+        var ownProcessLevel = !processLevel || (noteMbo != null && noteMbo.getInt("NODEID") === 0 && noteMbo.getInt("ACTIONID") === 0);
+        if (noteMbo != null && ownProcessLevel) {
+          noteMbo.delete(NA);
+          logger.info("[" + scriptName + "] 已删除 " + ownerName + " 的通知 UNIQUEID=" + uniqueId);
+        }
+        continue;
+      }
+      if (!d.templateId) {
+        throw new MXApplicationException("#", "通知记录缺少 templateId(通讯模板)");
+      }
       if (noteMbo == null) {
         noteMbo = noteSet.add(NA);
         // 框架自动填 PROCESSNAME/PROCESSREV/NODEID/ACTIONID/UNIQUEID;
@@ -1373,6 +1780,21 @@ function saveOrUpdateNotifications(ownerMbo, noteDatas, processLevel) {
       }));
     }
     // 子表与主记录同事务, 统一在 saveOrUpdateWorkflow 末尾保存
+  } finally {
+    deferClose(noteSet);
+  }
+}
+
+/**
+ * 清空 owner(WFACTION/WFNODE) 的 NOTIFICATIONS 关系集
+ * 关系 where 已按 ownernodeid/actionid 限定归属, 只会删掉本 owner 的通知
+ * @param {psdi.mbo.MboRemote} ownerMbo
+ */
+function clearOwnerNotifications(ownerMbo) {
+  /** @type {psdi.mbo.MboSetRemote} */
+  var noteSet = ownerMbo.getMboSet("NOTIFICATIONS");
+  try {
+    noteSet.deleteAndRemoveAll(NA);
   } finally {
     deferClose(noteSet);
   }

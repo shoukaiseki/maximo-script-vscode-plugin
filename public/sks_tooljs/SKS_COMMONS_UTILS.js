@@ -188,7 +188,7 @@ function getMboStringValue(service, mbo, attributeName) {
  * @returns {java.lang.String} 属性值
  */
 function getMboDateTimeToString(service, mbo, attributeName) {
-  logger.info("getMboStringValue")
+  logger.info("getMboDateTimeToString")
   if (mbo.isNull(attributeName)) {
     return null
   }
@@ -205,7 +205,7 @@ function getMboDateTimeToString(service, mbo, attributeName) {
  * @returns {java.lang.String} 属性值
  */
 function getMboDateToString(service, mbo, attributeName) {
-  logger.info("getMboStringValue")
+  logger.info("getMboDateToString")
   if (mbo.isNull(attributeName)) {
     return null
   }

@@ -868,6 +868,7 @@ function extractScreen(screenName) {
         if (!maxpresentationSet.isEmpty()) {
             var maxpresentation = maxpresentationSet.moveFirst();
             var xml = maxpresentation.getString("PRESENTATION");
+            logger.info("\x1b[33m[SKS.AUTOSCRIPT.SCREENS] ignoreMetadata=" + ignoreMetadata + " \x1b[0m")
             if (ignoreMetadata) {
                 // 如果请求ignoreMetadata=true，则直接返回原始XML，不添加metadata（控制组/权限组等附加信息）
                 logger.info("[SKS.AUTOSCRIPT.SCREENS] extractScreen: ignoreMetadata=true, 直接返回原始XML");

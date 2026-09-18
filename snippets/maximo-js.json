@@ -9,14 +9,14 @@
 	"JSDoc MboRemote Type": {
 		"prefix": ["jsdocmbo", "@type Mbo"],
 		"body": [
-			"/** @type {psdi.mbo.MboRemote} */"
+			"/** @type {psdi.mbo.Mbo} */"
 		],
 		"description": "Add JSDoc type annotation for MboRemote"
 	},
 	"JSDoc MboSetRemote Type": {
 		"prefix": ["jsdocmboset", "@type MboSet"],
 		"body": [
-			"/** @type {psdi.mbo.MboSetRemote} */"
+			"/** @type {psdi.mbo.MboSet} */"
 		],
 		"description": "Add JSDoc type annotation for MboSetRemote"
 	},
@@ -33,13 +33,6 @@
 			"/** @type {psdi.security.UserInfo} */"
 		],
 		"description": "Add JSDoc type annotation for UserInfo"
-	},
-	"JSDoc Custom Type": {
-		"prefix": ["jdoctype", "@type"],
-		"body": [
-			"/** @type {${1:className}} */"
-		],
-		"description": "Add JSDoc type annotation with custom class name"
 	},
 	"Maximo service.log": {
 		"prefix": ["slog", "service.log"],
@@ -83,6 +76,15 @@
 		],
 		"description": "Move to first record in MBO set"
 	},
+	"Maximo mboset for loop": {
+		"prefix": ["mbosetfor", "mboset for", "for mboset"],
+		"body": [
+			"for (var ${2:mbo} = ${1:mboSet}.moveFirst(); ${2:mbo} != null; ${2:mbo} = ${1:mboSet}.moveNext()) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Iterate MBO set using moveFirst/moveNext loop"
+	},
 	"Maximo mboset.count": {
 		"prefix": ["mcount", "mboset.count"],
 		"body": [
@@ -120,10 +122,27 @@
 		"description": "Declare variable with JSDoc type annotation"
 	},
 	"JSDoc Custom Type": {
-		"prefix": ["jsdoctype"],
+		"prefix": ["jdoctype", "@type"],
 		"body": [
-			"/** @type {${1:psdi}} */"
+			"/** @type {${1:className}} */"
 		],
 		"description": "Add JSDoc type annotation with custom class name"
+	},
+	"Java.type JSON": {
+		"prefix": ["javatypejson", "java type json"],
+		"body": [
+			"/** @type {com.ibm.json.java.JSONArray} */",
+			"",
+			"JSONArray = Java.type(\"com.ibm.json.java.JSONArray\");",
+			"",
+			"/** @type {com.ibm.json.java.JSONObject} */",
+			"",
+			"JSONObject = Java.type(\"com.ibm.json.java.JSONObject\");",
+			"",
+			"/** @type {com.ibm.json.java.OrderedJSONObject} */",
+			"",
+			"OrderedJSONObject = Java.type(\"com.ibm.json.java.OrderedJSONObject\");"
+		],
+		"description": "Declare Java.type JSONArray/JSONObject/OrderedJSONObject with JSDoc type annotations"
 	}
 }
