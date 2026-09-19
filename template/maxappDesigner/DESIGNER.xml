@@ -1,0 +1,1672 @@
+<presentation apphelp="com.ibm.mbs.doc,designer/c_application_designer.html" apprestrictions=" app !='DESIGNER' and apptype not in('WC','APP')" beanclass="psdi.webclient.beans.designer.DesignerAppBean" id="designer" mboname="MAXAPPS" resultstableid="results_showlist" synchronous="true" systemnav="false" version="7.1.0.0">
+  <page id="mainPage">
+    <include id="pageHeader"/>
+    <clientarea id="appclientarea">
+      <tabgroup id="maintabs" style="form">
+        <tab default="true" id="results" label="应用程序" tabchangeevent="closewindows" type="list">
+          <menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+          <table datasrc="results_showlist" id="results_showlist" inputmode="readonly" mboname="MAXAPPS" orderby="app" selectmode="multiple">
+            <tablebody displayrowsperpage="30" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+              <tablecol dataattribute="app" filterable="false" hidden="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="选择行 {0}" sortable="false" type="event"/>
+              <tablecol dataattribute="app" id="results_showlist_tablebody_2" mxevent="selectrecord" mxevent_desc="转到 %1" type="link"/>
+              <tablecol dataattribute="description" id="results_showlist_tablebody_3"/>
+              <tablecol dataattribute="maintbname" id="results_showlist_tablebody_4"/>
+              <tablecol dataattribute="originalapp" id="results_showlist_tablebody_5"/>
+              <tablecol dataattribute="lockenabled" id="results_showlist_tablebody_11" readonly="true"/>
+              <tablecol dataattribute="ismobile" id="results_showlist_tablebody_7" inputmode="readonly" licensekey="EVERYPLACE"/>
+              <tablecol mxevent="refreshauth" mxevent_desc="刷新应用权限" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_8"  type="event"/>
+              <!-- <tablecol mxevent="refreshmaxapp" mxevent_desc="刷新应用" mxevent_icon="listab_refresh.gif"  id="results_showlist_tablebody_9"  type="event"/> -->
+            </tablebody>
+						<buttongroup id="resultsButtongroup">
+							<pushbutton disabledonclick="true" id="results_btn_po_bottom" label="重载所有应用权限" mxevent="refreshallauth"/>
+						</buttongroup>
+          </table>
+        </tab>
+        <tab id="main" label="工作空间" sendrendercomplete="true" type="insert">
+          <section border="t3ue" id="main_grid1">
+            <sectionrow id="main_grid1_row1">
+              <sectioncol id="main_grid1_row1_col1">
+                <section id="main_grid1a">
+                  <multiparttextbox dataattribute="app" descdataattribute="description" id="main_grid1_0" inputmode="readonly"/>
+                </section>
+              </sectioncol>
+              <sectioncol id="main_grid1_row1_col1b" licensekey="EVERYPLACE">
+                <section id="main_grid1ab">
+                  <checkbox dataattribute="ismobile" id="main_grid1_1b"/>
+                </section>
+              </sectioncol>
+              <sectioncol id="main_grid1_row1_col1a" licensekey="EVERYPLACE">
+                <section id="main_grid1aa">
+                  <combobox dataattribute="viewport" id="main_grid1_1a"/>
+                </section>
+              </sectioncol>
+              <sectioncol id="main_grid1_row1_RL">
+                <section id="main_grid1ab_rl">
+                  <checkbox dataattribute="lockenabled" id="main_grid1_RL"/>
+                </section>
+              </sectioncol>
+              <sectioncol id="main_grid1_row1_col2">
+                <section id="main_grid1b">
+                  <textbox dataattribute="maintbname" id="main_grid1_1" inputmode="readonly"/>
+                </section>
+              </sectioncol>
+            </sectionrow>
+          </section>
+          <designer_canvas id="canvas"/>
+        </tab>
+      </tabgroup>
+    </clientarea>
+    <include id="pageFooter"/>
+  </page>
+  <dialog beanclass="psdi.webclient.beans.designer.SigOptionsBean" id="addmodsig" label="添加/修改签名选项" relationship="SIGOPTION">
+    <table id="addmodsig_1" label="添加/修改签名选项">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="addmodsig_1_tb">
+        <tablecol filterable="false" hidden="false" id="addmodsig_1_tb_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+        <tablecol dataattribute="optionname" id="addmodsig_1_tb_2" linkedcontrolid="addmodsig_1_td_1" sortable="true"/>
+        <tablecol dataattribute="description" id="addmodsig_1_tb_3" linkedcontrolid="addmodsig_1_td_2" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="addmodsig_1_tb_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <tabledetails id="addmodsig_1_td">
+        <section border="true" id="addmodsig_1_td_">
+          <section id="addmodsig_2a_td_">
+            <sectioncol id="addmodsig_2a_td_col1">
+              <textbox dataattribute="optionname" id="addmodsig_1_td_1"/>
+              <textbox dataattribute="description" id="addmodsig_1_td_2"/>
+              <textbox dataattribute="alsogrants" id="addmodsig_1_td_3"/>
+              <textbox dataattribute="alsorevokes" id="addmodsig_1_td_4"/>
+              <textbox dataattribute="prerequisite" id="addmodsig_1_td_5"/>
+            </sectioncol>
+            <sectioncol id="addmodsig_2a_td_col2"/>
+          </section>
+          <section id="addmodsig_2b_td_">
+            <checkbox dataattribute="esigenabled" id="addmodsig_2_td_7"/>
+            <checkbox dataattribute="visible" id="addmodsig_2_td_8"/>
+          </section>
+        </section>
+      </tabledetails>
+      <buttongroup id="addmodsig_1_bg">
+        <pushbutton default="true" id="addmodsig_1_bg_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+      <datasrc id="addmodsigadvopt" parentdatasrc="addmodsig" relationship="SIGOPTFLAGDLG"/>
+      <section collapsable="true" collapsed="true" datasrc="addmodsigadvopt" id="addmodsig_3b_td_" label="高级签名选项">
+        <radiobuttongroup border="false" dataattribute="flagcode" hidelabel="false" id="addmodsig_3_td_9_1">
+          <radiobutton id="addmodsig_3_td_9_1_1" label="无" value="0"/>
+          <radiobutton id="addmodsig_3_td_9_1_2" label="如果从显示多条记录但是没有选择任何特殊记录的“列表”页面选择此操作，那么会发出警告" value="1"/>
+          <radiobutton id="addmodsig_3_td_9_1_3" label="此操作必须由用户在 UI 中调用" value="2"/>
+          <radiobutton id="addmodsig_3_td_9_1_4" label="与启动条目关联从而启用“在上下文中启动”" value="3"/>
+        </radiobuttongroup>
+        <textbox dataattribute="value" id="addmodsig_3_td_9_2" lookup="maxlaunchentry"/>
+      </section>
+    </table>
+    <buttongroup id="addmodsig_2">
+      <pushbutton default="true" id="addmodsig_2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="addmodsig_2_2" label="取消 " mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog id="regcontrol" label="注册控件" mboname="paletteitem">
+    <table id="palette" label="选项板控件">
+      <tablebody displayrowsperpage="15" filterable="false" id="paletteitem_body">
+        <tablecol dataattribute="control" id="paletteitem_col1"/>
+        <tablecol dataattribute="description" id="paletteitem_col2"/>
+        <tablecol dataattribute="objectname" id="paletteitem_col3"/>
+        <tablecol dataattribute="paletteitemid" id="paletteitem_col4"/>
+        <tablecol filterable="false" hidden="false" id="paletteitem_col5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <buttongroup id="paletteitem_buttons_1">
+        <pushbutton default="true" id="paletteitem_buttons_1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="paletteitem_buttons_2">
+      <pushbutton default="true" id="paletteitem_buttons_2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="paletteitem_buttons_2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ImportAppBean" id="import" label="导入应用程序定义">
+    <section id="importapp_1">
+      <importapp id="importapp_1_8" label="浏览文件："/>
+    </section>
+    <buttongroup id="importapp_2">
+      <doclinkuploadbutton id="importapp_file_2_1" label="确定"/>
+      <pushbutton id="importapp_2_2" label="取消 " mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ExportSysBean" id="exportsys" label="导出系统 XML" mboname="MAXPRESENTATION" whereclause="app in ('LIBRARY','LOOKUPS','MENUS','REPLIBRARY','TOOLBOX','STARTCNTR')">
+    <table id="syspres" label="系统表示">
+      <tablebody displayrowsperpage="15" filterable="false" id="syspres_body">
+        <tablecol dataattribute="app" id="syspres_col1" inputmode="readonly"/>
+        <tablecol filterable="false" hidden="false" id="syspres_col2" mxevent="selectrecord" mxevent_desc="导出 XML" mxevent_icon="btn_export.gif" sortable="false" type="event"/>
+      </tablebody>
+    </table>
+    <buttongroup id="syspres_buttons_1">
+      <pushbutton default="true" id="syspres_buttons_1_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog closeevent="CONTROLS" id="controls" label="控件" mboname="paletteitem" modal="false" orderby="control" saveposition="true" showclose="true">
+    <designer_toolbox colcount="4" id="toolbox1"/>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.DialogListBean" closeevent="APPCONTENT" id="dialoglist" label="编辑对话框" mboname="CTRL_TEXTBOX" modal="false" saveposition="true" showclose="true">
+    <table id="dialoglist_1">
+      <tablebody displayrowsperpage="15" filterable="false" id="dialoglist_1_tb">
+        <tablecol dataattribute="id" id="dialoglist_1_tb_2" inputmode="readonly" mxevent="selectrecord" type="link"/>
+        <tablecol dataattribute="label" id="dialoglist_1_tb_3" inputmode="readonly" mxevent="selectrecord" type="link"/>
+      </tablebody>
+    </table>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_action" label="操作属性" mboname="CTRL_ACTION" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_action_1">
+      <textbox dataattribute="id" id="prop_action_id"/>
+      <textbox dataattribute="method" id="prop_action_method"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_appbar" label="应用程序栏属性" mboname="CTRL_APPBAR" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_appbar_1">
+      <textbox dataattribute="id" id="prop_appbar_id"/>
+      <textbox dataattribute="label" id="prop_appbar_label"/>
+      <textbox dataattribute="appbarlinks" id="prop_appbarlinks"/>
+      <textbox dataattribute="sigoption" id="prop_appbarbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_appbarbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_appbarbox_button_config">
+        <pushbutton id="prop_appbarbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_attachdoc" label="附加文档属性" mboname="CTRL_ATTACHDOC" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_attachdoc_1">
+      <textbox dataattribute="id" id="prop_attachdoc_id"/>
+      <textbox dataattribute="label" id="prop_attachdoc_label"/>
+      <textbox dataattribute="sigoption" id="prop_attachdoc_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_attachdoc_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_attachdoc_button_config">
+        <pushbutton id="prop_attachdoc_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_attachments" label="附件属性" mboname="CTRL_ATTACHMENTS" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_attachments_1">
+      <textbox dataattribute="id" id="prop_attachments_id"/>
+      <textbox dataattribute="label" id="prop_attachments_label"/>
+      <textbox dataattribute="sigoption" id="prop_attachments_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_attachments_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_attachments_button_config">
+        <pushbutton id="prop_attachments_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_blankline" label="空白行属性" mboname="CTRL_BLANKLINE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_blankline_1">
+      <textbox dataattribute="id" id="prop_blankline_id"/>
+      <textbox dataattribute="sigoption" id="prop_blankline_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_blankline_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_blankline_button_config">
+        <pushbutton id="prop_blankline_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_breadcrumbs" label="面包屑属性" mboname="CTRL_BREADCRUMBS" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_breadcrumbs_1">
+      <textbox dataattribute="id" id="prop_breadcrumbs_id"/>
+      <textbox dataattribute="label" id="prop_breadcrumbs_label"/>
+      <textbox dataattribute="beanclass" id="prop_breadcrumbs_beanclass"/>
+      <textbox dataattribute="datasrc" id="prop_breadcrumbs_datasrc"/>
+      <textbox dataattribute="mboname" id="prop_breadcrumbs_mboname"/>
+      <textbox dataattribute="classname" id="prop_breadcrumbs_classname"/>
+      <textbox dataattribute="separator" id="prop_breadcrumbs_seperator"/>
+      <textbox dataattribute="relationship" id="prop_breadcrumbs_relationship"/>
+      <textbox dataattribute="breadcrumbsourceid" id="prop_breadcrumbs_breadcrumbsourceid"/>
+      <textbox dataattribute="sourcemethod" id="prop_breadcrumbs_sourcemethod"/>
+      <textbox dataattribute="align" id="prop_breadcrumbs_align"/>
+      <textbox dataattribute="sigoption" id="prop_breadcrumbs_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_breadcrumbs_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_breadcrumbs_button_config">
+        <pushbutton id="prop_breadcrumbs_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_buttongroup" label="按钮组属性" mboname="CTRL_BUTTONGROUP" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_buttongroup_1">
+      <textbox dataattribute="id" id="prop_buttongroup_id"/>
+      <textbox dataattribute="label" id="prop_buttongroup_label"/>
+      <combobox dataattribute="labelalign" id="prop_buttongroup_labelalign" smartfilloff="true"/>
+      <combobox dataattribute="align" id="prop_buttongroup_align" smartfilloff="true"/>
+      <checkbox dataattribute="show" id="prop_buttongroup_show"/>
+      <textbox dataattribute="sigoption" id="prop_buttongroup_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_buttongroup_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_buttongroup_button_config">
+        <pushbutton id="prop_buttongroup_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_checkbox" label="复选框属性" mboname="CTRL_CHECKBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_checkbox_tabs">
+      <tab default="true" id="mxdp_checkbox_general" label="常规">
+        <section id="prop_checkbox_1">
+          <textbox dataattribute="id" id="prop_checkbox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_checkbox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_checkbox_label"/>
+          <textbox dataattribute="dataattribute" id="prop_checkbox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_checkbox_datasrc"/>
+          <combobox dataattribute="inputmode" id="prop_checkbox_inputmode" smartfilloff="true"/>
+        </section>
+      </tab>
+      <tab id="mxdp_checkbox_advanced" label="高级">
+        <section id="prop_checkbox_2">
+          <combobox dataattribute="ondatachange" id="prop_checkbox_ondatachange" smartfilloff="true"/>
+          <checkbox dataattribute="synchronous" id="prop_checkbox_async"/>
+          <checkbox dataattribute="notifyportlets" id="prop_checkbox_notifyportlets"/>
+          <textbox dataattribute="moreinformation" id="prop_checkbox_moreinformation"/>
+          <textbox dataattribute="sigoption" id="prop_checkbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_checkbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_checkbox_button_config">
+            <pushbutton id="prop_checkbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_clientarea" label="客户机区域属性" mboname="CTRL_CLIENTAREA" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_clientarea_1">
+      <textbox dataattribute="id" id="prop_clientarea_id"/>
+      <textbox dataattribute="sigoption" id="prop_clientarea_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_clientarea_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_clientarea_button_config">
+        <pushbutton id="prop_clientarea_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_combobox" label="Combobox 属性" mboname="CTRL_COMBOBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_combobox_tabs">
+      <tab default="true" id="mxdp_combobox_general" label="常规">
+        <section id="prop_combobox_1">
+          <textbox dataattribute="id" id="prop_combobox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_combobox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_combobox_label"/>
+          <textbox dataattribute="dataattribute" id="prop_combobox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_combobox_datasrc"/>
+          <textbox dataattribute="displayattribute" id="prop_combobox_displayattribute"/>
+          <combobox dataattribute="inputmode" id="prop_combobox_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="width" id="prop_combobox_width"/>
+        </section>
+      </tab>
+      <tab id="mxdp_combobox_advanced" label="高级">
+        <section id="prop_combobox_2">
+          <textbox dataattribute="keyattribute" id="prop_combobox_keyattribute"/>
+          <combobox dataattribute="ondatachange" id="prop_combobox_ondatachange" smartfilloff="true"/>
+          <checkbox dataattribute="notifyportlets" id="prop_combobox_notifyportlets"/>
+          <textbox dataattribute="moreinformation" id="prop_combobox_moreinformation"/>
+          <textbox dataattribute="sigoption" id="prop_combobox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_combobox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_combobox_button_config">
+            <pushbutton id="prop_combobox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_controlcontainer" label="控件容器属性" mboname="CTRL_CTCONTAINER" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_controlcontainer_1">
+      <textbox dataattribute="id" id="prop_controlcontainer_id"/>
+      <textbox dataattribute="sigoption" id="prop_controlcontainer_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_controlcontainer_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_controlcontainer_button_config">
+        <pushbutton id="prop_controlcontainer_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_datasrc" label="数据源属性" mboname="CTRL_DATASRC" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_datasrc_1">
+      <textbox dataattribute="id" id="prop_datasrc_id"/>
+      <textbox dataattribute="beanclass" id="prop_datasrc_beanclass"/>
+      <textbox dataattribute="mboname" id="prop_datasrc_mboname"/>
+      <textbox dataattribute="parentdatasrc" id="prop_datasrc_parentdatasrc"/>
+      <textbox dataattribute="relationship" id="prop_datasrc_relationship"/>
+      <textbox dataattribute="orderby" id="prop_datasrc_orderby"/>
+      <textbox dataattribute="whereclause" id="prop_datasrc_whereclause"/>
+      <checkbox dataattribute="listeners" id="prop_datasrc_listeners"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_defaultvalue" label="缺省属性" mboname="CTRL_DEFAULT" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_default_1">
+      <textbox dataattribute="id" id="prop_default_id"/>
+      <textbox dataattribute="dataattribute" id="prop_default_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+      <textbox dataattribute="value" id="prop_default_value"/>
+      <textbox dataattribute="fromdatasrc" id="prop_default_fromdatasrc"/>
+      <textbox dataattribute="fromattribute" id="prop_default_fromattribute"/>
+      <combobox dataattribute="defaulttype" id="prop_default_defaulttype" smartfilloff="true"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_dialog" label="对话属性" mboname="CTRL_DIALOG" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_dialog_tabs">
+      <tab default="true" id="mxdp_dialog_general" label="常规">
+        <section id="prop_dialog_1">
+          <textbox dataattribute="id" id="prop_dialog_id"/>
+          <textbox dataattribute="label" id="prop_dialog_label"/>
+          <textbox dataattribute="icon" id="prop_dialog_icon"/>
+          <textbox dataattribute="datasrc" id="prop_dialog_datasrc"/>
+          <textbox dataattribute="mboname" id="prop_dialog_mboname"/>
+          <textbox dataattribute="parentdatasrc" id="prop_dialog_parentdatasrc"/>
+          <textbox dataattribute="relationship" id="prop_dialog_relationship"/>
+          <textbox dataattribute="whereclause" id="prop_dialog_whereclause"/>
+          <textbox dataattribute="orderby" id="prop_dialog_orderby"/>
+          <combobox dataattribute="inputmode" id="prop_dialog_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="height" id="prop_dialog_height"/>
+          <textbox dataattribute="width" id="prop_dialog_width"/>
+        </section>
+      </tab>
+      <tab id="mxdp_dialog_advanced" label="高级">
+        <section id="prop_dialog_2">
+          <checkbox dataattribute="hidehelp" id="prop_dialog_hidehelp"/>
+          <checkbox dataattribute="listaction" id="prop_dialog_listaction"/>
+          <checkbox dataattribute="allowcancel" id="prop_dialog_allowcancel"/>
+          <textbox dataattribute="beanclass" id="prop_dialog_beanclass"/>
+          <textbox dataattribute="listeners" id="prop_dialog_listeners"/>
+          <textbox dataattribute="sigoption" id="prop_dialog_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_dialog_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_dialog_button_config">
+            <pushbutton id="prop_dialog_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_displayrule" label="显示规则属性" mboname="CTRL_DISPLAYRULE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_displayrule_1">
+      <textbox dataattribute="id" id="prop_displayrule_id"/>
+      <textbox dataattribute="dataattribute" id="prop_displayrule_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+      <textbox dataattribute="sigoption" id="prop_displayrule_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_displayrule_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_displayrule_button_config">
+        <pushbutton id="prop_displayrule_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_doclinkuploadbtn" label="文档链接上载按钮属性" mboname="CRTL_DOCLINKBTN" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_doclinkuploadbtn_1">
+      <textbox dataattribute="id" id="prop_doclinkuploadbtn_id"/>
+      <textbox dataattribute="label" id="prop_doclinkuploadbtn_label"/>
+      <textbox dataattribute="sigoption" id="prop_doclinkuploadbtn_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_doclinkuploadbtn_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_doclinkuploadbtn_button_config">
+        <pushbutton id="prop_doclinkuploadbtn_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_exact" label="准确属性" mboname="CTRL_EXACT" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_exact_1">
+      <textbox dataattribute="id" id="prop_exact_id"/>
+      <textbox dataattribute="classname" id="prop_exact_classname"/>
+      <textbox dataattribute="value" id="prop_exact_value"/>
+      <textbox dataattribute="sigoption" id="prop_exact_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_exact_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_exact_button_config">
+        <pushbutton id="prop_exact_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_helpgrid" label="帮助栅格属性" mboname="CTRL_HELPGRID" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_helpgrid_1">
+      <textbox dataattribute="id" id="prop_helpgrid_id"/>
+      <textbox dataattribute="label" id="prop_helpgrid_label"/>
+      <textbox dataattribute="innerhtml" id="prop_helpgrid_innerhtml"/>
+      <textbox dataattribute="sigoption" id="prop_helpgrid_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="morehelp" id="prop_helpgrid_morehelp"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_helpgrid_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_helpgrid_button_config">
+        <pushbutton id="prop_helpgrid_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_hyperlink" label="超级链接属性" mboname="CTRL_HYPERLINK" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_hyperlink_tabs">
+      <tab default="true" id="mxdp_hyperlink_general" label="常规">
+        <section id="prop_hyperlink_1">
+          <textbox dataattribute="id" id="prop_hyperlink_id"/>
+          <textbox dataattribute="label" id="prop_hyperlink_label"/>
+          <textbox dataattribute="mxevent" id="prop_hyperlink_mxevent"/>
+          <textbox dataattribute="targetid" id="prop_hyperlink_targetid"/>
+          <textbox dataattribute="eventvalue" id="prop_hyperlink_eventvalue"/>
+          <combobox dataattribute="align" id="prop_hyperlink_align" smartfilloff="true"/>
+          <textbox dataattribute="image" id="prop_hyperlink_image"/>
+          <combobox dataattribute="imagealign" id="prop_hyperlink_imagealign" smartfilloff="true"/>
+          <textbox dataattribute="classname" id="prop_hyperlink_classname"/>
+          <textbox dataattribute="accesskey" id="prop_hyperlink_accesskey"/>
+          <checkbox dataattribute="separator" id="prop_hyperlink_separator"/>
+        </section>
+      </tab>
+      <tab id="mxdp_hyperlink_advanced" label="高级">
+        <section id="prop_hyperlink_2">
+          <textbox dataattribute="column" id="prop_hyperlink_column"/>
+          <textbox dataattribute="url" id="prop_hyperlink_link"/>
+          <textbox dataattribute="sigoption" id="prop_hyperlink_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_hyperlink_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_hyperlink_button_config">
+            <pushbutton id="prop_hyperlink_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_image" label="图像属性" mboname="CTRL_IMAGE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_image_1">
+      <textbox dataattribute="id" id="prop_image_id"/>
+      <textbox dataattribute="imagename" id="prop_image_imagename"/>
+      <textbox dataattribute="height" id="prop_image_height"/>
+      <textbox dataattribute="width" id="prop_image_width"/>
+      <combobox dataattribute="align" id="prop_image_align" smartfilloff="true"/>
+      <textbox dataattribute="column" id="prop_image_column"/>
+      <textbox dataattribute="sigoption" id="prop_image_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_image_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_image_button_config">
+        <pushbutton id="prop_image_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_include" label="包括属性" mboname="CTRL_INCLUDE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_include_1">
+      <textbox dataattribute="id" id="prop_include_id"/>
+      <textbox dataattribute="controltoclone" id="prop_include_controltoclone"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_kpigraph" label="KPI 图形属性" mboname="CTRL_KPIGRAPH" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_kpigraph_1">
+      <textbox dataattribute="id" id="prop_kpigraph_id"/>
+      <checkbox dataattribute="border" id="prop_kpigraph_border"/>
+      <textbox dataattribute="height" id="prop_kpigraph_height"/>
+      <textbox dataattribute="width" id="prop_kpigraph_width"/>
+      <textbox dataattribute="servlet" id="prop_kpigraph_servlet"/>
+      <textbox dataattribute="datasrc" id="prop_kpigraph_datasrc"/>
+      <combobox dataattribute="type" id="prop_kpigraph_type" smartfilloff="true"/>
+      <textbox dataattribute="sigoption" id="prop_kpigraph_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_kpigraph_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_kpigraph_button_config">
+        <pushbutton id="prop_kpigraph_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_listbox" label="列表框属性" mboname="CTRL_LISTBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_listbox_tabs">
+      <tab default="true" id="mxdp_listbox_general" label="一般信息">
+        <section id="prop_listbox_1">
+          <textbox dataattribute="id" id="prop_listbox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_listbox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_listbox_label"/>
+          <textbox dataattribute="dataattribute" id="prop_listbox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="mboname" id="prop_listbox_mboname"/>
+          <textbox dataattribute="parentdatasrc" id="prop_listbox_parentdatasrc"/>
+          <textbox dataattribute="keyattribute" id="prop_listbox_keyattribute"/>
+          <textbox dataattribute="keyvalue" id="prop_listbox_keyvalue"/>
+          <combobox dataattribute="inputmode" id="prop_listbox_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="height" id="prop_listbox_height"/>
+          <textbox dataattribute="width" id="prop_listbox_width"/>
+        </section>
+      </tab>
+      <tab id="mxdp_listbox_advanced" label="高级">
+        <section id="prop_listbox_2">
+          <textbox dataattribute="beanclass" id="prop_listbox_beanclass"/>
+          <textbox dataattribute="whereclause" id="prop_listbox_whereclause"/>
+          <textbox dataattribute="orderby" id="prop_listbox_orderby"/>
+          <checkbox dataattribute="autorefresh" id="prop_listbox_autorefresh"/>
+          <checkbox dataattribute="synchronous" id="prop_listbox_async"/>
+          <textbox dataattribute="sigoption" id="prop_listbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_listbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_listbox_button_config">
+            <pushbutton id="prop_listbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_menubar" label="菜单栏属性" mboname="CTRL_MENUBAR" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_menubar_1">
+      <textbox dataattribute="id" id="prop_menubar_id"/>
+      <textbox dataattribute="label" id="prop_menubar_label"/>
+      <textbox dataattribute="sourcemethod" id="prop_menubar_sourcemethod"/>
+      <textbox dataattribute="event" id="prop_menubar_event"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_multilinetextbox" label="多行文本框属性" mboname="CTRL_MLNETEXTBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_mltextbox_tabs">
+      <tab default="true" id="mxdp_mltextbox_general" label="常规">
+        <section id="prop_mltextbox_1">
+          <textbox dataattribute="id" id="prop_mltextbox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_mltextbox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_mltextbox_label"/>
+          <checkbox dataattribute="hidelabel" id="prop_mltextbox_hidelabel"/>
+          <textbox dataattribute="dataattribute" id="prop_mltextbox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="rows" id="prop_mltextbox_rows"/>
+          <textbox dataattribute="columns" id="prop_mltextbox_columns"/>
+          <textbox dataattribute="datasrc" id="prop_mltextbox_datasrc"/>
+          <textbox dataattribute="lookup" id="prop_mltextbox_lookup"/>
+          <combobox dataattribute="inputmode" id="prop_mltextbox_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="menutype" id="prop_mltextbox_menutype"/>
+        </section>
+      </tab>
+      <tab id="mxdp_mltextbox_advanced" label="高级">
+        <section id="prop_mltextbox_2">
+          <textbox dataattribute="rechover" id="prop_mltextbox_rechover"/>
+          <textbox dataattribute="rechoverattribute" id="prop_mltextbox_rechovattribute" lookup="maxattribute" smartfilloff="true"/>
+          <combobox dataattribute="ondatachange" id="prop_mltextbox_ondatachange" smartfilloff="true"/>
+          <checkbox dataattribute="synchronous" id="prop_mltextbox_async"/>
+          <checkbox dataattribute="notifyportlets" id="prop_mltextbox_notifyportlets"/>
+          <textbox dataattribute="moreinformation" id="prop_mltextbox_moreinformation"/>
+          <textbox dataattribute="movetodatasrc" id="prop_mltextbox_movetodatasrc"/>
+          <textbox dataattribute="sigoption" id="prop_mltextbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_mltextbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_mltextbox_button_config">
+            <pushbutton id="prop_mltextbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_multiparttextbox" label="多行文本框属性" mboname="CTRL_MPRTTEXTBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_mptextbox_tabs">
+      <tab default="true" id="mxdp_mptextbox_general" label="常规">
+        <section id="prop_mptextbox_1">
+          <textbox dataattribute="id" id="prop_mptextbox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_mptextbox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_mptextbox_label"/>
+          <textbox dataattribute="dataattribute" id="prop_mptextbox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="descdataattribute" id="prop_mptextbox_descdataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_mptextbox_datasrc"/>
+          <textbox dataattribute="lookup" id="prop_mptextbox_lookup"/>
+          <textbox dataattribute="desclookup" id="prop_mptextbox_desclookup"/>
+          <textbox dataattribute="applink" id="prop_mptextbox_applink" lookup="maxapps" smartfilloff="true"/>
+          <combobox dataattribute="inputmode" id="prop_mptextbox_inputmode" smartfilloff="true"/>
+          <combobox dataattribute="descinputmode" id="prop_mptextbox_descinputmode" smartfilloff="true"/>
+          <textbox dataattribute="menutype" id="prop_mptextbox_menutype"/>
+          <textbox dataattribute="iconmenu" id="prop_mptextbox_iconmenu"/>
+          <textbox dataattribute="desciconmenu" id="prop_tmpextbox_desciconmenu"/>
+        </section>
+      </tab>
+      <tab id="mxdp_mptextbox_advanced" label="高级">
+        <section id="prop_mptextbox_2">
+          <textbox dataattribute="rechover" id="prop_mptextbox_rechover"/>
+          <textbox dataattribute="rechoverattribute" id="prop_mptextbox_rechovattribute" lookup="maxattribute" smartfilloff="true"/>
+          <combobox dataattribute="ondatachange" id="prop_mptextbox_ondatachange" smartfilloff="true"/>
+          <checkbox dataattribute="smartfilloff" id="prop_mptextbox_smartfilloff"/>
+          <checkbox dataattribute="longdescreadonly" id="prop_mptextbox_longdescreadonly"/>
+          <checkbox dataattribute="synchronous" id="prop_mptextbox_async"/>
+          <checkbox dataattribute="descsynchronous" id="prop_mptextbox_descasync"/>
+          <checkbox dataattribute="notifyportlets" id="prop_mptextbox_notifyportlets"/>
+          <textbox dataattribute="moreinformation" id="prop_mptextbox_moreinformation"/>
+          <textbox dataattribute="movetodatasrc" id="prop_mptextbox_movetodatasrc"/>
+          <textbox dataattribute="sigoption" id="prop_mptextbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_mptextbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_mptextbox_button_config">
+            <pushbutton id="prop_mptextbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+        <section beanclass="psdi.webclient.beans.designer.DatastoreButtonsBean" id="prop_mptextbox_3" label="自动填充属性" parentdatasrc="mxdproperties_multiparttextbox">
+          <helpgrid id="mptextbox_afcfg_help" innerhtml="可以配置自动填充属性以使用高速缓存数据来代替服务器数据。 您可以配置输入提示，以便用户能够在输入时就可以看到字段的匹配内容。 您必须配置输入提示才能配置设定值和过滤器。" morehelp="com.ibm.mbs.doc,designer/c_autofill_properties.html"/>
+          <buttongroup display="false" id="prop_mptextbox_button_config0">
+            <pushbutton id="prop_mptextbox_button_config_button0" label="（忽略它）测试按钮" sigoption="CFGTYPEAHEAD"/>
+          </buttongroup>
+          <buttongroup id="prop_mptextbox_button_config1">
+            <pushbutton id="prop_mptextbox_button_config_button1" label="配置输入提示" mxevent="configuretypeahead" sigoption="CFGTYPEAHEAD"/>
+          </buttongroup>
+          <buttongroup id="prop_mptextbox_button_config2">
+            <pushbutton id="prop_mptextbox_button_config_button2" label="配置设定值" mxevent="configuresetvalues" sigoption="CFGSETVALUE"/>
+          </buttongroup>
+          <buttongroup id="prop_mptextbox_button_config3">
+            <pushbutton id="prop_mptextbox_button_config_button3" label="配置过滤器" mxevent="configurefilters" sigoption="CFGFILTER"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_page" label="页面属性" mboname="CTRL_PAGE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_page_1">
+      <textbox dataattribute="id" id="prop_page_id" inputmode="readonly"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_paramvalue" label="参数值属性" mboname="CTRL_PARAMVALUE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_paramvalue_1">
+      <textbox dataattribute="id" id="prop_paramvalue_id"/>
+      <textbox dataattribute="position" id="prop_paramvalue_position"/>
+      <textbox dataattribute="dataattribute" id="prop_paramvalue_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+      <textbox dataattribute="datasrc" id="prop_paramvalue_datasrc"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_paramvalues" label="参数值属性" mboname="CTRL_PARAMVALUES" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_paramvalues_1">
+      <textbox dataattribute="id" id="prop_paramvalues_id"/>
+      <textbox dataattribute="property" id="prop_paramvalues_property"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_presentation" label="演示属性" mboname="CTRL_PRESENTATIO" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_presentation_tabs">
+      <tab default="true" id="mxdp_presentation_general" label="常规">
+        <section id="prop_presentation_1">
+          <textbox dataattribute="id" id="prop_presentation_id"/>
+          <textbox dataattribute="mboname" id="prop_presentation_mboname"/>
+          <textbox dataattribute="beanclass" id="prop_presentation_beanclass"/>
+          <textbox dataattribute="orderby" id="prop_presentation_orderby"/>
+          <textbox dataattribute="whereclause" id="prop_presentation_whereclause"/>
+          <textbox dataattribute="apprestrictions" id="prop_presentation_apprestrictions"/>
+          <textbox dataattribute="resultstableid" id="prop_presentation_resultstableid"/>
+          <textbox dataattribute="apphelp" id="prop_presentation_apphelp"/>
+        </section>
+      </tab>
+      <tab id="mxdp_presentation_advanced" label="高级">
+        <section id="prop_presentation_2">
+          <textbox dataattribute="viewport" id="prop_presentation_viewport" inputmode="readonly" licensekey="EVERYPLACE"/>
+          <checkbox dataattribute="ismobile" id="prop_presentation_ismobile" licensekey="EVERYPLACE"/>
+          <checkbox dataattribute="synchronous" id="prop_presentation_async"/>
+          <textbox dataattribute="debug" id="prop_presentation_debug"/>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_pushbutton" label="按钮属性" mboname="CTRL_PUSHBUTTON" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_pushbutton_tabs">
+      <tab default="true" id="mxdp_pushbutton_general" label="常规">
+        <section id="prop_pushbutton_1">
+          <textbox dataattribute="id" id="prop_pushbutton_id"/>
+          <textbox dataattribute="label" id="prop_pushbutton_label"/>
+          <textbox dataattribute="mxevent" id="prop_pushbutton_mxevent"/>
+          <textbox dataattribute="targetid" id="prop_pushbutton_targetid"/>
+          <textbox dataattribute="value" id="prop_pushbutton_value"/>
+          <checkbox dataattribute="default" id="prop_pushbutton_default"/>
+          <textbox dataattribute="menutype" id="prop_pushbutton_menutype"/>
+        </section>
+      </tab>
+      <tab id="mxdp_pushbutton_advanced" label="高级">
+        <section id="prop_pushbutton_2">
+          <textbox dataattribute="image" id="prop_pushbutton_image"/>
+          <textbox dataattribute="sigoption" id="prop_pushbutton_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_pushbutton_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_pushbutton_button_config">
+            <pushbutton id="prop_pushbutton_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_radiobuttongroup" label="单选按钮组属性" mboname="CTRL_RADIOBTNGRP" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_rbg_tabs">
+      <tab default="true" id="mxdp_rbg_general" label="常规">
+        <section id="prop_rbg_1">
+          <textbox dataattribute="id" id="prop_radiobtngroup_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_radiobtngroup_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_radiobtngroup_label"/>
+          <checkbox dataattribute="hidelabel" id="prop_radiobtngroup_hidelabel"/>
+          <textbox dataattribute="dataattribute" id="prop_radiobtngroup_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="valueattribute" id="prop_radiobtngroup_valueattribute"/>
+          <textbox dataattribute="descattribute" id="prop_radiobtngroup_descattribute" lookup="maxattribute"/>
+          <checkbox dataattribute="border" id="prop_radiobtngroup_border"/>
+          <textbox dataattribute="datasrc" id="prop_radiobtngroup_datasrc"/>
+        </section>
+      </tab>
+      <tab id="mxdp_rbg_advanced" label="高级">
+        <section id="prop_rbg_2">
+          <combobox dataattribute="align" id="prop_radiobtngroup_align" smartfilloff="true"/>
+          <combobox dataattribute="inputmode" id="prop_radiobtngroup_inputmode" smartfilloff="true"/>
+          <combobox dataattribute="updateonchange" id="prop_radiobtngroup_updateonchange" smartfilloff="true"/>
+          <checkbox dataattribute="synchronous" id="prop_radiobtngroup_async"/>
+          <textbox dataattribute="sigoption" id="prop_radiobtngroup_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_radiobtngroup_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_radiobtngroup_button_config">
+            <pushbutton id="prop_radiobtngroup_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_radiobutton" label="单选按钮属性" mboname="CTRL_RADIOBUTTON" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_radiobutton_1">
+      <textbox dataattribute="id" id="prop_radiobutton_id"/>
+      <textbox dataattribute="defaultlabel" id="prop_radiobutton_defaultlabel" inputmode="readonly"/>
+      <textbox dataattribute="label" id="prop_radiobutton_label"/>
+      <textbox dataattribute="value" id="prop_radiobutton_value"/>
+      <textbox dataattribute="moreinformation" id="prop_radiobutton_moreinformation"/>
+      <textbox dataattribute="sigoption" id="prop_radiobutton_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_radiobutton_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <checkbox dataattribute="notifyportlets" id="prop_radiobutton_notifyportlets"/>
+      <buttongroup id="prop_radiobutton_button_config">
+        <pushbutton id="prop_radiobutton_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_range" label="范围属性" mboname="CTRL_RANGE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_range_1">
+      <textbox dataattribute="id" id="prop_range_id"/>
+      <textbox dataattribute="classname" id="prop_range_classname"/>
+      <textbox dataattribute="lower" id="prop_range_lower"/>
+      <textbox dataattribute="upper" id="prop_range_upper"/>
+      <textbox dataattribute="sigoption" id="prop_range_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_range_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_range_button_config">
+        <pushbutton id="prop_range_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_recordimage" label="记录图像属性" mboname="CTRL_RECORDIMAGE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_recordimage_1">
+      <textbox dataattribute="id" id="prop_recordimage_id"/>
+      <textbox dataattribute="label" id="prop_recordimage_label"/>
+      <textbox dataattribute="datasrc" id="prop_recordimage_datasrc"/>
+      <textbox dataattribute="classname" id="prop_recordimage_classname"/>
+      <textbox dataattribute="height" id="prop_recordimage_height"/>
+      <textbox dataattribute="width" id="prop_recordimage_width"/>
+      <checkbox dataattribute="thumbnail" id="prop_recordimage_thumbnail"/>
+      <textbox dataattribute="alttext" id="prop_recordimage_alttext"/>
+      <textbox dataattribute="sigoption" id="prop_recordimage_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_recordimage_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_recordimage_button_config">
+        <pushbutton id="prop_recordimage_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.RichTextEditorPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_richtexteditor" label="富文本格式编辑器属性" mboname="CTRL_RICHTEXTEDITOR" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_richtext_tabs">
+      <tab default="true" id="mxdp_richtext_general" label="常规">
+        <section id="prop_richtext_1">
+          <textbox dataattribute="id" id="prop_richtext_id"/>
+          <textbox dataattribute="label" id="prop_richtext_label"/>
+          <checkbox dataattribute="hidelabel" id="prop_richtext_hidelabel"/>
+          <textbox dataattribute="dataattribute" id="prop_richtext_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_richtext_datasrc"/>
+          <textbox dataattribute="lookup" id="prop_richtext_lookup"/>
+          <combobox dataattribute="inputmode" id="prop_richtext_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="menutype" id="prop_richtext_menutype"/>
+          <textbox dataattribute="width" id="prop_richtext_width"/>
+          <textbox dataattribute="height" id="prop_richtext_height"/>
+        </section>
+      </tab>
+      <tab id="mxdp_richtext_advanced" label="高级">
+        <section id="prop_richtext_2">
+          <textbox dataattribute="plugins" id="prop_richtext_plugins"/>
+          <textbox dataattribute="sigoption" id="prop_richtext_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_richtext_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_richtext_button_config">
+            <pushbutton id="prop_richtext_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.RichTextEditorPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_richtextviewer" label="富文本格式查看器属性" mboname="CTRL_RICHTEXTEDITOR" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_richtextviewer_tabs">
+      <tab default="true" id="mxdp_richtextviewer_general" label="常规">
+        <section id="prop_richtextviewer_1">
+          <textbox dataattribute="id" id="prop_richtextviewer_id"/>
+          <textbox dataattribute="label" id="prop_richtextviewer_label"/>
+          <checkbox dataattribute="hidelabel" id="prop_richtextviewer_hidelabel"/>
+          <textbox dataattribute="dataattribute" id="prop_richtextviewer_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_richtextviewer_datasrc"/>
+          <textbox dataattribute="width" id="prop_richtextviewer_width"/>
+          <textbox dataattribute="height" id="prop_richtextviewer_height"/>
+        </section>
+      </tab>
+      <tab id="mxdp_richtextviewer_advanced" label="高级">
+        <section id="prop_richtextviewer_2">
+          <buttongroup id="prop_richtextviewer_button_config">
+            <pushbutton id="prop_richtextviewer_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_section" label="部分属性" mboname="CTRL_SECTION" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_section_tabs">
+      <tab default="true" id="mxdp_section_general" label="一般信息">
+        <section id="prop_section_1">
+          <textbox dataattribute="id" id="prop_section_id"/>
+          <textbox dataattribute="label" id="prop_section_label"/>
+          <checkbox dataattribute="border" id="prop_section_border"/>
+          <checkbox dataattribute="collapsed" id="prop_section_collapsed"/>
+          <textbox dataattribute="description" id="prop_section_description"/>
+          <textbox dataattribute="datasrc" id="prop_section_datasrc"/>
+          <textbox dataattribute="mboname" id="prop_section_mboname"/>
+          <textbox dataattribute="relationship" id="prop_section_relationship"/>
+          <textbox dataattribute="parentdatasrc" id="prop_section_parentdatasrc"/>
+          <combobox dataattribute="inputmode" id="prop_section_inputmode" smartfilloff="true"/>
+        </section>
+      </tab>
+      <tab id="mxdp_section_advanced" label="高级">
+        <section id="prop_section_2">
+          <textbox dataattribute="listeners" id="prop_section_listeners"/>
+          <textbox dataattribute="sigoption" id="prop_section_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_section_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_section_button_config">
+            <pushbutton id="prop_section_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_sectioncol" label="部分列属性" mboname="CTRL_SECTIONCOL" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_sectioncol_1">
+      <textbox dataattribute="id" id="prop_sectioncol_id"/>
+      <textbox dataattribute="sigoption" id="prop_sectioncol_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_sectioncol_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_sectioncol_button_config">
+        <pushbutton id="prop_sectioncol_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_sectionrow" label="部分行属性" mboname="CTRL_SECTIONROW" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_sectionrow_1">
+      <textbox dataattribute="id" id="prop_sectionrow_id"/>
+      <textbox dataattribute="sigoption" id="prop_sectionrow_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_sectionrow_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_sectionrow_button_config">
+        <pushbutton id="prop_sectionrow_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_sectionheader" label="部分标题属性" mboname="CTRL_SECTIONHDR" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_sectionheader_1">
+      <textbox dataattribute="id" id="prop_sectionheader_id"/>
+      <textbox dataattribute="label" id="prop_sectionheader_label"/>
+      <checkbox dataattribute="plaintext" id="prop_sectionheader_plaintext"/>
+      <textbox dataattribute="datasrc" id="prop_sectionheader_datasrc"/>
+      <textbox dataattribute="sigoption" id="prop_sectionheader_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_sectionheader_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_sectionheader_button_config">
+        <pushbutton id="prop_sectionheader_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_statictext" label="静态文字属性" mboname="CTRL_STATICTEXT" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_statictext_tabs">
+      <tab default="true" id="mxdp_statictext_general" label="常规">
+        <section id="prop_statictext_1">
+          <textbox dataattribute="id" id="prop_statictext_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_statictext_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_statictext_label"/>
+          <textbox dataattribute="dataattribute" id="prop_statictext_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <combobox dataattribute="align" id="prop_statictext_align" smartfilloff="true"/>
+          <textbox dataattribute="span" id="prop_statictext_span"/>
+        </section>
+      </tab>
+      <tab id="mxdp_statictext_advanced" label="高级">
+        <section id="prop_statictext_2">
+          <textbox dataattribute="column" id="prop_statictext_column"/>
+          <checkbox dataattribute="link" id="prop_statictext_link"/>
+          <checkbox dataattribute="plaintext" id="prop_statictext_plaintext"/>
+          <textbox dataattribute="sigoption" id="prop_statictext_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_statictext_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_statictext_button_config">
+            <pushbutton id="prop_statictext_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_systemprop" label="“系统属性”属性" mboname="CTRL_SYSTEMPROP" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_systemprop_1">
+      <textbox dataattribute="id" id="prop_systemprop_id"/>
+      <textbox dataattribute="defaultlabel" id="prop_systemprop_defaultlabel" inputmode="readonly"/>
+      <textbox dataattribute="label" id="prop_systemprop_label"/>
+      <textbox dataattribute="dataattribute" id="prop_systemprop_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+      <textbox dataattribute="sigoption" id="prop_systemprop_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_systemprop_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_systemprop_button_config">
+        <pushbutton id="prop_systemprop_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_tab" label="选项卡属性" mboname="CTRL_TAB" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_tab_tabs">
+      <tab default="true" id="mxdp_tab_general" label="常规">
+        <section id="prop_tab_1">
+          <textbox dataattribute="id" id="prop_tab_id"/>
+          <textbox dataattribute="label" id="prop_tab_label"/>
+          <combobox dataattribute="type" id="prop_tab_type" smartfilloff="true"/>
+          <checkbox dataattribute="default" id="prop_tab_default"/>
+          <textbox dataattribute="beanclass" id="prop_tab_beanclass"/>
+          <textbox dataattribute="mboname" id="prop_tab_mboname"/>
+          <textbox dataattribute="parentdatasrc" id="prop_tab_parentdatasrc"/>
+          <textbox dataattribute="relationship" id="prop_tab_relationship"/>
+        </section>
+      </tab>
+      <tab id="mxdp_tab_advanced" label="高级">
+        <section id="prop_tab_2">
+          <textbox dataattribute="whereclause" id="prop_tab_whereclause"/>
+          <textbox dataattribute="orderby" id="prop_tab_orderby"/>
+          <textbox dataattribute="listeners" id="prop_tab_listeners"/>
+          <textbox dataattribute="sigoption" id="prop_tab_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_tab_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_tab_button_config">
+            <pushbutton id="prop_tab_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_tabgroup" label="选项卡组属性" mboname="CTRL_TABGROUP" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_tabgroup_1">
+      <textbox dataattribute="id" id="prop_tabgroup_id"/>
+      <combobox dataattribute="format" id="prop_tabgroup_format" smartfilloff="true"/>
+      <combobox dataattribute="style" id="prop_tabgroup_style" smartfilloff="true"/>
+      <textbox dataattribute="tabchangeevent" id="prop_tabgroup_tabchangeevent"/>
+      <textbox dataattribute="sigoption" id="prop_tabgroup_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_tabgroup_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_tabgroup_button_config">
+        <pushbutton id="prop_tabgroup_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_table" label="表属性" mboname="CTRL_TABLE" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_table_tabs">
+      <tab default="true" id="mxdp_table_general" label="常规">
+        <section id="prop_table_1">
+          <textbox dataattribute="id" id="prop_table_id"/>
+          <textbox dataattribute="label" id="prop_table_label"/>
+          <combobox dataattribute="inputmode" id="prop_table_inputmode" smartfilloff="true"/>
+          <combobox dataattribute="selectmode" id="prop_table_selectmode" smartfilloff="true"/>
+          <textbox dataattribute="beanclass" id="prop_table_beanclass"/>
+          <textbox dataattribute="orderby" id="prop_table_orderby"/>
+          <textbox dataattribute="datasrc" id="prop_table_datasrc"/>
+          <textbox dataattribute="mboname" id="prop_table_mboname"/>
+          <textbox dataattribute="parentdatasrc" id="prop_table_parentdatasrc"/>
+          <textbox dataattribute="relationship" id="prop_table_relationship"/>
+          <textbox dataattribute="width" id="prop_table_width"/>
+          <textbox dataattribute="description" id="prop_table_description"/>
+          <textbox dataattribute="titleattributes" id="prop_table_titleattributes"/>
+          <checkbox dataattribute="startempty" id="prop_table_startempty"/>
+          <checkbox dataattribute="filterable" id="prop_table_filterable"/>
+          <checkbox dataattribute="collapsed" id="prop_table_collapsed"/>
+        </section>
+      </tab>
+      <tab id="mxdp_table_advanced" label="高级">
+        <section id="prop_table_2">
+          <textbox dataattribute="collapsedemptylabel" id="prop_table_collapsedemptylabel"/>
+          <textbox dataattribute="collapsedlabel" id="prop_table_collapsedlabel"/>
+          <textbox dataattribute="parentemptylabel" id="prop_table_parentemptylabel"/>
+          <checkbox dataattribute="rowdetailsexpanded" id="prop_table_rowdetailsexpanded"/>
+          <textbox dataattribute="apprestrictions" id="prop_table_apprestrictions"/>
+          <textbox dataattribute="listeners" id="prop_table_listeners"/>
+          <textbox dataattribute="sigoption" id="prop_table_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_table_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_table_button_config">
+            <pushbutton id="prop_table_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_tablebody" label="表主体属性" mboname="CTRL_TABLEBODY" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_tablebody_1">
+      <textbox dataattribute="id" id="prop_tablebody_id"/>
+      <checkbox dataattribute="customizable" id="prop_table_customizable"/>
+      <textbox dataattribute="displayrowsperpage" id="prop_tablebody_displayrowsperpage"/>
+      <checkbox dataattribute="filterexpanded" id="prop_tablebody_filterexpanded"/>
+      <checkbox dataattribute="filterable" id="prop_tablebody_filterable"/>
+      <textbox dataattribute="sigoption" id="prop_tablebody_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_tablebody_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_tablebody_button_config">
+        <pushbutton id="prop_tablebody_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_tablecol" label="表列属性" mboname="CTRL_TABLECOLUMN" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_tablecol_tabs">
+      <tab default="true" id="mxdp_tablecol_general" label="常规">
+        <section id="prop_tablecol_1">
+          <textbox dataattribute="id" id="prop_tablecol_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_tablecol_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_tablecol_label"/>
+          <textbox dataattribute="dataattribute" id="prop_tablecol_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <combobox dataattribute="type" id="prop_tablecol_type" smartfilloff="true"/>
+          <checkbox dataattribute="sortable" id="prop_tablecol_sortable"/>
+          <checkbox dataattribute="smartfilloff" id="prop_tablecol_smartfilloff"/>
+          <checkbox dataattribute="showfilterfield" id="prop_tablecol_showfilterfield"/>
+          <checkbox dataattribute="filterable" id="prop_tablecol_filterable"/>
+          <textbox dataattribute="mxevent" id="prop_tablecol_mxevent"/>
+          <textbox dataattribute="targetid" id="prop_tablecol_targetid"/>
+          <textbox dataattribute="mxevent_desc" id="prop_tablecol_mxevent_desc"/>
+          <textbox dataattribute="mxevent_icon" id="prop_tablecol_mxevent_icon"/>
+          <textbox dataattribute="ondatachange" id="prop_tablecol_ondatachange" lookup="valuelist"/>
+          <textbox dataattribute="classname" id="prop_tablecol_classname"/>
+          <textbox dataattribute="lookup" id="prop_tablecol_lookup"/>
+          <textbox dataattribute="applink" id="prop_tablecol_applink" lookup="maxapps" smartfilloff="true"/>
+          <combobox dataattribute="inputmode" id="prop_tablecol_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="menutype" id="prop_tablecol_menutype"/>
+        </section>
+      </tab>
+      <tab id="mxdp_tablecol_advanced" label="高级">
+        <section id="prop_tablecol_2">
+          <textbox dataattribute="rechover" id="prop_tablecol_rechover"/>
+          <textbox dataattribute="rechoverattribute" id="prop_tablecol_rechovattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="labelattributes" id="prop_tablecol_labelattributes"/>
+          <textbox dataattribute="labelsrcid" id="prop_tablecol_labelsrcid"/>
+          <textbox dataattribute="titleattributes" id="prop_tablecol_titleattributes"/>
+          <textbox dataattribute="urlattribute" id="prop_tablecol_urlattribute"/>
+          <checkbox dataattribute="longdescreadonly" id="prop_tablecol_longdescreadonly"/>
+          <checkbox dataattribute="synchronous" id="prop_tablecol_async"/>
+          <textbox dataattribute="linkedcontrolid" id="prop_tablecol_linkedcontrolid"/>
+          <textbox dataattribute="moreinformation" id="prop_tablecol_moreinformation"/>
+          <textbox dataattribute="sigoption" id="prop_tablecol_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_tablecol_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <textbox dataattribute="detailimage" id="prop_tablecol_detailimage" label="详细信息图像"/>
+          <buttongroup id="prop_tablecol_button_config">
+            <pushbutton id="prop_tablecol_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_textbox" label="文本框属性" mboname="CTRL_TEXTBOX" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_textbox_tabs">
+      <tab default="true" id="mxdp_textbox_general" label="常规">
+        <section id="prop_textbox_1">
+          <textbox dataattribute="id" id="prop_textbox_id"/>
+          <textbox dataattribute="defaultlabel" id="prop_textbox_defaultlabel" inputmode="readonly"/>
+          <textbox dataattribute="label" id="prop_textbox_label"/>
+          <checkbox dataattribute="hidelabel" id="prop_textbox_hidelabel"/>
+          <checkbox dataattribute="smartfilloff" id="prop_textbox_smartfilloff"/>
+          <textbox dataattribute="dataattribute" id="prop_textbox_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="datasrc" id="prop_textbox_datasrc"/>
+          <textbox dataattribute="lookup" id="prop_textbox_lookup"/>
+          <textbox dataattribute="applink" id="prop_textbox_applink" lookup="maxapps" smartfilloff="true"/>
+          <combobox dataattribute="inputmode" id="prop_textbox_inputmode" smartfilloff="true"/>
+          <textbox dataattribute="menutype" id="prop_textbox_menutype"/>
+          <textbox dataattribute="size" id="prop_textbox_size"/>
+          <textbox dataattribute="iconmenu" id="prop_textbox_iconmenu"/>
+        </section>
+      </tab>
+      <tab id="mxdp_textbox_advanced" label="高级">
+        <section id="prop_textbox_2">
+          <textbox dataattribute="rechover" id="prop_textbox_rechover"/>
+          <textbox dataattribute="rechoverattribute" id="prop_textbox_rechovattribute" lookup="maxattribute" smartfilloff="true"/>
+          <textbox dataattribute="detailimage" id="prop_textbox_detailimage"/>
+          <textbox dataattribute="prepend" id="prop_textbox_prepend"/>
+          <combobox dataattribute="ondatachange" id="prop_textbox_ondatachange" smartfilloff="true"/>
+          <checkbox dataattribute="synchronous" id="prop_textbox_async"/>
+          <checkbox dataattribute="longdescreadonly" id="prop_textbox_longdescreadonly"/>
+          <checkbox dataattribute="notifyportlets" id="prop_textbox_notifyportlets"/>
+          <textbox dataattribute="displaytype" id="prop_textbox_displaytype"/>
+          <textbox dataattribute="moreinformation" id="prop_textbox_moreinformation"/>
+          <textbox dataattribute="movetodatasrc" id="prop_textbox_movetodatasrc"/>
+          <textbox dataattribute="sigoption" id="prop_textbox_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_textbox_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_textbox_button_config">
+            <pushbutton id="prop_textbox_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+        <section beanclass="psdi.webclient.beans.designer.DatastoreButtonsBean" id="prop_textbox_3" label="自动填充属性" parentdatasrc="mxdproperties_textbox">
+          <helpgrid id="textbox_afcfg_help" innerhtml="可以配置自动填充属性以使用高速缓存数据来代替服务器数据。 您可以配置输入提示，以便用户能够在输入时就可以看到字段的匹配内容。 您必须配置输入提示才能配置设定值和过滤器。" morehelp="com.ibm.mbs.doc,designer/c_autofill_properties.html"/>
+          <buttongroup display="false" id="prop_textbox_button_config0">
+            <pushbutton id="prop_textbox_button_config_button0" label="（忽略它）测试按钮" sigoption="CFGTYPEAHEAD"/>
+          </buttongroup>
+          <buttongroup id="prop_textbox_button_config1">
+            <pushbutton id="prop_textbox_button_config_button1" label="配置输入提示" mxevent="configuretypeahead" sigoption="CFGTYPEAHEAD"/>
+          </buttongroup>
+          <buttongroup id="prop_textbox_button_config2">
+            <pushbutton id="prop_textbox_button_config_button2" label="配置设定值" mxevent="configuresetvalues" sigoption="CFGSETVALUE"/>
+          </buttongroup>
+          <buttongroup id="prop_textbox_button_config3">
+            <pushbutton id="prop_textbox_button_config_button3" label="配置过滤器" mxevent="configurefilters" sigoption="CFGFILTER"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_tree" label="目录树属性" mboname="CTRL_TREE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_tree_1">
+      <textbox dataattribute="id" id="prop_tree_id"/>
+      <textbox dataattribute="height" id="prop_tree_height"/>
+      <textbox dataattribute="width" id="prop_tree_width"/>
+      <textbox dataattribute="beanclass" id="prop_tree_beanclass"/>
+      <textbox dataattribute="mboname" id="prop_tree_mboname"/>
+      <textbox dataattribute="relationship" id="prop_tree_relationship"/>
+      <checkbox dataattribute="usedatasrc" id="prop_tree_usedatasrc"/>
+      <textbox dataattribute="orderby" id="prop_tree_orderby"/>
+      <textbox dataattribute="sigoption" id="prop_tree_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_tree_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_tree_button_config">
+        <pushbutton id="prop_tree_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_treeattribute" label="“目录树属性”属性" mboname="CTRL_TREEATTRIB" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_treeattribute_1">
+      <textbox dataattribute="id" id="prop_treeattribute_id"/>
+      <checkbox dataattribute="display" id="prop_treeattribute_display"/>
+      <textbox dataattribute="dataattribute" id="prop_treeattribute_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_treenode" label="目录树节点属性" mboname="CTRL_TREENODE" modal="false" properties="true" saveposition="true" showclose="true">
+    <tabgroup id="mxdp_treenode_tabs">
+      <tab default="true" id="mxdp_treenode_general" label="常规">
+        <section id="prop_treenode_1">
+          <textbox dataattribute="id" id="prop_treenode_id"/>
+          <textbox dataattribute="image" id="prop_treenode_image"/>
+          <checkbox dataattribute="displaykeyattribute" id="prop_treenode_displaykeyattribute"/>
+          <checkbox dataattribute="displayobjectname" id="prop_treenode_displayobjectname"/>
+          <textbox dataattribute="keyattribute" id="prop_treenode_keyattribute"/>
+          <textbox dataattribute="objectname" id="prop_treenode_objectname"/>
+          <textbox dataattribute="keyvalue" id="prop_treenode_keyvalue"/>
+          <checkbox dataattribute="enablereturn" id="prop_treenode_enablereturn"/>
+        </section>
+      </tab>
+      <tab id="mxdp_treenode_advanced" label="高级">
+        <section id="prop_treenode_2">
+          <textbox dataattribute="returnattribute" id="prop_treenode_returnattribute"/>
+          <checkbox dataattribute="displaynodeimage" id="prop_treenode_displaynodeimage"/>
+          <textbox dataattribute="selectimage" id="prop_treenode_selectimage"/>
+          <textbox dataattribute="sigoption" id="prop_treenode_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+          <textbox dataattribute="sigoptiondatasrc" id="prop_treenode_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+          <buttongroup id="prop_treenode_button_config">
+            <pushbutton id="prop_treenode_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+          </buttongroup>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_uploadfile" label="上载文件属性" mboname="CTRL_UPLOADFILE" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_uploadfile_1">
+      <textbox dataattribute="id" id="prop_uploadfile_id"/>
+      <textbox dataattribute="datasrc" id="prop_uploadfile_datasrc"/>
+      <textbox dataattribute="label" id="prop_uploadfile_label"/>
+      <textbox dataattribute="maxfilesize" id="prop_uploadfile_maxfilesize"/>
+      <textbox dataattribute="event" id="prop_uploadfile_event"/>
+      <textbox dataattribute="oklabel" id="prop_uploadfile_oklabel"/>
+      <textbox dataattribute="cancellabel" id="prop_uploadfile_cancellabel"/>
+      <textbox dataattribute="sigoption" id="prop_uploadfile_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_uploadfile_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_uploadfile_button_config">
+        <pushbutton id="prop_uploadfile_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_wallcalendar" label="挂历属性" mboname="CTRL_WALLCALENDR" modal="false" properties="true" saveposition="true" showclose="true">
+    <section id="prop_wallcalendar_1">
+      <textbox dataattribute="id" id="prop_wallcalendar_id"/>
+      <textbox dataattribute="dateattribute" id="prop_wallcalendar_dateattribute"/>
+      <textbox dataattribute="dataattribute" id="prop_wallcalendar_dataattribute" lookup="maxattribute" smartfilloff="true"/>
+      <textbox dataattribute="relationship" id="prop_wallcalendar_relationship"/>
+      <textbox dataattribute="sigoption" id="prop_wallcalendar_sigoption" lookup="sigoption" ondatachange="resetchildren"/>
+      <textbox dataattribute="sigoptiondatasrc" id="prop_wallcalendar_sigoptiondatasrc" label="签名选项数据源标识" ondatachange="resetchildren"/>
+      <buttongroup id="prop_wallcalendar_button_config">
+        <pushbutton id="prop_wallcalendar_button_config_button" label="配置条件属性" mxevent="configuerproperties"/>
+      </buttongroup>
+    </section>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.ConditionalPropertiesBean" id="configuerproperties" label="配置条件属性">
+    <section border="false" id="configuerproperties_top">
+      <multiparttextbox dataattribute="sigoption" descdataattribute="sigoption.description" descinputmode="readonly" id="configuerproperties_top_1" label="签名选项" longdesc="false" lookup="sigoption" ondatachange="resetchildren"/>
+    </section>
+    <section border="true" id="configuerproperties_next_1">
+      <table id="security_groups_Table" label="安全组" orderby="groupname" parentdatasrc="configuerproperties" relationship="CTRLGROUP">
+        <tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="security_groups_Tablebody">
+          <tablecol dataattribute="groupname" id="security_groups_col_1" label="名称" lookup="maxgroup"/>
+          <tablecol dataattribute="maxgroup.description" id="security_groups_col_2" inputmode="readonly" label="描述"/>
+          <tablecol dataattribute="groupseq" id="security_groups_col_3" label="序号"/>
+          <tablecol filterable="false" hidden="false" id="security_groups_col_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+        </tablebody>
+        <buttongroup id="security_groups_button_select">
+          <pushbutton id="security_groups_button_select_button" label="选择组" mxevent="selectsecuritygroups"/>
+          <pushbutton default="true" id="security_groups_button_new_row_button" label="新建行" mxevent="addrow"/>
+        </buttongroup>
+      </table>
+    </section>
+    <section border="true" id="configuerproperties_next_2">
+      <table id="conditions_security_Table" label="安全组 {0} 的条件" orderby="conditionnum" parentdatasrc="security_groups_Table" relationship="CTRLCONDITION">
+        <sectionheader id="conditions_security_Table_sectionheader">
+          <paramvalues id="conditions_security_Table_1_sec_params" property="label">
+            <paramvalue dataattribute="groupname" datasrc="security_groups_Table" id="conditions_security_Table_1_sec_param_1" position="0"/>
+          </paramvalues>
+        </sectionheader>
+        <tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="conditions_security_Tablebody">
+          <tablecol filterable="false" id="conditions_security_col_0" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+          <tablecol dataattribute="conditionnum" id="conditions_security_col_1" label="名称" lookup="conditionexp"/>
+          <tablecol dataattribute="condition.description" id="conditions_security_col_2" inputmode="readonly" label="描述"/>
+          <tablecol dataattribute="reevaluate" id="conditions_security_col_3" label="重新评估"/>
+          <tablecol dataattribute="conditionseq" id="conditions_security_col_4" label="序号"/>
+          <tablecol filterable="false" hidden="false" id="conditions_security_col_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+        </tablebody>
+        <tabledetails id="conditions_security_td">
+          <section border="true" id="conditions_security_">
+            <section id="conditions_security_td_s1">
+              <sectioncol id="conditions_security_td_col1">
+                <textbox dataattribute="conditionnum" id="conditions_security_td_col1_1" lookup="conditionexp"/>
+                <textbox dataattribute="condition.type" id="conditions_security_td_col1_2" inputmode="readonly"/>
+                <textbox dataattribute="condition.expression" id="conditions_security_td_col1_3" inputmode="readonly"/>
+                <textbox dataattribute="condition.classname" id="conditions_security_td_col1_4" inputmode="readonly"/>
+                <checkbox dataattribute="reevaluate" id="conditions_security_td_col1_5" label="重新评估"/>
+                <textbox dataattribute="conditionseq" id="conditions_security_td_col1_6" label="序号"/>
+              </sectioncol>
+              <sectioncol id="conditions_security_td_col2">
+                <textbox dataattribute="condition.description" id="onditions_security_td_col2_1" inputmode="readonly"/>
+              </sectioncol>
+            </section>
+          </section>
+        </tabledetails>
+        <buttongroup id="conditions_security_button_select">
+          <pushbutton id="conditions_security_button_select_button" label="选择条件" mxevent="selectsecurityconditions"/>
+          <pushbutton default="true" id="conditions_security_button_new_row_button" label="新建行" mxevent="addrow"/>
+          <pushbutton default="true" id="conditions_security_button_hide_button" label="当前条件下新建隐藏属性" mxevent="addrow"/>
+        </buttongroup>
+      </table>
+    </section>
+    <section height="100" id="configuerproperties_values" label="条件 {0} 的属性值" titlealign="center">
+      <sectionheader id="property_values_sectionheader">
+        <paramvalues id="property_values_sec_params" property="label">
+          <paramvalue dataattribute="conditionnum" datasrc="conditions_security_Table" id="property_values_sec_param_1" position="0"/>
+        </paramvalues>
+      </sectionheader>
+      <sectionrow id="configuerproperties_conditions_row1">
+        <sectioncol id="configuerproperties_values_col1">
+        <buttongroup id="c7gtDCVWjONRKQrW" label="快捷操作">
+          <pushbutton default="true" id="NjJXxZjOug1Uhc17" label="新建隐藏属性" mxevent="fastAddConditionDisplayProp" targetid="conditions_security_Table"/>
+        </buttongroup>
+        </sectioncol>
+        </sectionrow>
+      <sectionrow id="NzeviFSdJAhWCfau">
+        <sectioncol id="iBIede6iv9f3T7ZH">
+          <tabgroup id="configureproperties_tabs">
+            <tab id="configuerproperties_values_tab1" label="条件为 true">
+              <table id="property_values_true_Table" orderby="property" parentdatasrc="conditions_security_Table" relationship="CTRLCONDPROPTRUE">
+                <tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="property_values_true_Tablebody">
+                  <tablecol dataattribute="property" id="property_values_true_col_1" label="属性" lookup="propertylookuplist"/>
+                  <tablecol dataattribute="propertyvalue" id="property_values_true_col_2" label="值"/>
+                  <tablecol filterable="false" hidden="false" id="property_values_true_col_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                </tablebody>
+                <buttongroup id="property_values_true_button_select">
+                  <pushbutton default="true" id="property_values_true_select_button" label="输入属性" mxevent="addrow"/>
+                </buttongroup>
+              </table>
+            </tab>
+            <tab id="configuerproperties_values_tab2" label="条件为 false">
+              <table id="property_values_false_Table" orderby="property" parentdatasrc="conditions_security_Table" relationship="CTRLCONDPROPFALSE">
+                <tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="property_values_false_Tablebody">
+                  <tablecol dataattribute="property" id="property_values_false_col_1" label="属性" lookup="propertylookuplist"/>
+                  <tablecol dataattribute="propertyvalue" id="property_values_false_col_2" label="值"/>
+                  <tablecol filterable="false" hidden="false" id="property_values_false_col_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                </tablebody>
+                <buttongroup id="property_values_false_button_select">
+                  <pushbutton default="true" id="property_values_false_select_button" label="输入属性" mxevent="addrow"/>
+                </buttongroup>
+              </table>
+            </tab>
+          </tabgroup>
+        </sectioncol>
+      </sectionrow>
+    </section>
+    <buttongroup id="configuerproperties_2">
+      <pushbutton default="true" id="configuerproperties_2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="configuerproperties_2_2" label="取消 " mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.MultiselectDialogBean" id="selectsecuritygroups" label="选择组" mboname="MAXGROUP" parentdatasrc="security_groups_Table">
+    <table id="selectsecuritygroups_maxgroup_Table" label="组" selectmode="multiple" width="900">
+      <tablebody displayrowsperpage="15" filterable="true" id="selectsecuritygroups_maxgroup_Table_tablebody" inputmode="readonly">
+        <tablecol filterable="false" hidden="false" id="selectsecuritygroups_maxgroup_Table_tablebody_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+        <tablecol dataattribute="groupname" id="selectsecuritygroups_maxgroup_Table_tablebody_2" sortable="true"/>
+        <tablecol dataattribute="description" id="selectsecuritygroups_maxgroup_Table_tablebody_3" sortable="true"/>
+      </tablebody>
+    </table>
+    <buttongroup id="selectsecuritygroups_2">
+      <pushbutton default="true" id="selectsecuritygroups_2_1" label="确定" mxevent="dialogok" value="copyMaxGroupToCtrlGroup"/>
+      <pushbutton id="selectsecuritygroups_2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.MultiselectDialogBean" id="selectsecurityconditions" label="选择条件" mboname="CONDITION" parentdatasrc="conditions_security_Table">
+    <table id="selectcondition_condition_Table" label="条件" selectmode="multiple" width="900">
+      <tablebody displayrowsperpage="15" filterable="true" id="selectcondition_condition_Table_tablebody" inputmode="readonly">
+        <tablecol filterable="false" hidden="false" id="selectcondition_condition_Table_tablebody_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+        <tablecol dataattribute="conditionnum" id="selectcondition_condition_Table_tablebody_2" sortable="true"/>
+        <tablecol dataattribute="type" id="selectcondition_condition_Table_tablebody_3" sortable="true"/>
+        <tablecol dataattribute="expression" id="selectcondition_condition_Table_tablebody_4" sortable="true"/>
+        <tablecol dataattribute="classname" id="selectcondition_condition_Table_tablebody_5" sortable="true"/>
+      </tablebody>
+    </table>
+    <buttongroup id="selectcondition_2">
+      <pushbutton default="true" id="selectcondition_2_1" label="确定" mxevent="dialogok" value="copyConditionToCtrlCondition"/>
+      <pushbutton id="selectcondition_2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog allowcancel="false" id="INSERT" label="创建新应用程序">
+    <section id="newappdetails">
+      <textbox dataattribute="app" id="newapdetails_app" inputmode="required"/>
+      <textbox dataattribute="description" id="newapdetails_desc" inputmode="required"/>
+      <textbox dataattribute="maintbname" id="newapdetails_maintb" inputmode="required"/>
+      <textbox dataattribute="keyattribute" id="newapdetails_keyattr" lookup="maxattribute"/>
+      <textbox dataattribute="module" id="newapdetails_module" inputmode="required" lookup="maxmodules"/>
+      <combobox dataattribute="viewport" id="newapdetails_viewport" licensekey="EVERYPLACE"/>
+      <checkbox dataattribute="ismobile" id="newapdetails_ismobile" licensekey="EVERYPLACE"/>
+    </section>
+    <section id="newapptype_1">
+      <statictext id="newapptype_1_2" label="选择想要创建的应用程序类型。"/>
+    </section>
+    <buttongroup id="newapptype_2">
+      <pushbutton default="true" id="newapptype_power" label="电源应用程序" mxevent="newapp" value="ctrl_powerapp"/>
+      <pushbutton id="newapptype_single" label="单页面应用程序" mxevent="newapp" value="ctrl_singlepageapp"/>
+      <pushbutton id="newapptype_self" label="自助应用程序" mxevent="newapp" value="ctrl_selfservice"/>
+      <pushbutton id="newapptype_cancel" label="取消" mxevent="cancelinsert"/>
+    </buttongroup>
+  </dialog>
+  <dialog allowcancel="false" id="DUPLICATE" label="复制应用程序">
+    <section id="duplicateppdetails">
+      <textbox dataattribute="app" id="duplicateppdetails_app"/>
+      <textbox dataattribute="description" id="duplicateppdetails_desc"/>
+      <textbox dataattribute="maintbname" id="duplicateppdetails_maintb" inputmode="readonly"/>
+      <combobox dataattribute="viewport" id="duplicateppdetails_viewport" licensekey="EVERYPLACE"/>
+      <checkbox dataattribute="ismobile" id="duplicateppdetails_ismobile" licensekey="EVERYPLACE"/>
+    </section>
+    <buttongroup id="duplicatepp_btngrp">
+      <pushbutton default="true" id="duplicatepp_btn1" label="确定" mxevent="duplicateapp"/>
+      <pushbutton id="duplicatepp_btn2" label="取消 " mxevent="cancelduplicate"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.MaxmenuBean" id="appmenu" label="添加/修改选择操作菜单" relationship="MAXMENUAPPMENU">
+    <defaultvalue dataattribute="menutype" id="appmenu_menutype" value="APPMENU"/>
+    <table id="appmenu_table" label="添加/修改选择操作菜单">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="appmenu_tb_1">
+        <tablecol filterable="false" hidden="false" id="appmenu_tbcol_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+        <tablecol dataattribute="keyvalue" id="appmenu_tbcol_2" linkedcontrolid="appmenu_td_sec1_1" sortable="true"/>
+        <tablecol dataattribute="headerdescription" id="appmenu_tbcol_3" linkedcontrolid="appmenu_td_sec1_2" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="appmenu_tbcol_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <tabledetails id="appmenu_td">
+        <section border="true" id="appmenu_td_sec1">
+          <textbox dataattribute="elementtype" id="appmenu_td_sec1_3" lookup="valuelistwithvalueonly"/>
+          <textbox dataattribute="keyvalue" id="appmenu_td_sec1_1"/>
+          <textbox dataattribute="headerdescription" id="appmenu_td_sec1_2"/>
+          <textbox dataattribute="position" id="appmenu_td_sec1_4"/>
+          <textbox dataattribute="subposition" id="appmenu_td_sec1_5"/>
+          <textbox dataattribute="url" id="appmenu_td_sec1_6"/>
+          <textbox dataattribute="image" id="appmenu_td_sec1_7"/>
+          <checkbox dataattribute="visible" id="appmenu_td_sec1_8"/>
+          <textbox dataattribute="tabdisplay" id="appmenu_td_sec1_10" lookup="valuelistwithvalueonly"/>
+        </section>
+      </tabledetails>
+      <buttongroup id="appmenu_bg1">
+        <pushbutton default="true" id="appmenu_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="appmenu_bg2">
+      <pushbutton default="true" id="appmenu_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="appmenu_bg2_2" label="取消 " mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.MaxmenuBean" id="apptool" label="添加/修改工具栏菜单" relationship="MAXMENUAPPTOOL">
+    <defaultvalue dataattribute="menutype" id="toolmenu_menutype" value="APPTOOL"/>
+    <table id="apptool_table" label="添加/修改工具栏菜单">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="apptool_tb_1">
+        <tablecol filterable="false" hidden="false" id="apptool_tbcol_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+        <tablecol dataattribute="keyvalue" id="apptool_tbcol_2" linkedcontrolid="apptool_td_sec1_1" sortable="true"/>
+        <tablecol dataattribute="headerdescription" id="apptool_tbcol_3" linkedcontrolid="apptool_td_sec1_2" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="apptool_tbcol_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <tabledetails id="apptool_td">
+        <section border="true" id="apptool_td_sec1">
+          <textbox dataattribute="elementtype" id="apptool_td_sec1_3" lookup="valuelistwithvalueonly"/>
+          <textbox dataattribute="keyvalue" id="apptool_td_sec1_1"/>
+          <textbox dataattribute="headerdescription" id="apptool_td_sec1_2"/>
+          <textbox dataattribute="position" id="apptool_td_sec1_4"/>
+          <textbox dataattribute="subposition" id="apptool_td_sec1_5"/>
+          <textbox dataattribute="url" id="apptool_td_sec1_6"/>
+          <textbox dataattribute="image" id="apptool_td_sec1_7"/>
+          <checkbox dataattribute="visible" id="apptool_td_sec1_8"/>
+          <textbox dataattribute="accesskey" id="apptool_td_sec1_9"/>
+          <textbox dataattribute="tabdisplay" id="apptool_td_sec1_10" lookup="valuelistwithvalueonly"/>
+        </section>
+      </tabledetails>
+      <buttongroup id="apptool_bg1">
+        <pushbutton default="true" id="apptool_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="apptool_bg2">
+      <pushbutton default="true" id="apptool_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="apptool_bg2_2" label="取消 " mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.MaxmenuBean" id="searchmenu" label="添加/修改搜索菜单" relationship="MAXMENUSEARCHMENU">
+    <defaultvalue dataattribute="menutype" id="searchmenu_menutype" value="SEARCHMENU"/>
+    <table id="searchmenu_table" label="添加/修改搜索菜单">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="searchmenu_tb_1">
+        <tablecol filterable="false" hidden="false" id="searchmenu_tbcol_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+        <tablecol dataattribute="keyvalue" id="searchmenu_tbcol_2" linkedcontrolid="searchmenu_td_sec1_1" sortable="true"/>
+        <tablecol dataattribute="headerdescription" id="searchmenu_tbcol_3" linkedcontrolid="searchmenu_td_sec1_2" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="searchmenu_tbcol_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <tabledetails id="searchmenu_td">
+        <section border="true" id="searchmenu_td_sec1">
+          <textbox dataattribute="elementtype" id="searchmenu_td_sec1_3" lookup="valuelistwithvalueonly"/>
+          <textbox dataattribute="keyvalue" id="searchmenu_td_sec1_1"/>
+          <textbox dataattribute="headerdescription" id="searchmenu_td_sec1_2"/>
+          <textbox dataattribute="position" id="searchmenu_td_sec1_4"/>
+          <textbox dataattribute="subposition" id="searchmenu_td_sec1_5"/>
+          <textbox dataattribute="url" id="searchmenu_td_sec1_6"/>
+          <textbox dataattribute="image" id="searchmenu_td_sec1_7"/>
+          <checkbox dataattribute="visible" id="searchmenu_td_sec1_8"/>
+          <textbox dataattribute="accesskey" id="searchmenu_td_sec1_9"/>
+          <textbox dataattribute="tabdisplay" id="searchmenu_td_sec1_10" lookup="valuelistwithvalueonly"/>
+        </section>
+      </tabledetails>
+      <buttongroup id="searchmenu_bg1">
+        <pushbutton default="true" id="searchmenu_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="searchmenu_bg2">
+      <pushbutton default="true" id="searchmenu_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="searchmenu_bg2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.TypeAheadBean" id="configuretypeahead" label="配置输入提示">
+    <helpgrid id="configuretypeahead_help" innerhtml="在字段中配置输入提示，以便用户在输入数据时可从选项列表中进行选择，具体的选项列表取决于服务器中的可用信息。"/>
+    <section border="false" id="configuretypeahead_sec1">
+      <textbox dataattribute="domain" id="configuretypeahead_sec1_td1" inputmode="readonly"/>
+      <textbox dataattribute="datasrc" id="configuretypeahead_sec1_td2" inputmode="readonly"/>
+      <textbox dataattribute="dataattribute" id="configuretypeahead_sec1_td3" inputmode="readonly"/>
+      <combobox dataattribute="validfor" id="configuretypeahead_sec1_combo1" label="高速缓存刷新频率"/>
+    </section>
+    <helpgrid id="configuretypeahead_help2" innerhtml="单击“新建行”，然后输入域属性以配置输入提示。 您必须保存应用程序定义以保存输入提示配置。"/>
+    <table beanclass="psdi.webclient.beans.designer.DatastoreChildBean" id="configuretypeahead_table" relationship="DATASTORETYPEAHEAD">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="configuretypeahead_tb_1">
+        <tablecol dataattribute="domainattribute" id="configuretypeahead_tbcol_1" lookup="selectdomainattribute" menutype="normal" sortable="true"/>
+        <tablecol dataattribute="keyattribute" id="configuretypeahead_tbcol_2" label="关键字" ondatachange="refreshtable" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="configuretypeahead_tbcol_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <buttongroup id="configuretypeahead_bg1">
+        <pushbutton default="true" id="configuretypeahead_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="configuretypeahead_bg2">
+      <pushbutton default="true" id="configuretypeahead_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="configuretypeahead_bg2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.FilterSetvalueBean" id="configuresetvalues" label="配置设定值">
+    <helpgrid id="configuresetvalues_help" innerhtml="配置设定值，以便您可以选择输入提示选项来设置另一个字段的值。 例如，在“资产”字段中配置了输入提示后，您就可以将“位置”字段配置为按照您在“资产”字段中输入的值来填充信息。"/>
+    <section border="false" id="configuresetvalues_sec1" inputmode="readonly">
+      <textbox dataattribute="domain" id="configuresetvalues_sec1_td1"/>
+      <textbox dataattribute="datasrc" id="configuresetvalues_sec1_td2"/>
+      <textbox dataattribute="dataattribute" id="configuresetvalues_sec1_td3"/>
+    </section>
+    <helpgrid id="configuresetvalues_help2" innerhtml="在“目标属性”字段中指定与您想要将该值设置到的目标字段相对应的属性。 在“域属性”字段中指定设定值来源字段的属性。"/>
+    <table beanclass="psdi.webclient.beans.designer.DatastoreChildBean" id="configuresetvalues_table" relationship="DATASTORESETVALUE">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="configuresetvalues_tb_1">
+        <tablecol dataattribute="toattribute" id="configuresetvalues_tbcol_1" lookup="selectattribute" sortable="true"/>
+        <tablecol dataattribute="domainattribute" id="configuresetvalues_tbcol_2" lookup="selectdomainattribute" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="configuresetvalues_tbcol_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <buttongroup id="configuresetvalues_bg1">
+        <pushbutton default="true" id="configuresetvalues_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="configuresetvalues_bg2">
+      <pushbutton default="true" id="configuresetvalues_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="configuresetvalues_bg2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.FilterSetvalueBean" id="configurefilters" label="配置过滤器">
+    <helpgrid id="configurefilters_help" innerhtml="可将过滤器配置为根据一个字段中的数据来限制另一个字段的输入提示选项。 例如，在“资产”字段中配置了输入提示后，您就可以在“位置”字段中配置过滤器，以确定哪些输入提示选项在“资产”字段中可用。"/>
+    <section border="false" id="configurefilters_sec1" inputmode="readonly">
+      <textbox dataattribute="domain" id="configurefilters_sec1_td1"/>
+      <textbox dataattribute="datasrc" id="configurefilters_sec1_td2"/>
+      <textbox dataattribute="dataattribute" id="configurefilters_sec1_td3"/>
+    </section>
+    <helpgrid id="configurefilters_help2" innerhtml="在“源属性”字段中指定想要作为输入提示选项过滤器的字段。 在“域属性”字段中使用输入提示选项来指定字段的域属性。"/>
+    <table beanclass="psdi.webclient.beans.designer.DatastoreChildBean" id="configurefilters_table" relationship="DATASTOREFILTER">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="configurefilters_tb_1">
+        <tablecol dataattribute="fromattribute" id="configurefilters_tbcol_1" lookup="selectattribute" sortable="true"/>
+        <tablecol dataattribute="domainattribute" id="configurefilters_tbcol_2" lookup="selectdomainattribute" sortable="true"/>
+        <tablecol filterable="false" hidden="false" id="configurefilters_tbcol_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+      </tablebody>
+      <buttongroup id="configurefilters_bg1">
+        <pushbutton default="true" id="configurefilters_bg1_1" label="新建行" mxevent="addrow"/>
+      </buttongroup>
+    </table>
+    <buttongroup id="configurefilters_bg2">
+      <pushbutton default="true" id="configurefilters_bg2_1" label="确定" mxevent="dialogok"/>
+      <pushbutton id="configurefilters_bg2_2" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.SelectDatasrcBean" icon="img_lookup.gif" id="lookup_selectdatasrc" label="选择数据源">
+    <table filterexpanded="true" id="seldatasrc_select_table" inputmode="readonly" selectmode="single">
+      <tablebody displayrowsperpage="20" filterable="true" id="seldatasrc_select_table_tablebody">
+        <tablecol dataattribute="datasrc" id="seldatasrc_select_table_tablebody_1" mxevent="selectrecord" mxevent_desc="转到%1" type="link"/>
+      </tablebody>
+    </table>
+    <buttongroup id="seldatastore_2">
+      <pushbutton default="true" id="seldatastore_2_1" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.SelectAttributeBean" icon="img_lookup.gif" id="lookup_selectattribute" label="选择属性" mboname="ATTRIBUTELOOKUPLIST">
+    <table filterexpanded="true" id="selattribute_select_table" inputmode="readonly" selectmode="single">
+      <tablebody displayrowsperpage="20" filterable="true" id="selattribute_select_table_tablebody">
+        <tablecol dataattribute="attributename" id="selattribute_select_table_tablebody_2" mxevent="selectrecord" mxevent_desc="转到%1" type="link"/>
+      </tablebody>
+    </table>
+    <buttongroup id="selattribute_2">
+      <pushbutton default="true" id="selattribute_2_1" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.SelectDomainAttributeBean" icon="img_lookup.gif" id="lookup_selectdomainattribute" label="选择域属性" mboname="ATTRIBUTELOOKUPLIST">
+    <table filterexpanded="true" id="seldattribute_select_table" inputmode="readonly" selectmode="single">
+      <tablebody displayrowsperpage="20" filterable="true" id="seldattribute_select_table_tablebody">
+        <tablecol dataattribute="attributename" id="seldattribute_select_table_tablebody_2" mxevent="selectrecord" mxevent_desc="转到%1" type="link"/>
+      </tablebody>
+    </table>
+    <buttongroup id="seldattribute_2">
+      <pushbutton default="true" id="seldattribute_2_1" label="取消" mxevent="dialogcancel"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="psdi.webclient.beans.designer.DatastoreConfigBean" id="datastores" inputmode="readonly" label="已配置数据存储器">
+    <table id="datastore_table" label="数据存储器列表">
+      <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="datastore_tb_1">
+        <tablecol dataattribute="datasrc" id="datastore_tbcol_2" sortable="true"/>
+        <tablecol dataattribute="dataattribute" id="datastore_tbcol_3" sortable="true"/>
+        <tablecol dataattribute="domain" id="datastore_tbcol_4" sortable="true"/>
+        <tablecol dataattribute="validfor" id="datastore_tbcol_5" sortable="true"/>
+        <tablecol dataattribute="id" id="datastore_tbcol_1" sortable="true"/>
+      </tablebody>
+    </table>
+    <tabgroup id="configtabs">
+      <tab id="config_typeahead" inputmode="readonly" label="输入提示">
+        <table id="config_typeahead_tb" label="{0}的输入提示" relationship="DATASTORETYPEAHEAD">
+          <sectionheader id="config_typeahead_sectionheader">
+            <paramvalues id="config_typeahead_sec_params" property="label">
+              <paramvalue dataattribute="id" datasrc="datastores" id="config_typeahead_param_1" position="0"/>
+            </paramvalues>
+          </sectionheader>
+          <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="config_typeahead_tbb">
+            <tablecol dataattribute="domainattribute" id="config_typeahead_2" sortable="true"/>
+            <tablecol dataattribute="keyattribute" id="config_typeahead_3" sortable="true"/>
+            <tablecol dataattribute="id" id="config_typeahead_1" sortable="true"/>
+          </tablebody>
+        </table>
+      </tab>
+      <tab id="config_setvalue" inputmode="readonly" label="设置值">
+        <table id="config_setvalue_tb" label="{0}的设定值" relationship="DATASTORESETVALUE">
+          <sectionheader id="config_setvalue_sectionheader">
+            <paramvalues id="config_setvalue_sec_params" property="label">
+              <paramvalue dataattribute="id" datasrc="datastores" id="config_setvalue_param_1" position="0"/>
+            </paramvalues>
+          </sectionheader>
+          <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="config_setvalue_tbb">
+            <tablecol dataattribute="toattribute" id="config_setvalue_2" sortable="true"/>
+            <tablecol dataattribute="domainattribute" id="config_setvalue_3" sortable="true"/>
+            <tablecol dataattribute="id" id="config_setvalue_1" sortable="true"/>
+          </tablebody>
+        </table>
+      </tab>
+      <tab id="config_filter" inputmode="readonly" label="过滤器">
+        <table id="config_filter_tb" label="用于{0}的过滤器" relationship="DATASTOREFILTER">
+          <sectionheader id="config_filter_sectionheader">
+            <paramvalues id="config_filter_sec_params" property="label">
+              <paramvalue dataattribute="id" datasrc="datastores" id="config_filter_param_1" position="0"/>
+            </paramvalues>
+          </sectionheader>
+          <tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="config_filter_tbb">
+            <tablecol dataattribute="fromattribute" id="config_filter_2" sortable="true"/>
+            <tablecol dataattribute="domainattribute" id="config_filter_3" sortable="true"/>
+            <tablecol dataattribute="id" id="config_filter_1" sortable="true"/>
+          </tablebody>
+        </table>
+      </tab>
+    </tabgroup>
+    <buttongroup id="datastoreinfo_bg2">
+      <pushbutton default="true" id="datastoreinfo_bg2_1" label="关闭" mxevent="dialogclose"/>
+    </buttongroup>
+  </dialog>
+  <dialog beanclass="com.ibm.tivoli.maximo.map.appdesigner.MapControlPropertiesBean" closeevent="PROPERTIES" id="mxdproperties_mapcontrol" label="地图属性" mboname="CTRL_MAPCONTROL" modal="false" properties="true" saveposition="true" showclose="true" width="575">
+    <tabgroup id="mapconfig">
+      <tab default="true" id="config_mapcontrol" label="地图控件">
+        <section id="prop_map_section_1">
+          <textbox dataattribute="id" id="prop_map_id"/>
+          <textbox dataattribute="datasrc" id="prop_map_datasrc"/>
+          <textbox dataattribute="width" id="prop_map_width"/>
+          <textbox dataattribute="height" id="prop_map_height"/>
+          <textbox dataattribute="beanclass" id="prop_map_beanclass"/>
+          <textbox dataattribute="initialy" id="prop_map_initialy"/>
+          <textbox dataattribute="initialx" id="prop_map_initialx"/>
+          <textbox dataattribute="zoomlevel" id="prop_map_zoomlevel"/>
+          <textbox dataattribute="markerimgurl" id="prop_map_4"/>
+          <table beanclass="com.ibm.tivoli.maximo.map.appdesigner.MapControlToolItemsBean" collapsable="true" collapsed="false" id="results_showlisttools" label="工具项" relationship="CTRLMAPCONTROLTOOLITEM" selectmode="multiple">
+            <tablebody displayrowsperpage="5" filterable="true" filterexpanded="true" id="results_showlisttools_tablebody">
+              <tablecol dataattribute="toolitem" filterable="false" hidden="false" id="results_showlisttools_tablebody_1" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+              <tablecol filterable="false" hidden="false" id="toolsdetails_1_tb_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+              <tablecol dataattribute="toolitem" id="results_showlisttools_tablebody_toolitem" inputmode="readonly"/>
+              <tablecol dataattribute="provider" id="results_showlisttools_tablebody_provider" inputmode="readonly"/>
+            </tablebody>
+            <tabledetails id="additemsecurity">
+              <section border="true" id="additemsecurity_td_">
+                <section id="additemsecurity_2a_td_">
+                  <sectioncol id="additemsecurity_2a_td_col1">
+                    <table beanclass="com.ibm.tivoli.maximo.map.appdesigner.MapControlToolItemsBean" id="main_groups_table" label="组" relationship="CTRLMAPCONTROLGROUPS">
+                      <tablebody displayrowsperpage="5" filterable="false" id="main_groups_table_tablebody">
+                        <tablecol applink="securgroup" dataattribute="groupname" defaultfocus="true" id="main_groups_table_tablebody_2" lookup="maxgroup" menutype="normal"/>
+                        <tablecol dataattribute="maxgroup.description" id="main_groups_table_tablebody_3">
+                          <textbox id="main_groups_table_tablebody_3a" inputmode="readonly"/>
+                        </tablecol>
+                        <tablecol filterable="false" hidden="false" id="main_groups_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                      </tablebody>
+                      <buttongroup id="main_groups_table_2">
+                        <pushbutton default="true" id="main_groups_table_2_1" label="新建行" mxevent="addrow"/>
+                      </buttongroup>
+                    </table>
+                  </sectioncol>
+                </section>
+              </section>
+            </tabledetails>
+          </table>
+          <textbox dataattribute="refreshmapinterval" id="prop_map_6"/>
+          <textbox dataattribute="mapoptions" id="prop_map_mapopts"/>
+          <checkbox dataattribute="mapviewonly" id="prop_map_mapviewonly"/>
+          <checkbox dataattribute="contextpersistent" id="prop_map_contextpersistent"/>
+          <checkbox dataattribute="fullscreenmode" id="prop_map_1"/>
+          <checkbox dataattribute="zoomtodatainput" id="prop_map_2"/>
+          <checkbox dataattribute="toolbarenabled" id="prop_map_3"/>
+        </section>
+      </tab>
+      <tab id="config_maproute" label="检修路线控制">
+        <section id="main_maproute_grid3a">
+          <textbox dataattribute="routedatasrc" id="prop_maproute_datasrc"/>
+          <textbox dataattribute="routecolor" id="prop_maproute_color"/>
+          <textbox dataattribute="routestartx" id="prop_maproute_rsx"/>
+          <textbox dataattribute="routestarty" id="prop_maproute_rsy"/>
+          <textbox dataattribute="routeendx" id="prop_maproute_rex"/>
+          <textbox dataattribute="routeendy" id="prop_maproute_rey"/>
+          <checkbox dataattribute="startwithcurrentlocation" id="prop_maproute_curr"/>
+          <checkbox dataattribute="showdirectionsonload" id="prop_maproute_shdir"/>
+        </section>
+      </tab>
+    </tabgroup>
+  </dialog>
+</presentation>

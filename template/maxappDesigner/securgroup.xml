@@ -1,0 +1,1237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mbs.doc,securgroup/c_security_groups_application.html" beanclass="psdi.webclient.beans.securgroup.SecurGroupBean" id="securgroup" mboname="MAXGROUP" orderby="groupname" resultstableid="results_showlist" version="7.1.0.0">
+	<page id="mainrec" scroll="false">
+		<include controltoclone="pageHeader" id="INCLUDE-pageHeader"/>
+		<clientarea id="clientarea">
+			<tabgroup id="maintabs" style="form">
+				<tab default="true" id="results" label="列表" type="list">
+					<menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+					<table  datasrc="results_showlist" id="results_showlist" inputmode="readonly" label="组" mboname="MAXGROUP" orderby="groupname" selectmode="multiple">
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+							<tablecol dataattribute="GROUPNAME" filterable="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+							<tablecol dataattribute="groupname" id="results_showlist_tablebody_2" mxevent="selectrecord" mxevent_desc="转到%1" type="link"/>
+							<tablecol dataattribute="description" id="results_showlist_tablebody_3"/>
+							<tablecol dataattribute="independent" id="results_showlist_tablebody_4"/>
+							<tablecol dataattribute="authallsites" id="results_showlist_tablebody_5"/>
+							<tablecol dataattribute="authallstorerooms" id="results_showlist_tablebody_6"/>
+							<tablecol dataattribute="authlaborall" id="results_showlist_tablebody_7"/>
+							<tablecol filterable="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="添加到书签" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="main" label="组" type="insert">
+					<section border="true" id="main_header_row1_col1_sec1">
+						<multiparttextbox dataattribute="GROUPNAME" descdataattribute="DESCRIPTION" id="main_header_1"/>
+						<multiparttextbox dataattribute="sctemplateid" descdataattribute="sctemplate.description" descinputmode="readonly" id="main_header_4" lookup="sctemplate"/>
+						<checkbox dataattribute="INDEPENDENT" id="main_header_3"/>
+					</section>
+					<section id="1323445229004" label="缺省应用程序">
+						<sectionrow id="1323445236035">
+							<sectioncol id="1323445236046">
+								<helpgrid id="1323445270832" innerhtml="只具有一个根据用户的组成员资格定义的“缺省应用程序”的用户将根据登录自动启动该应用程序。"/>
+							</sectioncol>
+						</sectionrow>
+						<sectionrow id="1323445259455">
+							<sectioncol id="1323445259464">
+								<multiparttextbox dataattribute="dfltapp" descdataattribute="STARTUPAPPLICATION.description" descinputmode="readonly" id="main_header_5" lookup="defaultstartapps"/>
+							</sectioncol>
+						</sectionrow>
+					</section>
+				</tab>
+				<tab id="sites" label="地点">
+					<section border="true" id="main_header2">
+						<sectionrow id="main_header2_row1">
+							<sectioncol id="main_header2_row1_col1">
+								<section id="sites_grid1">
+									<multiparttextbox dataattribute="groupname" descdataattribute="description" id="sites_grid1_1"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="main_header2_row1_col2">
+								<section id="sites_grid2">
+									<checkbox dataattribute="authallsites" id="sites_grid2_1" ondatachange="resetchildren"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="sites_sites_table" label="地点" orderby="siteid" relationship="SITEAUTH">
+						<tablebody displayrowsperpage="10" filterable="true" id="sites_sites_table_tablebody">
+							<tablecol filterable="false" id="sites_sites_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="siteid" id="sites_sites_table_tablebody_1" lookup="sitewithstatus"/>
+							<tablecol dataattribute="site.description" id="sites_sites_table_tablebody_2" longdescreadonly="true" lookup="longdesc" sortable="false">
+								<textbox id="sites_sites_table_tablebody_2a" inputmode="readonly"/>
+							</tablecol>
+							<tablecol dataattribute="orgid" id="sites_sites_table_tablebody_3">
+								<textbox id="sites_sites_table_tablebody_3a" inputmode="readonly"/>
+							</tablecol>
+							<tablecol dataattribute="site.active" id="sites_sites_table_tablebody_4">
+								<checkbox dataattribute="site.active" id="sites_sites_table_tablebody_4_box" inputmode="readonly"/>
+							</tablecol>
+							<tablecol dataattribute="authorized" id="sites_sites_table_tablebody_6">
+								<checkbox dataattribute="authorized" id="sites_sites_table_tablebody_6_box" inputmode="readonly"/>
+							</tablecol>
+							<tablecol filterable="false" id="sites_sites_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="sites_sites_table_details">
+							<section id="sites_sites_table_details_sec1" label="详细信息">
+								<sectionrow id="sites_sites_table_details_sec1_r1">
+									<sectioncol id="sites_sites_table_details_sec1_r1_c1">
+										<section id="sites_sites_table_details_sec1_r1_c1_sec1">
+											<multiparttextbox dataattribute="siteid" defaultfocus="true" descdataattribute="site.description" descinputmode="readonly" id="sites_sites_table_details_sec11_1" lookup="sitewithstatus"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="sites_sites_table_details_sec1_r1_c2">
+										<section id="sites_sites_table_details_sec1_r1_c2_sec1">
+											<textbox dataattribute="orgid" id="sites_sites_table_details_sec11_2" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="sites_sites_table_details_sec1_r1_c3">
+										<section id="sites_sites_table_details_sec1_r1_c3_sec1">
+											<checkbox dataattribute="site.active" id="sites_sites_table_details_sec11_3" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="sites_sites_table_details_sec1_r1_c4">
+										<section id="sites_sites_table_details_sec1_r1_c4_sec1">
+											<checkbox dataattribute="authorized" id="sites_sites_table_details_sec11_4" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="sites_sites_table_2">
+							<pushbutton default="true" id="sites_sites_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="applications" label="应用程序">
+					<section border="true" id="appls_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="appls_grid1_1"/>
+					</section>
+					<table beanclass="psdi.webclient.beans.securgroup.ApplicationsBean" id="appls_app_table" label="应用程序" orderby="description" relationship="MAXAPPS">
+						<buttongroup id="appls_buttons">
+							<pushbutton id="appgrantbutton" label="授权列出的应用程序" menutype="APPGRANT" targetid="appls_app_table"/>
+							<pushbutton id="apprevokebutton" label="撤消列出的应用程序" menutype="APPREVOKE" targetid="appls_app_table"/>
+						</buttongroup>
+						<tablebody displayrowsperpage="10" filterable="true" id="appls_app_table_tablebody">
+							<tablecol dataattribute="APP" id="appls_app_table_tablebody_app" inputmode="readonly"/>
+							<tablecol dataattribute="MAINTBNAME" id="appls_app_table_tablebody_maintbname" inputmode="readonly"/>
+							<tablecol dataattribute="description" id="appls_app_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="alndomain.description" id="appls_app_table_tablebody_4" inputmode="readonly" label="应用程序类型"/>
+							<tablecol dataattribute="maxobject.description" id="appls_app_table_tablebody_2" inputmode="readonly" label="主对象/表"/>
+							<tablecol dataattribute="origapp.description" id="appls_app_table_tablebody_3" inputmode="readonly" label="原始应用程序（如果已复制）"/>
+							<tablecol filterable="false" hidden="false" id="appls_app_table_tablebody_5" mxevent="relworkcenters" mxevent_desc="相关应用程序" mxevent_icon="img_menu.gif" sigoption="WORKCENTER" sigoptiondatasrc="appls_app_table" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+					<table beanclass="psdi.webclient.beans.securgroup.ApplicationsBean" id="appls_sigmain_table" label="“{0}”的选项" orderby="description" parentdatasrc="appls_app_table" parentemptylabel="选项" relationship="SIGOMAIN">
+						<sectionheader id="appls_sigmain_table_sectionheader">
+							<paramvalues id="appls_sigmain_table_params">
+								<paramvalue dataattribute="description" datasrc="appls_app_table" id="appls_sigmain__table_param_1" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<buttongroup id="sigmain_buttons">
+							<pushbutton id="appls_buttons1_applytemplate_1" label="添加/修改签名选项" mxevent="wcaddmodsig" sigoption="WORKCENTER" sigoptiondatasrc="appls_app_table"/>
+							<pushbutton id="appls_buttons1_applytemplate_2" label="管理/应用模板" mxevent="template" sigoption="WORKCENTER" sigoptiondatasrc="appls_app_table"/>
+							<pushbutton id="appls_buttons1_applytemplate_3" label="对象结构授权" mxevent="wcosauthorize" sigoption="WORKCENTER" sigoptiondatasrc="appls_app_table"/>
+							<pushbutton id="sigmain_buttons_1" label="对此应用程序列出的选项进行授权" mxevent="allsigoauthorized" sigoption="STANDARDAPP" sigoptiondatasrc="appls_app_table"/>
+						</buttongroup>
+						<tablebody displayrowsperpage="4" filterable="true" id="appls_sigmain_table_tablebody">
+							<tablecol filterable="false" id="appls_sigmain_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="description" id="appls_sigmain_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="authorized" id="appls_sigmain_table_tablebody_2" ondatachange="resetchildren" sortable="false">
+								<checkbox dataattribute="authorized" id="appls_sigmain_table_tablebody_2_box" ondatachange="resetchildren"/>
+							</tablecol>
+							<tablecol applink="condexpmgr" dataattribute="conditionnum" id="appls_sigmain_table_tablebody_3" lookup="conditionexp" menutype="normal">
+								<textbox id="appls_sigmain_table_tablebody_3a"/>
+							</tablecol>
+						</tablebody>
+						<tabledetails id="appls_sigmain_table_tabledetails_1">
+							<section id="appls_sigmain_table_tabledetails_grid30" label="详细信息">
+								<sectionrow id="appls_sigmain_table_tabledetails_r1">
+									<textbox dataattribute="description" id="appls_sigmain_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<checkbox dataattribute="authorized" id="appls_sigmain_table_tabledetailsrow1_2"/>
+									<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="appls_sigmain_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+									<textbox dataattribute="condition.type" id="appls_sigmain_table_tabledetailsrow1_4" inputmode="readonly"/>
+									<multilinetextbox columns="55" dataattribute="condition.expression" id="appls_sigmain_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									<textbox dataattribute="condition.classname" id="appls_sigmain_table_tabledetailsrow1_6" inputmode="readonly"/>
+								</sectionrow>
+							</section>
+						</tabledetails>
+					</table>
+					<table beanclass="psdi.webclient.beans.securgroup.ApplicationsBean" id="appls_sigo_table" orderby="description" parentdatasrc="appls_app_table" relationship="SIGOOTHER">
+						<sectionheader id="appls_sigo_table_sectionheader">
+							<paramvalues id="appls_sigo_table_params">
+								<paramvalue dataattribute="description" id="appls_sigo__table_param_1" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" filterable="true" id="appls_sigo_table_tablebody">
+							<tablecol filterable="false" id="appls_sigo_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="OPTIONNAME" id="appls_sigo_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="description" id="nj8FuxdTm7YUX7l8" inputmode="readonly"/>
+							<tablecol dataattribute="authorized" id="appls_sigo_table_tablebody_2" ondatachange="refreshtable" sortable="false">
+								<checkbox dataattribute="authorized" id="appls_sigo_table_tablebody_2_box" ondatachange="refreshtable"/>
+							</tablecol>
+							<tablecol applink="condexpmgr" dataattribute="conditionnum" id="appls_sigo_table_tablebody_3" lookup="conditionexp" menutype="normal">
+								<textbox id="appls_sigo_table_tablebody_3a"/>
+							</tablecol>
+						</tablebody>
+						<tabledetails id="appls_sigo_table_tabledetails_1">
+							<section id="appls_sigo_table_tabledetails_grid30" label="详细信息">
+								<sectionrow id="appls_sigo_table_tabledetails_r1">
+									<textbox dataattribute="description" id="appls_sigo_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<checkbox dataattribute="authorized" id="appls_sigo_table_tabledetailsrow1_2"/>
+									<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="sigo_sigmain_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+									<textbox dataattribute="condition.type" id="appls_sigo_table_tabledetailsrow1_4" inputmode="readonly"/>
+									<multilinetextbox columns="55" dataattribute="condition.expression" id="sigo_sigmain_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									<textbox dataattribute="condition.classname" id="appls_sigo_table_tabledetailsrow1_6" inputmode="readonly"/>
+								</sectionrow>
+							</section>
+						</tabledetails>
+					</table>
+				</tab>
+				<tab id="objectstruc" label="对象结构">
+					<section border="true" id="os_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="os_grid1_1"/>
+					</section>
+					<table beanclass="psdi.webclient.beans.securgroup.ObjectStructuresBean" id="os_app_table" label="对象结构" orderby="description" relationship="MAXAPPSOS">
+						<buttongroup id="os_buttons">
+							<pushbutton id="osgrantbutton" label="对所列对象结构授权" menutype="APPGRANT" targetid="os_app_table"/>
+							<pushbutton id="osrevokebutton" label="撤销所列对象结构" menutype="APPREVOKE" targetid="os_app_table"/>
+						</buttongroup>
+						<tablebody displayrowsperpage="10" filterable="true" id="os_app_table_tablebody">
+							<tablecol dataattribute="app" id="os_app_table_tablebody_1" inputmode="readonly" label="对象结构"/>
+							<tablecol dataattribute="description" id="os_app_table_tablebody_2" inputmode="readonly"/>
+						</tablebody>
+					</table>
+					<table beanclass="psdi.webclient.beans.securgroup.ObjectStructuresBean" id="os_sigmain_table" label="“{0}”的选项" orderby="description" parentdatasrc="os_app_table" parentemptylabel="选项" relationship="SIGOMAIN">
+						<sectionheader id="os_sigmain_table_sectionheader">
+							<paramvalues id="os_sigmain_table_params">
+								<paramvalue dataattribute="description" datasrc="os_app_table" id="os_sigmain__table_param_1" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<buttongroup id="os_sigmain_buttons">
+							<pushbutton id="os_sigmain_buttons_1" label="对此对象结构列出的选项进行授权" mxevent="allsigoauthorized"/>
+						</buttongroup>
+						<tablebody displayrowsperpage="4" filterable="true" id="os_sigmain_table_tablebody">
+							<tablecol filterable="false" hidden="false" id="os_sigmain_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="description" id="os_sigmain_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="authorized" id="os_sigmain_table_tablebody_2" ondatachange="resetchildren" sortable="false">
+								<checkbox dataattribute="authorized" id="os_sigmain_table_tablebody_2_box" ondatachange="resetchildren" sortable="false"/>
+							</tablecol>
+							<tablecol applink="condexpmgr" dataattribute="conditionnum" id="os_sigmain_table_tablebody_3" lookup="conditionexp" menutype="normal">
+								<textbox id="os_sigmain_table_tablebody_3a"/>
+							</tablecol>
+						</tablebody>
+						<tabledetails id="os_sigmain_table_tabledetails_1">
+							<section id="os_sigmain_table_tabledetails_grid30" label="详细信息">
+								<sectionrow id="os_sigmain_table_tabledetails_r1">
+									<textbox dataattribute="description" id="os_sigmain_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<checkbox dataattribute="authorized" defaultfocus="true" id="os_sigmain_table_tabledetailsrow1_2"/>
+									<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="os_sigmain_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+									<textbox dataattribute="condition.type" id="os_sigmain_table_tabledetailsrow1_4" inputmode="readonly"/>
+									<multilinetextbox columns="55" dataattribute="condition.expression" id="os_sigmain_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									<textbox dataattribute="condition.classname" id="os_sigmain_table_tabledetailsrow1_6" inputmode="readonly"/>
+								</sectionrow>
+							</section>
+						</tabledetails>
+					</table>
+					<table beanclass="psdi.webclient.beans.securgroup.ObjectStructuresBean" id="os_sigo_table" orderby="description" parentdatasrc="os_app_table" relationship="SIGOOTHER">
+						<tablebody displayrowsperpage="10" filterable="true" id="os_sigo_table_tablebody">
+							<tablecol filterable="false" hidden="false" id="os_sigo_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="description" id="os_sigo_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="authorized" id="os_sigo_table_tablebody_2" ondatachange="refreshtable" sortable="false">
+								<checkbox dataattribute="authorized" id="os_sigo_table_tablebody_2_box" ondatachange="refreshtable" sortable="false"/>
+							</tablecol>
+							<tablecol applink="condexpmgr" dataattribute="conditionnum" id="os_sigo_table_tablebody_3" lookup="conditionexp" menutype="normal">
+								<textbox id="os_sigo_table_tablebody_3a"/>
+							</tablecol>
+						</tablebody>
+						<tabledetails id="os_sigo_table_tabledetails_1">
+							<section id="os_sigo_table_tabledetails_grid30" label="详细信息">
+								<sectionrow id="os_sigo_table_tabledetails_r1">
+									<textbox dataattribute="description" id="os_sigo_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<checkbox dataattribute="authorized" defaultfocus="true" id="os_sigo_table_tabledetailsrow1_2"/>
+									<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="os_sigo_sigmain_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+									<textbox dataattribute="condition.type" id="os_sigo_table_tabledetailsrow1_4" inputmode="readonly"/>
+									<multilinetextbox columns="55" dataattribute="condition.expression" id="os_sigo_sigmain_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									<textbox dataattribute="condition.classname" id="os_sigo_table_tabledetailsrow1_6" inputmode="readonly"/>
+								</sectionrow>
+							</section>
+						</tabledetails>
+					</table>
+				</tab>
+				<tab id="storerooms" label="仓库" licensekey="TPAEBASE">
+					<section border="true" id="store_grid1">
+						<sectionrow id="store_grid1_row1">
+							<sectioncol id="store_grid1_row1_col1">
+								<section id="store_grid1_row1_col1_sec1">
+									<multiparttextbox dataattribute="groupname" descdataattribute="description" id="store_grid1_1"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="store_grid1_row2_col1">
+								<section id="store_grid1_row2_col1_sec1">
+									<checkbox dataattribute="authallstorerooms" id="store_grid2_1" ondatachange="resetchildren"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="store_store_table" label="库房授权" orderby="siteid" relationship="LOCAUTH">
+						<tablebody displayrowsperpage="10" filterable="true" id="store_store_table_tablebody">
+							<tablecol filterable="false" id="store_store_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="siteid" id="store_store_table_tablebody_1" lookup="site"/>
+							<tablecol applink="storeroom,ipc" dataattribute="location" id="store_store_table_tablebody_2" lookup="storeroom" menutype="normal"/>
+							<tablecol dataattribute="locations.description" id="store_store_table_tablebody_3" longdescreadonly="true" lookup="longdesc" sortable="false">
+								<textbox id="store_store_table_tablebody_3a" inputmode="readonly"/>
+							</tablecol>
+							<tablecol filterable="false" id="store_store_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="store_store_table_details">
+							<section id="store_store_table_details_sec1" label="详细信息">
+								<sectionrow id="store_store_table_details_sec1_r1">
+									<sectioncol id="store_store_table_details_sec1_r1_c1">
+										<section id="store_store_table_details_sec1_r1_c1_1">
+											<textbox dataattribute="siteid" defaultfocus="true" id="store_store_table_details_sec1_r1_c1_1_1" lookup="site"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="store_store_table_details_sec1_r1_c2">
+										<section id="store_store_table_details_sec1_r1_c2_1">
+											<multiparttextbox applink="storeroom,ipc" dataattribute="location" descdataattribute="locations.description" descinputmode="readonly" id="store_store_table_details_sec1_r1_c1_2" lookup="storeroom" menutype="normal"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="store_store_table_2">
+							<pushbutton default="true" id="store_store_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="labor" label="员工" licensekey="TPAEBASE">
+					<section border="true" id="labor_grid2">
+						<sectionrow id="labor_grid2_row1">
+							<sectioncol id="labor_grid2_col1">
+								<section id="labor_grid2_col1_sec1">
+									<multiparttextbox dataattribute="groupname" descdataattribute="description" id="labor_grid1_1"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<section id="labor_grid2a" label="员工授权">
+						<sectionrow id="labor_grid2_row2">
+							<sectioncol id="labor_grid2_row2_col1">
+								<section id="labor_grid2_row2_col1_sec1">
+									<checkbox dataattribute="authlaborall" id="labor_grid2_col1_sec1_1" ondatachange="resetchildren"/>
+									<checkbox dataattribute="authlaborcrew" id="labor_grid2_col1_sec1_2"/>
+									<checkbox dataattribute="authpersongroup" id="labor_grid2_col1_sec1_3"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="labor_grid2_col2">
+								<section id="labor_grid2_col2_sec1">
+									<checkbox dataattribute="authlaborsuper" id="labor_grid2_col2_sec1_2"/>
+									<checkbox dataattribute="authlaborself" id="labor_grid2_col2_sec1_1"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="labor_labor_table" label="独立员工授权" orderby="orgid" relationship="LABORAUTH">
+						<tablebody displayrowsperpage="10" filterable="true" id="labor_labor_table_tablebody">
+							<tablecol filterable="false" id="labor_labor_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="orgid" id="labor_labor_table_tablebody_1" linkedcontrolid="labor_labor_table_details_sec1_r1_c1_sec1_1"/>
+							<tablecol applink="labor" dataattribute="laborcode" id="labor_labor_table_tablebody_2" lookup="labor" menutype="normal"/>
+							<tablecol dataattribute="person.displayname" id="labor_labor_table_tablebody_3">
+								<textbox id="labor_labor_table_tablebody_3a" inputmode="readonly" sortable="false"/>
+							</tablecol>
+							<tablecol filterable="false" id="labor_labor_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="labor_labor_table_details">
+							<section id="labor_labor_table_details_sec1" label="详细信息">
+								<sectionrow id="labor_labor_table_details_sec1_r1">
+									<sectioncol id="labor_labor_table_details_sec1_r1_c1">
+										<section id="labor_labor_table_details_sec1_r1_c1_sec1">
+											<textbox applink="multisite" dataattribute="orgid" id="labor_labor_table_details_sec1_r1_c1_sec1_1" lookup="org" menutype="normal"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="labor_labor_table_details_sec1_r1_c2">
+										<section id="labor_labor_table_details_sec1_r1_c2_sec1">
+											<multiparttextbox applink="labor" dataattribute="laborcode" descdataattribute="person.displayname" descinputmode="readonly" id="labor_labor_table_details_sec1_r1_c2_sec1_1" lookup="labor" menutype="normal"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="labor_labor_table_2">
+							<pushbutton default="true" id="labor_labor_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="glcomp" label="GL 组件" licensekey="TPAEBASE">
+					<section border="true" id="glcomp_header">
+						<sectionrow id="glcomp_header_r1">
+							<sectioncol id="glcomp_header_r1_c1">
+								<section id="glcomp_grid1">
+									<multiparttextbox dataattribute="groupname" descdataattribute="description" id="glcomp_grid1_1"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="glcomp_header_r1_c2">
+								<section id="glcomp_grid2">
+									<checkbox dataattribute="authallgls" id="glcomp_grid2_1" ondatachange="resetchildren"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="glcomp_table" label="GL 组件" orderby="orgid, glorder" relationship="GLCONFIGURE">
+						<tablebody displayrowsperpage="10" filterable="true" id="glcomp_table_tablebody">
+							<tablecol dataattribute="glaccountfield" id="glcomp_table_tablebody_1" inputmode="readonly"/>
+							<tablecol dataattribute="orgid" id="glcomp_table_tablebody_11" inputmode="readonly"/>
+							<tablecol dataattribute="authorized" id="glcomp_table_tablebody_2">
+								<checkbox dataattribute="authorized" id="glcomp_table_tablebody_2_box"/>
+							</tablecol>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="limits" label="限额和容差" licensekey="TPAEBASE">
+					<section border="true" id="limits_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="limits_grid1_1"/>
+					</section>
+					<table id="limits_table" label="组织" orderby="orgid" relationship="LIMITTOLERANCE">
+						<tablebody displayrowsperpage="10" filterable="true" id="limits_table_tablebody">
+							<tablecol filterable="false" id="limits_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="orgid" id="limits_table_tablebody_2" linkedcontrolid="limits_row1_1"/>
+							<tablecol dataattribute="organization.description" id="limits_table_tablebody_3" linkedcontrolid="limits_row1_2"/>
+							<tablecol dataattribute="organization.basecurrency1" id="limits_table_tablebody_4" linkedcontrolid="limits_row1_3"/>
+							<tablecol filterable="false" id="limits_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="limits_1">
+							<section id="limits_table_1_grid30" label="详细信息">
+								<textbox applink="multisite" dataattribute="orgid" defaultfocus="true" id="limits_row1_1" lookup="org" menutype="normal"/>
+								<textbox dataattribute="organization.description" id="limits_row1_2" inputmode="readonly"/>
+								<textbox dataattribute="organization.basecurrency1" id="limits_row1_3" inputmode="readonly"/>
+							</section>
+							<section id="limits_grid_11" label="限额">
+								<sectionrow id="limits_grid3_r1">
+									<sectioncol id="limits_grid3_r1_c1">
+										<section id="limits_grid3_r1_c1_sec1">
+											<textbox dataattribute="prlimit" id="limits_grid3_col1_1"/>
+											<textbox dataattribute="polimit" id="limits_grid3_col1_2"/>
+											<textbox dataattribute="mrlimit" id="limits_grid3_col1_3"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="limits_grid3_r1_c2">
+										<section id="limits_grid3_r1_c2_sec1">
+											<textbox dataattribute="invoicelimit" id="limits_grid3_col2_1"/>
+											<textbox dataattribute="contractlimit" id="limits_grid3_col2_2"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+							<section id="limits_f">
+								<sectionrow id="limits_g">
+									<sectioncol id="limits_grid4_col1">
+										<section id="limits_grid4_col1_header" label="发票容差">
+											<textbox dataattribute="upperinvoiceamt" id="limits_grid4_col2_1"/>
+											<textbox dataattribute="lowerinvoiceamt" id="limits_grid4_col1_1"/>
+											<textbox dataattribute="upperinvoicepct" id="limits_grid4_col2_2"/>
+											<textbox dataattribute="lowerinvoicepct" id="limits_grid4_col1_2"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="limits_grid4_col2">
+										<section id="limits_grid4_col2_header" label="税收容差">
+											<textbox dataattribute="uppertaxamt" id="limits_grid4_col2_5"/>
+											<textbox dataattribute="lowertaxamt" id="limits_grid4_col1_5"/>
+											<textbox dataattribute="uppertaxpct" id="limits_grid4_col2_6"/>
+											<textbox dataattribute="lowertaxpct" id="limits_grid4_col1_6"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="limits_grid4_col3">
+										<section id="limits_grid4_col3_header" label="服务容差">
+											<textbox dataattribute="upperserviceamt" id="limits_grid4_col3_3"/>
+											<textbox dataattribute="lowerserviceamt" id="limits_grid4_col1_3"/>
+											<textbox dataattribute="upperservicepct" id="limits_grid4_col3_4"/>
+											<textbox dataattribute="lowerservicepct" id="limits_grid4_col1_4"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="limits_table_2">
+							<pushbutton default="true" id="limits_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="datarest" label="数据限制">
+					<section border="true" id="datarest_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="datarest_grid1_1"/>
+					</section>
+					<tabgroup id="datarest_tabgroup">
+						<tab default="true" id="datarest_obj_tab" label="对象限制">
+							<table id="datarest_obj_table" label="对象" orderby="objectname" relationship="GROUPOBJRESTRICT">
+								<tablebody displayrowsperpage="10" filterable="true" id="datarest_obj_table_tablebody">
+									<tablecol filterable="false" id="datarest_obj_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+									<tablecol dataattribute="objectname" id="datarest_obj_table_tablebody_2" lookup="objectname"/>
+									<tablecol dataattribute="app" id="datarest_obj_table_tablebody_3" lookup="maxapps"/>
+									<tablecol dataattribute="restriction" id="datarest_obj_table_tablebody_4" lookup="valuelist" ondatachange="resetchildren"/>
+									<tablecol applink="condexpmgr" dataattribute="conditionnum" id="datarest_obj_table_tablebody_5" lookup="conditionexp" menutype="normal"/>
+									<tablecol filterable="false" id="datarest_obj_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+								</tablebody>
+								<tabledetails id="datarest_obj_table_tabledetails_1">
+									<section id="datarest_obj_table_tabledetails_grid30" label="详细信息">
+										<sectionrow id="datarest_obj_table_tabledetails_r0">
+											<sectioncol id="datarest_obj_table_tabledetails_r0_c1">
+												<section id="datarest_obj_table_tabledetails_grid30a0">
+													<multiparttextbox dataattribute="objectname" descdataattribute="maxobject.description" descinputmode="readonly" id="datarest_obj_table_tabledetailsrow1_1" lookup="objectname"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+										<sectionrow id="datarest_obj_table_tabledetails_r1">
+											<sectioncol id="datarest_obj_table_tabledetails_r1_c1">
+												<section id="datarest_obj_table_tabledetails_grid30a">
+													<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="datarest_obj_table_tabledetailsrow1_2" lookup="maxapps"/>
+													<textbox dataattribute="restriction" id="datarest_obj_table_tabledetailsrow1_3" lookup="valuelist" ondatachange="resetchildren"/>
+													<checkbox dataattribute="reevaluate" id="datarest_obj_table_tabledetailsrow1_9"/>
+												</section>
+											</sectioncol>
+											<sectioncol id="datarest_obj_table_tabledetails_r1_c2">
+												<section id="datarest_obj_table_tabledetails_grid30b">
+													<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="datarest_obj_table_tabledetailsrow1_4" lookup="conditionexp" menutype="normal"/>
+													<textbox dataattribute="condition.classname" id="datarest_obj_table_tabledetailsrow1_6" inputmode="readonly"/>
+													<multilinetextbox columns="35" dataattribute="condition.expression" id="datarest_obj_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</tabledetails>
+								<buttongroup id="datarest_obj_table_2">
+									<pushbutton default="true" id="datarest_obj_table_2_1" label="新建行" mxevent="addrow"/>
+								</buttongroup>
+							</table>
+						</tab>
+						<tab id="datarest_attr_tab" label="属性限制">
+							<table id="datarest_attr_table" label="属性" orderby="objectname, attributename" relationship="GROUPATTRRESTRICT">
+								<tablebody displayrowsperpage="10" filterable="true" id="datarest_attr_table_tablebody">
+									<tablecol filterable="false" id="datarest_attr_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+									<tablecol dataattribute="objectname" id="datarest_attr_table_tablebody_2" lookup="objectname"/>
+									<tablecol dataattribute="attributename" id="datarest_attr_table_tablebody_2a" lookup="attributename"/>
+									<tablecol dataattribute="app" id="datarest_attr_table_tablebody_3" lookup="maxapps"/>
+									<tablecol dataattribute="restriction" id="datarest_attr_table_tablebody_4" lookup="valuelist"/>
+									<tablecol applink="condexpmgr" dataattribute="conditionnum" id="datarest_attr_table_tablebody_5" lookup="conditionexp" menutype="normal"/>
+									<tablecol filterable="false" id="datarest_attr_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+								</tablebody>
+								<tabledetails id="datarest_attr_table_tabledetails_1">
+									<section id="datarest_attr_table_tabledetails_grid30" label="详细信息">
+										<sectionrow id="datarest_attr_table_tabledetails_r0">
+											<sectioncol id="datarest_attr_table_tabledetails_r0_c1">
+												<section id="datarest_attr_table_tabledetails_grid30a0">
+													<multiparttextbox dataattribute="objectname" descdataattribute="maxobject.description" descinputmode="readonly" id="datarest_attr_table_tabledetailsrow1_1" lookup="objectname"/>
+													<multiparttextbox dataattribute="attributename" descdataattribute="maxattribute.title" descinputmode="readonly" id="datarest_attr_table_tabledetailsrow1_1a" lookup="attributename"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+									<section id="datarest_attr_table_tabledetails_grid31">
+										<sectionrow id="datarest_attr_table_tabledetails_r1">
+											<sectioncol id="datarest_attr_table_tabledetails_r1_c1">
+												<section id="datarest_attr_table_tabledetails_grid30a">
+													<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="datarest_attr_table_tabledetailsrow1_2" lookup="maxapps"/>
+													<textbox dataattribute="restriction" id="datarest_attr_table_tabledetailsrow1_3" lookup="valuelist"/>
+													<checkbox dataattribute="reevaluate" id="datarest_attr_table_tabledetailsrow1_9"/>
+												</section>
+											</sectioncol>
+											<sectioncol id="datarest_attr_table_tabledetails_r1_c2">
+												<section id="datarest_attr_table_tabledetails_grid30b">
+													<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="datarest_attr_table_tabledetailsrow1_4" lookup="conditionexp" menutype="normal"/>
+													<textbox dataattribute="condition.classname" id="datarest_attr_table_tabledetailsrow1_6" inputmode="readonly"/>
+													<multilinetextbox columns="35" dataattribute="condition.expression" id="datarest_attr_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</tabledetails>
+								<buttongroup id="datarest_attr_table_2">
+									<pushbutton default="true" id="datarest_attr_table_2_1" label="新建行" mxevent="addrow"/>
+								</buttongroup>
+							</table>
+						</tab>
+						<tab id="datarest_coll_tab" label="集合限制">
+							<table beanclass="psdi.webclient.beans.securgroup.CollectionAuthBean" id="datarest_coll_table" label="集合" orderby="collectionnum" relationship="COLLECTIONAUTH">
+								<tablebody displayrowsperpage="10" filterable="true" id="datarest_coll_table_tablebody">
+									<tablecol filterable="false" id="datarest_coll_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+									<tablecol applink="collection" dataattribute="collectionnum" id="datarest_coll_table_tablebody_2" lookup="collection" menutype="normal"/>
+									<tablecol dataattribute="collection.description" id="datarest_coll_table_tablebody_3"/>
+									<tablecol filterable="false" id="datarest_coll_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+								</tablebody>
+								<tabledetails id="datarest_coll_table_tabledetails_1">
+									<section id="datarest_coll_table_tabledetails_grid30" label="详细信息">
+										<sectionrow id="datarest_coll_table_tabledetails_r0">
+											<sectioncol id="datarest_coll_table_tabledetails_r0_c1">
+												<section id="datarest_coll_table_tabledetails_grid30a0">
+													<multiparttextbox applink="collection" dataattribute="collectionnum" descdataattribute="collection.description" descinputmode="readonly" id="datarest_coll_table_tabledetailsrow1_1" lookup="collection" menutype="normal"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</tabledetails>
+								<buttongroup id="datarest_coll_table_2">
+									<pushbutton default="true" id="datarest_coll_table_2_1" label="新建行" mxevent="addrow"/>
+								</buttongroup>
+							</table>
+						</tab>
+					</tabgroup>
+				</tab>
+				<datasrc beanclass="psdi.webclient.beans.common.RepairFacilityConditionalUIBean" id="repfacilitysrc"/>
+				<tab id="repairfacilities" label="维修设施" sigoption="REPFACILITY" sigoptiondatasrc="repfacilitysrc">
+					<section border="true" id="repairfacilities_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="repairfacilities_grid1_1"/>
+					</section>
+					<section id="repairfacilities_grid2a" label="维修设施授权">
+						<sectionrow id="repairfacilities_grid2_row2">
+							<sectioncol id="repairfacilities_grid2_row2_col1">
+								<section id="repairfacilities_grid2_row2_col1_sec1">
+									<checkbox dataattribute="AUTHALLREPFACS" id="repairfacilities_grid2_col1_sec1_1"/>
+									<checkbox dataattribute="NULLREPFAC" id="repairfacilities_grid2_col1_sec1_2"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="repairfacilities_table" label="单个维修设施授权" orderby="REPAIRFACILITY" relationship="REPFACAUTH">
+						<tablebody displayrowsperpage="10" filterable="true" id="repairfacilities_table_tablebody">
+							<tablecol filterable="false" id="repairfacilities_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol applink="location,ipc" dataattribute="REPAIRFACILITY" id="repairfacilities_table_tablebody_2" lookup="repfacility" menutype="repfacility"/>
+							<tablecol dataattribute="REPAIRFACILITY.description" id="repairfacilities_table_tablebody_3" inputmode="readonly"/>
+							<tablecol dataattribute="SITEID" id="repairfacilities_table_tablebody_4" inputmode="readonly" lookup="site" menutype="normal"/>
+							<tablecol filterable="false" id="repairfacilities_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="repairfacilities_1">
+							<section id="repairfacilities_table_1_grid30" label="详细信息">
+								<sectionrow id="repairfacilities_row1">
+									<sectioncol id="repairfacilities_row1_col1">
+										<section id="repairfacilities_row1_col1_sec1">
+											<multiparttextbox applink="location,ipc" dataattribute="REPAIRFACILITY" descdataattribute="REPAIRFACILITY.description" descinputmode="readonly" id="repairfacilities_row1_col1_1" longdescreadonly="true" lookup="repfacility" menutype="repfacility"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="repairfacilities_row1_col2">
+										<section id="repairfacilities_row1_col2_sec1">
+											<textbox dataattribute="siteid" id="repairfacilities_row1_col2_1" inputmode="readonly" lookup="site" menutype="normal"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="repairfacilities_table_2">
+							<pushbutton default="true" id="repairfacilities_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="users" label="用户">
+					<section border="true" id="users_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="users_grid1_1"/>
+					</section>
+					<table id="users_users_table" label="用户" orderby="userid" relationship="GROUPUSER">
+						<tablebody displayrowsperpage="10" filterable="true" id="users_users_table_tablebody">
+							<tablecol filterable="false" id="users_users_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="userid" id="users_users_table_tablebody_2" linkedcontrolid="users_row1_col1_1"/>
+							<tablecol dataattribute="maxuser.personid" id="users_users_table_tablebody_3" linkedcontrolid="users_row1_col2_1" sortable="false"/>
+							<tablecol dataattribute="maxuser.person.displayname" id="users_users_table_tablebody_4" linkedcontrolid="users_row1_col1_3" sortable="false"/>
+							<tablecol dataattribute="maxuser.status" id="users_users_table_tablebody_5" linkedcontrolid="users_row1_col1_4" sortable="false"/>
+							<tablecol dataattribute="maxuser.type" id="users_users_table_tablebody_6" linkedcontrolid="users_row1_col2_3" sortable="false"/>
+							<tablecol filterable="false" id="users_users_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="users_users_1">
+							<section id="users_users_table_1_grid30" label="详细信息">
+								<sectionrow id="users_row1">
+									<sectioncol id="users_row1_col1">
+										<section id="usersrow1_col1_sec1">
+											<textbox applink="user" dataattribute="userid" defaultfocus="true" id="users_row1_col1_1" lookup="maxuser" menutype="normal"/>
+											<textbox dataattribute="maxuser.personid" id="users_row1_col2_1" inputmode="readonly"/>
+											<textbox dataattribute="maxuser.person.displayname" id="users_row1_col1_3" inputmode="readonly"/>
+											<textbox dataattribute="maxuser.status" id="users_row1_col1_4" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="users_row1_col2">
+										<section id="usersrow1_col2_sec1">
+											<textbox dataattribute="maxuser.person.firstname" id="users_row1_col1_2" inputmode="readonly"/>
+											<textbox dataattribute="maxuser.person.lastname" id="users_row1_col2_2" inputmode="readonly"/>
+											<textbox dataattribute="maxuser.type" id="users_row1_col2_3" inputmode="readonly"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="users_users_table_2">
+							<pushbutton id="users_users_table_2_2" label="选择用户" mxevent="maxusermulti"/>
+							<pushbutton default="true" id="users_users_table_2_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+				<tab id="dashboards" label="操作仪表板">
+					<section border="true" id="dashboards_grid1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" id="dashboards_grid1_1"/>
+					</section>
+					<table id="dashboards_dashboards_table" label="操作仪表板视图" orderby="viewmanagerid" relationship="DASHBOARDAUTH">
+						<tablebody displayrowsperpage="10" filterable="true" id="dashboards_dashboards_table_tablebody">
+							<tablecol dataattribute="viewmanager.viewname" id="dashboards_dashboards_table_tablebody_1" inputmode="readonly" label="仪表板名称"/>
+							<tablecol dataattribute="viewmanager.description" id="dashboards_dashboards_table_tablebody_2" inputmode="readonly"/>
+							<tablecol applink="user" dataattribute="viewmanager.userid" defaultfocus="true" id="dashboards_dashboards_table_tablebody_3" label="创建者" menutype="normal"/>
+							<tablecol filterable="false" id="dashboards_dashboards_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="dashboards_dashboards_1">
+							<textbox applink="user" dataattribute="viewmanager.userid" defaultfocus="true" id="dashboards_row1_col1_sec1_1" menutype="normal"/>
+						</tabledetails>
+						<buttongroup id="dashboards_users_table_2_vb">
+							<pushbutton id="dashboards_users_table_2_2_vb" label="选择仪表板视图" mxevent="viewmanagermulti"/>
+						</buttongroup>
+					</table>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+	</page>
+
+	<dialog datasrc="MAINRECORD" id="pswddurat" label="覆盖密码持续时间">
+		<helpgrid id="pswddurat_help" msggroup="signature" msgkey="pwdurhelp"/>
+		<section border="true" id="pswddurat_grid1">
+			<multiparttextbox dataattribute="groupname" descdataattribute="description" descinputmode="readonly" id="pswddurat_grid1_1" inputmode="readonly"/>
+		</section>
+		<section id="pswddurat_grid2">
+			<sectionrow id="pswddurat_grid2_1">
+				<sectioncol id="pswddurat_grid2_1_1">
+					<section id="pswddurat_grid2_1_1_grid2">
+						<textbox dataattribute="passwordduration" id="pswddurat_grid2_1_1_grid2_1"/>
+						<textbox dataattribute="passwordwarning" id="pswddurat_grid2_1_1_grid2_2"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="pswddurat_3">
+			<pushbutton default="true" id="pswddurat_3_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="pswddurat_3_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.securgroup.SelectUsersBean" id="maxusermulti" label="选择用户" mboname="MAXUSER">
+		<table id="maxusermulti_table" label="用户" selectmode="multiple">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="maxusermulti_lookup_tablebody">
+				<tablecol filterable="false" id="maxusermulti_lookup_tablebody_col_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+				<tablecol dataattribute="userid" id="maxusermulti_lookup_tablebody_col_2" inputmode="readonly"/>
+				<tablecol dataattribute="PERSON.displayname" id="maxusermulti_lookup_tablebody_col_3" inputmode="readonly"/>
+			</tablebody>
+		</table>
+		<buttongroup id="maxusermulti_2">
+			<pushbutton id="maxusermulti_2_1" label="确定" mxevent="okUsers"/>
+			<pushbutton id="maxusermulti_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.securgroup.SelectDashboardsBean" id="viewmanagermulti" label="选择仪表板" mboname="VIEWMANAGER">
+		<table id="viewmanagermulti_table" label="仪表板" selectmode="multiple">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="viewmanagermulti_lookup_tablebody">
+				<tablecol filterable="false" id="viewmanagermulti_lookup_tablebody_col_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+				<tablecol dataattribute="viewname" id="viewmanagermulti_lookup_tablebody_col_2" inputmode="readonly"/>
+				<tablecol dataattribute="description" id="viewmanagermulti_lookup_tablebody_col_3" inputmode="readonly"/>
+				<tablecol dataattribute="createdate" id="viewmanagermulti_lookup_tablebody_col_4" inputmode="readonly"/>
+				<tablecol dataattribute="userid" id="viewmanagermulti_lookup_tablebody_col_5" inputmode="readonly" label="创建者"/>
+			</tablebody>
+		</table>
+		<buttongroup id="viewmanagermulti_2">
+			<pushbutton id="viewmanagermulti_2_1" label="取消" mxevent="dialogcancel"/>
+			<pushbutton id="viewmanagermulti_2_2" label="确定" mxevent="okDashboards"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="websecure" label="标准服务权限" mboname="MAXSERVSECURITY">
+		<table id="websecure_table" label="Web 方法">
+			<tablebody displayrowsperpage="10" filterable="true" id="websecure_table_tablebody">
+				<tablecol dataattribute="servicename" id="websecure_table_tablebody_2" lookup="maxservice"/>
+				<tablecol dataattribute="methodname" id="websecure_table_tablebody_3" lookup="method"/>
+				<tablecol dataattribute="app" id="websecure_table_tablebody_4" lookup="maxapps"/>
+				<tablecol dataattribute="optionname" id="websecure_table_tablebody_5" lookup="sigoption"/>
+				<tablecol filterable="false" id="websecure_table_tablebody_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<buttongroup id="websecure_table_2">
+				<pushbutton default="true" id="websecure_table_2_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="websecure_2">
+			<pushbutton default="true" id="websecure_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="websecure_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="grpassign" label="授权组重新分配" savemode="ONLOADUNLOAD">
+		<section border="true" id="grpassign_grid1">
+			<multiparttextbox dataattribute="groupname" descdataattribute="description" descinputmode="readonly" id="grpassign_grid1_1" inputmode="readonly"/>
+		</section>
+		<table id="grpassign_table" label="授权的用户" relationship="GRPREASSIGNAUTH">
+			<tablebody displayrowsperpage="10" filterable="true" id="grpassign_table_tablebody">
+				<tablecol filterable="false" id="grpassign_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="user" dataattribute="userid" id="grpassign_table_tablebody_2" linkedcontrolid="grpassign_table_table_details_sec1_1" lookup="maxuser" menutype="normal"/>
+				<tablecol dataattribute="maxuser.person.displayname" id="grpassign_table_tablebody_3" linkedcontrolid="grpassign_table_table_details_sec1_2">
+					<textbox id="grpassign_table_tablebody_3a" inputmode="readonly"/>
+				</tablecol>
+				<tablecol filterable="false" id="grpassign_table_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="grpassign_table_table_details">
+				<section id="grpassign_table_outersec" label="详细信息">
+					<sectionrow id="grpassign_table_outersec_row1">
+						<sectioncol id="grpassign_table_row1_col1">
+							<section id="grpassign_table_details_sec1">
+								<textbox applink="user" dataattribute="userid" defaultfocus="true" id="grpassign_table_table_details_sec1_1" lookup="maxuser" menutype="normal"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="grpassign_table_row1_col2">
+							<section id="grpassign_table_table_details_sec2">
+								<textbox dataattribute="maxuser.person.displayname" id="grpassign_table_table_details_sec1_2" inputmode="readonly"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="grpassign_table_2">
+				<pushbutton id="grpassign_table_2_1" label="选择用户" mxevent="maxusermulti"/>
+				<pushbutton default="true" id="grpassign_table_2_2" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="grpassign_2">
+			<pushbutton default="true" id="grpassign_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="grpassign_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.QbeBean" id="searchmore" inputmode="query" label="更多搜索字段">
+		<section id="qbe_grid2_1_1_grid3">
+			<sectionrow id="qbe_grid2_1_1_grid3_r1">
+				<sectioncol id="qbe_grid2_1_1_grid3_r1_c1">
+					<section id="qbe_grid2_1_1_grid3_r1_c1_1">
+						<multiparttextbox dataattribute="groupname" descdataattribute="description" descinputmode="query" id="qbe_grid2_1_1_grid3_1a" inputmode="query"/>
+						<textbox applink="user" dataattribute="GROUPUSER.USERID" id="qbe_grid2_1_1_grid3_1" inputmode="query" lookup="maxuser" menutype="normal"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_1_grid3_r1_c2">
+					<section id="qbe_grid2_1_1_grid3_r1_c2_1">
+						<textbox dataattribute="INDEPENDENT" id="qbe_grid2_1_1_grid3_14" inputmode="query"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<section id="qbe_grid2_1_1_grid3a" label="访问信息">
+			<sectionrow id="qbe_grid2_1_1_grid3_r2">
+				<sectioncol id="qbe_grid2_1_1_grid3_r2_c1">
+					<section id="qbe_grid2_1_1_grid3_r2_c1_sec1">
+						<textbox dataattribute="SITEAUTH.SITEID" id="qbe_grid2_1_1_grid3_2" inputmode="query" lookup="site"/>
+						<textbox dataattribute="APPLICATIONAUTH.APP" id="qbe_grid2_1_1_grid3_3" inputmode="query" lookup="maxapps"/>
+						<textbox dataattribute="APPLICATIONAUTH.OPTIONNAME" id="qbe_grid2_1_1_grid3_4" inputmode="query"/>
+						<textbox applink="storeroom,ipc" dataattribute="LOCAUTH.LOCATION" id="qbe_grid2_1_1_grid3_5" inputmode="query" lookup="storeroom" menutype="normal"/>
+						<textbox applink="labor" dataattribute="LABORAUTH.LABORCODE" id="qbe_grid2_1_1_grid3_13" inputmode="query" lookup="labor" menutype="normal"/>
+						<textbox dataattribute="GLAUTH.GLACCOUNTFIELD" id="qbe_grid2_1_1_grid3_25" inputmode="query"/>
+						<textbox dataattribute="SECURITYRESTRICT.OBJECTNAME" id="qbe_grid2_1_1_grid3_12" inputmode="query" lookup="objectname"/>
+						<textbox dataattribute="SCTEMPLATEID" id="qbe_grid2_1_1_grid3_23" inputmode="query" lookup="sctemplate"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_1_grid3_r2_c2">
+					<section id="qbe_grid2_1_1_grid3_r2_c2_sec1">
+						<textbox dataattribute="AUTHALLSITES" id="qbe_grid2_1_1_grid3_15" inputmode="query"/>
+						<textbox dataattribute="AUTHALLSTOREROOMS" id="qbe_grid2_1_1_grid3_16" inputmode="query"/>
+						<textbox dataattribute="AUTHLABORALL" id="qbe_grid2_1_1_grid3_18" inputmode="query"/>
+						<textbox dataattribute="AUTHLABORSELF" id="qbe_grid2_1_1_grid3_19" inputmode="query"/>
+						<textbox dataattribute="AUTHLABORCREW" id="qbe_grid2_1_1_grid3_20" inputmode="query"/>
+						<textbox dataattribute="AUTHLABORSUPER" id="qbe_grid2_1_1_grid3_21" inputmode="query"/>
+						<textbox dataattribute="AUTHPERSONGROUP" id="qbe_grid2_1_1_grid3_22" inputmode="query"/>
+						<textbox dataattribute="AUTHALLGLS" id="qbe_grid2_1_1_grid3_17" inputmode="query"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<section id="qbe_grid2_1_1_grid3d" label="限额">
+			<sectionrow id="qbe_grid2_1_1_grid3d_r1">
+				<sectioncol id="qbe_grid2_1_1_grid3d_r1_c1">
+					<section id="qbe_grid2_1_1_grid3d_r1_c1_s1">
+						<textbox applink="multisite" dataattribute="LIMITTOLERANCE.ORGID" id="qbe_grid2_1_1_grid3_24" inputmode="query" lookup="org" menutype="normal"/>
+						<textbox dataattribute="LIMITTOLERANCE.PRLIMIT" id="qbe_grid2_1_1_grid3_7" inputmode="query"/>
+						<textbox dataattribute="LIMITTOLERANCE.POLIMIT" id="qbe_grid2_1_1_grid3_6" inputmode="query"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_1_grid3d_r1_c2">
+					<section id="qbe_grid2_1_1_grid3d_r1_c2_s1">
+						<textbox dataattribute="LIMITTOLERANCE.MRLIMIT" id="qbe_grid2_1_1_grid3_8" inputmode="query"/>
+						<textbox dataattribute="LIMITTOLERANCE.INVOICELIMIT" id="qbe_grid2_1_1_grid3_9" inputmode="query"/>
+						<textbox dataattribute="LIMITTOLERANCE.CONTRACTLIMIT" id="qbe_grid2_1_1_grid3_10" inputmode="query"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="qbe_grid5_1_1_grid6">
+			<pushbutton default="true" id="qbe_grid5_1_1_grid6_1" label="查找" mxevent="dialogok"/>
+			<pushbutton id="qbe_restoreappdefault_button" label="恢复应用程序缺省值" mxevent="qbeclear"/>
+			<pushbutton id="qbe_revisebutton" label="修订" menutype="SEARCHMOREREVISE" targetid="searchmore"/>
+			<pushbutton id="qbe_grid5_1_1_grid6_3" label="取消" mxevent="qbecancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.securgroup.GlobalDataBean" id="globaldata" label="全局数据限制" parentdatasrc="results_showlist">
+		<tabgroup id="gdatarest_tabgroup">
+			<tab default="true" id="gdatarest_obj_tab" label="对象限制">
+				<table beanclass="psdi.webclient.beans.securgroup.GlobalDataBean" id="gdatarest_obj_table" label="对象" mboname="SECURITYRESTRICT" orderby="objectname" whereclause="groupname is null and attributename is null">
+					<tablebody displayrowsperpage="10" filterable="true" id="gdatarest_obj_table_tablebody">
+						<tablecol filterable="false" id="gdatarest_obj_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+						<tablecol dataattribute="objectname" id="gdatarest_obj_table_tablebody_2" lookup="objectname"/>
+						<tablecol dataattribute="app" id="gdatarest_obj_table_tablebody_3" lookup="maxapps"/>
+						<tablecol dataattribute="restriction" id="gdatarest_obj_table_tablebody_4" lookup="valuelist" ondatachange="resetchildren"/>
+						<tablecol applink="condexpmgr" dataattribute="conditionnum" id="gdatarest_obj_table_tablebody_5" lookup="conditionexp" menutype="normal"/>
+						<tablecol filterable="false" id="gdatarest_obj_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+					</tablebody>
+					<tabledetails id="gdatarest_obj_table_tabledetails_1">
+						<section id="gdatarest_obj_table_tabledetails_grid30" label="详细信息">
+							<sectionrow id="gdatarest_obj_table_tabledetails_r0">
+								<sectioncol id="gdatarest_obj_table_tabledetails_r0_c1">
+									<section id="gdatarest_obj_table_tabledetails_grid30a0">
+										<multiparttextbox dataattribute="objectname" descdataattribute="maxobject.description" descinputmode="readonly" id="gdatarest_obj_table_tabledetailsrow1_1" lookup="objectname"/>
+										<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="gdatarest_obj_table_tabledetailsrow1_2" lookup="maxapps"/>
+										<textbox dataattribute="restriction" id="gdatarest_obj_table_tabledetailsrow1_3" lookup="valuelist" ondatachange="resetchildren"/>
+										<checkbox dataattribute="reevaluate" id="gdatarest_obj_table_tabledetailsrow1_9"/>
+										<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="gdatarest_obj_table_tabledetailsrow1_4" lookup="conditionexp" menutype="normal"/>
+										<textbox dataattribute="condition.classname" id="gdatarest_obj_table_tabledetailsrow1_6" inputmode="readonly"/>
+										<multilinetextbox columns="35" dataattribute="condition.expression" id="gdatarest_obj_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</section>
+					</tabledetails>
+					<buttongroup id="gdatarest_obj_table_2">
+						<pushbutton default="true" id="gdatarest_obj_table_2_1" label="新建行" mxevent="addrow"/>
+					</buttongroup>
+				</table>
+			</tab>
+			<tab id="gdatarest_attr_tab" label="属性限制">
+				<table beanclass="psdi.webclient.beans.securgroup.GlobalDataBean" id="gdatarest_attr_table" label="属性" mboname="SECURITYRESTRICT" orderby="objectname, attributename" whereclause="groupname is null and attributename is not null">
+					<tablebody displayrowsperpage="10" filterable="true" id="gdatarest_attr_table_tablebody">
+						<tablecol filterable="false" id="gdatarest_attr_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+						<tablecol dataattribute="objectname" id="gdatarest_attr_table_tablebody_2" lookup="objectname"/>
+						<tablecol dataattribute="attributename" id="gdatarest_attr_table_tablebody_2a" lookup="attributename"/>
+						<tablecol dataattribute="app" id="gdatarest_attr_table_tablebody_3" lookup="maxapps"/>
+						<tablecol dataattribute="restriction" id="gdatarest_attr_table_tablebody_4" lookup="valuelist"/>
+						<tablecol applink="condexpmgr" dataattribute="conditionnum" id="gdatarest_attr_table_tablebody_5" lookup="conditionexp" menutype="normal"/>
+						<tablecol filterable="false" id="gdatarest_attr_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+					</tablebody>
+					<tabledetails id="gdatarest_attr_table_tabledetails_1">
+						<section id="gdatarest_attr_table_tabledetails_grid30" label="详细信息">
+							<sectionrow id="gdatarest_attr_table_tabledetails_r0">
+								<sectioncol id="gdatarest_attr_table_tabledetails_r0_c1">
+									<section id="gdatarest_attr_table_tabledetails_grid30a0">
+										<multiparttextbox dataattribute="objectname" descdataattribute="maxobject.description" descinputmode="readonly" id="gdatarest_attr_table_tabledetailsrow1_1" lookup="objectname"/>
+										<multiparttextbox dataattribute="attributename" descdataattribute="maxattribute.title" descinputmode="readonly" id="gdatarest_attr_table_tabledetailsrow1_1a" lookup="attributename"/>
+										<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="gdatarest_attr_table_tabledetailsrow1_2" lookup="maxapps"/>
+										<textbox dataattribute="restriction" id="gdatarest_attr_table_tabledetailsrow1_3" lookup="valuelist"/>
+										<checkbox dataattribute="reevaluate" id="gdatarest_attr_table_tabledetailsrow1_9"/>
+										<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="gdatarest_attr_table_tabledetailsrow1_4" lookup="conditionexp" menutype="normal"/>
+										<textbox dataattribute="condition.classname" id="gdatarest_attr_table_tabledetailsrow1_6" inputmode="readonly"/>
+										<multilinetextbox columns="35" dataattribute="condition.expression" id="gdatarest_attr_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</section>
+					</tabledetails>
+					<buttongroup id="gdatarest_attr_table_2">
+						<pushbutton default="true" id="gdatarest_attr_table_2_1" label="新建行" mxevent="addrow"/>
+					</buttongroup>
+				</table>
+			</tab>
+		</tabgroup>
+		<buttongroup id="gdatarest_2">
+			<pushbutton id="gdatarest_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="gdatarest_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" id="searchbook" label="我的书签" mboname="MAXGROUP">
+		<table id="bookmarks_table" inputmode="readonly" label="组" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" id="bookmarks_table_tablebody">
+				<tablecol dataattribute="groupname" id="bookmarks_tablebody_1" mxevent="selectrecord" type="link"/>
+				<tablecol dataattribute="description" id="bookmarks_table_tablebody_2"/>
+				<tablecol filterable="false" id="bookmarks_table_tablebody_delete" mxevent="instantdelete" mxevent_desc="删除" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<buttongroup id="bookmarks_2">
+			<pushbutton default="true" id="bookmarks_2_1" label="确定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+	<configurationblock id="datastore_configurationblock"/>
+
+	<dialog beanclass="psdi.webclient.beans.securgroup.WorkCentersOSBean" datasrc="appls_app_table" id="wcosauthorize" label="对象结构授权">
+		<section border="true" datasrc="appls_app_table" id="wc_os_authorize_grid1">
+			<multiparttextbox dataattribute="groupname" datasrc="MAINRECORD" descdataattribute="description" descinputmode="readonly" id="wc_os_authorize_grid1_1" inputmode="readonly"/>
+			<multiparttextbox dataattribute="app" datasrc="appls_app_table" descdataattribute="description" descinputmode="readonly" id="wc_os_authorize_grid1_2" inputmode="readonly"/>
+		</section>
+		<helpgrid id="wc_os_authorize_help" innerhtml="对象结构授权将影响每个使用此对象结构的应用程序，并且还会影响这些对象结构在应用程序外部的任何使用。"/>
+		<table filterable="false" id="wc_os_authorize" label="{0} 中使用的对象结构" parentdatasrc="appls_app_table" parentemptylabel="对象结构" relationship="OSUSED">
+			<sectionheader datasrc="appls_app_table" id="wc_os_authorize_table_sec1">
+				<paramvalues id="wc_os_authorize_table_sec111111">
+					<paramvalue dataattribute="description" id="wc_os_authorize_table_sec122222" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="8" filterable="true" id="wc_os_authorize_table_tablebody">
+				<tablecol dataattribute="intobjectname" id="wc_os_authorize_table_tablebody_2" inputmode="readonly" sortable="false"/>
+				<tablecol dataattribute="maxintobject.description" id="wc_os_authorize_table_tablebody_3" label="包含" linkedcontrolid="main_details_nonpersitent_nonpersitent_table_1_grid4_1" sortable="false"/>
+				<tablecol filterable="false" hidden="false" id="wc_os_authorize_table_tablebody_4" mxevent="showworkcenters" mxevent_desc="在应用程序中使用" mxevent_icon="img_menu.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<table beanclass="psdi.webclient.beans.securgroup.WorkCentersOSBean" filterable="false" id="wc_os_authorize_options" label="对象结构 {0} 的授权" parentdatasrc="wc_os_authorize" parentemptylabel="对象结构的授权" relationship="SIGOMAIN">
+			<sectionheader datasrc="wc_os_authorize" id="wc_os_authorize_options_table_sec1">
+				<paramvalues id="wc_os_authorize_options_table_sec111111">
+					<paramvalue dataattribute="maxintobject.description" datasrc="wc_os_authorize" id="wc_os_authorize_options_table_sec122222" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<buttongroup id="wc_os_authorize_options_buttons">
+				<pushbutton id="wc_os_authorize_options_buttons_1" label="对此对象结构列出的选项进行授权" mxevent="allsigoauthorized"/>
+			</buttongroup>
+			<tablebody displayrowsperpage="4" filterable="true" id="wc_os_authorize_options_table_tablebody">
+				<tablecol filterable="false" hidden="false" id="wc_os_authorize_options_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="description" id="wc_os_authorize_options_tablebody_1" inputmode="readonly"/>
+				<tablecol dataattribute="authorized" id="wc_os_authorize_options_tablebody_2" ondatachange="resetchildren" sortable="false">
+					<checkbox dataattribute="authorized" id="wc_os_authorize_options_tablebody_2_box" ondatachange="resetchildren" sortable="false"/>
+				</tablecol>
+				<tablecol applink="condexpmgr" dataattribute="conditionnum" id="wc_os_authorize_options_tablebody_3" lookup="conditionexp" menutype="normal">
+					<textbox id="wc_os_authorize_options_tablebody_3a"/>
+				</tablecol>
+			</tablebody>
+			<tabledetails id="wc_os_authorize_options_table_tabledetails_1">
+				<section id="wc_os_authorize_options_table_tabledetails_grid30" label="详细信息">
+					<sectionrow id="wc_os_authorize_options_table_tabledetails_r1">
+						<textbox dataattribute="description" id="wc_os_authorize_options_table_tabledetailsrow1_1" inputmode="readonly"/>
+						<checkbox dataattribute="authorized" defaultfocus="true" id="wc_os_authorize_options_table_tabledetailsrow1_2"/>
+						<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="wc_os_authorize_options_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+						<textbox dataattribute="condition.type" id="wc_os_authorize_options_table_tabledetailsrow1_4" inputmode="readonly"/>
+						<multilinetextbox columns="55" dataattribute="condition.expression" id="wc_os_authorize_options_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+						<textbox dataattribute="condition.classname" id="wc_os_authorize_options_table_tabledetailsrow1_6" inputmode="readonly"/>
+					</sectionrow>
+				</section>
+			</tabledetails>
+		</table>
+		<table filterable="false" id="wc_os_authorize_options_other" parentdatasrc="wc_os_authorize" relationship="SIGOOTHER">
+			<tablebody displayrowsperpage="4" filterable="true" id="wc_os_authorize_options_other_table_tablebody">
+				<tablecol filterable="false" hidden="false" id="wc_os_authorize_options_other_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="description" id="wc_os_authorize_options_other_tablebody_1" inputmode="readonly"/>
+				<tablecol dataattribute="authorized" id="wc_os_authorize_options_other_tablebody_2" ondatachange="resetchildren" sortable="false">
+					<checkbox dataattribute="authorized" id="wc_os_authorize_options_other_tablebody_2_box" ondatachange="resetchildren" sortable="false"/>
+				</tablecol>
+				<tablecol applink="condexpmgr" dataattribute="conditionnum" id="wc_os_authorize_options_other_tablebody_3" lookup="conditionexp" menutype="normal">
+					<textbox id="wc_os_authorize_options_other_tablebody_3a"/>
+				</tablecol>
+			</tablebody>
+			<tabledetails id="wc_os_authorize_options_other_table_tabledetails_1">
+				<section id="wc_os_authorize_options_other_table_tabledetails_grid30" label="详细信息">
+					<sectionrow id="wc_os_authorize_options_other_table_tabledetails_r1">
+						<textbox dataattribute="description" id="wc_os_authorize_options_other_table_tabledetailsrow1_1" inputmode="readonly"/>
+						<checkbox dataattribute="authorized" defaultfocus="true" id="wc_os_authorize_options_other_table_tabledetailsrow1_2"/>
+						<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="wc_os_authorize_other_options_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
+						<textbox dataattribute="condition.type" id="wc_os_authorize_options_other_table_tabledetailsrow1_4" inputmode="readonly"/>
+						<multilinetextbox columns="55" dataattribute="condition.expression" id="wc_os_authorize_other_options_table_tabledetailsrow1_5" inputmode="readonly" rows="4"/>
+						<textbox dataattribute="condition.classname" id="wc_os_authorize_options_other_table_tabledetailsrow1_6" inputmode="readonly"/>
+					</sectionrow>
+				</section>
+			</tabledetails>
+		</table>
+		<buttongroup id="wc_os_authorize_2">
+			<pushbutton default="true" id="wc_os_authorize_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="wc_os_authorize_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.securgroup.WorkCentersTemplateBean" id="template" label="添加/修改授权模板">
+		<table beanclass="psdi.webclient.beans.securgroup.WorkCentersTemplateBeanMain" id="template_template_detail_table2" label="{0} {1} 的模板" parentdatasrc="appls_app_table" relationship="WORKCENTERTEMPLATE">
+			<sectionheader datasrc="appls_app_table" id="template_template_detail_table2111">
+				<paramvalues id="template_template_detail_table2211">
+					<paramvalue dataattribute="synonymdomain.description" id="template_template_detail_table2311" position="0"/>
+					<paramvalue dataattribute="description" id="template_template_detail_table2312" position="1"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" id="template_template_detail_table2_tablebody">
+				<tablecol filterable="false" hidden="false" id="template_template_detail_table2_tablebody_0" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="template" id="template_template_detail_table2_tablebody_1"/>
+				<tablecol dataattribute="description" id="template_template_detail_table2_tablebody_2"/>
+				<tablecol dataattribute="isdefault" id="template_template_detail_table2_tablebody_3"/>
+				<tablecol dataattribute="userdefined" id="template_template_detail_table2_tablebody_4" inputmode="readonly"/>
+				<tablecol filterable="false" hidden="false" id="template_template_detail_table2_tablebody_5" mxevent="DUPLICATE" mxevent_desc="复制模板" mxevent_icon="menu_icon_duplicate.gif" sortable="false" type="event"/>
+				<tablecol filterable="false" hidden="false" id="template_template_detail_table2_tablebody_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="template_template_detail_table2_td">
+				<section border="true" id="template_template_detail_table2_td_sec">
+					<section id="template_template_detail_table2_td_sec1">
+						<sectionrow id="template_template_detail_table2_td_row1">
+							<sectioncol id="template_template_detail_table2_td_col1">
+								<multiparttextbox dataattribute="template" descdataattribute="description" id="template_template_detail_table2_0_1" ondatachange="resetchildren" synchronous="true"/>
+							</sectioncol>
+							<sectioncol id="template_template_detail_table2_td_col2">
+								<checkbox dataattribute="isdefault" id="template_template_detail_table2_0_2" synchronous="true"/>
+								<checkbox dataattribute="userdefined" id="template_template_detail_table2_0_3" inputmode="readonly"/>
+							</sectioncol>
+						</sectionrow>
+					</section>
+				</section>
+			</tabledetails>
+			<buttongroup id="template_template_1_bg">
+				<pushbutton id="template_template_1_bg_1" label="复制模板" mxevent="DUPLICATE"/>
+				<pushbutton id="template_template_1_bg_2" label="应用模板" mxevent="applytemplate"/>
+				<pushbutton default="true" id="template_template_1_bg_3" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<section collapsable="true" collapsed="true" id="template_details_section" label="安全模板授权">
+			<tabgroup id="template_details">
+				<tab default="true" id="template_details_authorize" label="应用程序授权">
+					<table filterable="false" id="template_details_authorize_table" label="安全模板 {0} 的选项" parentdatasrc="template_template_detail_table2" parentemptylabel="选项" relationship="WCTEMPLATEOPTION">
+						<sectionheader datasrc="template_template_detail_table2" id="template_details_authorize_table_sec1">
+							<paramvalues id="template_details_authorize_table_sec111111">
+								<paramvalue dataattribute="template" id="template_details_authorize_table_sec1_1" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="addmod_worcentrt_sig_1_tb">
+							<tablecol dataattribute="description" id="addmod_worcentrt_sig_1_tb_3" inputmode="readonly" sortable="false"/>
+							<tablecol dataattribute="authorized" id="addmod_worcentrt_sig_1_tb_5" sortable="false"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="template_details_os_authorize_tab" label="对象结构授权">
+					<table filterable="false" id="template_details_os_authorize" label="安全模板 {0} 的对象结构" parentdatasrc="template_template_detail_table2" parentemptylabel="对象结构" relationship="OSUSED">
+						<sectionheader datasrc="template_template_detail_table2" id="template_details_os_authorize_table_sec1">
+							<paramvalues id="template_details_os_authorize_table_sec111111">
+								<paramvalue dataattribute="template" id="template_details_os_authorize_table_sec122222" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" id="template_details_os_authorize_table_tablebody">
+							<tablecol dataattribute="intobjectname" id="template_details_os_authorize_table_tablebody_2" inputmode="readonly" sortable="false"/>
+							<tablecol dataattribute="maxintobject.description" id="template_details_os_authorize_table_tablebody_3" sortable="false"/>
+						</tablebody>
+					</table>
+					<table filterable="false" id="template_details_os_authorize_options" label="对象结构 {0} 的授权" parentdatasrc="template_details_os_authorize" parentemptylabel="对象结构的授权" relationship="WCTEMPLATEOPTION">
+						<sectionheader datasrc="template_template_detail_table2" id="template_details_os_authorize_options_table_sec1">
+							<paramvalues id="template_details_os_authorize_options_table_sec111111">
+								<paramvalue dataattribute="intobjectname" id="template_details_os_authorize_options_table_sec122222" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="addmod_worcentrt_os_sig_1_tb">
+							<tablecol dataattribute="description" id="addmod_worcentrt_os_sig_1_tb_3" inputmode="readonly" sortable="false"/>
+							<tablecol dataattribute="authorized" id="addmod_worcentrt_os_sig_1_tb_5" sortable="false"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="realted_template__tab" label="相关安全模板">
+					<table filterable="false" id="related_template" label="安全模板 {0} 的相关安全模板" parentdatasrc="template_template_detail_table2" parentemptylabel="相关安全模板" relationship="WCRELATEDTEMPLATE">
+						<sectionheader datasrc="template_template_detail_table2" id="related_template_table_sec1">
+							<paramvalues id="related_template_table_sec111111">
+								<paramvalue dataattribute="description" id="related_template_table_sec122222" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" id="related_templat_table_tablebody">
+							<tablecol filterable="false" hidden="false" id="related_template_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="relworkcenter" id="related_template_table_tablebody_2" sortable="false"/>
+							<tablecol dataattribute="reltemplate" id="related_template_table_tablebody_3" sortable="false"/>
+							<tablecol filterable="false" hidden="false" id="related_template_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="related_template_1_td">
+							<section border="true" id="related_template_1_td_">
+								<section id="related_template_2a_td_">
+									<sectioncol id="related_template_2a_td_col1">
+										<multiparttextbox dataattribute="relworkcenter" descdataattribute="relworkcenter.description" descinputmode="readonly" id="related_template_0_1" lookup="workcenter"/>
+										<multiparttextbox dataattribute="reltemplate" descdataattribute="workcentertemplate.description" descinputmode="readonly" id="related_template_0_2" lookup="wctemplate"/>
+									</sectioncol>
+								</section>
+							</section>
+						</tabledetails>
+						<buttongroup id="related_template_1_bg">
+							<pushbutton default="true" id="related_template_1_bg_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+			</tabgroup>
+		</section>
+		<buttongroup id="related_template_buttongrid1">
+			<pushbutton default="true" id="related_template_buttongrid1_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="related_template_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.designer.SigOptionsBean" id="wcaddmodsig" label="添加/修改签名选项" parentdatasrc="appls_app_table" relationship="SIGOPTION">
+		<table id="addmodsig_1" label="添加/修改 {0} 的签名选项">
+			<sectionheader datasrc="appls_app_table" id="addmodsig_detail_table2111">
+				<paramvalues id="addmodsig_detail_table2211">
+					<paramvalue dataattribute="description" id="addmodsig_detail_table2311" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="7" filterable="true" filterexpanded="true" id="addmodsig_1_tb">
+				<tablecol filterable="false" hidden="false" id="addmodsig_1_tb_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="optionname" id="addmodsig_1_tb_2" linkedcontrolid="addmodsig_1_td_1" sortable="true"/>
+				<tablecol dataattribute="description" id="addmodsig_1_tb_3" linkedcontrolid="addmodsig_1_td_2" sortable="true"/>
+				<tablecol filterable="false" hidden="false" id="addmodsig_1_tb_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="addmodsig_1_td">
+				<section border="true" id="addmodsig_1_td_">
+					<section id="addmodsig_2a_td_">
+						<sectioncol id="addmodsig_2a_td_col1">
+							<textbox dataattribute="optionname" id="addmodsig_1_td_1"/>
+							<textbox dataattribute="description" id="addmodsig_1_td_2"/>
+							<textbox dataattribute="alsogrants" id="addmodsig_1_td_3"/>
+							<textbox dataattribute="alsorevokes" id="addmodsig_1_td_4"/>
+							<textbox dataattribute="prerequisite" id="addmodsig_1_td_5"/>
+						</sectioncol>
+						<sectioncol id="addmodsig_2a_td_col2"/>
+					</section>
+					<section id="addmodsig_2b_td_">
+						<checkbox dataattribute="esigenabled" id="addmodsig_2_td_7"/>
+						<checkbox dataattribute="visible" id="addmodsig_2_td_8"/>
+					</section>
+				</section>
+			</tabledetails>
+			<buttongroup id="addmodsig_1_bg">
+				<pushbutton default="true" id="addmodsig_1_bg_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="addmodsig_2">
+			<pushbutton default="true" id="addmodsig_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="addmodsig_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="showworkcenters" label="使用的应用程序" relationship="WORKCENTERS">
+		<section border="true" datasrc="wc_os_authorize" id="showworkcenters_0">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="maxintobject.description" descinputmode="readonly" id="showworkcenters_0_1" inputmode="readonly"/>
+		</section>
+		<table id="oslcaction_1" label="使用的应用程序">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="showworkcenters_1_tb">
+				<tablecol dataattribute="app" id="showworkcenters_1_tb_1" sortable="true"/>
+				<tablecol dataattribute="workcentertemplate.description" id="showworkcenters_1_tb_2" sortable="true"/>
+			</tablebody>
+		</table>
+		<buttongroup id="showworkcenters_2">
+			<pushbutton id="showworkcenters_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="relworkcenters" label="相关应用程序">
+		<section border="true" id="relworkcenters_0">
+			<multiparttextbox dataattribute="app" descdataattribute="description" descinputmode="readonly" id="relworkcenters_0_1" inputmode="readonly" label="应用程序"/>
+		</section>
+		<table id="relworkcenters_1" label="相关应用程序" relationship="RELATEDWORKCENTER">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="relworkcenters_1_tb">
+				<tablecol dataattribute="relworkcenter" id="relworkcenters_1_tb_1" lookup="maxapps" sortable="true"/>
+				<tablecol dataattribute="maxapps.description" id="relworkcenters_1_tb_2" inputmode="readonly"/>
+				<tablecol filterable="false" hidden="false" id="relworkcenters_1_tb_3" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<buttongroup id="relworkcenters_1_bg">
+				<pushbutton default="true" id="relworkcenters_1_bg_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="relworkcenters_2">
+			<pushbutton id="relworkcenters_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="relworkcenters_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog allowcancel="false" id="DUPLICATE" label="复制安全模板">
+		<section id="duplicateppdetails">
+			<textbox dataattribute="newtemplate" id="duplicateppdetails_app"/>
+			<textbox dataattribute="newdescription" id="duplicateppdetails_desc"/>
+			<textbox dataattribute="workcenter" id="duplicateppdetails_maintb" inputmode="readonly"/>
+		</section>
+		<buttongroup id="duplicatepp_btngrp">
+			<pushbutton default="true" id="duplicatepp_btn1" label="确定" mxevent="duplicate"/>
+			<pushbutton id="duplicatepp_btn2" label="取消" mxevent="cancelduplicate"/>
+		</buttongroup>
+	</dialog>
+</presentation>
