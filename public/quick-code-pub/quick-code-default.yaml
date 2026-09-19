@@ -249,6 +249,21 @@ javascript:
 maxappxml:
   - name: "组件"
     childrens:
+      - name: 通用属性
+        childrens:
+          - name: sigoption签名
+            componentName: "sigoption"
+            remark: |
+                sigoption="签名选项" sigoptiondatasrc="签名数据源标识"
+            code: |
+                sigoption="ISMAXADMIN" sigoptiondatasrc="main_section"
+          - name: targetid目标标识
+            componentName: "targetid"
+            remark: |
+                targetid="main_section" 比如设置子表按钮调用APPBEAN方法/脚本,
+                设置其值为主表中的任意section的数据源标识(id)即可,设置MAINRECORD无效
+            code: |
+                targetid="main_section"
       - name: presentation组件
         childrens:
           - name: keyattribute属性

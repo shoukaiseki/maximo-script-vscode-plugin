@@ -1,0 +1,33 @@
+{
+  "autoscript": "DATABEAN.DESIGNER.CONDITIONS_SECURITY_TABLE",
+  "description": "应用程序设计器-配置条件属性",
+  "version": "1.0.7",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 1,
+  "variables": [
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "sks:varbindingvalue:remark": "应用中URL参数中的value=DESIGNER,应用名称转为大写",
+      "varbindingvalue": "DESIGNER",
+      "varname": "beanapp"
+    },
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "sks:varbindingvalue:remark": "通过日志 attempting to find databean script for <appName>~<bean.getId()> 查找设置正确的beanid",
+      "varbindingvalue": "conditions_security_Table",
+      "varname": "beanid"
+    }
+  ],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools"
+}
