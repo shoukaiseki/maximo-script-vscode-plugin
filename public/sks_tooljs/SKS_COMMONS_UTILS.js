@@ -24,7 +24,10 @@ var SimpleDateFormat = Java.type("java.text.SimpleDateFormat");
 var TimeZone = Java.type("java.util.TimeZone");
 
 /** @type {psdi.iface.mos.ConversionUtil} */
-ConversionUtil = Java.type("psdi.iface.mos.ConversionUtil");
+var ConversionUtil = Java.type("psdi.iface.mos.ConversionUtil");
+
+/** @type {psdi.util.MXMath} */
+var MXMath = Java.type("psdi.util.MXMath");
 
 /** @type {com.ibm.json.java.JSONArray} */
 var JSONArray = Java.type("com.ibm.json.java.JSONArray");
@@ -421,6 +424,40 @@ function parseDateString(dateStr) {
   } catch (e) { }
   //{ "msgGroup": "ibm_common", "msgKey": "canNotParseDate", "value": "无法解析日期: {0}", "displayMethod": "MSGBOX", "options": ["close"], "msgIdPrefix": "BMXAA", "msgIdSuffix": "W" }
   throw new MXApplicationException("ibm_common", "canNotParseDate"[dateStr]);
+}
+
+
+/**
+ * 调整总数量,因为某些情况下,使用sum后,被修改的行的mboset与sum的mboset不是同一个
+ *    这种情况下可以可以先sum正确的值,然后再调用这个方法进行调整
+ * 例如:PR.IBM_POLINETOTALQTY 根据POLINE.LINEQTY进行sum的情况下
+ * 
+  var sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+  sksCommonsUtils.adjustTotalDoubleByMbo(service,sumDouble, mbo, "TOTALCOST")
+ * 
+ * @param {com.ibm.tivoli.maximo.script.ScriptService} service - 服务对象
+ * @param {number} sumDouble
+ * @param {psdi.mbo.Mbo} mboTmp
+ * @param {java.lang.String} attrName
+ */
+function adjustTotalDoubleByMbo(service,sumDouble, mboTmp, attrName) {
+  if (!mboTmp.toBeDeleted() || !mboTmp.isNew()) {
+    var mbv = mboTmp.getMboValue(attrName);
+    if (mboTmp.toBeDeleted()) {
+      if (!mbv.isNull() && !mbv.getInitialValue().isNull()) {
+        sumDouble = MXMath.subtract(sumDouble, mbv.getInitialValue().asDouble());
+      }
+    } else if (mboTmp.isModified()) {
+      if (!mbv.getInitialValue().isNull()) {
+        sumDouble = MXMath.subtract(sumDouble, mbv.getInitialValue().asDouble());
+      }
+
+      if (!mbv.isNull()) {
+        sumDouble = MXMath.add(sumDouble, mbv.getDouble());
+      }
+    }
+  }
+  return sumDouble;
 }
 
 /**

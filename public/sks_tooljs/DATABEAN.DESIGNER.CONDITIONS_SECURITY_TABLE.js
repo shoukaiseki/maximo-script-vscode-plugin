@@ -85,7 +85,7 @@ function fastAddConditionDisplayProp(dbctx) {
   var condDataBean = appInstance.getDataBean("conditions_security_Table")
   var condMbo = condDataBean.getMbo()
   if (condMbo == null) {
-    dbctx.error("", "先选择条件行")
+    dbctx.error("", "先选择一个条件行")
   }
   var mboSetTrue = condMbo.getMboSet("CTRLCONDPROPTRUE")
   if (!ctrlcondSetHasProp(dbctx, mboSetTrue, "display")) {
