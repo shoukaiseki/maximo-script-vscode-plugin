@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_LOOKUP_API",
   "description": "maximo-manager-panel使用的接口",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

@@ -1,7 +1,7 @@
 {
   "autoscript": "DATABEAN.DESIGNER.CONDITIONS_SECURITY_TABLE",
   "description": "应用程序设计器-配置条件属性",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

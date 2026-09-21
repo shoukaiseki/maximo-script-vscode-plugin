@@ -62,7 +62,8 @@
 //                       (节点/操作/分配/通知/分配组)
 //                       子表记录可带 _delete:true —— 不看 syncFlag, 始终按业务键删除该条:
 //                       出线操作 wfactions.ACTIONID(连同其操作级通知) / 任务分配 wfassignment.ASSIGNID /
-//                       分配组 wfasgngroup.GROUPNUM / 通知 wfnotifications.UNIQUEID; 记录不存在时视为已删除(幂等)
+//                       分配组 wfasgngroup.GROUPNUM / 通知 wfnotifications.UNIQUEID; 记录不存在时视为已删除(幂等);
+//                       节点 wfnodes.NODEID 同样支持 _delete:true(框架级联删类型子表/出线/通知及其它节点连向它的出线)
 //
 // 导出的 JSON 结构, 可原样作为导入请求体(工作流 migration 模式导出时 actions/maxroles 在最前面):
 //   {
@@ -1283,6 +1284,10 @@ function rebuildConflictingNodes(processMbo, nodeDatas) {
       if (nodeId < 0) {
         continue;
       }
+      // 带 _delete 的节点由 saveOrUpdateNodes 负责删除, 不参与类型冲突重建
+      if (nodeData._delete === true) {
+        continue;
+      }
       var internalType = resolveNodeTypeInternal(nodeData.nodeType, processMbo);
       if (!internalType) {
         continue;
@@ -1333,6 +1338,20 @@ function saveOrUpdateNodes(processMbo, nodeDatas, index) {
       var nodeId = toInt(nodeData.nodeId, -1);
       if (nodeId < 0) {
         throw new MXApplicationException("#", "第 " + index + " 个工作流的第 " + (i + 1) + " 个节点缺少 nodeId");
+      }
+      // _delete: 删除该节点(不看 impMode/syncFlag, 与 actions/assignment 等子表的 _delete 契约一致)。
+      // 框架删除节点会级联删除类型子表/出线/通知, 以及其它节点连向它的出线。
+      if (nodeData._delete === true) {
+        /** @type {psdi.mbo.MboRemote} */
+        var delMbo = findMboByAttr(nodeSet, "NODEID", nodeId);
+        if (delMbo != null) {
+          delMbo.delete(NA);
+          logger.info("[" + scriptName + "] 节点 " + nodeId + " 带 _delete 标记, 已删除(类型子表/出线/通知随框架级联删除)");
+        } else {
+          logger.info("[" + scriptName + "] 节点 " + nodeId + " 带 _delete 标记但目标修订中不存在, 跳过");
+        }
+        keep[String(nodeId)] = true; // 已删除, 防 syncFlag 的 deleteMissing 重复处理
+        continue;
       }
       var internalType = resolveNodeTypeInternal(nodeData.nodeType, processMbo);
       if (!internalType) {
@@ -1576,7 +1595,8 @@ function saveOrUpdateWfActions(nodeMbo, actionDatas) {
       setStrValue(actionMbo, "ACTION", d.action);
       setStrValue(actionMbo, "CONDITION", d.condition);
       setStrValue(actionMbo, "CONDITIONCLASS", d.conditionClass);
-      setIntValue(actionMbo, "SEQUENCE", d.sequence);
+      // SEQUENCE: FldActionSeq 校验必须 > 0(否则 workflow#NotValidActionSeq), 0/空视为未设置
+      setIntValue(actionMbo, "SEQUENCE", d.sequence, true);
       setStrValue(actionMbo, "INSTRUCTION", d.instruction);
       saveOrUpdateNotifications(actionMbo, pickChild(d, WF_NOTIFICATIONS, WF_NOTIFICATIONS_LEGACY), false);
     }
@@ -1641,7 +1661,9 @@ function saveOrUpdateWfAssignments(nodeMbo, asgnDatas, nodeType) {
       setYornValue(asgnMbo, "CALENDARBASED", d.calendarBased);
       setYornValue(asgnMbo, "SEPARATEGROUPS", d.separateGroups);
       setYornValue(asgnMbo, "KEEPORIGASSGN", d.keepOrigAssgn);
-      setIntValue(asgnMbo, "GROUPNUM", d.groupNum);
+      // 分配组号: FldAsgnGroupNum 校验必须 > 0(0 会抛 workflow#GrpGtrZero),
+      // 界面/panel 里"未分组"用的是 0(或空), 因此 <=0 一律写成空值而不是 0
+      setGroupNumValue(asgnMbo, "GROUPNUM", d.groupNum);
       setStrValue(asgnMbo, "CONDITION", d.condition);
       setStrValue(asgnMbo, "CONDITIONCLASS", d.conditionClass);
       setStrValue(asgnMbo, "ACCEPTEXPR", d.acceptExpr);
@@ -1674,8 +1696,10 @@ function saveOrUpdateWfAsgnGroups(nodeMbo, groupDatas) {
     for (var i = 0; i < groupDatas.length; i++) {
       var d = groupDatas[i] || {};
       var groupNum = toInt(d.groupNum, -1);
-      if (groupNum < 0) {
-        throw new MXApplicationException("#", "节点 " + nodeMbo.getInt("NODEID") + " 的第 " + (i + 1) + " 个分配组缺少 groupNum");
+      if (groupNum <= 0) {
+        // 框架 FldAsgnGroupNum 只接受 >0 的组号
+        throw new MXApplicationException("#", "节点 " + nodeMbo.getInt("NODEID") + " 的第 " + (i + 1) +
+          " 个分配组的 groupNum 必须大于 0, 当前值: " + d.groupNum);
       }
       /** @type {psdi.mbo.MboRemote} */
       var groupMbo = findMboByAttr(groupSet, "GROUPNUM", groupNum);
@@ -2241,7 +2265,7 @@ function saveOrUpdateAction(data, index) {
           groupMbo = groupSet.add(NA);
           groupMbo.setValue("MEMBER", String(g.member).toUpperCase(), NA);
         }
-        setIntValue(groupMbo, "SEQUENCE", g.sequence);
+        setIntValue(groupMbo, "SEQUENCE", g.sequence, true);
       }
     }
 
@@ -2888,8 +2912,11 @@ function setYornValue(mbo, attr, val) {
   mbo.setValue(attr, val ? 1 : 0, NA);
 }
 
-/** 数值属性: 传入有效数字且与当前值不同时写入 */
-function setIntValue(mbo, attr, val) {
+/**
+ * 数值属性: 传入有效数字且与当前值不同时写入
+ * @param {boolean} [onlyPositive] true=只写 >0 的值(0/负视为"未设置", 跳过)
+ */
+function setIntValue(mbo, attr, val, onlyPositive) {
   if (val === undefined || val === null || val === "") {
     return;
   }
@@ -2897,8 +2924,39 @@ function setIntValue(mbo, attr, val) {
   if (num === null) {
     return;
   }
+  if (onlyPositive && num <= 0) {
+    return;
+  }
   try {
     // 空值不能直接比较(见 setYornValue): 列值为空而目标为 0 时仍需写入
+    if (!mbo.isNull(attr) && mbo.getInt(attr) === num) {
+      return;
+    }
+  } catch (ignored) { }
+  mbo.setValue(attr, num, NA);
+}
+
+/**
+ * 分配组号(GROUPNUM): FldAsgnGroupNum 校验必须 > 0, 0 会抛 workflow#GrpGtrZero。
+ * 界面里 0/空表示"未分组", 因此 <=0 时把字段写成空值(清空), 而不是写 0。
+ */
+function setGroupNumValue(mbo, attr, val) {
+  if (val === undefined || val === null || val === "") {
+    return;
+  }
+  var num = toInt(val, null);
+  if (num === null) {
+    return;
+  }
+  if (num <= 0) {
+    try {
+      if (!mbo.isNull(attr)) {
+        mbo.setValueNull(attr, NA);
+      }
+    } catch (ignored) { }
+    return;
+  }
+  try {
     if (!mbo.isNull(attr) && mbo.getInt(attr) === num) {
       return;
     }

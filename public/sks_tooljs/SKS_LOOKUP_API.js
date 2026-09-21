@@ -461,7 +461,7 @@ function loadAttributeInfo(objectname) {
     var mbo = set.count() > 0 ? set.moveFirst() : null;
     while (mbo) {
       /** @type {string} */
-      var attr = strValue(mbo.getString("ATTRIBUTE"));
+      var attr = strValue(mbo.getString("ATTRIBUTENAME"));
       if (attr) {
         info[attr.toUpperCase()] = {
           "description": getMboString(mbo, "DESCRIPTION"),

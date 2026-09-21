@@ -439,6 +439,7 @@ function parseDateString(dateStr) {
  * @param {number} sumDouble
  * @param {psdi.mbo.Mbo} mboTmp
  * @param {java.lang.String} attrName
+ * @returns {number}          调整后的总数量
  */
 function adjustTotalDoubleByMbo(service,sumDouble, mboTmp, attrName) {
   if (!mboTmp.toBeDeleted() || !mboTmp.isNew()) {
