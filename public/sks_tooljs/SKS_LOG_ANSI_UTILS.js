@@ -277,6 +277,7 @@ AnsiLogger.prototype.isTraceEnabled = function () {
 
 /**
  * 加载类,适用于 WebClientRuntime 等DataBean之类,在context才能获取到的脚本
+WebClientEvent = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.WebClientEvent")
  * @param {java.lang.Class} className 类名,需包含包名
  * @returns 
  */

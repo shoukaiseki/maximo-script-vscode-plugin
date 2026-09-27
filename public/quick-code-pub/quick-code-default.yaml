@@ -251,6 +251,12 @@ maxappxml:
     childrens:
       - name: 通用属性
         childrens:
+          - name: synchronous同步
+            componentName: "synchronous"
+            remark: |
+                synchronous="字段变更后是否同步请求后端接口,字段类action触发类型,true:同步,false:异步"
+            code: |
+                synchronous="true"
           - name: sigoption签名
             componentName: "sigoption"
             remark: |

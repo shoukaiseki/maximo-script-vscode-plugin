@@ -275,6 +275,8 @@ function doDeploy(requestData) {
   logger.info("[" + scriptName + "] 开始批量导入 " + conditionsArray.length + " 个条件");
 
   /** @type {Array} */
+  var resultSuccess = [];
+  /** @type {Array} */
   var resultFailed = [];
   var successCount = 0;
   var failedCount = 0;
@@ -285,6 +287,11 @@ function doDeploy(requestData) {
     try {
       saveOrUpdateCondition(condData, i + 1);
       successCount++;
+      resultSuccess.push({
+        conditionnum: condData.conditionnum || "未知",
+        status: "SUCCESS",
+        expression: condData.expression || ""
+      });
     } catch (error) {
       failedCount++;
       var messageTmp = error.message ? error.message : error.toString();
@@ -295,6 +302,7 @@ function doDeploy(requestData) {
       resultFailed.push({
         conditionnum: condData.conditionnum || "未知",
         status: "FAILED",
+        expression: condData.expression || "",
         message: messageTmp
       });
     }
@@ -312,6 +320,7 @@ function doDeploy(requestData) {
       success: successCount,
       failed: failedCount
     },
+    resultSuccess: resultSuccess,
     resultFailed: resultFailed,
   };
   return JSON.stringify(responseData, null, 4);

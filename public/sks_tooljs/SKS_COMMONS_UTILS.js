@@ -441,20 +441,26 @@ function parseDateString(dateStr) {
  * @param {java.lang.String} attrName
  * @returns {number}          调整后的总数量
  */
-function adjustTotalDoubleByMbo(service,sumDouble, mboTmp, attrName) {
-  if (!mboTmp.toBeDeleted() || !mboTmp.isNew()) {
+function adjustTotalDoubleByMbo(service, sumDouble, mboTmp, attrName) {
     var mbv = mboTmp.getMboValue(attrName);
+  logger.info("[" + scriptName + "] adjustTotalDoubleByMbo  mboTmp.toBeDeleted=" + mboTmp.toBeDeleted() + ",mboTmp.isNew=" + mboTmp.isNew() + ",mboTmp.isModified=" + mboTmp.isModified() + ",mv.isModified=" + mbv.isModified() + ",mv.isNull=" + mbv.isNull());
+  if (!mboTmp.toBeDeleted() || !mboTmp.isNew()) {
     if (mboTmp.toBeDeleted()) {
       if (!mbv.isNull() && !mbv.getInitialValue().isNull()) {
         sumDouble = MXMath.subtract(sumDouble, mbv.getInitialValue().asDouble());
+        if (logger.isInfoEnabled()) {
+          logger.info("[" + scriptName + "] adjustTotalDoubleByMbo  mboName=" + mboTmp.getName() + ",sumDouble -" + mbv.getInitialValue().asDouble());
+        }
       }
     } else if (mboTmp.isModified()) {
       if (!mbv.getInitialValue().isNull()) {
         sumDouble = MXMath.subtract(sumDouble, mbv.getInitialValue().asDouble());
+        logger.info("[" + scriptName + "] adjustTotalDoubleByMbo  mboName=" + mboTmp.getName() + ",sumDouble -" + mbv.getInitialValue().asDouble());
       }
 
       if (!mbv.isNull()) {
         sumDouble = MXMath.add(sumDouble, mbv.getDouble());
+        logger.info("[" + scriptName + "] adjustTotalDoubleByMbo  mboName=" + mboTmp.getName() + ",sumDouble +" + mbv.getInitialValue().asDouble());
       }
     }
   }
@@ -478,11 +484,11 @@ function autoMboSetValue(service, mbo, attributeName, value, accessModifier) {
     accessModifier = 2;
   }
   if (value == null || typeof value === "undefined") {
-    mbo.setValueNull(attributeName,accessModifier);
+    mbo.setValueNull(attributeName, accessModifier);
   } else {
     var valueType = getValueAutoType(service, mbo, attributeName);
     if (valueType == null) {
-      mbo.setValueNull(attributeName,value,accessModifier);
+      mbo.setValueNull(attributeName, value, accessModifier);
     } else {
       mbo.setValue(attributeName, value, accessModifier);
     }
