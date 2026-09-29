@@ -34,6 +34,9 @@ var JSONArray = Java.type("com.ibm.json.java.JSONArray");
 /** @type {com.ibm.json.java.OrderedJSONObject} */
 var OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
+/** @type {psdi.util.MaxType} */
+var MaxType = Java.type("psdi.util.MaxType");
+
 var scriptName = "SKS_COMMONS_UTILS"
 
 /** @type {psdi.util.logging.MaximoLogger} */
@@ -311,6 +314,13 @@ function getValueByMaxTypeDateTimeAutoZhcn(service, mbo, attrName) {
       return getMboTimeToString(service, mbo, attrName)
     }
   }
+  if(maxType==MaxType.LONGALN){
+    return getMboStringValue(service, mbo, attrName)
+
+  }
+  if(maxType==MaxType.BLOB||maxType==MaxType.CLOB){
+    return getMboStringValue(service, mbo, attrName)
+  }
 
   return getValueByMaxType(service, mbo, attrName);
 }
@@ -488,7 +498,7 @@ function autoMboSetValue(service, mbo, attributeName, value, accessModifier) {
   } else {
     var valueType = getValueAutoType(service, mbo, attributeName);
     if (valueType == null) {
-      mbo.setValueNull(attributeName, value, accessModifier);
+      mbo.setValueNull(attributeName, accessModifier);
     } else {
       mbo.setValue(attributeName, value, accessModifier);
     }
