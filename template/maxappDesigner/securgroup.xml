@@ -135,6 +135,7 @@
 							<pushbutton id="sigmain_buttons_1" label="对此应用程序列出的选项进行授权" mxevent="allsigoauthorized" sigoption="STANDARDAPP" sigoptiondatasrc="appls_app_table"/>
 						</buttongroup>
 						<tablebody displayrowsperpage="4" filterable="true" id="appls_sigmain_table_tablebody">
+							<tablecol dataattribute="OPTIONNAME" id="appls_sigmain_table_tablebody_0" inputmode="readonly"/>
 							<tablecol filterable="false" id="appls_sigmain_table_tablebody_1a" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
 							<tablecol dataattribute="description" id="appls_sigmain_table_tablebody_1" inputmode="readonly"/>
 							<tablecol dataattribute="authorized" id="appls_sigmain_table_tablebody_2" ondatachange="resetchildren" sortable="false">
@@ -147,7 +148,8 @@
 						<tabledetails id="appls_sigmain_table_tabledetails_1">
 							<section id="appls_sigmain_table_tabledetails_grid30" label="详细信息">
 								<sectionrow id="appls_sigmain_table_tabledetails_r1">
-									<textbox dataattribute="description" id="appls_sigmain_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<textbox dataattribute="OPTIONNAME" id="appls_sigmain_table_tabledetailsrow1_1" inputmode="readonly"/>
+									<textbox dataattribute="description" id="pbVGNWA5fokkkc7d" inputmode="readonly"/>
 									<checkbox dataattribute="authorized" id="appls_sigmain_table_tabledetailsrow1_2"/>
 									<multiparttextbox applink="condexpmgr" dataattribute="conditionnum" descdataattribute="condition.description" descinputmode="readonly" id="appls_sigmain_table_tabledetailsrow1_3" lookup="conditionexp" menutype="normal"/>
 									<textbox dataattribute="condition.type" id="appls_sigmain_table_tabledetailsrow1_4" inputmode="readonly"/>

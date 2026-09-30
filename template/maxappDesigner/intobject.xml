@@ -1,0 +1,872 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mif.doc,gp_intfrmwk/c_ctr_object_structures.html" beanclass="psdi.webclient.beans.intobject.IntObjectAppBean" id="intobject" mboname="MAXINTOBJECT" orderby="INTOBJECTNAME" resultstableid="results_showlist" version="7.1.0.0">
+	<page id="mainrec">
+		<include id="pageHeader"/>
+		<clientarea id="clientarea">
+			<tabgroup id="maintabs" style="form">
+				<tab default="true" id="results" label="列表" type="list">
+					<menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+					<table datasrc="results_showlist" id="results_showlist" inputmode="readonly" label="对象结构" mboname="MAXINTOBJECT" selectmode="multiple">
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+							<tablecol dataattribute="intobjectname" filterable="false" hidden="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="选择行 {0}" sortable="false" type="event"/>
+							<tablecol dataattribute="MAXINTOBJECTID" id="results_showlist_tablebody_2" mxevent="selectrecord" mxevent_desc="转到 %1" type="link" usefieldsizegroup="false"/>
+							<tablecol dataattribute="intobjectname" id="jmYdCoTJdcSeCmZQ" mxevent="selectrecord" mxevent_desc="转到 %1" type="link" usefieldsizegroup="false"/>
+							<tablecol dataattribute="description" id="results_showlist_tablebody_3"/>
+							<tablecol dataattribute="usewith" id="results_showlist_tablebody_4"/>
+							<tablecol dataattribute="internal" id="results_showlist_tablebody_5"/>
+							<tablecol filterable="false" hidden="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="添加到书签" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="main" label="对象结构" type="insert">
+					<section border="true" id="main_grid1">
+						<sectionrow id="intpoint_grid1a_2222">
+							<sectioncol id="intpoint_grid1a_1_2222">
+								<section id="intpoint_grid1a_1_1_grid1666">
+									<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="intpoint_grid1a_1_1_grid1_55"/>
+									<multiparttextbox dataattribute="usewith" descdataattribute="usewithdescription" id="intpoint_grid1a_1_1_grid1_88" lookup="valuelist"/>
+									<textbox dataattribute="app" id="intpoint_grid1a_1_1_grid1_44" lookup="maxapps" sigoption="SHOWRELATION"/>
+									<textbox dataattribute="authapp" id="intpoint_grid1a_1_1_grid1_5555" inputmode="readonly" sigoption="AUTHAPP"/>
+									<textbox dataattribute="defclass" id="intpoint_grid1a_1_1_grid1_333"/>
+									<textbox dataattribute="procclass" id="intpoint_grid1a_1_1_grid1_444"/>
+									<textbox dataattribute="searchattrs" id="intpoint_grid1a_1_1_grid1_445"/>
+									<textbox dataattribute="restrictwhere" id="intpoint_grid1a_1_1_grid1_447" lookup="simplecondition"/>
+									<textbox dataattribute="module" id="intpoint_grid1a_1_1_grid1_448" lookup="maxmodules"/>
+									<textbox dataattribute="autopagingthreshold" id="intpoint_grid1a_1_1_grid1_449"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="intpoint_grid1a_1_9993">
+								<section id="intpoint_grid1a_1_1_grid1888">
+									<checkbox dataattribute="primaryapi" id="intpoint_grid1a_1_1_grid1_557" inputmode="readonly"/>
+									<checkbox dataattribute="selfreferencing" id="intpoint_grid1a_1_1_grid1_222"/>
+									<checkbox dataattribute="completehierarchy" id="intpoint_grid1a_1_1_grid1_223"/>
+									<checkbox dataattribute="flatsupported" id="intpoint_grid1a_1_1_grid1_111"/>
+									<checkbox dataattribute="useforassistant" id="intpoint_grid1a_1_1_grid1_113"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="intpoint_grid1a_1_3332">
+								<section id="intpoint_grid1a_1_1_grid1777">
+									<checkbox dataattribute="userdefined" id="intpoint_grid1a_1_1_grid1_66"/>
+									<checkbox dataattribute="configurable" id="intpoint_grid1a_1_1_grid1_99"/>
+									<checkbox dataattribute="aliasconflict" id="intpoint_grid1a_1_1_grid1_555"/>
+									<checkbox dataattribute="loadqueryfromapp" id="intpoint_grid1a_1_1_grid1_112"/>
+									<checkbox dataattribute="internal" id="intpoint_grid1a_1_1_grid1_556" inputmode="readonly"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table id="main_struct_detail_table" label="{0} 的源对象" orderby="processorder asc" relationship="MAXINTOBJDETAIL" rowdetailsexpanded="false">
+						<sectionheader datasrc="MAINRECORD" id="main_struct_detail_table_sec1">
+							<paramvalues id="main_struct_detail_table_sec111111">
+								<paramvalue dataattribute="intobjectname" id="main_struct_detail_table_sec12222" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="10" id="main_struct_detail_table_tablebody">
+							<tablecol filterable="false" hidden="false" id="main_struct_detail_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="objectname" id="main_struct_detail_table_tablebody_2" linkedcontrolid="main_struct_detail_table_1_grid3_1" ondatachange="resetchildren"/>
+							<tablecol dataattribute="parentobjname" id="main_struct_detail_table_tablebody_10" linkedcontrolid="main_struct_detail_table_1_grid3_10"/>
+							<tablecol dataattribute="hierarchypath" id="main_struct_detail_table_tablebody_9" linkedcontrolid="main_struct_detail_table_1_grid3_9"/>
+							<tablecol dataattribute="relation" id="main_struct_detail_table_tablebody_4" linkedcontrolid="main_struct_detail_table_1_grid3_3"/>
+							<tablecol dataattribute="objectorder" id="main_struct_detail_table_tablebody_5" linkedcontrolid="main_struct_detail_table_1_grid3_4"/>
+							<tablecol dataattribute="userdefined" id="main_struct_detail_table_tablebody_7" linkedcontrolid="main_struct_detail_table_1_grid3_7"/>
+							<tablecol dataattribute="excludebydefault" id="main_struct_detail_table_tablebody_77" linkedcontrolid="main_struct_detail_table_1_grid3_77"/>
+							<tablecol filterable="false" hidden="false" id="main_struct_detail_table_tablebody_8" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="main_struct_detail_table_1">
+							<section id="main_grid1tttt1111" label="详细信息">
+								<sectionrow id="main_grid1tttt2222">
+									<sectioncol id="main_grid1tttt3333">
+										<section id="main_grid1tttt4444">
+											<textbox dataattribute="objectname" id="main_struct_detail_table_1_grid3_1" lookup="objectname"/>
+											<textbox dataattribute="parentobjname" id="main_struct_detail_table_1_grid3_10" menutype="SELECTPARENTOBJNAME"/>
+											<textbox dataattribute="hierarchypath" id="main_struct_detail_table_1_grid3_9"/>
+											<textbox dataattribute="description" id="main_struct_detail_table_1_grid3_11" sigoption="SHOWRELATION" sigoptiondatasrc="MAINRECORD"/>
+											<checkbox dataattribute="excludebydefault" id="main_struct_detail_table_1_grid3_77"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="main_grid1tttt2244">
+										<section id="main_grid1tttt6666">
+											<textbox dataattribute="relation" id="main_struct_detail_table_1_grid3_3" lookup="mborelation"/>
+											<textbox dataattribute="objectorder" id="main_struct_detail_table_1_grid3_4"/>
+											<textbox dataattribute="altkey" id="main_struct_detail_table_1_grid3_12" lookup="altkeyindexes"/>
+											<textbox dataattribute="relationcardinality" id="main_struct_detail_table_1_grid3_13" lookup="valuelist" sigoption="SHOWRELATION" sigoptiondatasrc="MAINRECORD"/>
+											<checkbox dataattribute="relationjoinrequired" id="main_struct_detail_table_1_grid3_14" sigoption="SHOWRELATION" sigoptiondatasrc="MAINRECORD"/>
+											<textbox dataattribute="licensenum" id="main_struct_detail_table_1_grid3_15"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="main_grid1tttt2255">
+										<section id="main_grid1tttt7777">
+											<checkbox dataattribute="userdefined" id="main_struct_detail_table_1_grid3_7"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="main_struct_detail_table_2">
+							<pushbutton default="true" id="main_struct_detail_table_2_2" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include id="pageFooter"/>
+	</page>
+
+	<dialog beanclass="psdi.webclient.system.beans.QbeBean" id="searchmore" inputmode="query" label="更多搜索字段">
+		<section id="qbe_grid2_1_1_grid3">
+			<sectionrow id="qbe_grid2_1_1_grid3_r1">
+				<sectioncol id="qbe_grid2_1_1_grid3_r1_c1">
+					<section id="qbe_grid2_1_1_grid3_r1_c1_s1">
+						<multiparttextbox dataattribute="INTOBJECTNAME" descdataattribute="description" descinputmode="query" id="qbe_grid2_1_1_grid3_1" inputmode="query"/>
+						<textbox dataattribute="usewith" id="qbe_grid2_1_1_grid3_6" inputmode="query" lookup="valuelist"/>
+						<textbox dataattribute="maxintobjdetail.objectname" id="qbe_grid2_1_1_grid3_4" inputmode="query" lookup="objectname"/>
+						<textbox dataattribute="module" id="qbe_grid2_1_1_grid3_8" inputmode="query" lookup="maxmodules"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_grid2_1_1_grid3_r1_c2">
+					<section id="qbe_grid2_1_1_grid3_r1_c2_s1">
+						<textbox dataattribute="userdefined" id="qbe_grid2_1_1_grid3_2" inputmode="query"/>
+						<textbox dataattribute="queryonly" id="qbe_grid2_1_1_grid3_3" inputmode="query"/>
+						<textbox dataattribute="primaryapi" id="qbe_grid2_1_1_grid3_7" inputmode="query"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="qbe_grid5_1_1_grid6">
+			<pushbutton default="true" id="qbe_grid5_1_1_grid6_1" label="查找" mxevent="dialogok"/>
+			<pushbutton id="qbe_grid5_1_1_grid6_2" label="清除" mxevent="qbeclear"/>
+			<pushbutton id="qbe_grid5_1_1_grid6_3" label="取消" mxevent="qbecancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="alias" label="添加/修改别名" savemode="ONLOADUNLOAD">
+		<section border="true" id="alias_grid1a_1_1_grid1">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="alias_grid1a_1_1_grid1_1"/>
+		</section>
+		<table id="alias_grid1a_1_1_struct_detail_table2" label="{0} 的源对象" relationship="MAXINTOBJDETAIL">
+			<sectionheader datasrc="MAINRECORD" id="alias_grid1a_1_1_struct_detail_table2111">
+				<paramvalues id="alias_grid1a_1_1_struct_detail_table2211">
+					<paramvalue dataattribute="intobjectname" id="alias_grid1a_1_1_struct_detail_table2311" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" id="alias_grid1a_1_1_struct_detail_table2_tablebody">
+				<tablecol dataattribute="objectname" id="alias_grid1a_1_1_struct_detail_table2_tablebody_1"/>
+				<tablecol dataattribute="parentobjname" id="alias_grid1a_1_1_struct_detail_table2_tablebody_2"/>
+				<tablecol dataattribute="relation" id="alias_grid1a_1_1_struct_detail_table2_tablebody_3"/>
+				<tablecol dataattribute="hierarchypath" id="alias_grid1a_1_1_struct_detail_table2_tablebody_4"/>
+			</tablebody>
+		</table>
+		<table filterable="false" id="alias_grid1a_1_1_settingrestriction_table" label="对象{0}别名设置" parentdatasrc="alias_grid1a_1_1_struct_detail_table2" relationship="ALIASNP">
+			<sectionheader datasrc="alias_grid1a_1_1_struct_detail_table2" id="alias_grid1a_1_1_settingrestriction_table111">
+				<paramvalues id="alias_grid1a_1_1_settingrestriction_table222">
+					<paramvalue dataattribute="objectname" id="alias_grid1a_1_1_settingrestriction_table333" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="alias_grid1a_1_1_settingrestriction_table_tablebody">
+				<tablecol filterable="true" hidden="false" id="alias_grid1a_1_1_settingrestriction_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="columnname" filterable="true" id="alias_grid1a_1_1_settingrestriction_table_tablebody_2" inputmode="readonly" linkedcontrolid="alias_grid1a_1_1_settingrestriction_table_1_grid4_2" showfilterfield="true" sortable="false"/>
+				<tablecol dataattribute="aliasname" id="alias_grid1a_1_1_settingrestriction_table_tablebody_4" linkedcontrolid="alias_grid1a_1_1_settingrestriction_table_1_grid4_3" sortable="false"/>
+				<tablecol dataattribute="duplicate" id="alias_grid1a_1_1_settingrestriction_table_tablebody_3" inputmode="readonly" linkedcontrolid="alias_grid1a_1_1_settingrestriction_table_1_grid4_1" sortable="false"/>
+			</tablebody>
+			<tabledetails id="alias_grid1a_1_1_settingrestriction_table_1">
+				<section border="false" id="alias_grid1a_1_1_settingrestriction_table_1_grid4" label="详细信息">
+					<textbox dataattribute="columnname" id="alias_grid1a_1_1_settingrestriction_table_1_grid4_2" inputmode="readonly"/>
+					<textbox dataattribute="aliasname" id="alias_grid1a_1_1_settingrestriction_table_1_grid4_3"/>
+					<checkbox dataattribute="duplicate" id="alias_grid1a_1_1_settingrestriction_table_1_grid4_1" inputmode="readonly"/>
+				</section>
+			</tabledetails>
+		</table>
+		<buttongroup id="alias_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="alias_grid1a_1_1_buttongrid1_1" label="确定" mxevent="dialogok" value="handleAliasNP"/>
+			<pushbutton id="alias_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="coldef" label="排除/包含字段" savemode="ONLOADUNLOAD">
+		<section border="true" id="coldef_grid1a_1_1_grid1">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="coldef_grid1a_1_1_grid1_1"/>
+		</section>
+		<table id="coldef_grid1a_1_1_struct_detail_table2" label="{0} 的源对象" relationship="DISTINCTOBJDETAIL">
+			<sectionheader datasrc="MAINRECORD" id="coldef_grid1a_1_1_struct_detail_table2111">
+				<paramvalues id="coldef_grid1a_1_1_struct_detail_table2211">
+					<paramvalue dataattribute="intobjectname" id="coldef_grid1a_1_1_struct_detail_table2311" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" id="coldef_grid1a_1_1_struct_detail_table2_tablebody">
+				<tablecol dataattribute="objectname" id="coldef_grid1a_1_1_struct_detail_table2_tablebody_1"/>
+				<tablecol dataattribute="excludebydefault" id="coldef_grid1a_1_1_struct_detail_table2_tablebody_122"/>
+			</tablebody>
+		</table>
+		<tabgroup id="main_details">
+			<tab default="true" id="main_details_restrictstruct" label="持久字段">
+				<table filterable="true" id="main_details_restrictstruct_restrictstruct_table" label="源对象{0} 中不包含的持久字段" parentdatasrc="coldef_grid1a_1_1_struct_detail_table2" parentemptylabel="排除字段" relationship="EXCLUDENP" sigoption="EXCLUDE" sigoptiondatasrc="coldef_grid1a_1_1_struct_detail_table2">
+					<sectionheader datasrc="coldef_grid1a_1_1_struct_detail_table2" id="main_deta_restri_restr_table_sec1">
+						<paramvalues id="main_deta_restri_restr_table_sec111111">
+							<paramvalue dataattribute="objectname" id="main_deta_restri_restr_table_sec1_1" position="0"/>
+						</paramvalues>
+					</sectionheader>
+					<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="main_details_restrictstruct_restrictstruct_table_tablebody">
+						<tablecol filterable="true" hidden="false" id="main_details_restrictstruct_restrictstruct_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+						<tablecol dataattribute="tbname" id="coldef_grid1a_1_1_struct_detail_table2_tablebody_2" inputmode="readonly"/>
+						<tablecol dataattribute="columnname" filterable="true" id="main_details_restrictstruct_restrictstruct_table_tablebody_2" inputmode="readonly" showfilterfield="true" sortable="false"/>
+						<tablecol dataattribute="MAXATTRIBUTECFG.TITLE" id="IvHHaKCnJChsUHwg" inputmode="readonly"/>
+						<tablecol dataattribute="ischosen" id="main_details_restrictstruct_restrictstruct_table_tablebody_31" label="排除" linkedcontrolid="main_details_restrictstruct_restrictstruct_table_1_grid4_11" sortable="false"/>
+					</tablebody>
+					<tabledetails id="main_details_restrictstruct_restrictstruct_table_1">
+						<section border="false" id="main_details_restrictstruct_restrictstruct_table_1_grid4" label="详细信息">
+							<sectionrow id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1">
+								<sectioncol id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col1">
+									<section id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col1_sec1">
+										<textbox dataattribute="columnname" id="main_details_restrictstruct_restrictstruct_table_1_grid4_2" inputmode="readonly"/>
+										<textbox dataattribute="MAXATTRIBUTECFG.REMARKS" id="COlWy0rEQCgSY9v3" inputmode="readonly"/>
+									</section>
+								</sectioncol>
+								<sectioncol id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col2">
+									<section id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col2_sec1">
+										<checkbox dataattribute="ischosen" id="main_details_restrictstruct_restrictstruct_table_1_grid4_11" label="排除"/>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</section>
+					</tabledetails>
+				</table>
+				<table filterable="false" id="main_details_restrictstruct_restrictstruct_table_include" label="从源对象 {0} 包含的持久字段" parentdatasrc="coldef_grid1a_1_1_struct_detail_table2" parentemptylabel="包含字段" relationship="EXCLUDENP" sigoption="INCLUDE" sigoptiondatasrc="coldef_grid1a_1_1_struct_detail_table2">
+					<sectionheader datasrc="coldef_grid1a_1_1_struct_detail_table2" id="main_deta_restri_restr_table_sec1_include">
+						<paramvalues id="main_deta_restri_restr_table_sec111111_include">
+							<paramvalue dataattribute="objectname" id="main_deta_restri_restr_table_sec1_1_include" position="0"/>
+						</paramvalues>
+					</sectionheader>
+					<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="main_details_restrictstruct_restrictstruct_table_tablebody_include">
+						<tablecol filterable="true" hidden="false" id="main_details_restrictstruct_restrictstruct_table_tablebody_1_include" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+						<tablecol dataattribute="tbname" id="uZN6byW7YhwmDndv" inputmode="readonly"/>
+						<tablecol dataattribute="columnname" filterable="true" id="main_details_restrictstruct_restrictstruct_table_tablebody_2_include" inputmode="readonly" showfilterfield="true" sortable="false"/>
+						<tablecol dataattribute="MAXATTRIBUTECFG.TITLE" id="main_details_nonpersitent_nonpersitent_table_1_grid4_33" inputmode="readonly"/>
+						<tablecol dataattribute="ischosen" id="main_details_restrictstruct_restrictstruct_table_tablebody_32" label="包含" linkedcontrolid="main_details_restrictstruct_restrictstruct_table_1_grid4_12_include" sortable="false"/>
+					</tablebody>
+					<tabledetails id="main_details_restrictstruct_restrictstruct_table_1_include">
+						<section border="false" id="main_details_restrictstruct_restrictstruct_table_1_grid4_include" label="详细信息">
+							<sectionrow id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_include">
+								<sectioncol id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col1_include">
+									<section id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col1_sec1_include">
+										<textbox dataattribute="columnname" id="main_details_restrictstruct_restrictstruct_table_1_grid4_2_include" inputmode="readonly"/>
+										<textbox dataattribute="MAXATTRIBUTECFG.REMARKS" id="kYQla1WlgUmCL9bV" inputmode="readonly"/>
+									</section>
+								</sectioncol>
+								<sectioncol id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col2_include">
+									<section id="main_details_restrictstruct_restrictstruct_table_1_grid4_row1_col2_sec1_include">
+										<checkbox dataattribute="ischosen" id="main_details_restrictstruct_restrictstruct_table_1_grid4_12_include" label="包含"/>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</section>
+					</tabledetails>
+				</table>
+			</tab>
+			<tab id="main_details_nonpersitent" label="非持久字段">
+				<table filterable="false" id="main_details_nonpersitent_nonpersitent_table" label="从源对象 {0} 包括的非持久字段" parentdatasrc="coldef_grid1a_1_1_struct_detail_table2" parentemptylabel="非持久字段" relationship="NONPERSISTENTNP">
+					<sectionheader datasrc="coldef_grid1a_1_1_struct_detail_table2" id="main_details_nonpe_nonp_table_sec1">
+						<paramvalues id="main_details_nonpe_nonp_table_sec111111">
+							<paramvalue dataattribute="objectname" id="main_details_nonpe_nonp_table_sec122222" position="0"/>
+						</paramvalues>
+					</sectionheader>
+					<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="main_details_nonpersitent_nonpersitent_table_tablebody">
+						<tablecol filterable="true" hidden="false" id="main_details_nonpersitent_nonpersitent_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+						<tablecol dataattribute="OBJECTID" id="9MWGEjKtnUX3faEb" inputmode="readonly"/>
+						<tablecol dataattribute="columnname" filterable="true" id="main_details_nonpersitent_nonpersitent_table_tablebody_2" inputmode="readonly" showfilterfield="true" sortable="false"/>
+						<tablecol dataattribute="MAXATTRIBUTECFG.TITLE" id="Us9sBRzKQZ6XfgxB" inputmode="readonly"/>
+						<tablecol dataattribute="ischosen" id="main_details_nonpersitent_nonpersitent_table_tablebody_3" label="包含" linkedcontrolid="main_details_nonpersitent_nonpersitent_table_1_grid4_1" sortable="false"/>
+					</tablebody>
+					<tabledetails id="main_details_nonpersitent_nonpersitent_table_1">
+						<section border="false" id="main_details_nonpersitent_nonpersitent_table_1_grid4" label="详细信息">
+							<sectionrow id="main_details_nonpersitent_nonpersitent_table_1_grid4_row1">
+								<sectioncol id="main_details_nonpersitent_nonpersitent_table_1_grid4_row1_col1">
+									<section id="main_details_nonpersitent_nonpersitent_table_1_grid4_row1_col1_sec1">
+										<textbox dataattribute="columnname" id="8BHwCRYl1Ulv0H8z" inputmode="readonly"/>
+										<textbox dataattribute="MAXATTRIBUTECFG.REMARKS" id="U1R58GQ2oBwbK3an" inputmode="readonly"/>
+									</section>
+								</sectioncol>
+								<sectioncol id="main_details_nonpersitent_nonpersitent_table_1_grid4_row1_col2">
+									<section id="main_details_nonpersitent_nonpersitent_table_1_grid4_row1_col2_sec1">
+										<checkbox dataattribute="ischosen" id="main_details_nonpersitent_nonpersitent_table_1_grid4_1" label="包含"/>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</section>
+					</tabledetails>
+				</table>
+			</tab>
+		</tabgroup>
+		<buttongroup id="coldef_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="coldef_grid1a_1_1_buttongrid1_1" label="确定" mxevent="dialogok" value="handleIncludeExcludeNP"/>
+			<pushbutton id="coldef_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="advance" label="高级配置" savemode="ONLOADUNLOAD">
+		<section border="true" id="advance_grid1a_1_1_grid1">
+			<sectionrow id="advance_grid1_row1">
+				<sectioncol id="advance_grid1_row1_col1">
+					<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="advance_grid1a_1_1_grid1_1"/>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<table id="advance_grid1a_1_1_struct_detail_table2" label="{0} 的源对象" relationship="DISTINCTOBJDETAIL">
+			<sectionheader datasrc="MAINRECORD" id="advance_grid1a_1_1_struct_detail_table2111">
+				<paramvalues id="advance_grid1a_1_1_struct_detail_table2211">
+					<paramvalue dataattribute="intobjectname" id="advance_grid1a_1_1_struct_detail_table2311" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" id="advance_grid1a_1_1_struct_detail_table2_tablebody">
+				<tablecol dataattribute="objectname" id="advance_grid1a_1_1_struct_detail_table2_tablebody_1"/>
+				<tablecol dataattribute="excludeparentkey" id="advance_grid1a_1_1_struct_detail_table2_tablebody_2"/>
+				<tablecol dataattribute="deleteoncreate" id="advance_grid1a_1_1_struct_detail_table2_tablebody_3" synchronous="true"/>
+				<tablecol dataattribute="skipkeyupdate" id="advance_grid1a_1_1_struct_detail_table2_tablebody_4"/>
+				<tablecol dataattribute="skipdeleteonreplace" id="advance_grid1a_1_1_struct_detail_table2_tablebody_41"/>
+				<tablecol dataattribute="propagateevent" id="advance_grid1a_1_1_struct_detail_table2_tablebody_5" sigoption="AUTHAPP" sigoptiondatasrc="MAINRECORD"/>
+				<tablecol dataattribute="invokeexecute" id="advance_grid1a_1_1_struct_detail_table2_tablebody_6"/>
+				<tablecol dataattribute="fdresource" id="advance_grid1a_1_1_struct_detail_table2_tablebody_7"/>
+			</tablebody>
+		</table>
+		<buttongroup id="advance_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="advance_grid1a_1_1_buttongrid1_1" label="正常" mxevent="dialogok" value="handleAdvanceCfg"/>
+			<pushbutton id="advance_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="showrelation" label="显示关联">
+		<table id="showrelation_StructRelationTbl" relationship="MAXRELATIONSHIP" selectmode="multiple">
+			<tablebody displayrowsperpage="20" filterable="false" id="showrelation_StructRelationTbl_tablebody">
+				<tablecol filterable="false" hidden="false" id="showrelation_StructRelationTbl_tablebody_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+				<tablecol dataattribute="child" id="showrelation_StructRelationTbl_tablebody_2" sortable="false"/>
+				<tablecol dataattribute="parent" id="showrelation_StructRelationTbl_tablebody_3" sortable="false"/>
+				<tablecol dataattribute="name" id="showrelation_StructRelationTbl_tablebody_4" sortable="false"/>
+				<tablecol dataattribute="whereclause" id="showrelation_StructRelationTbl_tablebody_5" sortable="false"/>
+			</tablebody>
+		</table>
+		<buttongroup id="showrelation_2">
+			<pushbutton default="true" id="showrelation_2_1" label="确定" mxevent="dialogok" value="handleShowRelation"/>
+			<pushbutton id="showrelation_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="main_struct_detail_table" id="select_parentobjid" label="选择字段">
+		<section id="reltree">
+			<tree beanclass="psdi.webclient.beans.intobject.ParentObjectNameTreeBean" height="300" id="selectparentobjid1" usedatasrc="true" width="250">
+				<treenode displaykeyattribute="false" displayobjectname="false" id="reltree11_node1" keyattribute="maxintobjdetailid">
+					<treeattribute dataattribute="objectname" display="true" id="reltree11_node1_attr1"/>
+				</treenode>
+			</tree>
+		</section>
+		<buttongroup id="buttons">
+			<pushbutton default="true" id="tree2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="main_struct_detail_table" id="select_parenthier" label="选择字段">
+		<section id="reltreepath">
+			<tree beanclass="psdi.webclient.beans.intobject.ParentObjectNameTreeBean" height="300" id="selectparenhierpath1" usedatasrc="true" width="250">
+				<treenode displaykeyattribute="false" displayobjectname="false" id="reltree11_hier_node1" keyattribute="maxintobjdetailid">
+					<treeattribute dataattribute="hierarchypath" display="true" id="reltree11_hiear_node1_attr1"/>
+				</treenode>
+			</tree>
+		</section>
+		<buttongroup id="buttonshier">
+			<pushbutton default="true" id="tree2_2_hier" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="viewxml" label="查看 XML">
+		<section border="true" id="viewxml_grid1_1_1_grid1">
+			<sectionrow id="viewxml_grid1_row1">
+				<sectioncol id="viewxml_grid1_row1_col1">
+					<section id="viewxml_grid1_row1_col1_sec1">
+						<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="viewxml_grid1_1_1_grid1_1" inputmode="readonly"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="viewxml_grid1_row1_col3">
+					<section id="viewxml_grid1_row1_col2_sec3">
+						<textbox dataattribute="messagetype" id="viewxml_grid1_1_1_grid1_3" lookup="alndomain"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<section border="true" id="viewxml_grid1b">
+			<sectionrow id="viewxml_grid1b_row1">
+				<sectioncol id="viewxml_grid1b_row1_col1">
+					<section id="viewxml_grid1_row1b_col1_sec1" label="XML">
+						<multilinetextbox columns="42" dataattribute="xmldata" id="viewxml_grid1b_1_1_grid1_1" label="&gt;" rows="15"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="viewxml_grid1_row1b_col2">
+					<section id="viewxml_grid1_row1b_col2_sec2" label="响应 XML">
+						<multilinetextbox columns="42" dataattribute="responsexml" id="viewxml_grid1b_1_1_grid1_2" label="&gt;" rows="15"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="viewxml_2">
+			<pushbutton default="true" id="viewxml_2_2" label="确定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" id="searchbook" label="我的书签" mboname="MAXINTOBJECT">
+		<table id="bookmarks_table" inputmode="readonly" label="集成对象" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" id="bookmarks_table_tablebody">
+				<tablecol dataattribute="intobjectname" id="bookmarks_tablebody_1" mxevent="selectrecord" type="link"/>
+				<tablecol dataattribute="description" id="bookmarks_table_tablebody_2"/>
+				<tablecol filterable="false" hidden="false" id="bookmarks_table_tablebody_delete" mxevent="instantdelete" mxevent_desc="删除" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<buttongroup id="bookmarks_2">
+			<pushbutton default="true" id="bookmarks_2_1" label="确定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" hidehelp="true" id="colsconfig" label="入站设置限制" savemode="ONLOADUNLOAD">
+		<section border="true" id="ressetting_grid1a_1_1_grid1">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="ressetting_grid1a_1_1_grid1_1"/>
+		</section>
+		<table id="ressetting_grid1a_1_1_struct_detail_table2" label="{0} 的源 MBO" relationship="DISTINCTOBJDETAIL">
+			<sectionheader datasrc="MAINRECORD" id="resset_grid1a_1_1_struct_detail_table2111">
+				<paramvalues id="resset_grid1a_1_1_struct_detail_table2211">
+					<paramvalue dataattribute="intobjectname" id="resset_grid1a_1_1_struct_detail_table2311" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" id="ressetting_grid1a_1_1_struct_detail_table2_tablebody">
+				<tablecol dataattribute="objectname" id="ressetting_grid1a_1_1_struct_detail_table2_tablebody_1"/>
+			</tablebody>
+		</table>
+		<table id="ressetting_grid1a_1_1_settingrestriction_table" label="MBO {0} 的入站设置限制" parentdatasrc="ressetting_grid1a_1_1_struct_detail_table2" relationship="RESSETTINGNP">
+			<sectionheader datasrc="ressetting_grid1a_1_1_struct_detail_table2" id="ressetting_grid1a_1_1_settingrestriction_table111">
+				<paramvalues id="ressetting_grid1a_1_1_settingrestriction_table222">
+					<paramvalue dataattribute="objectname" id="ressetting_grid1a_1_1_settingrestriction_table333" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="ressetting_grid1a_1_1_settingrestriction_table_tablebody">
+				<tablecol filterable="true" hidden="false" id="ressetting_grid1a_1_1_settingrestriction_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="columnname" filterable="true" id="ressetting_grid1a_1_1_settingrestriction_table_tablebody_2" inputmode="readonly" linkedcontrolid="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_2" showfilterfield="true" sortable="false"/>
+				<tablecol dataattribute="ischosen" id="ressetting_grid1a_1_1_settingrestriction_table_tablebody_3" linkedcontrolid="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_1" sortable="false"/>
+				<tablecol dataattribute="override" id="ressetting_grid1a_1_1_settingrestriction_table_tablebody_4" linkedcontrolid="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_3" sortable="false"/>
+			</tablebody>
+			<tabledetails id="ressetting_grid1a_1_1_settingrestriction_table_1">
+				<section border="false" id="ressetting_grid1a_1_1_settingrestriction_table_1_grid4" label="详细信息">
+					<textbox dataattribute="columnname" id="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_2" inputmode="readonly"/>
+					<checkbox dataattribute="ischosen" id="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_1"/>
+					<checkbox dataattribute="override" id="ressetting_grid1a_1_1_settingrestriction_table_1_grid4_3"/>
+				</section>
+			</tabledetails>
+		</table>
+		<buttongroup id="ressetting_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="ressetting_grid1a_1_1_buttongrid1_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="ressetting_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" hidehelp="true" id="appexport" label="添加/修改应用程序导出支持" savemode="ONLOADUNLOAD">
+		<section border="true" id="appexport_grid1a_1_1_grid1">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="appexport_grid1a_1_1_grid1_1_1_1"/>
+		</section>
+		<table id="appexport_grid1a_1_1_export_table" label="应用程序导出支持" relationship="MAXINTOBJAPPEXPORT">
+			<tablebody displayrowsperpage="10" id="appexport_grid1a_1_1_export_table_tablebody">
+				<tablecol filterable="false" hidden="false" id="appexport_grid1a_1_1_export_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="app" id="appexport_grid1a_1_1_export_table_tablebody_2" lookup="maxapps"/>
+				<tablecol dataattribute="maxapps.description" id="appexport_grid1a_1_1_export_table_tablebody_5" inputmode="readonly"/>
+				<tablecol dataattribute="maxcount" id="appexport_grid1a_1_1_export_table_tablebody_3"/>
+				<tablecol dataattribute="isdefault" id="appexport_grid1a_1_1_export_table_tablebody_4"/>
+				<tablecol filterable="false" id="appexport_grid1a_1_1_export_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="appexport_grid1a_1_1_export_table_1">
+				<section border="false" id="appexport_grid1a_1_1_export_table_1_grid4" label="详细信息">
+					<sectionrow id="appexport_grid1a_1_1_export_table_grid1_1">
+						<sectioncol id="appexport_grid1a_1_1_export_table_grid1_1_1">
+							<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="appexport_grid1a_1_1_export_table_1_grid4_1" lookup="maxapps" ondatachange="resetchildren"/>
+							<radiobuttongroup border="false" dataattribute="filetype" id="appexport_grid1a_1_1_export_table_1_grid4_type" label="缺省文件类型">
+								<radiobutton id="appexport_grid1a_1_1_export_table_1_grid4_type_1" label="XML 文件" value="XML"/>
+								<radiobutton id="appexport_grid1a_1_1_export_table_1_grid4_type_3" label="JSON 文件" value="JSON"/>
+								<radiobutton id="appexport_grid1a_1_1_export_table_1_grid4_type_2" label="纯文本文件" value="FLAT"/>
+							</radiobuttongroup>
+						</sectioncol>
+						<sectioncol id="appexport_grid1a_1_1_export_table_grid2_1_1">
+							<textbox dataattribute="maxcount" id="appexport_grid1a_1_1_export_table_1_grid2_2"/>
+							<checkbox dataattribute="isdefault" id="appexport_grid2a_1_1_export_table_1_grid3_3"/>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="appexport_details_value_valuedet_table1_buttongroup1">
+				<pushbutton default="true" id="appexport_details_value_valuedet_table1_buttongroup1_button1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="appexport_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="appexport_grid1a_1_1_buttongrid1_1" label="正常" mxevent="dialogok"/>
+			<pushbutton id="appexport_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" hidehelp="true" id="appimport" label="添加/修改应用程序导入支持" savemode="ONLOADUNLOAD">
+		<section border="true" id="appimport_grid1a_1_1_grid1">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" id="appimport_grid1a_1_1_grid1_1_1_1"/>
+		</section>
+		<table id="appimport_grid1a_1_1_export_table" label="应用程序导入支持" relationship="MAXINTOBJAPPIMPORT">
+			<tablebody displayrowsperpage="10" id="appimport_grid1a_1_1_export_table_tablebody">
+				<tablecol filterable="false" hidden="false" id="appimport_grid1a_1_1_export_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="app" id="appimport_grid1a_1_1_export_table_tablebody_2" linkedcontrolid="appimport_grid1a_1_1_export_table_1_grid4_1" lookup="maxapps"/>
+				<tablecol dataattribute="maxcount" id="appimport_grid1a_1_1_export_table_tablebody_3" linkedcontrolid="appimport_grid1a_1_1_export_table_1_grid4_2"/>
+				<tablecol dataattribute="isdefault" id="appimport_grid1a_1_1_export_table_tablebody_4" linkedcontrolid="appimport_grid2a_1_1_export_table_1_grid4_3"/>
+				<tablecol filterable="false" id="appimport_grid1a_1_1_export_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="appimport_grid1a_1_1_export_table_1">
+				<section border="false" id="appimport_grid1a_1_1_export_table_1_grid4" label="详细信息">
+					<sectionrow id="appimport_grid1a_1_1_export_table_grid1_1">
+						<sectioncol id="appimport_grid1a_1_1_export_table_grid1_1_1">
+							<multiparttextbox dataattribute="app" descdataattribute="maxapps.description" descinputmode="readonly" id="appimport_grid1a_1_1_export_table_1_grid4_1" lookup="maxapps"/>
+							<radiobuttongroup border="false" dataattribute="filetype" id="appimport_grid1a_1_1_export_table_1_grid4_type" label="缺省文件类型">
+								<radiobutton id="appimport_grid1a_1_1_export_table_1_grid4_type_1" label="XML 文件" value="XML"/>
+								<radiobutton id="appimport_grid1a_1_1_export_table_1_grid4_type_3" label="JSON 文件" value="JSON"/>
+								<radiobutton id="appimport_grid1a_1_1_export_table_1_grid4_type_2" label="纯文本文件" value="FLAT"/>
+							</radiobuttongroup>
+						</sectioncol>
+						<sectioncol id="appimport_grid1a_1_1_export_table_grid2_1_1">
+							<textbox dataattribute="maxcount" id="appimport_grid1a_1_1_export_table_1_grid2_2"/>
+							<checkbox dataattribute="isdefault" id="appimport_grid2a_1_1_export_table_1_grid3_3"/>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="appimport_details_value_valuedet_table1_buttongroup1">
+				<pushbutton default="true" id="appimport_details_value_valuedet_table1_buttongroup1_button1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="appimport_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="appimport_grid1a_1_1_buttongrid1_1" label="正常" mxevent="dialogok"/>
+			<pushbutton id="appimport_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="objappauth" label="对象的应用程序授权" mboname="OBJECTAPPAUTH">
+		<section id="main_help_objectappauthl_section111">
+			<sectionrow id="main_help_objectappauth111_grid0_row1">
+				<sectioncol id="main_help_objectappauth111_grid0_row1_col1">
+					<helpgrid id="main_help_objectappauth_help" innerhtml="请为每个要通过 REST API 访问的对象资源指定可授权此权限的应用程序。"/>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<table id="objectappauth_grid1a_1_1_struct_detail_table2" label="对象的应用程序授权">
+			<tablebody displayrowsperpage="10" id="objectappauth_grid1a_1_1_table_tablebody">
+				<tablecol filterable="false" hidden="false" id="objectappauth_grid1a_1_1_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="context" id="objectappauth_grid1a_1_1_table_tablebody_2" linkedcontrolid="objectappauth_grid1a_1_1_table_1_grid4_1"/>
+				<tablecol dataattribute="objectname" id="objectappauth_grid1a_1_1_table_tablebody_3" linkedcontrolid="objectappauth_grid1a_1_1_sub1_table_1_grid2_2" lookup="objectname"/>
+				<tablecol dataattribute="authapp" id="objectappauth_grid1a_1_1_table_tablebody_4" linkedcontrolid="objectappauth_grid1a_1_1_sub1_table_1_grid2_3" lookup="maxapps"/>
+				<tablecol filterable="false" id="objectappauth_grid1a_1_1_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="objectappauth_grid1a_1_1_table_1">
+				<section border="false" id="objectappauth_grid1a_1_1_table_1_grid4" label="详细信息">
+					<sectionrow id="objectappauth_grid1a_1_1_table_grid1_1">
+						<sectioncol id="objectappauth_grid1a_1_1_table_grid1_1_1">
+							<section id="objectappauth_grid1a_1_1_sub_table_1_grid4">
+								<multiparttextbox dataattribute="context" descdataattribute="description" id="objectappauth_grid1a_1_1_table_1_grid4_1"/>
+								<textbox dataattribute="objectname" id="objectappauth_grid1a_1_1_sub1_table_1_grid2_2" lookup="objectname"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="objectappauth2_grid1a3_1_1_table_grid2_1_1">
+							<section id="objectappauth2_grid1a_13_1_sub1_table_1_grid4">
+								<textbox dataattribute="authapp" id="objectappauth_grid1a_1_1_sub1_table_1_grid2_3" lookup="maxapps"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="objectappauth_value_valuedet_table1_buttongroup1">
+				<pushbutton default="true" id="objectappauth_value_valuedet_table1_buttongroup1_button1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="objectappauth_grid1a_1_1_buttongrid1">
+			<pushbutton default="true" id="objectappauth_grid1a_1_1_buttongrid1_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="objectappauth_2_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.intobject.SigOptionBean" datasrc="MAINRECORD" id="addosauth" label="配置对象结构安全性">
+		<section border="true" id="addmodsig_0">
+			<sectionrow id="addosapp_grid1_row1">
+				<sectioncol id="addosapp_grid1_row1_col1">
+					<section id="addosapp_grid1_row1_col1_sec1">
+						<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="addmodsig_0_1" inputmode="readonly"/>
+						<multiparttextbox dataattribute="authapp" descdataattribute="authapp.description" descinputmode="readonly" id="addmodsig_0_2" lookup="maxapps" ondatachange="resetchildren"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="addosapp_grid1_row1_col3">
+					<section id="addosapp_grid1_row1_col2_sec3">
+						<checkbox dataattribute="useossecurity" id="addosapp_grid1_1_1_grid1_3" synchronous="true"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<table id="addmodsig_1" label="添加/修改签名选项" relationship="SIGOPTION">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="addmodsig_1_tb">
+				<tablecol filterable="false" hidden="false" id="addmodsig_1_tb_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="optionname" id="addmodsig_1_tb_2" linkedcontrolid="addmodsig_1_td_1" sortable="true"/>
+				<tablecol dataattribute="description" id="addmodsig_1_tb_3" linkedcontrolid="addmodsig_1_td_2" sortable="true"/>
+				<tablecol dataattribute="prerequisite" id="addmodsig_1_tb_4" linkedcontrolid="addmodsig_1_td_5" sortable="true"/>
+				<tablecol dataattribute="visible" id="addmodsig_1_tb_5" linkedcontrolid="addmodsig_1_td_9" sortable="true"/>
+				<tablecol filterable="false" hidden="false" id="addmodsig_1_tb_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="addmodsig_1_td">
+				<section border="true" id="addmodsig_1_td_">
+					<section id="addmodsig_2a_td_">
+						<sectioncol id="addmodsig_2a_td_col1">
+							<multiparttextbox dataattribute="optionname" descdataattribute="description" id="addmodsig_1_td_1" ondatachange="resetchildren"/>
+							<textbox dataattribute="alsogrants" id="addmodsig_1_td_3"/>
+							<textbox dataattribute="alsorevokes" id="addmodsig_1_td_4"/>
+							<textbox dataattribute="prerequisite" id="addmodsig_1_td_5"/>
+						</sectioncol>
+						<sectioncol id="addmodsig_2a_td_col3">
+							<checkbox dataattribute="esigenabled" id="addmodsig_2_td_8"/>
+							<checkbox dataattribute="visible" id="addmodsig_2_td_9"/>
+						</sectioncol>
+					</section>
+				</section>
+			</tabledetails>
+			<buttongroup id="addmodsig_1_bg">
+				<pushbutton id="addmodsig_1_bg_1" label="选择服务选项" mxevent="multioption"/>
+				<pushbutton default="true" id="addmodsig_1_bg_2" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="addmodsig_2">
+			<pushbutton default="true" id="addmodsig_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="addmodsig_2_2" label="取消" mxevent="handlecancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="copyoption" label="复制签名选项">
+		<section border="true" id="copyoption_grid1_1_1_grid1">
+			<sectionrow id="copyoption_grid1_row1">
+				<sectioncol id="copyoption_grid1_row1_col1">
+					<section id="copyoption_grid1_row1_col1_sec1">
+						<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="copyoption_0_1" inputmode="readonly"/>
+						<multiparttextbox dataattribute="copyauthapp" descdataattribute="copyauthapp.description" descinputmode="readonly" id="copyoption_0_2" lookup="maxapps" ondatachange="resetchildren"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="copyoption_grid1_row1_col3">
+					<section id="copyoption_grid1_row1_col2_sec3">
+						<checkbox dataattribute="copygroupauth" id="copyoption_0_3"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<table id="copyoption_1" label="复制签名选项" orderby="optionname" relationship="COPYSIGOPTION" selectmode="multiple">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="copyoption_1_tb">
+				<tablecol filterable="false" hidden="false" id="copyoption_1_tb_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+				<tablecol dataattribute="optionname" id="copyoption_1_tb_2" inputmode="readonly" sortable="true"/>
+				<tablecol dataattribute="description" id="copyoption_1_tb_3" inputmode="readonly" sortable="true"/>
+			</tablebody>
+		</table>
+		<buttongroup id="copyoption_2">
+			<pushbutton default="true" id="copyoption_2_1" label="确定" mxevent="copySigOption"/>
+			<pushbutton id="copyoption_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.intobject.SelectSigOptionBean" id="multioption" label="选择服务选项">
+		<section border="true" id="multioption_grid4">
+			<sectionrow id="multioption_grid4_1">
+				<sectioncol id="multioption_grid4_1_1">
+					<table id="multioption_grid4_1_1_Table_ColumnTable" selectmode="multiple">
+						<tablebody displayrowsperpage="20" filterable="false" id="multioption_grid4_1_1_Table_ColumnTable_tablebody">
+							<tablecol filterable="false" hidden="false" id="multioption_grid4_1_1_Table_ColumnTable_tablebody_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+							<tablecol dataattribute="optionname" id="multioption_grid4_1_1_Table_ColumnTable_tablebody_2" sortable="false"/>
+							<tablecol dataattribute="servicename" id="multioption_grid4_1_1_Table_ColumnTable_tablebody_3" sortable="false"/>
+							<tablecol dataattribute="methodname" id="multioption_grid4_1_1_Table_ColumnTable_tablebody_4" sortable="false"/>
+						</tablebody>
+					</table>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="multioption_2">
+			<pushbutton default="true" id="multioption_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="multioption_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="intquery" label="查询定义" relationship="OSLCQUERY">
+		<section border="true" id="resqurydef_s1">
+			<section border="true" datasrc="MAINRECORD" id="resqurydef_s1r1c1_s1">
+				<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="resqurydef_intobjectname" inputmode="readonly"/>
+			</section>
+			<sectionrow id="resqurydef_s1r2">
+				<sectioncol id="resqurydef_s1r2c2">
+					<table id="resqurydef_tb1" label="要分配的查询" selectmode="single">
+						<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="resqurydef_tb1_body">
+							<tablecol filterable="false" hidden="false" id="resqurydef_toogle" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="clausename" hidden="false" id="resqurydef_clausename" sortable="true"/>
+							<tablecol dataattribute="querytype" hidden="false" id="resqurydef_querytype" sortable="true"/>
+							<tablecol dataattribute="ispublic" filterable="true" hidden="false" id="resqurydef_ispublic" sortable="true"/>
+							<tablecol filterable="false" hidden="false" id="resqurydef_trash" mxevent="toggledeleterow" mxevent_desc="标记要删除的查询" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="resqurydef_tb1_details">
+							<section id="resqurydef_tb1_details_s1">
+								<sectionrow id="resqurtdef_tb1_details_s1_r1">
+									<sectioncol id="resqurtdef_tb1_details_s1_r1_c1">
+										<section id="resqurtdef_tb1_details_s1_r1_c1_s1">
+											<textbox dataattribute="querytype" id="resqurydef_det_querytype" lookup="valuelist"/>
+											<multiparttextbox dataattribute="scriptname" descdataattribute="autoscript.description" id="resqurydef_det_scriptname" lookup="autoscript" sigoption="SCRIPTTYPE"/>
+											<textbox dataattribute="method" id="resqurydef_det_method" lookup="defmethod" sigoption="METHODTYPE"/>
+											<textbox dataattribute="description" id="resqurydef_det_method_desc" sigoption="METHODTYPE"/>
+											<textbox dataattribute="app" id="resqurydef_det_app" lookup="maxapps" sigoption="APPCLAUSE"/>
+											<multiparttextbox dataattribute="clausename" descdataattribute="query.description" descinputmode="readonly" id="resqurydef_det_clausename" lookup="query" sigoption="APPCLAUSE"/>
+											<multiparttextbox dataattribute="clausename" descdataattribute="description" id="resqurydef_det_clausename1" sigoption="CLAUSETYPE"/>
+											<textbox dataattribute="clause" id="resqurydef_det_clause" sigoption="CLAUSETYPE"/>
+											<checkbox dataattribute="ispublic" id="resqurydef_det_ispublic"/>
+											<checkbox dataattribute="isqbeclause" id="resqurydef_det_isqbeclause"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="resqurtdef_tb1_details_s1_r1_c2">
+										<section id="resqurtdef_tb1_details_s1_r1_c2_s1"/>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="resqurydef_bg1">
+							<pushbutton default="true" id="resqurydef_newrow" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="resqurydef_bg2">
+			<pushbutton default="true" id="resqurydef_bg2_ok" label="确定" mxevent="dialogok"/>
+			<pushbutton id="resqurydef_bg2_cancel" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="oslcaction" label="操作定义" relationship="OSOSLCACTION">
+		<section border="true" datasrc="MAINRECORD" id="oslcaction_0">
+			<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="oslcaction_0_1" inputmode="readonly"/>
+			<multiparttextbox dataattribute="authapp" descdataattribute="authapp.description" descinputmode="readonly" id="oslcaction_0_2" inputmode="readonly"/>
+		</section>
+		<table id="oslcaction_1" label="操作定义">
+			<tablebody displayrowsperpage="10" filterable="true" filterexpanded="true" id="oslcaction_1_tb">
+				<tablecol filterable="false" hidden="false" id="oslcaction_1_tb_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="name" id="oslcaction_1_tb_2" linkedcontrolid="oslcaction_1_td_7_2" sortable="true"/>
+				<tablecol dataattribute="description" id="oslcaction_1_tb_3" sortable="true"/>
+				<tablecol dataattribute="impltype" id="oslcaction_1_tb_4" linkedcontrolid="oslcaction_1_td_7_3" sortable="true"/>
+				<tablecol dataattribute="optionname" id="oslcaction_1_tb_5" linkedcontrolid="oslcaction_1_td_7_8" sortable="true"/>
+				<tablecol filterable="false" hidden="false" id="oslcaction_1_tb_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="oslcaction_1_td">
+				<section collapsable="true" collapsed="false" id="oslcaction1_3_td_col2_1" label="操作">
+					<sectioncol id="oslcaction_3_td_col3">
+						<multiparttextbox dataattribute="name" descdataattribute="description" id="oslcaction_1_td_7_2"/>
+						<textbox dataattribute="impltype" id="oslcaction_1_td_7_3" lookup="valuelist" ondatachange="resetchildren"/>
+						<textbox dataattribute="systemname" id="oslcaction_1_td_7_4" lookup="valuelist" sigoption="SYSTEMIMPL"/>
+						<textbox dataattribute="methodname" id="oslcaction_1_td_7_5" lookup="wsmethod" sigoption="METHODMIMPL"/>
+						<textbox dataattribute="processname" id="oslcaction_1_td_7_6" lookup="wfprocess" sigoption="WFMIMPL"/>
+						<textbox dataattribute="scriptname" id="oslcaction_1_td_7_7" lookup="autoscript" sigoption="SCRIPTIMPL"/>
+						<multiparttextbox dataattribute="optionname" descdataattribute="sigoption.description" descinputmode="readonly" id="oslcaction_1_td_7_8" lookup="sigoption"/>
+						<checkbox dataattribute="collection" id="oslcaction_4_td_10"/>
+					</sectioncol>
+					<sectioncol id="oslcaction_4_td_col3"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="oslcaction_1_bg">
+				<pushbutton default="true" id="oslcaction_1_bg_2" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="oslcaction_2">
+			<pushbutton default="true" id="oslcaction_2_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="oslcaction_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog datasrc="MAINRECORD" id="intquerytemplate" label="查询模板">
+		<section border="true" id="intquerytemplate_s1">
+			<section border="true" id="intquerytemplate_s1r1c1_s1">
+				<multiparttextbox dataattribute="intobjectname" descdataattribute="description" descinputmode="readonly" id="intquerytemplate_intobjectname" inputmode="readonly"/>
+			</section>
+			<sectionrow id="intquerytemplate_s1r2">
+				<sectioncol id="intquerytemplate_s1r2c2">
+					<table id="intquerytemplate_tb1" label="{0} 的查询模板" relationship="QUERYTEMPLATE" selectmode="single">
+						<sectionheader datasrc="MAINRECORD" id="intquerytemplate_tb1_sectionheader">
+							<paramvalues id="intquerytemplate_tb1_sectionheader_pv">
+								<paramvalue dataattribute="intobjectname" id="intquerytemplate_tb1_sectionheader_pv_in" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="intquerytemplate_tb1_body">
+							<tablecol filterable="false" hidden="false" id="intquerytemplate_toogle" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="templatename" hidden="false" id="intquerytemplate_templatename" sortable="true"/>
+							<tablecol dataattribute="pagesize" hidden="false" id="intquerytemplate_pagesize" sortable="true"/>
+							<tablecol dataattribute="owner" hidden="false" id="intquerytemplate_owner" sortable="true"/>
+							<tablecol dataattribute="dfltprojection" hidden="false" id="intquerytemplate_dfltproj" sortable="true"/>
+							<tablecol dataattribute="ispublic" filterable="true" hidden="false" id="intquerytemplate_ispublic" sortable="true"/>
+							<tablecol filterable="false" hidden="false" id="intquerytemplate_trash" mxevent="toggledeleterow" mxevent_desc="标记要删除的模板" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="intquerytemplate_tb1_details">
+							<section id="intquerytemplate_tb1_details_s1">
+								<sectionrow id="intquerytemplate_tb1_details_s1_r1">
+									<multiparttextbox dataattribute="templatename" descdataattribute="description" id="intquerytemplate_det_templatename" linkedcontrolid="intquerytemplate_templatename"/>
+									<textbox dataattribute="pagesize" id="intquerytemplate_det_pagesize" linkedcontrolid="intquerytemplate_pagesize"/>
+									<textbox dataattribute="owner" id="intquerytemplate_det_owner" linkedcontrolid="intquerytemplate_owner"/>
+									<checkbox dataattribute="dfltprojection" id="intquerytemplate_det_dfltproj" linkedcontrolid="intquerytemplate_dfltproj"/>
+									<textbox dataattribute="searchattributes" id="intquerytemplate_det_searchattributes"/>
+									<textbox dataattribute="timelineattribute" id="intquerytemplate_det_timelineattribute"/>
+									<checkbox dataattribute="ispublic" id="intquerytemplate_det_ispublic" linkedcontrolid="intquerytemplate_ispublic"/>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="intquerytemplate_bg1">
+							<pushbutton default="true" id="intquerytemplate_newrow" label="新建行" mxevent="addrow"/>
+							<pushbutton id="intquerytemplate_dup" label="复制" mxevent="duplicate"/>
+						</buttongroup>
+					</table>
+					<table id="intquerytemplate_tb2" label="查询 {0} 的模板属性" parentdatasrc="intquerytemplate_tb1" relationship="QUERYTEMPLATEATTR">
+						<sectionheader datasrc="intquerytemplate_tb1" id="intquerytemplate_tb2_sectionheader">
+							<paramvalues id="intquerytemplate_tb2_sectionheader_pv">
+								<paramvalue dataattribute="templatename" id="intquerytemplate_tb2_sectionheader_pv_in" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="5" id="intquerytemplate_tb2_body">
+							<tablecol filterable="false" hidden="false" id="intquerytemplate_tb2_toggle" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+							<tablecol dataattribute="selectattrname" hidden="false" id="intquerytemplate_tb2_selectattrname" sortable="true"/>
+							<tablecol dataattribute="selectorder" hidden="false" id="intquerytemplate_tb2_selectorder" sortable="true"/>
+							<tablecol dataattribute="title" hidden="false" id="intquerytemplate_tb2_title"/>
+							<tablecol dataattribute="alias" hidden="false" id="intquerytemplate_tb2_alias"/>
+							<tablecol dataattribute="sortbyon" hidden="false" id="intquerytemplate_tb2_sortbyon" synchronous="true"/>
+							<tablecol filterable="false" hidden="false" id="intquerytemplateattr_trash" mxevent="toggledeleterow" mxevent_desc="标记要删除的模板属性" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="intquerytemplate_tb2_details">
+							<section id="intquerytemplate_tb2_details_s1">
+								<sectionrow id="intquerytemplate_tb2_details_s1_r1">
+									<sectioncol id="intquerytemplate_tb2_details_s1_r1_s1">
+										<textbox dataattribute="selectattrname" id="intquerytemplate_tb2_det_pagesize" linkedcontrolid="intquerytemplate_tb2_selectattrname"/>
+										<textbox dataattribute="title" id="intquerytemplate_tb2_det_title" linkedcontrolid="intquerytemplate_tb2_title"/>
+									</sectioncol>
+									<sectioncol id="intquerytemplate_tb2_details_s1_r1_s2">
+										<textbox dataattribute="selectorder" id="intquerytemplate_tb2_det_selectorder" linkedcontrolid="intquerytemplate_tb2_selectorder"/>
+										<textbox dataattribute="alias" id="intquerytemplate_tb2_det_alias" linkedcontrolid="intquerytemplate_tb2_alias"/>
+									</sectioncol>
+								</sectionrow>
+								<sectionrow id="intquerytemplate_tb2_details_s1_r2">
+									<sectioncol id="intquerytemplate_tb2_details_s1_r2_s1">
+										<checkbox dataattribute="sortbyon" id="intquerytemplate_tb2_det_sortbyon" linkedcontrolid="intquerytemplate_tb2_sortbyon" synchronous="true"/>
+										<checkbox dataattribute="ascending" id="intquerytemplate_tb2_det_ascending"/>
+									</sectioncol>
+									<sectioncol id="intquerytemplate_tb2_details_s1_r2_s2">
+										<textbox dataattribute="sortbyorder" id="intquerytemplate_tb2_det_sortbyorder"/>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="intquerytemplate_bg3">
+							<pushbutton default="true" id="intquerytemplate_attr_newrow" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="intquerytemplate_bg2">
+			<pushbutton default="true" id="intquerytemplate_bg2_ok" label="确定" mxevent="dialogok"/>
+			<pushbutton id="intquerytemplate_bg2_cancel" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+</presentation>

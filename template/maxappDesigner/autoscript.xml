@@ -1,0 +1,1924 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<presentation apphelp="com.ibm.mbs.doc,autoscript/c_overview.html" beanclass="com.ibm.ism.script.webclient.beans.autoscript.AutoScriptAppBean" id="autoscript" ismobile="false" keyattribute="autoscript" mboname="AUTOSCRIPT" orderby="AUTOSCRIPT" resultstableid="results_showlist" version="7.0.0">
+    <page id="mainrec" scroll="false">
+        <include controltoclone="pageHeader" id="INCLUDE-pageHeader"/>
+        <clientarea id="clientarea">
+            <tabgroup id="maintabs" style="form">
+                <tab default="true" id="results" label="列表" type="list">
+                    <menubar event="search" id="actiontoolbar1" sourcemethod="getAppSearchOptions"/>
+                    <table datasrc="results_showlist" id="results_showlist" inputmode="readonly" label="脚本" mboname="AUTOSCRIPT" selectmode="multiple">
+                        <tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="autoscript_results_showlist_tablebody">
+                            <tablecol dataattribute="autoscript" filterable="false" id="autoscript_results_showlist_column1" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+                            <tablecol dataattribute="autoscript" id="autoscript_results_showlist_column2" mxevent="selectrecord" mxevent_desc="转到%1" type="link"/>
+                            <tablecol dataattribute="description" id="autoscript_results_showlist_column3"/>
+                            <tablecol dataattribute="scriptlanguage" id="autoscript_results_showlist_column4" lookup="scriptengines" width="100"/>
+                            <tablecol dataattribute="active" id="autoscript_results_showlist_column5"/>
+                            <tablecol dataattribute="version" id="autoscript_results_showlist_column6" width="100"/>
+                            <tablecol dataattribute="IBM_PACKAGEPATH" id="1781764044271"/>
+                            <tablecol dataattribute="loglevel" id="SsrTucGsrIcw4uxr" linkedcontrolid="main_grid2_attr1_4"/>
+                            <tablecol dataattribute="changedate" id="1781745411783" label="变更时间"/>
+                            <tablecol dataattribute="userdefined" id="autoscript_results_showlist_column7"/>
+                            <tablecol filterable="false" id="autoscript_results_bookmark" mxevent="BOOKMARK" mxevent_desc="添加到书签" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+                        </tablebody>
+                    </table>
+                </tab>
+                <tab id="main" label="自动化脚本" type="insert">
+                    <section id="main_grid2" label="自动化脚本详细信息">
+                        <sectionrow id="main_grid2_row1">
+                            <sectioncol id="main_grid2_row1_col1">
+                                <section id="main_grid2_row1_col1_1">
+                                    <multiparttextbox dataattribute="AUTOSCRIPT" descdataattribute="description" id="main_grid2_attr1_1" longdescreadonly="false"/>
+                                    <textbox dataattribute="scriptlanguage" id="main_grid2_attr1_2" lookup="scriptengines"/>
+                                    <textbox inputmode="required" dataattribute="IBM_PACKAGEPATH" id="1779329043510" size="60"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="main_grid2_row1_col2">
+                                <section id="main_grid2_row1_col2_2">
+                                    <textbox dataattribute="VERSION" id="main_grid2_attr2_3"/>
+                                    <textbox dataattribute="CHANGEDATE" id="1781745441929" inputmode="readonly" label="变更时间"/>
+                                    <textbox dataattribute="loglevel" id="main_grid2_attr1_4" lookup="valuelist"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="main_grid2_row1_col3">
+                                <section id="main_grid2_row1_col2_3">
+                                    <checkbox dataattribute="active" id="objectdetaileeeee_main6_sec_2221"/>
+                                    <checkbox dataattribute="haswarning" id="objectdetaileeeee_main55_sec_2221"/>
+                                    <checkbox dataattribute="userdefined" id="main_grid2_attr2_2"/>
+                                    <checkbox dataattribute="interface" id="main_grid2_attr2_2555" inputmode="readonly" label="允许调用脚本函数"/>
+                                </section>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <section id="main_grid2_1">
+                        <sectionrow id="main_grid2_1_row2">
+                            <sectioncol id="main_grid2_1_row2_col1">
+                                <section id="main_grid2_1_row2_col1_1">
+                                    <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="600" height="500" progressindicator="false" options="dataattribute: 'source'"/>
+                                </section>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <buttongroup id="testscript_2">
+                        <pushbutton default="true" id="testscript_2_1" label="测试脚本" mxevent="testscript"/>
+                    </buttongroup>
+                </tab>
+                <tab id="variables" label="变量">
+                    <section border="true" id="variables_grid1">
+                        <sectionrow id="variables_grid1_row1">
+                            <sectioncol id="variables_grid1_row1_col1">
+                                <section id="variables_grid1_row1_col1_1">
+                                    <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                    <textbox dataattribute="scriptlanguage" id="variables_grid1_row1_col3_1_1" inputmode="readonly"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="variables_grid1_row1_col3">
+                                <section id="variables_grid1_row1_col3_1"/>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <table id="variables_main_table" label="变量" orderby="vartype" relationship="AUTOSCRIPTVARS">
+                        <tablebody displayrowsperpage="10" filterable="true" id="variables_main_table_tablebody">
+                            <tablecol filterable="false" id="variables_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                            <tablecol dataattribute="varname" id="variables_main_table_tablebody_2" linkedcontrolid="main_table_row1_col1_1_1" sortable="true"/>
+                            <tablecol dataattribute="vartype" id="variables_main_table_tablebody_3" linkedcontrolid="main_table_row1_col1_1_2" sortable="true">
+                                <textbox id="variables_main_table_tablebody_3_1" lookup="valuelist"/>
+                            </tablecol>
+                            <tablecol dataattribute="varbindingtype" id="variables_main_table_tablebody_4" linkedcontrolid="main_table_row1_col1_1_3" sortable="true">
+                                <textbox id="variables_main_table_tablebody_4_1" lookup="valuelist"/>
+                            </tablecol>
+                            <tablecol dataattribute="varbindingvalue" id="variables_main_table_tablebody_5" linkedcontrolid="main_table_row1_col2_1_1" sortable="false"/>
+                            <tablecol dataattribute="allowoverride" id="variables_main_table_tablebody_6" linkedcontrolid="main_table_row1_col2_1_2" sortable="false"/>
+                            <tablecol filterable="false" id="variables_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="variables_main_table_1">
+                            <section id="variables_main_table_1_grid2" label="详细信息">
+                                <sectionrow id="main_table_row1">
+                                    <sectioncol id="main_table_row1_col1">
+                                        <section id="main_table_row1_col1_1">
+                                            <multiparttextbox dataattribute="varname" descdataattribute="description" id="main_table_row1_col1_1_1"/>
+                                            <textbox dataattribute="vartype" id="main_table_row1_col1_1_2" lookup="valuelist"/>
+                                            <checkbox dataattribute="allowoverride" id="main_table_row1_col2_1_2"/>
+                                            <checkbox dataattribute="novalidation" id="main_table_row1_col2_1_3"/>
+                                            <checkbox dataattribute="noaccesscheck" id="main_table_row1_col2_1_4"/>
+                                            <checkbox dataattribute="noaction" id="main_table_row1_col2_1_5"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="main_table_row1_col2">
+                                        <section id="main_table_row1_col2_1">
+                                            <textbox dataattribute="varbindingtype" id="main_table_row1_col1_1_3" lookup="valuelist"/>
+                                            <textbox dataattribute="literaldatatype" id="main_table_row1_col3_1_1" lookup="valuelist"/>
+                                            <textbox dataattribute="varbindingvalue" id="main_table_row1_col2_1_1"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="variables_main_table_2">
+                            <pushbutton default="true" id="variables_main_table_2_1" label="新建行" mxevent="addrow"/>
+                        </buttongroup>
+                    </table>
+                </tab>
+                <tab id="scrlaunchpoint" label="启动点">
+                    <section border="true" height="240" id="scrlaunchpoint_section_1">
+                        <sectionrow id="scrlaunchpoint_section_1_row_1">
+                            <sectioncol id="scrlaunchpoint_section_1_row_1_column_1">
+                                <section id="scrlaunchpoint_section_1_row_1_column_1_section_1">
+                                    <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="scrlaunchpoint_grid1_1_1_1" inputmode="readonly"/>
+                                    <textbox dataattribute="scriptlanguage" id="scrlaunchpoint_grid11_1_1_1" inputmode="readonly"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="scrlaunchpoint_section_1_row_1_column_2">
+                                <section id="scrlaunchpoint_section_1_row_1_column_2_section_1"/>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.AutoScriptAppBean" id="scrlaunchpoint_point_table" label="启动点" relationship="SCRIPTLAUNCHPOINT">
+                        <tablebody displayrowsperpage="5" filterable="true" filterexpanded="true" id="scrlaunchpoint_point_table_tablebody">
+                            <tablecol filterable="false" id="scrlaunchpoint_point_table_tablebody_1" mxevent="properties" mxevent_desc="编辑启动点详细信息" mxevent_icon="workflow/properties.gif" type="event"/>
+                            <tablecol dataattribute="launchpointname" id="scrlaunchpoint_point_table_tablebody_2"/>
+                            <tablecol dataattribute="description" id="scrlaunchpoint_point_table_tablebody_12"/>
+                            <tablecol dataattribute="launchpointtype" id="scrlaunchpoint_point_table_tablebody_3"/>
+                            <tablecol dataattribute="objectname" id="scrlaunchpoint_point_table_tablebody_4" lookup="objectname"/>
+                            <tablecol dataattribute="active" id="scrlaunchpoint_point_table_tablebody_3333"/>
+                            <tablecol filterable="false" id="scrlaunchpoint_point_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                    </table>
+                </tab>
+                <tab id="warning" label="警告">
+                    <section border="true" id="warning_grid1">
+                        <sectionrow id="warning_grid1_row1">
+                            <sectioncol id="warning_grid1_row1_col1">
+                                <section id="warning_grid1_row1_col1_1">
+                                    <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="warning_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                    <textbox dataattribute="scriptlanguage" id="warning_grid1_row1_col3_1_1" inputmode="readonly"/>
+                                </section>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <table id="warning_main_table" label="警告" orderby="linenumber" relationship="SCRIPTWARNING">
+                        <tablebody displayrowsperpage="10" filterable="true" id="warning_main_table_tablebody">
+                            <tablecol filterable="false" id="warning_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                            <tablecol dataattribute="warncode" id="warning_main_table_tablebody_2" linkedcontrolid="wmain_table_row1_col1_1_1" sortable="true"/>
+                            <tablecol dataattribute="linenumber" id="warning_main_table_tablebody_3" linkedcontrolid="wmain_table_row1_col1_1_2" sortable="true"/>
+                            <tablecol dataattribute="resolved" id="warning_main_table_tablebody_4" linkedcontrolid="wmain_table_row1_col1_1_3" sortable="true"/>
+                            <tablecol dataattribute="resolution" id="warning_main_table_tablebody_5" linkedcontrolid="wmain_table_row1_col2_1_1" sortable="false"/>
+                            <tablecol filterable="false" id="warning_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="warning_main_table_1">
+                            <section id="warning_main_table_1_grid2" label="详细信息">
+                                <sectionrow id="wmain_table_row1">
+                                    <sectioncol id="wmain_table_row1_col1">
+                                        <section id="wmain_table_row1_col1_1">
+                                            <multiparttextbox dataattribute="warncode" descdataattribute="maxmessages.value" descinputmode="readonly" id="wmain_table_row1_col1_1_1"/>
+                                            <textbox dataattribute="linenumber" id="wmain_table_row1_col1_1_2"/>
+                                            <checkbox dataattribute="resolved" id="wmain_table_row1_col1_1_3"/>
+                                            <textbox dataattribute="resolution" id="wmain_table_row1_col2_1_1"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="warning_main_table_2">
+                            <pushbutton default="true" id="warning_main_table_2_1" label="新建行" mxevent="addrow"/>
+                        </buttongroup>
+                    </table>
+                </tab>
+                <tab id="history" label="历史记录">
+                    <table id="history_main_table" label="历史记录" orderby="IBM_AUTOSCRIPT_HISTORYID desc" relationship="IBM_AUTOSCRIPT_HISTORY" inputmode="readonly">
+                        <tablebody displayrowsperpage="10" filterable="true" id="history_main_table_tablebody">
+                            <!-- <tablecol filterable="false" id="history_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/> -->
+                            <tablecol dataattribute="IBM_AUTOSCRIPT_HISTORYID" id="history_main_table_tablebody_2">
+                                <textbox id="PEDVlIOr3y4rseTT" menutype="NORMAL" applink="ibm_autoscript_history"/>
+                            </tablecol>
+                            <tablecol dataattribute="ALIASNAME" id="results_showlist_column2"/>
+                            <tablecol dataattribute="VERSION" id="results_showlist_column3"/>
+                            <tablecol dataattribute="HOSTNAME" id="history_main_table_tablebody_3"/>
+                            <tablecol dataattribute="CREATEPERSON" id="history_main_table_tablebody_4"/>
+                            <tablecol dataattribute="CREATETIME" id="xSWxVLgtlD1G84id"/>
+                        </tablebody>
+                    </table>
+                </tab>
+                <tab id="audit" label="审计记录">
+                    <table id="audit_main_table" label="审计记录" orderby="EAUDITTIMESTAMP desc" relationship="A_AUTOSCRIPT" inputmode="readonly">
+                        <tablebody displayrowsperpage="10" filterable="true" id="8Lesp61Qk6ZIMF67">
+                            <tablecol filterable="false" id="history_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                            <tablecol dataattribute="EAUDITTRANSID" id="Vc3wBf5GH87vdD7a">
+                            </tablecol>
+                            <tablecol dataattribute="VERSION" id="JfD4p9mhUOBaqsPK"/>
+                            <tablecol dataattribute="EAUDITUSERNAME" id="IIBdp13nTrNRqbji"/>
+                            <tablecol dataattribute="EAUDITTIMESTAMP" id="3jEqroY47kqYxyys"/>
+                        </tablebody>
+                        <tabledetails id="1782987228009">
+                            <section id="1785142075286" label="详情">
+                                <sectionrow id="1785142075289">
+                                    <sectioncol id="1785142075292">
+                                        <section id="1785142075297">
+                                            <multilinetextbox dataattribute="SOURCE" id="1778174194703" rows="40" span="80"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                    </table>
+                </tab>
+            </tabgroup>
+        </clientarea>
+        <include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+    </page>
+    <dialog id="attributedetail" label="属性启动点">
+        <section id="main_attrdetail_section1">
+            <sectionrow id="main_attrdetail_row_1">
+                <sectioncol id="main_attrdetail_row1_col1">
+                    <section id="main_attrdetail_row1_col1_section">
+                        <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="attrdetail_domainid"/>
+                        <textbox dataattribute="objectname" id="main_attrdetail_section11_text3" lookup="objectname"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="main_attrdetail_row1_col2">
+                    <section id="main_attrdetail_row1_col2_section">
+                        <checkbox dataattribute="active" id="attrdetail_main1_sec_77"/>
+                        <textbox dataattribute="attributename" id="main_attrdetail_section11_text4" lookup="maxattribute"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <section id="main_attrdetail_section2" label="事件">
+            <radiobuttongroup border="false" dataattribute="attributeevent" id="main_attrdetail_section2_group_1" hidelabel="true">
+                <radiobutton id="main_attrdetail_section2_1" label="初始化访问限制" value="1"/>
+                <radiobutton id="main_attrdetail_section2_0" label="初始化值" value="0"/>
+                <radiobutton id="main_attrdetail_section2_2" label="验证" value="2"/>
+                <radiobutton id="main_attrdetail_section2_3" label="检索列表" value="3"/>
+                <radiobutton id="main_attrdetail_section2_4" label="运行操作" value="4"/>
+            </radiobuttongroup>
+        </section>
+        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.LaunchPointAttrVarBean" id="attrdetail_table" label="启动点变量" relationship="LAUNCHPOINTVARS" selectmode="multiple">
+            <tablebody displayrowsperpage="10" filterable="false" id="attrdetail_table_tablebody">
+                <tablecol filterable="false" id="attrdetail_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="attrdetail_table_tablebody_4"/>
+                <tablecol dataattribute="autoscriptvars.vartype" id="attrdetail_table_tablebody_41" inputmode="readonly"/>
+                <tablecol dataattribute="autoscriptvars.varbindingtype" id="attrdetail_table_tablebody_42" inputmode="readonly"/>
+                <tablecol dataattribute="varbindingvalue" id="attrdetail_table_tablebody_5"/>
+                <tablecol dataattribute="overridden" id="attrdetail_table_tablebody_2"/>
+            </tablebody>
+            <tabledetails id="attrdetail_tabledetail">
+                <section border="true" height="300" id="attrdetail_table_tabledetail_1">
+                    <sectionrow id="attrdetail_detail_row_1">
+                        <sectioncol id="attrdetail_detail_row1_col1">
+                            <section id="attrdetail_detail_row1_col1_section">
+                                <textbox dataattribute="varname" id="attrdetail_detail_4"/>
+                                <textbox dataattribute="autoscriptvars.vartype" id="attrdetail_detail_41" inputmode="readonly"/>
+                                <textbox dataattribute="autoscriptvars.varbindingtype" id="attrdetail_detail_42" inputmode="readonly"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="attrdetail_detail_row1_col2">
+                            <section id="attrdetail_detail_row1_col2_section">
+                                <textbox dataattribute="varbindingvalue" id="attrdetail_detail_5" sigoption="HIDELPATTR" sigoptiondatasrc="attrdetail_table"/>
+                                <textbox dataattribute="lpattributevaluenp" id="attrdetail_detail_511" menutype="SELECTOBJATTRNAME6" ondatachange="resetchildren" sigoption="LPATTRVAL" sigoptiondatasrc="attrdetail_table"/>
+                                <checkbox dataattribute="overridden" id="attrdetail_detail_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+        </table>
+        <buttongroup id="attrdetail_detail_buttons">
+            <pushbutton default="true" id="attrdetail_detail_buttons_1" label="正常" mxevent="dialogok"/>
+            <pushbutton id="attrdetail_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="psdi.webclient.system.beans.QbeBean" datasrc="searchmore" id="searchmore" inputmode="query" label="更多搜索字段">
+        <section id="searchmore_1">
+            <sectionrow id="searchmore_1_1">
+                <sectioncol id="searchmore_1_2">
+                    <section id="searchmore_1_3">
+                        <textbox dataattribute="AUTOSCRIPT" id="searchmore_attr1" inputmode="query"/>
+                        <textbox dataattribute="description" id="searchmore_attr2" inputmode="query"/>
+                        <textbox dataattribute="scriptlanguage" id="searchmore_attr5" inputmode="query"/>
+                        <textbox dataattribute="loglevel" id="searchmore_attr6" inputmode="query"/>
+                        <textbox dataattribute="version" id="searchmore_attr7" inputmode="query"/>
+                        <textbox dataattribute="comments" id="searchmore_attr8" inputmode="query"/>
+                        <textbox applink="person" dataattribute="OWNERID" id="searchmore_attr9" inputmode="query" lookup="person" menutype="normal"/>
+                        <textbox applink="person" dataattribute="CREATEDBYID" id="searchmore_attr10" inputmode="query" lookup="person" menutype="normal"/>
+                        <textbox dataattribute="source" id="searchmore_attr11" inputmode="query"/>
+                        <textbox dataattribute="scriptlaunchpoint.launchpointname" id="searchmore_attr12" inputmode="query"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="searchmore_buttongroup">
+            <pushbutton default="true" id="searchmore_buttongroup_1" label="查找" mxevent="dialogok"/>
+            <pushbutton id="qbe_restoreappdefault_button" label="恢复应用程序缺省值" mxevent="qbeclear"/>
+            <pushbutton id="qbe_revisebutton" label="修订" menutype="SEARCHMOREREVISE" targetid="searchmore"/>
+            <pushbutton id="searchmore_buttongroup_3" label="取消" mxevent="qbecancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.CreateScriptDialogBean" id="cfgscript" label="创建脚本" mboname="AUTOSCRIPT">
+        <section id="createscript_grid2">
+            <sectionrow id="createscript_grid2_row0">
+                <sectioncol id="createscript_grid2_row1111_col1">
+                    <helpgrid id="createscript_grid2row1_help" innerhtml="使用您选择的语言创建新的自动化脚本。 （可选）为脚本指定变量，该脚本可以用于与底层系统进行交互。"/>
+                </sectioncol>
+            </sectionrow>
+            <sectionrow id="createscript_grid2_row1">
+                <sectioncol id="createscript_grid2_row1_col1">
+                    <section id="createscript_grid2_row1_col1_1">
+                        <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="createscript_grid2_attr1_1" longdescreadonly="false" synchronous="true"/>
+                        <textbox dataattribute="scriptlanguage" id="createscript_grid2_attr1_2" lookup="scriptengines"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="createscript_grid2_row1_col2">
+                    <section id="createscript_grid2_row1_col2_2">
+                        <textbox dataattribute="loglevel" id="createscript_grid2_attr1_4" lookup="valuelist"/>
+                        <textbox dataattribute="version" id="createscript_grid2_attr2_3"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="createscript_grid2_row1_col3">
+                    <section id="createscript_grid2_row1_col3_2">
+                        <checkbox dataattribute="active" id="createscriptaaaa_grid2_attr333333_2"/>
+                        <checkbox dataattribute="userdefined" id="createscript_grid2_attr2_2"/>
+                        <checkbox dataattribute="interface" id="createscript_grid2_attr2_233" label="允许调用脚本函数"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+            <section id="stepppp222XXX3_attr1_main_grid30_1_row21">
+                <sectionrow id="stepppp222XXX3_attr1_main_grid30_1_row2">
+                    <sectioncol id="steppppp44443_attr1_main_grid30_1_row2_col1">
+                        <section id="stepppp55553_attr1_main_grid30_1_row2_col1_1">
+                            <importapp id="iiimportfileattr1_file_5552_0" label="导入脚本文件："/>
+                        </section>
+                    </sectioncol>
+                    <sectioncol id="sssstep311_attr1_main_gridXX444430_1_row2_col1">
+                        <section id="sssstep311_attr1_main_grid555530_1_row2_col1_1">
+                            <buttongroup id="sssstep3555511cfgattr1detail_detail_buttons">
+                                <doclinkuploadbutton default="true" id="sssstep3c444fgattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                            </buttongroup>
+                        </section>
+                    </sectioncol>
+                </sectionrow>
+            </section>
+        </section>
+        <table id="createscript_variables_main_table" label="变量" orderby="vartype" relationship="AUTOSCRIPTVARS">
+            <tablebody displayrowsperpage="10" filterable="true" id="createscript_vars_main_table_tablebody">
+                <tablecol filterable="false" id="createscript_vars_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="createscript_vars_main_table_tablebody_2" linkedcontrolid="createscript_main_table_row1_col1_1_1" sortable="true"/>
+                <tablecol dataattribute="vartype" id="createscript_vars_main_table_tablebody_3" linkedcontrolid="createscript_main_table_row1_col1_1_2" sortable="true">
+                    <textbox id="createscript_vars_main_table_tablebody_3_1" lookup="valuelist"/>
+                </tablecol>
+                <tablecol dataattribute="varbindingtype" id="createscript_vars_main_table_tablebody_4" linkedcontrolid="createscript_main_table_row1_col1_1_3" sortable="true">
+                    <textbox id="createscript_vars_main_table_tablebody_4_1" lookup="valuelist"/>
+                </tablecol>
+                <tablecol dataattribute="varbindingvalue" id="createscript_vars_main_table_tablebody_5" linkedcontrolid="createscript_main_table_row1_col2_1_1" sortable="false"/>
+                <tablecol dataattribute="allowoverride" id="createscript_vars_main_table_tablebody_6" linkedcontrolid="createscript_main_table_row1_col2_1_2" sortable="false"/>
+                <tablecol filterable="false" id="createscript_vars_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <tabledetails id="createscript_vars_main_table_1">
+                <section id="createscript_vars_main_table_1_grid2" label="详细信息">
+                    <sectionrow id="createscript_main_table_row1">
+                        <sectioncol id="createscript_main_table_row1_col1">
+                            <section id="createscript_main_table_row1_col1_1">
+                                <multiparttextbox dataattribute="varname" descdataattribute="description" id="createscript_main_table_row1_col1_1_1"/>
+                                <textbox dataattribute="vartype" id="createscript_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                <checkbox dataattribute="allowoverride" id="createscript_main_table_row1_col2_1_2"/>
+                                <checkbox dataattribute="novalidation" id="createscript_main_table_row1_col2_1_3"/>
+                                <checkbox dataattribute="noaccesscheck" id="createscript_main_table_row1_col2_1_4"/>
+                                <checkbox dataattribute="noaction" id="createscript_main_table_row1_col2_1_5"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="createscript_main_table_row1_col2">
+                            <section id="createscript_main_table_row1_col2_1">
+                                <textbox dataattribute="varbindingtype" id="createscript_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                <textbox dataattribute="literaldatatype" id="createscript_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                <textbox dataattribute="varbindingvalue" id="createscript_main_table_row1_col2_1_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+            <buttongroup id="createscript_vars_main_table_2">
+                <pushbutton default="true" id="createscript_vars_main_table_2_1" label="新建行" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <section id="createscript_step3_object_main_grid2_1">
+            <sectionrow id="createscript_step3_object_main_grid2_1_row2">
+                <sectioncol id="createscript_step3_object_main_grid2_1_row2_col1">
+                    <section id="createscript_step3_object_main_grid2_1_row2_col1_1">
+                        <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="createscript_step3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="createscript_objectdetail_detail_buttons">
+            <pushbutton default="true" id="createscript_detail_buttons_1" label="创建" mxevent="complete"/>
+            <pushbutton id="createscript_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog id="customconditiondetail" label="定制条件启动点">
+        <section id="main_ccdetail_section1">
+            <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="ccdetail_domainid"/>
+            <checkbox dataattribute="active" id="conddetail_main1_sec_77"/>
+            <textbox dataattribute="objectname" id="main_ccdetail_section11_text3" lookup="objectname"/>
+        </section>
+        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.LaunchPointCustomConditionVarBean" id="ccdetail_table" label="启动点变量" relationship="LAUNCHPOINTVARS" selectmode="multiple">
+            <tablebody displayrowsperpage="10" filterable="false" id="conddetail_table_tablebody">
+                <tablecol filterable="false" id="ccdetail_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="ccdetail_table_tablebody_4"/>
+                <tablecol dataattribute="autoscriptvars.vartype" id="ccdetail_table_tablebody_41" inputmode="readonly"/>
+                <tablecol dataattribute="autoscriptvars.varbindingtype" id="ccdetail_table_tablebody_42" inputmode="readonly"/>
+                <tablecol dataattribute="varbindingvalue" id="ccdetail_table_tablebody_5"/>
+                <tablecol dataattribute="overridden" id="ccdetail_table_tablebody_2"/>
+            </tablebody>
+            <tabledetails id="ccdetail_tabledetail">
+                <section border="true" height="300" id="ccdetail_table_tabledetail_1">
+                    <sectionrow id="ccdetail_detail_row_1">
+                        <sectioncol id="ccdetail_detail_row1_col1">
+                            <section id="ccdetail_detail_row1_col1_section">
+                                <textbox dataattribute="varname" id="ccdetail_detail_4"/>
+                                <textbox dataattribute="autoscriptvars.vartype" id="ccdetail_detail_41" inputmode="readonly"/>
+                                <textbox dataattribute="autoscriptvars.varbindingtype" id="ccdetail_detail_42" inputmode="readonly"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="ccdetail_detail_row1_col2">
+                            <section id="ccdetail_detail_row1_col2_section">
+                                <textbox dataattribute="varbindingvalue" id="ccdetail_detail_5" sigoption="HIDELPATTR" sigoptiondatasrc="ccdetail_table"/>
+                                <textbox dataattribute="lpattributevaluenp" id="ccdetail_detail_511" menutype="SELECTOBJATTRNAME8" ondatachange="resetchildren" sigoption="LPATTRVAL" sigoptiondatasrc="ccdetail_table"/>
+                                <checkbox dataattribute="overridden" id="ccdetail_detail_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+        </table>
+        <buttongroup id="ccdetail_detail_buttons">
+            <pushbutton default="true" id="ccdetail_detail_buttons_1" label="正常" mxevent="dialogok"/>
+            <pushbutton id="ccdetail_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="MAINRECORD" id="scriptresults" label="脚本结果">
+        <section id="scriptresults_1">
+            <sectionrow id="scriptresults_11">
+                <section id="scriptresults_12">
+                    <textbox dataattribute="autoscript" id="scriptresults_2_0"/>
+                    <multilinetextbox columns="60" dataattribute="stdout" id="scriptresults_2_2" rows="10"/>
+                    <multilinetextbox columns="60" dataattribute="stderr" id="scriptresults_2_3" rows="10"/>
+                </section>
+            </sectionrow>
+        </section>
+        <buttongroup id="scriptresults_3">
+            <pushbutton id="scriptresults_31" label="关闭" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" datasrc="searchbook" id="searchbook" label="我的书签" mboname="AUTOSCRIPT">
+        <table id="bookmarks_table" inputmode="readonly" label="书签" selectmode="single">
+            <tablebody displayrowsperpage="20" filterable="true" id="autoscript_bookmarks_table_tablebody">
+                <tablecol dataattribute="autoscript" id="autoscript_bookmarks_tablecolumn_1" mxevent="selectrecord" type="link"/>
+                <tablecol dataattribute="description" id="autoscript_bookmarks_tablecolumn_2"/>
+                <tablecol filterable="false" id="autoscript_bookmarks_tablecolumn_3" mxevent="instantdelete" mxevent_desc="删除" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+            </tablebody>
+        </table>
+        <buttongroup id="autoscript_bookmarks_2">
+            <pushbutton default="true" id="autoscript_bookmarks_2_1" label="确定" mxevent="dialogok"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptAttrLpWizardBean" id="cfgattr" mboname="SCRIPTLAUNCHPOINT">
+        <tabgroup format="carddeck" id="generate_tabs2">
+            <tab default="true" id="create_lp_attr" label="第 1 步">
+                <section id="main_help_cfgattrdetail_section1" label="创建带有属性启动点的脚本：第 1 步（共 3 步）">
+                    <sectionrow id="main_help_cfgattrdetail_grid0_row1">
+                        <sectioncol id="main_help_cfgattrdetail_grid0_row1_col1">
+                            <section id="main_help_cfgattrdetail_section1111">
+                                <sectionrow id="main_help_cfgattrdetail_grid0_row1111">
+                                    <sectioncol id="main_help_cfgattrdetail_grid0_row1_col111">
+                                        <helpgrid id="main_help_cfgattrdetail_help" innerhtml="指定将启动脚本的对象和对象属性。 您可以复用现有脚本或指定新脚本。 如果选择新脚本，向导会引导您完成脚本创建过程。" morehelp="com.ibm.mbs.doc,autoscript/c_att_lp.html"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="main_cfgattrdetail_section1">
+                                <sectionrow id="cfgattrdetail_main1_row_1">
+                                    <sectioncol id="cfgattrdetail_main1_row1_col1">
+                                        <section id="cfgattrdetail_main1_row1_col1_section">
+                                            <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="cfgattrdetail_domainid"/>
+                                            <textbox dataattribute="objectname" id="cfgattrdetail__text3" lookup="objectname"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="cfgattrdetail_main1_row1_col2">
+                                        <section id="cfgattrdetail_main1_row1_col2_section">
+                                            <checkbox dataattribute="active" id="cfgattrdetail_main1_sec_77"/>
+                                            <textbox dataattribute="attributename" id="cfgattrdetail__text4" lookup="maxattribute"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="main_cfgattrdetail_section3_2">
+                                <sectionrow id="main_cfgattrdetail_section3_2_row_1">
+                                    <sectioncol id="main_cfgattrdetail_section3_2_row1_col1">
+                                        <section id="main_cfgattrdetail_section3_2_row1_col1_section" label="事件">
+                                            <helpgrid id="main_cfgattrdetail_section3_1_help" innerhtml="请选择要为其定义启动点的事件。" morehelp="com.ibm.mbs.doc,autoscript/c_att_lp.html"/>
+                                            <radiobuttongroup border="false" dataattribute="attributeevent" id="main_cfgattrdetail_section3_2_row1_col1_section_group_1" hidelabel="true">
+                                                <radiobutton id="main_cfgattrdetail_section3_2_row1_col1_section_1" label="初始化访问限制" value="1"/>
+                                                <radiobutton id="main_cfgattrdetail_section3_2_row1_col1_section_0" label="初始化值" value="0"/>
+                                                <radiobutton id="main_cfgattrdetail_section3_2_row1_col1_section_2" label="验证" value="2"/>
+                                                <radiobutton id="main_cfgattrdetail_section3_2_row1_col1_section_3" label="检索列表" value="3"/>
+                                                <radiobutton id="main_cfgattrdetail_section3_2_row1_col1_section_4" label="运行操作" value="4"/>
+                                            </radiobuttongroup>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="main_cfgattrdetail_section3_2_row1_col2">
+                                        <section id="cfgattrdetail_main2_row2_col2_section" label="脚本">
+                                            <radiobuttongroup dataattribute="scriptorigin" id="cfgattrdetail_main2_sec_radio2">
+                                                <radiobutton default="true" id="cfgattrdetail_main2_sec2_radio1_1" label="新建" value="NEW"/>
+                                                <radiobutton id="cfgattrdetail_main2_sec2_radio1_2" label="现有：" value="EXISTING">
+                                                    <textbox dataattribute="autoscriptnp" id="cfgattrdetail_main2_sec2_radio1_3" lookup="autoscript"/>
+                                                </radiobutton>
+                                            </radiobuttongroup>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="cfgattrdetail_detail_buttons">
+                    <pushbutton default="true" id="cfgattrdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton default="true" id="cfgattrdetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab id="script_gen_attr" label="第 2 步" relationship="AUTOSCRIPT">
+                <section id="main_help_cfgattrdetail2_section1" label="创建带有属性启动点的脚本：第 2 步（共 3 步）">
+                    <sectionrow id="main_help_cfgattrdetail2_grid0_row1">
+                        <sectioncol id="main_help_cfgattrdetail2_grid0_row1_col1">
+                            <section border="true" id="step2_attr_header_variables_grid1">
+                                <sectionrow id="step2_attr_header_variables_grid1_row1">
+                                    <sectioncol id="step2_attr_header_variables_grid1_row1_col1">
+                                        <section id="step2_attr_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgattr" descdataattribute="description" id="step2_attr_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="step2_attr_variables_grid1_row1_col1_1_1" ondatachange="resetchildren"/>
+                                            <textbox dataattribute="scriptlanguage" id="step2_attr_variables_grid1_row1_col3_1_1" lookup="scriptengines"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="step2_attr_header_variables_grid1_row1_col2_empty">
+                                        <section id="step2_attr_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgattr" id="step2_attr_main_cfgattrdetail_section11_text4" inputmode="readonly"/>
+                                            <textbox dataattribute="loglevel" id="attrstep2_variables_grid1_row1_col2_2_2" lookup="valuelist"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section datasrc="cfgattr" id="step2_cfgattrvariables_grid01" sigoption="HIDEIMP">
+                                <sectionrow id="stepppp3cfgattr_attr1_main_grid030_1_row2">
+                                    <sectioncol id="steppppp3cfgattr_attr1_main_grid030_1_row2_col1">
+                                        <section id="main_help_cfgattr_detail_section2111">
+                                            <sectionrow id="main_help_cfgattr_detail2111_grid0_row1">
+                                                <sectioncol id="main_help_cfgattr_detail2111_grid0_row1_col1">
+                                                    <helpgrid id="main_help_cfgcfgattr_detail_help2" innerhtml="您可以导入在其他应用程序中创建的脚本文件，或者在下一步的“源代码”字段中输入脚本。"/>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                        <section id="step2_cfgattrvariables_grid1">
+                                            <sectionrow id="stepppp3_cfgattrattr1_main_grid30_1_row2">
+                                                <sectioncol id="steppppp3_cfgattrattr1_main_grid30_1_row2_col1">
+                                                    <section id="stepppp3_cfgattrattr1_main_grid30_1_row2_col1_1">
+                                                        <importapp id="iiimportfileattr1cfgattr_file_2_0" label="导入脚本文件："/>
+                                                    </section>
+                                                </sectioncol>
+                                                <sectioncol id="sssstep311_attr1cfgattr_main_grid30_1_row2_col1">
+                                                    <section id="sssstep311_attr1cfgattr_main_grid30_1_row2_col1_1">
+                                                        <buttongroup id="sssstep311cfgattr1cfgattrdetail_detail_buttons">
+                                                            <doclinkuploadbutton default="true" id="sssstep3cfgattrcfgattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                                                        </buttongroup>
+                                                    </section>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="step2_cfgattr5_variables_grid112">
+                                <sectionrow id="step2_cfgattr5_variables_grid112_row1">
+                                    <sectioncol id="step2_cfgattr5_variables_grid112_row1_col1">
+                                        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptConditionalBean" id="step2_attr_variables_main_table" label="变量" orderby="vartype" parentdatasrc="script_gen_attr" relationship="AUTOSCRIPTVARS">
+                                            <tablebody displayrowsperpage="10" filterable="true" id="step2_attr_variables_main_table_tablebody">
+                                                <tablecol filterable="false" id="step2_attr_variables_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                                                <tablecol dataattribute="varname" id="step2_attr_variables_main_table_tablebody_2" linkedcontrolid="step2_attr_main_table_row1_col1_1_1" sortable="true"/>
+                                                <tablecol dataattribute="vartype" id="step2_attr_variables_main_table_tablebody_3" linkedcontrolid="step2_attr_main_table_row1_col1_1_2" sortable="true">
+                                                    <textbox id="step2_attr_variables_main_table_tablebody_3_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingtype" id="step2_attr_variables_main_table_tablebody_4" linkedcontrolid="step2_attr_main_table_row1_col1_1_3" sortable="true">
+                                                    <textbox id="step2_attr_variables_main_table_tablebody_4_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingvalue" id="step2_attr_variables_main_table_tablebody_5" linkedcontrolid="step2_attr_main_table_row1_col2_1_1" sortable="false"/>
+                                                <tablecol dataattribute="allowoverride" id="step2_attr_variables_main_table_tablebody_6" linkedcontrolid="step2_attr_main_table_row1_col2_1_2" sortable="false"/>
+                                                <tablecol filterable="false" id="step2_attr_variables_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                                            </tablebody>
+                                            <tabledetails id="step2_attr_variables_main_table_1">
+                                                <section id="main_help_cfgattr6detail21_section1" label="详细信息">
+                                                    <sectionrow id="main_help_cfgattr6detail21_grid0_row1">
+                                                        <sectioncol id="main_help_cfgattr6detail21_grid0_row1_col1">
+                                                            <helpgrid id="main_help_cfgattr6detail21_help" innerhtml="指定要在脚本中使用的变量，包括变量类型和绑定类型。 根据您指定的绑定类型，还必须在关联的字段中输入其他值。" morehelp="com.ibm.mbs.doc,autoscript/c_variables.html"/>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                                <section id="step2_attr_variables_main_table_1_grid2" label="详细信息">
+                                                    <sectionrow id="step2_attr_main_table_row1">
+                                                        <sectioncol id="step2_attr_main_table_row1_col1">
+                                                            <section id="step2_attr_main_table_row1_col1_1">
+                                                                <multiparttextbox dataattribute="varname" descdataattribute="description" id="step2_attr_main_table_row1_col1_1_1"/>
+                                                                <textbox dataattribute="vartype" id="step2_attr_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingtype" id="step2_attr_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                                                <textbox dataattribute="literaldatatype" id="step2_attr_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingvalue" id="step2_attr_main_table_row1_col2_1_1" label="全局绑定值"/>
+                                                                <textbox dataattribute="attributevaluenp" id="step2_main_table_row1_col22_1_1" label="启动点属性" menutype="SELECTOBJATTRNAME2" sigoption="ATTRVAL" sigoptiondatasrc="step2_attr_variables_main_table"/>
+                                                                <textbox dataattribute="lpvarbindval" id="step2_attr_main_table_row1_col4_1_1" label="启动点绑定值" sigoption="HIDEATTR" sigoptiondatasrc="step2_attr_variables_main_table"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                        <sectioncol id="step2_attr_main_table_row1_col2">
+                                                            <section id="step2_attr_main_table_row1_col2_1">
+                                                                <checkbox dataattribute="allowoverride" id="step2_attr_main_table_row1_col2_1_2"/>
+                                                                <checkbox dataattribute="novalidation" id="step2_attr_main_table_row1_col2_1_3"/>
+                                                                <checkbox dataattribute="noaccesscheck" id="step2_attr_main_table_row1_col2_1_4"/>
+                                                                <checkbox dataattribute="noaction" id="step2_attr_main_table_row1_col2_1_5"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                            </tabledetails>
+                                            <buttongroup id="step2_attr_variables_main_table_2">
+                                                <pushbutton default="true" id="step2_attr_variables_main_table_2_1" label="新建行" mxevent="addrow"/>
+                                            </buttongroup>
+                                        </table>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="Step2cfgattrdetail_detail_buttons">
+                    <pushbutton default="true" id="Step2cfgattrdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="Step2cfgattrdetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="Step2cfgattrdetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab datasrc="script_gen_attr" id="create_lp_vars_attr" label="第 3 步">
+                <section id="main_help_cfgattrdetail3_section1" label="创建带有属性启动点的脚本：第 3 步（共 3 步）">
+                    <sectionrow id="main_help_cfgattrdetail3_grid0_row1">
+                        <sectioncol id="main_help_cfgattrdetail3_grid0_row1_col1">
+                            <section id="main_help_sub_cfgattrdetail3_section1">
+                                <sectionrow id="main_help_sub_cfgattrdetail3_grid0_row1">
+                                    <sectioncol id="main_help_sub_cfgattrdetail3_grid0_row1_col1">
+                                        <helpgrid id="main_help_cfgattrdetail3_help" innerhtml="您可以在“源代码”字段中输入脚本，也可以在上一步中导入脚本文件。"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section border="true" datasrc="script_gen_attr" id="step3_attr_header_variables_grid1">
+                                <sectionrow id="step3_attr_header_variables_grid1_row1">
+                                    <sectioncol id="step3_attr_header_variables_grid1_row1_col1">
+                                        <section id="step3__attrheader_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgattr" descdataattribute="description" id="step3_attr_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="step3_attr_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="step3_attr_header_variables_grid1_row1_col2_empty">
+                                        <section id="step3_attr_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgattr" id="step3_attr_main_cfgattrdetail_section11_text3" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="step3_attr_main_grid2_1">
+                                <sectionrow id="step3_attr_main_grid2_1_row2">
+                                    <sectioncol id="step3_attr_main_grid2_1_row2_col1">
+                                        <section id="step3_attr_main_grid2_1_row2_col1_1">
+                                            <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="step3main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="step3cfgattrdetail_detail_buttons">
+                    <pushbutton default="true" id="step3cfgattrdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="step3cfgattrdetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="step3cfgattrdetail_detail_buttons_3" label="创建" mxevent="complete"/>
+                </buttongroup>
+            </tab>
+        </tabgroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptObjectLpWizardBean" id="cfgobject" mboname="SCRIPTLAUNCHPOINT">
+        <tabgroup format="carddeck" id="generate_tabs1">
+            <tab default="true" id="create_lp_object" label="第 1 步">
+                <section id="main_help_cfgobjectdetail_section1" label="创建带有对象启动点的脚本：第 1 步（共 3 步）">
+                    <sectionrow id="main_help_cfgobjectdetail_grid0_row1">
+                        <sectioncol id="main_help_cfgobjectdetail_grid0_row1_col1">
+                            <section id="main_help_cfgobjectdetail_section111">
+                                <sectionrow id="main_help_cfgobjectdetail111_grid0_row1">
+                                    <sectioncol id="main_help_cfgobjectdetail111_grid0_row1_col1">
+                                        <helpgrid id="main_help_cfgobjectdetail_help" innerhtml="请指定启动点的名称及其所应用于的对象。 选择用于激活启动点的事件。 指定事件上下文，从而确定何时执行自动化脚本。 您可以复用现有脚本或指定新脚本。  如果您选择新脚本，那么向导将指导您完成脚本创建过程。" morehelp="com.ibm.mbs.doc,autoscript/c_obj_lp.html"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="main_help_cfgobjectdetail_section222">
+                                <sectionrow id="cfgobjectdetail_main1_row_1">
+                                    <sectioncol id="cfgobjectdetail_main1_row1_col1">
+                                        <section id="cfgobjectdetail_main1_row1_col1_section">
+                                            <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="cfgobjectdetail_domainid"/>
+                                            <multilinetextbox columns="40" dataattribute="condition" id="main_cfgobjectdetail_section11_text6" menutype="screxpbuilder" rows="3"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="cfgobjectdetail_main2_row1_col1">
+                                        <section id="cfgobjectdetail_main2_row1_col1_section">
+                                            <textbox dataattribute="objectname" id="main_cfgobjectdetail_section11_text3" lookup="objectname"/>
+                                            <checkbox dataattribute="active" id="cfgobjectdetail_main1_sec_77"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="main_help_cfgobjectdetail_sectionP333">
+                                <sectionrow id="cfgobjectdetail_main6_rowP_1">
+                                    <sectioncol id="cfgobjectdetail_main6_rowP_colP1">
+                                        <section id="cfgobjectdetail_topsec1" label="事件">
+                                            <sectionrow id="cfgobjectdetail_topsec2">
+                                                <sectioncol id="cfgobjectdetail_topsec3">
+                                                    <radiobuttongroup border="false" dataattribute="eventtype" id="cfgobjectdetail_main6_sec_1_rbg" hidelabel="true">
+                                                        <radiobutton default="true" id="cfgobjectdetail_main6_sec_1" label="初始化值" value="0"/>
+                                                        <radiobutton id="cfgobjectdetail_main1_sec_2" label="验证应用程序" value="1"/>
+                                                        <radiobutton id="cfgobjectdetail_main6_sec_3" label="允许创建对象" value="2"/>
+                                                        <radiobutton id="cfgobjectdetail_main1_sec_4" label="允许删除对象" value="3"/>
+                                                        <radiobutton id="cfgobjectdetail_main1_sec_5" label="保存" value="4"/>
+                                                    </radiobuttongroup>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="cfgobjectdetail_main6_row1_colP2">
+                                        <section id="main_help_cfgobjectdetail_sec2_section333" label="保存">
+                                            <sectionrow id="cfgobjectdetail_sec2_main6_row_1">
+                                                <sectioncol id="cfgobjectdetail_sec2_main6_row1_col1">
+                                                    <section border="false" id="main_help_cfgobjectdetail_section333">
+                                                        <sectionrow id="cfgobjectdetail_main6_row_1">
+                                                            <sectioncol id="cfgobjectdetail_main6_row1_col1">
+                                                                <checkbox dataattribute="add" id="cfgobjectdetail_main6_sec_2"/>
+                                                                <checkbox dataattribute="update" id="cfgobjectdetail_main7_sec_5"/>
+                                                                <checkbox dataattribute="delete" id="cfgobjectdetail_main7_sec_6"/>
+                                                            </sectioncol>
+                                                            <sectioncol id="cfgobjectdetail_main7_row1_col1">
+                                                                <radiobuttongroup border="false" dataattribute="evcontext" id="cfgobjectdetail_evcontext_group_1" hidelabel="true">
+                                                                    <radiobutton default="true" id="cfgobjectdetail_evcontext_1" label="保存前" value="0"/>
+                                                                    <radiobutton id="cfgobjectdetail_evcontext_2" label="保存后" value="1"/>
+                                                                    <radiobutton id="cfgobjectdetail_evcontext_3" label="落实后" value="2"/>
+                                                                </radiobuttongroup>
+                                                            </sectioncol>
+                                                        </sectionrow>
+                                                    </section>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="cfgobjectdetail_main2_row2_col2">
+                                        <section id="cfgobjectdetail_main2_row2_col2_section" label="脚本">
+                                            <radiobuttongroup dataattribute="scriptorigin" id="cfgobjectdetail_main2_sec_radio2">
+                                                <radiobutton default="true" id="cfgobjectdetail_main2_sec2_radio1_1" label="新建" value="NEW"/>
+                                                <radiobutton id="cfgobjectdetail_main2_sec2_radio1_2" label="现有：" value="EXISTING">
+                                                    <textbox dataattribute="autoscriptnp" id="cfgobjectdetail_main2_sec2_radio1_3" lookup="autoscript"/>
+                                                </radiobutton>
+                                            </radiobuttongroup>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                    <buttongroup id="cfgobjectdetail_detail_buttons">
+                        <pushbutton default="true" id="cfgobjectdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                        <pushbutton default="true" id="cfgobjectdetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                    </buttongroup>
+                </section>
+            </tab>
+            <tab id="script_gen_object" label="第 2 步" relationship="AUTOSCRIPT">
+                <section id="main_help_cfgobjectdetail2_section1" label="创建带有对象启动点的脚本：第 2 步（共 3 步）">
+                    <sectionrow id="step2_header_variables_grid1_row1">
+                        <sectioncol id="step2_header_variables_grid1_row1_col1">
+                            <section id="step2_header_variables_grid1_row1_col1_1">
+                                <multiparttextbox dataattribute="launchpointname" datasrc="cfgobject" descdataattribute="description" id="step2_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="step2_variables_grid1_row1_col1_1_1" ondatachange="resetchildren"/>
+                                <textbox dataattribute="scriptlanguage" id="step2_variables_grid1_row1_col3_1_1" lookup="scriptengines"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="step2_header_variables_grid1_row1_col2_empty">
+                            <section id="step2_header_variables_grid1_row1_col1_2_empty">
+                                <textbox dataattribute="objectname" datasrc="cfgobject" id="step2_main_cfgobjectdetail_section11_text3" inputmode="readonly"/>
+                                <textbox dataattribute="loglevel" id="objstep2_variables_grid1_row1_col2_2_2" lookup="valuelist"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                    <section datasrc="cfgobject" id="step2_variables_grid01" sigoption="HIDEIMP">
+                        <helpgrid id="main_help_cfgobjectdetail_help2" innerhtml="您可以导入在其他应用程序中创建的脚本文件，或者在下一步的“源代码”字段中输入脚本。"/>
+                        <section id="step2_variables_grid1">
+                            <sectionrow id="stepppp3_attr1_main_grid30_1_row2">
+                                <sectioncol id="steppppp3_attr1_main_grid30_1_row2_col1">
+                                    <section id="stepppp3_attr1_main_grid30_1_row2_col1_1">
+                                        <importapp id="iiimportfileattr1_file_2_0" label="导入脚本文件："/>
+                                    </section>
+                                </sectioncol>
+                                <sectioncol id="sssstep311_attr1_main_grid30_1_row2_col1">
+                                    <section id="sssstep311_attr1_main_grid30_1_row2_col1_1">
+                                        <buttongroup id="sssstep311cfgattr1detail_detail_buttons">
+                                            <doclinkuploadbutton default="true" id="sssstep3cfgattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                                        </buttongroup>
+                                    </section>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                    </section>
+                    <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptConditionalBean" id="step2_variables_main_table" label="变量" orderby="vartype" parentdatasrc="script_gen_object" relationship="AUTOSCRIPTVARS">
+                        <tablebody displayrowsperpage="10" filterable="true" id="step2_variables_main_table_tablebody">
+                            <tablecol filterable="false" id="step2_variables_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                            <tablecol dataattribute="varname" id="step2_variables_main_table_tablebody_2" linkedcontrolid="step2_main_table_row1_col1_1_1" sortable="true"/>
+                            <tablecol dataattribute="vartype" id="step2_variables_main_table_tablebody_3" linkedcontrolid="step2_main_table_row1_col1_1_2" sortable="true">
+                                <textbox id="step2_variables_main_table_tablebody_3_1" lookup="valuelist"/>
+                            </tablecol>
+                            <tablecol dataattribute="varbindingtype" id="step2_variables_main_table_tablebody_4" linkedcontrolid="step2_main_table_row1_col1_1_3" sortable="true">
+                                <textbox id="step2_variables_main_table_tablebody_4_1" lookup="valuelist"/>
+                            </tablecol>
+                            <tablecol dataattribute="varbindingvalue" id="step2_variables_main_table_tablebody_5" linkedcontrolid="step2_main_table_row1_col2_1_1" sortable="false"/>
+                            <tablecol dataattribute="allowoverride" id="step2_variables_main_table_tablebody_6" linkedcontrolid="step2_main_table_row1_col2_1_2" sortable="false"/>
+                            <tablecol filterable="false" id="step2_variables_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="step2_variables_main_table_1">
+                            <section id="main_help_cfgobjectdetail21_section1" label="详细信息">
+                                <sectionrow id="main_help_cfgobjectdetail21_grid0_row1">
+                                    <sectioncol id="main_help_cfgobjectdetail21_grid0_row1_col1">
+                                        <helpgrid id="main_help_cfgobjectdetail21_help" innerhtml="指定要在脚本中使用的变量，包括变量类型和绑定类型。 根据您指定的绑定类型，还必须在关联的字段中输入其他值。" morehelp="com.ibm.mbs.doc,autoscript/c_variables.html"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="step2_variables_main_table_1_grid2">
+                                <sectionrow id="step2_main_table_row1">
+                                    <sectioncol id="step2_main_table_row1_col1">
+                                        <section id="step2_main_table_row1_col1_1">
+                                            <multiparttextbox dataattribute="varname" descdataattribute="description" id="step2_main_table_row1_col1_1_1"/>
+                                            <textbox dataattribute="vartype" id="step2_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                            <textbox dataattribute="varbindingtype" id="step2_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                            <textbox dataattribute="literaldatatype" id="step2_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                            <textbox dataattribute="varbindingvalue" id="step2_main_table_row1_col2_1_1" label="全局绑定值"/>
+                                            <textbox dataattribute="attributevaluenp" id="step2_main_table_row1_col12_1_1" label="启动点属性" menutype="SELECTOBJATTRNAME1" ondatachange="resetchildren" sigoption="ATTRVAL" sigoptiondatasrc="step2_variables_main_table"/>
+                                            <textbox dataattribute="lpvarbindval" id="step2_main_table_row1_col4_1_1" label="启动点绑定值" sigoption="HIDEATTR" sigoptiondatasrc="step2_variables_main_table"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="step2_main_table_row1_col2">
+                                        <section id="step2_main_table_row1_col2_1">
+                                            <checkbox dataattribute="allowoverride" id="step2_main_table_row1_col2_1_2"/>
+                                            <checkbox dataattribute="novalidation" id="step2_main_table_row1_col2_1_3"/>
+                                            <checkbox dataattribute="noaccesscheck" id="step2_main_table_row1_col2_1_4"/>
+                                            <checkbox dataattribute="noaction" id="step2_main_table_row1_col2_1_5"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="step2_variables_main_table_2">
+                            <pushbutton default="true" id="step2_variables_main_table_2_1" label="新建行" mxevent="addrow"/>
+                        </buttongroup>
+                    </table>
+                </section>
+                <buttongroup id="Step2cfgobjectdetail_detail_buttons">
+                    <pushbutton default="true" id="Step2cfgobjectdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="Step2cfgobjectdetail_detail_buttons_4" label="上一步" mxevent="prevtab"/>
+                    <pushbutton default="true" id="Step2cfgobjectdetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab datasrc="script_gen_object" id="create_lp_vars_object" label="第 3 步">
+                <section id="main_help_cfgobjectdetail3_section1" label="创建带有对象启动点的脚本：第 3 步（共 3 步）">
+                    <sectionrow id="main_help_cfgobjectdetail3_grid0_row1">
+                        <sectioncol id="main_help_cfgobjectdetail3_grid0_row1_col1">
+                            <section id="main_help_cfgobjectdetail3_section1111">
+                                <sectionrow id="main_help_cfgobjectdetail3_grid0_row1111">
+                                    <sectioncol id="main_help_cfgobjectdetail3_grid0_row1_col1111">
+                                        <helpgrid id="main_help_cfgobjectdetail3_help" innerhtml="您可以在“源代码”字段中输入脚本，也可以在上一步中导入脚本文件。"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section border="true" id="step3_header_variables_grid1">
+                                <sectionrow id="step3_header_variables_grid1_row1">
+                                    <sectioncol id="step3_header_variables_grid1_row1_col1">
+                                        <section id="step3_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgobject" descdataattribute="description" id="step3_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="step3_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="step3_header_variables_grid1_row1_col2_empty">
+                                        <section id="step3_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgobject" id="step3_main_cfgobjectdetail_section11_text3" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="step3_object_main_grid2_1">
+                                <sectionrow id="step3_object_main_grid2_1_row2">
+                                    <sectioncol id="step3_object_main_grid2_1_row2_col1">
+                                        <section id="step3_object_main_grid2_1_row2_col1_1">
+                                            <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="step3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="step3cfgobjectdetail_detail_buttons">
+                    <pushbutton default="true" id="step3cfgobjectdetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="step3cfgobjectdetail_detail_buttons_4" label="上一步" mxevent="prevtab"/>
+                    <pushbutton default="true" id="step3cfgobjectdetail_detail_buttons_3" label="创建" mxevent="complete"/>
+                </buttongroup>
+            </tab>
+        </tabgroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.AutoScriptTestBean" id="testscript" label="测试自动脚本" relationship="AUTOSCRIPTTESTNP" savemode="ONLOADUNLOAD">
+        <section border="true" datasrc="MAINRECORD" id="testscript_grid1_1_1_grid1">
+            <sectionrow id="testscript_grid1_row1">
+                <sectioncol id="testscript_grid1_row1_col1">
+                    <section id="testscript_grid1_row1_col1_sec1">
+                        <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="testscript_grid1_1_1_grid1_1" inputmode="readonly"/>
+                        <textbox dataattribute="scriptlanguage" id="testscript_grid1_1_1_grid1_3" inputmode="readonly"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <section border="true" id="testscriptrole_grid1a" sigoption="IFACETYPEROLE">
+            <sectionrow id="testscriptrole_main2_row_2">
+                <sectioncol id="testscriptrole_main2_row2_col2">
+                    <section id="testscriptrole_main2_row2_col2_section">
+                        <checkbox dataattribute="evaluatetoemail" id="testscript_grid1_1_1_grid1_15" sigoption="IFACETYPEROLE"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <section border="true" id="testscriptcron_grid1a" sigoption="SCRIPTCRON">
+            <sectionrow id="testscriptcron_main2_row_2">
+                <sectioncol id="testscriptcron_main2_row2_col2">
+                    <section id="testscriptcron_main2_row2_col2_section">
+                        <textbox dataattribute="value" id="testscriptcron_grid1_1_1_grid1_15" label="Cron 任务实例" sigoption="SCRIPTCRON"/>
+                        <textbox dataattribute="objectpath" id="testscriptcron_grid1_1_1_grid1_16" label="参数" sigoption="SCRIPTCRON"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <section id="testscript_section444">
+            <sectionrow id="testscript_main2_row_2">
+                <sectioncol id="testscript_main2_row2_col2">
+                    <section id="testscript_main2_row2_col2_section">
+                        <textbox dataattribute="launchpointname" id="testscript_grid1_1_1_grid1_2" lookup="launchpoint" sigoption="LAUNCH"/>
+                        <textbox dataattribute="intobjectname" id="testscript_grid1_1_1_grid1_4" inputmode="readonly" sigoption="IFACETYPE"/>
+                        <textbox dataattribute="ifacename" id="testscript_grid1_1_1_grid1_5" inputmode="readonly" sigoption="IFACETYPEPC"/>
+                        <textbox dataattribute="ifacename" id="testscript_grid1_1_1_grid1_7" inputmode="readonly" label="企业服务" sigoption="IFACETYPEES"/>
+                        <textbox dataattribute="ifacename" id="testscript_grid1_1_1_grid1_9" inputmode="readonly" label="调用通道" sigoption="IFACETYPEIC"/>
+                        <textbox dataattribute="extsysname" id="testscript_grid1_1_1_grid1_8" lookup="extsystem" sigoption="IFACETYPEES"/>
+                        <textbox dataattribute="extsysname" id="testscript_grid1_1_1_grid1_6" lookup="extsystem" sigoption="IFACETYPEPC"/>
+                        <textbox dataattribute="testscripttype" id="testscript_grid1_1_1_grid1_14" lookup="valuelist" sigoption="IFACETYPENO"/>
+                        <textbox dataattribute="objectname" id="testscript_grid1_1_1_grid1_10" inputmode="readonly" sigoption="SCRIPTNOOBJ"/>
+                        <checkbox dataattribute="testwithjson" id="testscript_grid1_1_1_grid1_11" sigoption="INTSCRIPT"/>
+                        <checkbox dataattribute="completeprocess" id="testscript_grid1_1_1_grid1_12" sigoption="INTSCRIPT" synchronous="true"/>
+                        <sectioncol id="testscriptrest_main2_row2_col3">
+                            <section id="testscriptrest_main2_row2_col3_section" sigoption="SCRIPTREST">
+                                <radiobuttongroup dataattribute="objectprocess" id="testscriptrest_main2_sec_radio2">
+                                    <radiobutton default="true" id="testscriptrest_main2_sec2_radio1_1" label="使用 POST 进行测试" value="POST"/>
+                                    <radiobutton id="testscriptrest_main2_sec2_radio1_2" label="使用 GET 进行测试" value="GET"/>
+                                </radiobuttongroup>
+                            </section>
+                        </sectioncol>
+                    </section>
+                </sectioncol>
+                <sectioncol id="testscript_main2_row2_col3">
+                    <section id="testscript_main2_row2_col3_section" sigoption="SCRIPTOUT">
+                        <radiobuttongroup dataattribute="objectprocess" id="testscript_main2_sec_radio2">
+                            <radiobutton default="true" id="testscript_main2_sec2_radio1_1" label="新建对象" value="NEW"/>
+                            <radiobutton id="testscript_main2_sec2_radio1_2" label="现有对象" value="EXISTING"/>
+                        </radiobuttongroup>
+                    </section>
+                </sectioncol>
+                <sectioncol id="testscript_main2_row2_col4" sigoption="SCRIPTOUT">
+                    <section id="testscript_main2_row2_col4_section">
+                        <textbox dataattribute="objectpath" id="testscript_main2_sec2_radio2_3"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="testscript_main2_row2_col5" sigoption="SCRIPTWHERE">
+                    <section id="testscript_main2_row2_col5_section">
+                        <textbox dataattribute="objectpath" id="testscript_main2_sec2_radio2_31" label="Where 子句"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <section border="true" id="testscript_grid1a" sigoption="SCRIPTIN">
+            <importapp id="testscript_grid1a_1_1_grid7_1" label="浏览文件："/>
+        </section>
+        <table id="mapattr_grid1a_1_1_table3" label="设置属性值" parentdatasrc="testscript" relationship="AUTOSCRIPTTESTDET" sigoption="SCRIPTOUT" sigoptiondatasrc="testscript">
+            <tablebody displayrowsperpage="10" filterable="false" id="mapattr_grid4_1_1_Table_ColumnTable_tablebody">
+                <tablecol dataattribute="attributename" id="mapattr_grid4_1_1_Table_ColumnTable_tablebody_5" lookup="attributename" sortable="false"/>
+                <tablecol dataattribute="value" id="mapattr_grid4_1_1_Table_ColumnTable_tablebody_3" sortable="false"/>
+                <tablecol filterable="false" id="mapattr_grid4_1_1_Table_ColumnTable_tablebody_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <buttongroup id="mapattr_grid5_table_buttongroup1">
+                <pushbutton default="true" id="mapattr_grid5_table_button2" label="新建行" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <table id="mapprop_grid1a_1_1_table3" label="设置查询参数" parentdatasrc="testscript" relationship="AUTOSCRIPTTESTDET" sigoption="SCRIPTOTHER" sigoptiondatasrc="testscript">
+            <tablebody displayrowsperpage="10" filterable="false" id="mapprop_grid4_1_1_Table_ColumnTable_tablebody">
+                <tablecol dataattribute="propertyname" id="mapprop_grid4_1_1_Table_ColumnTable_tablebody_5" sortable="false"/>
+                <tablecol dataattribute="value" id="mapprop_grid4_1_1_Table_ColumnTable_tablebody_3" sortable="false"/>
+                <tablecol filterable="false" id="mapprop_grid4_1_1_Table_ColumnTable_tablebody_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <buttongroup id="mapprop_grid5_table_buttongroup1">
+                <pushbutton default="true" id="mapprop_grid5_table_button2" label="新建行" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <table id="mapepprop_grid1a_1_1_table3" label="设置属性" parentdatasrc="testscript" relationship="AUTOSCRIPTTESTDET" sigoption="SCRIPTEP" sigoptiondatasrc="testscript">
+            <tablebody displayrowsperpage="10" filterable="false" id="mapepprop_grid4_1_1_Table_ColumnTable_tablebody">
+                <tablecol dataattribute="propertyname" id="mapepprop_grid4_1_1_Table_ColumnTable_tablebody_5" label="属性名" sortable="false"/>
+                <tablecol dataattribute="value" id="mapepprop_grid4_1_1_Table_ColumnTable_tablebody_3" sortable="false"/>
+                <tablecol filterable="false" id="mapepprop_grid4_1_1_Table_ColumnTable_tablebody_6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <buttongroup id="mapepprop_grid5_table_buttongroup1">
+                <pushbutton default="true" id="mapepprop_grid5_table_button2" label="新建行" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <table id="mapformparam_grid1a_1_1_table3" label="设置参数" parentdatasrc="testscript" relationship="AUTOSCRIPTTESTPARAMS" sigoption="SCRIPTFORM" sigoptiondatasrc="testscript">
+            <tablebody displayrowsperpage="10" filterable="false" id="mapformparam_grid4_1_1_Table_ColumnTable_tablebody">
+                <tablecol dataattribute="propertyname" id="mapformparam_grid4_1_1_Table_ColumnTable_tablebody_5" inputmode="readonly" label="参数" sortable="false"/>
+                <tablecol dataattribute="value" id="mapformparam_grid4_1_1_Table_ColumnTable_tablebody_3" sortable="false"/>
+            </tablebody>
+        </table>
+        <section border="true" id="mapprop_grid1b">
+            <sectionrow id="testendpoint_grid1b_row1">
+                <sectioncol id="testendpoint_grid1b_row1_col1">
+                    <section id="testendpoint_grid1_row1b_col1_sec1" label="数据">
+                        <multilinetextbox columns="30" dataattribute="data" id="testendpoint_grid1b_1_1_grid1_1" rows="20"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="testendpoint_grid1b_row1_col2">
+                    <section id="testendpoint_grid1_row1b_col2_sec1" label="日志">
+                        <multilinetextbox columns="30" dataattribute="progresslog" id="testendpoint_grid1b_1_1_grid1_2" rows="20"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="testendpoint_2">
+            <pushbutton default="true" id="testendpoint_2_4" label="测试" mxevent="testrun" sigoption="SCRIPTERR"/>
+            <pushbutton default="true" id="testendpoint_2_0" label="测试" mxevent="testrun" sigoption="SCRIPTOTHER"/>
+            <pushbutton default="true" id="testendpoint_2_1" label="测试" mxevent="testrun" sigoption="SCRIPTOUT"/>
+            <pushbutton default="true" id="testendpoint_2_5" label="测试" mxevent="testrun" sigoption="SCRIPTCRON"/>
+            <doclinkuploadbutton default="true" id="testendpoint_2_2" label="测试" mxevent="testrun" sigoption="SCRIPTIN"/>
+            <pushbutton id="testendpoint_2_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="ACTNstep2_attr_variables_main_table" id="showattribute3" label="选择字段">
+        <section id="showattributereltree3">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree3" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute3_node3" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute3_node3_attr3"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons3">
+            <pushbutton default="true" id="showattributetree3_33" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="CONDACTNstep2_attr_variables_main_table" id="showattribute4" label="选择字段">
+        <section id="showattributereltree4">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree4" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute4_node4" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute4_node4_attr4"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons4">
+            <pushbutton default="true" id="showattributetree4_44" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="objectdetail_table" id="showattribute5" label="选择字段">
+        <section id="showattributereltree5">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree5" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute5_node5" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute5_node5_attr5"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons5">
+            <pushbutton default="true" id="showattributetree5_55" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptIntegrationDialogBean" height="380" id="cfgiface" label="为集成创建脚本" mboname="AUTOSCRIPT" width="900">
+        <section id="scriptiface_grid2">
+            <sectionrow id="scriptiface_grid2_row0">
+                <sectioncol id="scriptiface_grid2_row1111_col1">
+                    <helpgrid id="scriptiface_grid2row1_help" innerhtml="指定用于启动脚本的集成组件和处理点。 指定用于编写脚本的脚本编制语言，然后添加脚本或导入脚本。 您可以选择添加脚本运行时应用的变量。"/>
+                </sectioncol>
+            </sectionrow>
+            <section id="scriptiface_grid3" label="集成详细信息">
+                <helpgrid id="scriptiface_grid3row1_help" innerhtml="选择自动化脚本为了在集成消息处理中添加定制逻辑而运行的集成组件类型。  指定此类集成组件列表中的组件，然后选择运行脚本的处理点。"/>
+                <radiobuttongroup border="true" dataattribute="ifacetype" id="scriptiface_rb" hidelabel="true" synchronous="true">
+                    <radiobutton id="scriptiface_rb1" label="对象结构" value="1"/>
+                    <radiobutton id="scriptiface_pb" label="发布通道" value="2"/>
+                    <radiobutton id="scriptiface_es3" label="企业服务" value="3"/>
+                    <radiobutton id="scriptiface_rb4" label="调用通道" value="4"/>
+                </radiobuttongroup>
+                <section border="true" id="scriptspace5">
+                    <sectionrow id="scriptiface_rb11a" sigoption="IFACETYPE">
+                        <sectioncol id="scriptiface_rb122a">
+                            <textbox applink="intobject" dataattribute="intobjectname" id="scriptiface_rb13_2a" lookup="intobjects" menutype="normal"/>
+                        </sectioncol>
+                    </sectionrow>
+                    <sectionrow id="scriptiface_pb1a" sigoption="IFACETYPEPC">
+                        <sectioncol id="scriptiface_pb2a">
+                            <textbox applink="publish" dataattribute="ifacename" id="scriptiface_pb2_1a" lookup="maxifacelist" menutype="normal"/>
+                        </sectioncol>
+                    </sectionrow>
+                    <sectionrow id="scriptiface_es31a" sigoption="IFACETYPEES">
+                        <sectioncol id="scriptiface_es32a">
+                            <textbox applink="intsrv" dataattribute="ifacenamees" id="scriptiface_es_ifacea" lookup="maxifacelist" menutype="normal"/>
+                        </sectioncol>
+                    </sectionrow>
+                    <sectionrow id="scriptiface_rb44a" sigoption="IFACETYPEIC">
+                        <sectioncol id="scriptiface_rb42a">
+                            <textbox applink="invoke" dataattribute="ifacenameic" id="scriptiface_ic_ifacea" lookup="maxifacelist" menutype="normal"/>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <section id="scriptspace1">
+                    <sectionrow id="scriptiface_rb11b" sigoption="IFACETYPE">
+                        <sectioncol id="scriptiface_rb123a">
+                            <radiobuttongroup border="true" dataattribute="ifacedir" id="scriptiface_rb13_1a" synchronous="true">
+                                <radiobutton id="scriptiface_rb13_11a" label="入站处理" value="1"/>
+                                <radiobutton id="scriptiface_rb13_12a" label="出站定义" value="2"/>
+                                <radiobutton id="scriptiface_rb13_13a" label="查询子句" value="3">
+                                    <textbox dataattribute="querynamenp" id="scriptiface_rb13_13b" synchronous="true"/>
+                                </radiobutton>
+                                <radiobutton id="scriptiface_rb13_14a" label="操作处理" value="4">
+                                    <textbox dataattribute="actionnamenp" id="scriptiface_rb13_14b" synchronous="true"/>
+                                </radiobutton>
+                            </radiobuttongroup>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <section id="scriptspace2">
+                    <sectionrow id="scriptiface_es31b" sigoption="IFACEESIC">
+                        <sectioncol id="scriptiface_es4a">
+                            <radiobuttongroup border="true" dataattribute="ifaceesdir" id="scriptiface_es3_1a" synchronous="true">
+                                <radiobutton id="scriptiface_es3_rea" label="请求" value="1"/>
+                                <radiobutton id="scriptiface_es3_resa" label="响应" value="2"/>
+                            </radiobuttongroup>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <section id="scriptspace3">
+                    <sectionrow id="scriptiface_pb1" sigoption="IFACEPCESIC">
+                        <sectioncol id="scriptiface_pb3">
+                            <radiobuttongroup border="true" dataattribute="ifaceexit" id="scriptiface_pb3_1" moreinformation="com.ibm.mif.doc,mif_scripting/c_ctr_custom_java_classes.html" synchronous="true">
+                                <radiobutton id="scriptiface_pb3_11" label="外部出口" value="1"/>
+                                <radiobutton id="scriptiface_pb3_12" label="用户出口" value="2"/>
+                                <radiobutton id="scriptiface_pb3_13" label="事件过滤器" sigoption="IFACETYPEPC" value="3"/>
+                            </radiobuttongroup>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <section id="scriptspace4">
+                    <sectionrow id="scriptiface_ba13" sigoption="IFACEXIT">
+                        <sectioncol id="scriptiface_ba13a">
+                            <radiobuttongroup border="true" dataattribute="ifaceba" id="scriptiface_ba" moreinformation="com.ibm.mif.doc,mif_scripting/c_ctr_custom_java_classes.html" synchronous="true">
+                                <radiobutton id="scriptiface_ba_11" label="在外部出口之前" value="1"/>
+                                <radiobutton id="scriptiface_ba_12" label="在外部出口之后" value="2"/>
+                            </radiobuttongroup>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </section>
+            <section id="scriptiface_script_1" label="脚本详细信息">
+                <sectionrow id="scriptiface_grid2_row1">
+                    <sectioncol id="scriptiface_grid2_row1_col1">
+                        <section id="scriptiface_grid2_row1_col1_1">
+                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="scriptiface_grid2_attr1_1" inputmode="readonly" longdescreadonly="false"/>
+                            <textbox dataattribute="scriptlanguage" id="scriptiface_grid2_attr1_2" lookup="scriptengines"/>
+                            <textbox dataattribute="loglevel" id="scriptiface_grid2_attr1_4" lookup="valuelist"/>
+                        </section>
+                    </sectioncol>
+                    <sectioncol id="scriptiface_grid2_row1_col2">
+                        <section id="scriptiface_grid2_row1_col2_2">
+                            <checkbox dataattribute="active" id="scriptiface_grid2_attr2_21"/>
+                            <textbox dataattribute="version" id="scriptiface_grid2_attr2_3"/>
+                            <checkbox dataattribute="userdefined" id="scriptiface_grid2_attr2_2"/>
+                        </section>
+                    </sectioncol>
+                </sectionrow>
+                <section id="scriptiface_attr1_main_grid30_1_row2_col0_1">
+                    <sectionrow id="scriptiface_attr1_main_grid30_1_row2">
+                        <sectioncol id="scriptiface_attr1_main_grid30_1_row2_col1">
+                            <section id="scriptiface_attr1_main_grid30_1_row2_col1_1">
+                                <importapp id="scriptifaceattr1_file_5552_0" label="导入脚本文件："/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="scriptiface_attr1_main_gridXX444430_1_row2_col1">
+                            <section id="scriptiface_attr1_main_grid555530_1_row2_col1_1">
+                                <buttongroup id="scriptifaceattr1detail_detail_buttons">
+                                    <doclinkuploadbutton default="true" id="scriptifaceattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                                </buttongroup>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </section>
+        </section>
+        <table id="scriptiface_variables_main_table" label="变量" orderby="vartype" relationship="AUTOSCRIPTVARS">
+            <tablebody displayrowsperpage="10" filterable="true" id="scriptiface_vars_main_table_tablebody">
+                <tablecol filterable="false" id="scriptiface_vars_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="scriptiface_vars_main_table_tablebody_2" linkedcontrolid="createscript_main_table_row1_col1_1_1" sortable="true"/>
+                <tablecol dataattribute="vartype" id="scriptiface_vars_main_table_tablebody_3" linkedcontrolid="createscript_main_table_row1_col1_1_2" sortable="true">
+                    <textbox id="scriptiface_vars_main_table_tablebody_3_1" lookup="valuelist"/>
+                </tablecol>
+                <tablecol dataattribute="varbindingtype" id="scriptiface_vars_main_table_tablebody_4" linkedcontrolid="createscript_main_table_row1_col1_1_3" sortable="true">
+                    <textbox id="scriptiface_vars_main_table_tablebody_4_1" lookup="valuelist"/>
+                </tablecol>
+                <tablecol dataattribute="varbindingvalue" id="scriptiface_vars_main_table_tablebody_5" linkedcontrolid="createscript_main_table_row1_col2_1_1" sortable="false"/>
+                <tablecol dataattribute="allowoverride" id="scriptiface_vars_main_table_tablebody_6" linkedcontrolid="createscript_main_table_row1_col2_1_2" sortable="false"/>
+                <tablecol filterable="false" id="scriptiface_vars_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <tabledetails id="scriptiface_vars_main_table_1">
+                <section id="scriptiface_vars_main_table_1_grid2" label="详细信息">
+                    <sectionrow id="scriptiface_main_table_row1">
+                        <sectioncol id="scriptiface_main_table_row1_col1">
+                            <section id="scriptiface_main_table_row1_col1_1">
+                                <multiparttextbox dataattribute="varname" descdataattribute="description" id="scriptiface_main_table_row1_col1_1_1"/>
+                                <textbox dataattribute="vartype" id="scriptiface_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                <checkbox dataattribute="allowoverride" id="scriptiface_main_table_row1_col2_1_2"/>
+                                <checkbox dataattribute="novalidation" id="scriptiface_main_table_row1_col2_1_3"/>
+                                <checkbox dataattribute="noaccesscheck" id="scriptiface_main_table_row1_col2_1_4"/>
+                                <checkbox dataattribute="noaction" id="scriptiface_main_table_row1_col2_1_5"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="scriptiface_main_table_row1_col2">
+                            <section id="scriptiface_main_table_row1_col2_1">
+                                <textbox dataattribute="varbindingtype" id="scriptiface_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                <textbox dataattribute="literaldatatype" id="scriptiface_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                <textbox dataattribute="varbindingvalue" id="scriptiface_main_table_row1_col2_1_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+            <buttongroup id="scriptiface_vars_main_table_2">
+                <pushbutton default="true" id="scriptiface_vars_main_table_2_1" label="新建行" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <section id="scriptiface_step3_object_main_grid2_1">
+            <sectionrow id="scriptiface_step3_object_main_grid2_1_row2">
+                <sectioncol id="scriptiface_step3_object_main_grid2_1_row2_col1">
+                    <section id="scriptiface_step3_object_main_grid2_1_row2_col1_1">
+                        <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="scriptiface_step3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="scriptiface_objectdetail_detail_buttons">
+            <pushbutton default="true" id="scriptiface_detail_buttons_1" label="创建" mxevent="complete"/>
+            <pushbutton id="scriptiface_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="attrdetail_table" id="showattribute6" label="选择字段">
+        <section id="showattributereltree6">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree6" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute6_node6" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute6_node6_attr6"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons6">
+            <pushbutton default="true" id="showattributetree6_66" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog id="actiondetail" label="操作启动点">
+        <section id="main_actiondetail_section1">
+            <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="actiondetail_domainid"/>
+            <checkbox dataattribute="active" id="actiondetail_main1_sec_77"/>
+            <textbox dataattribute="objectname" id="main_actiondetail_section11_text3" lookup="objectname"/>
+            <textbox dataattribute="actionname" id="main_actiondetail_section11_text4"/>
+        </section>
+        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.LaunchPointActionVarBean" id="actiondetail_table" label="启动点变量" relationship="LAUNCHPOINTVARS" selectmode="multiple">
+            <tablebody displayrowsperpage="10" filterable="false" id="actiondetail_table_tablebody">
+                <tablecol filterable="false" id="actiondetail_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="actiondetail_table_tablebody_4"/>
+                <tablecol dataattribute="autoscriptvars.vartype" id="actiondetail_table_tablebody_41" inputmode="readonly"/>
+                <tablecol dataattribute="autoscriptvars.varbindingtype" id="actiondetail_table_tablebody_42" inputmode="readonly"/>
+                <tablecol dataattribute="varbindingvalue" id="actiondetail_table_tablebody_5"/>
+                <tablecol dataattribute="overridden" id="actiondetail_table_tablebody_2"/>
+            </tablebody>
+            <tabledetails id="actiondetail_tabledetail">
+                <section border="true" height="300" id="actiondetail_table_tabledetail_1">
+                    <sectionrow id="actiondetail_detail_row_1">
+                        <sectioncol id="actiondetail_detail_row1_col1">
+                            <section id="actiondetail_detail_row1_col1_section">
+                                <textbox dataattribute="varname" id="actiondetail_detail_4"/>
+                                <textbox dataattribute="autoscriptvars.vartype" id="actiondetail_detail_41" inputmode="readonly"/>
+                                <textbox dataattribute="autoscriptvars.varbindingtype" id="actiondetail_detail_42" inputmode="readonly"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="actiondetail_detail_row1_col2">
+                            <section id="actiondetail_detail_row1_col2_section">
+                                <textbox dataattribute="varbindingvalue" id="actiondetail_detail_5" sigoption="HIDELPATTR" sigoptiondatasrc="actiondetail_table"/>
+                                <textbox dataattribute="lpattributevaluenp" id="actiondetail_detail_511" menutype="SELECTOBJATTRNAME7" ondatachange="resetchildren" sigoption="LPATTRVAL" sigoptiondatasrc="actiondetail_table"/>
+                                <checkbox dataattribute="overridden" id="actiondetail_detail_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+        </table>
+        <buttongroup id="actiondetail_detail_buttons">
+            <pushbutton default="true" id="actiondetail_detail_buttons_1" label="确定" mxevent="dialogok"/>
+            <pushbutton id="actiondetail_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="step2_variables_main_table" id="showattribute1" label="选择字段">
+        <section id="showattributereltree">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute1_node1" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute1_node1_attr1"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons">
+            <pushbutton default="true" id="showattributetree2_2" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="step2_attr_variables_main_table" id="showattribute2" label="选择字段">
+        <section id="showattributereltree2">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree2" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute2_node2" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute2_node2_attr1"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons2">
+            <pushbutton default="true" id="showattributetree2_22" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog id="objectdetail" label="对象启动点">
+        <section id="main_objectdetail_section1">
+            <sectionrow id="objectdetail_main1_row_1">
+                <sectioncol id="objectdetail_main1_row1_col1">
+                    <section id="objectdetail_main1_row1_col1_section">
+                        <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="objectdetail_domainid"/>
+                        <textbox dataattribute="objectname" id="main_objectdetail_section11_text3" lookup="objectname"/>
+                        <multilinetextbox columns="40" dataattribute="condition" id="main_objectdetail_section12_text31" menutype="screxpbuilder" rows="3"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="objectdetail_main1_row1_col2">
+                    <section id="objectdetail_main1_row1_col2_section">
+                        <checkbox dataattribute="active" id="objectdetail_main1_sec_77"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+            <sectionrow id="objectdetail_main1_row_2">
+                <sectioncol id="objectdetail_main2_row2_col1">
+                    <section id="main_help_objectdetail_sectionP333">
+                        <sectionrow id="objectdetail_main6_rowP_1">
+                            <sectioncol id="objectdetail_main6_rowP_colP1">
+                                <section id="objectdetail_topsec1" label="事件">
+                                    <sectionrow id="objectdetail_topsec2">
+                                        <sectioncol id="objectdetail_topsec3">
+                                            <radiobuttongroup border="false" dataattribute="eventtype" id="objectdetail_main6_sec_1_rbg" hidelabel="true">
+                                                <radiobutton default="true" id="objectdetail_main6_sec_1" label="初始化值" value="0"/>
+                                                <radiobutton id="objectdetail_main1_sec_2" label="验证应用程序" value="1"/>
+                                                <radiobutton id="objectdetail_main6_sec_3" label="允许创建对象" value="2"/>
+                                                <radiobutton id="objectdetail_main1_sec_4" label="允许删除对象" value="3"/>
+                                                <radiobutton id="objectdetail_main1_sec_5" label="保存" value="4"/>
+                                            </radiobuttongroup>
+                                        </sectioncol>
+                                    </sectionrow>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="objectdetail_main6_row1_colP2">
+                                <section id="main_help_objectdetail_sec2_section333" label="保存">
+                                    <sectionrow id="objectdetail_sec2_main6_row_1">
+                                        <sectioncol id="objectdetail_sec2_main6_row1_col1">
+                                            <section border="false" id="main_help_objectdetail_section333">
+                                                <sectionrow id="objectdetail_main6_row_1">
+                                                    <sectioncol id="objectdetail_main6_row1_col1">
+                                                        <checkbox dataattribute="add" id="objectdetail_main6_sec_2"/>
+                                                        <checkbox dataattribute="update" id="objectdetail_main7_sec_5"/>
+                                                        <checkbox dataattribute="delete" id="objectdetail_main7_sec_6"/>
+                                                    </sectioncol>
+                                                    <sectioncol id="objectdetail_main7_row1_col1">
+                                                        <radiobuttongroup border="false" dataattribute="evcontext" id="objectdetail_evcontext_group_1" hidelabel="true">
+                                                            <radiobutton default="true" id="objectdetail_evcontext_1" label="保存前" value="0"/>
+                                                            <radiobutton id="objectdetail_evcontext_2" label="保存后" value="1"/>
+                                                            <radiobutton id="objectdetail_evcontext_3" label="落实后" value="2"/>
+                                                        </radiobuttongroup>
+                                                    </sectioncol>
+                                                </sectionrow>
+                                            </section>
+                                        </sectioncol>
+                                    </sectionrow>
+                                </section>
+                                <blankline id="main_help_objectdetail_sec2_bl"/>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.LaunchPointObjectVarBean" id="objectdetail_table" label="启动点变量" relationship="LAUNCHPOINTVARS" selectmode="multiple">
+            <tablebody displayrowsperpage="10" filterable="false" id="objectdetail_table_tablebody">
+                <tablecol filterable="false" id="objectdetail_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                <tablecol dataattribute="varname" id="objectdetail_table_tablebody_4"/>
+                <tablecol dataattribute="autoscriptvars.vartype" id="objectdetail_table_tablebody_41" inputmode="readonly"/>
+                <tablecol dataattribute="autoscriptvars.varbindingtype" id="objectdetail_table_tablebody_42" inputmode="readonly"/>
+                <tablecol dataattribute="varbindingvalue" id="objectdetail_table_tablebody_5"/>
+                <tablecol dataattribute="overridden" id="objectdetail_table_tablebody_2"/>
+            </tablebody>
+            <tabledetails id="objectdetail_tabledetail">
+                <section border="true" height="300" id="objectdetail_table_tabledetail_1">
+                    <sectionrow id="objectdetail_detail_row_1">
+                        <sectioncol id="objectdetail_detail_row1_col1">
+                            <section id="objectdetail_detail_row1_col1_section">
+                                <textbox dataattribute="varname" id="objectdetail_detail_4"/>
+                                <textbox dataattribute="autoscriptvars.vartype" id="objectdetail_detail_41" inputmode="readonly"/>
+                                <textbox dataattribute="autoscriptvars.varbindingtype" id="objectdetail_detail_42" inputmode="readonly"/>
+                            </section>
+                        </sectioncol>
+                        <sectioncol id="objectdetail_detail_row1_col2">
+                            <section id="objectdetail_detail_row1_col2_section">
+                                <textbox dataattribute="varbindingvalue" id="objectdetail_detail_5" sigoption="HIDELPATTR" sigoptiondatasrc="objectdetail_table"/>
+                                <textbox dataattribute="lpattributevaluenp" id="objectdetail_detail_511" menutype="SELECTOBJATTRNAME5" ondatachange="resetchildren" sigoption="LPATTRVAL" sigoptiondatasrc="objectdetail_table"/>
+                                <checkbox dataattribute="overridden" id="objectdetail_detail_1"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+        </table>
+        <buttongroup id="objectdetail_detail_buttons">
+            <pushbutton default="true" id="objectdetail_detail_buttons_1" label="正常" mxevent="complete"/>
+            <pushbutton id="objectdetail_detail_buttons_3" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptActionLpWizardBean" id="cfgactn" mboname="SCRIPTLAUNCHPOINT">
+        <tabgroup format="carddeck" id="wgenerate_tabs_action_2">
+            <tab default="true" id="wcreate_lp_action" label="第 1 步">
+                <section id="main_help_cfgactiondetail_section1" label="创建带有操作启动点的脚本：第 1 步（共 3 步）">
+                    <sectionrow id="main_help_cfgactiondetail_grid0_row1">
+                        <section id="main_help_cfgactnnnndetail_section1111">
+                            <sectionrow id="main_help_cfgactnnndetail_grid0_row1111">
+                                <sectioncol id="main_help_cfgactiondetail_grid0_row1_col1">
+                                    <helpgrid id="main_help_cfgactiondetail_help" innerhtml="指定将启动脚本的对象和操作。 您可以复用现有脚本或指定新脚本。 如果选择新脚本，向导会引导您完成脚本创建过程。" morehelp="com.ibm.mbs.doc,autoscript/c_act_lp.html"/>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                        <section id="main_cfgactiondetail_section1">
+                            <sectionrow id="cfgactiondetail_main1_row_1">
+                                <sectioncol id="cfgactiondetail_main1_row1_col1">
+                                    <section id="cfgactiondetail_main1_row1_col1_section">
+                                        <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="cfgactiondetail_domainid"/>
+                                        <multiparttextbox dataattribute="actionname" descdataattribute="actiondesc" id="cfgactiondetail__text4"/>
+                                    </section>
+                                </sectioncol>
+                                <sectioncol id="cfgactiondetail_main1_row1_col2">
+                                    <section id="cfgactiondetail_main1_row1_col2_section">
+                                        <textbox dataattribute="objectname" id="cfgactiondetail__text3" lookup="objectname"/>
+                                        <checkbox dataattribute="active" id="cfgactiondetail_main1_sec_77"/>
+                                    </section>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                        <section id="main_cfgactiondetail_section2" label="脚本">
+                            <sectionrow id="cfgactiondetail_main2_row_2">
+                                <sectioncol id="cfgactiondetail_main2_row2_col2">
+                                    <section id="cfgactiondetail_main2_row2_col2_section">
+                                        <radiobuttongroup dataattribute="scriptorigin" id="cfgactiondetail_main2_sec_radio2">
+                                            <radiobutton default="true" id="cfgactiondetail_main2_sec2_radio1_1" label="新建" value="NEW"/>
+                                            <radiobutton id="cfgactiondetail_main2_sec2_radio1_2" label="现有：" value="EXISTING">
+                                                <textbox dataattribute="autoscriptnp" id="cfgactiondetail_main2_sec2_radio1_3" lookup="autoscript"/>
+                                            </radiobutton>
+                                        </radiobuttongroup>
+                                    </section>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                    </sectionrow>
+                </section>
+                <buttongroup id="cfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="cfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton default="true" id="cfgactiondetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab id="wcreate_lp_vars_action" label="第 2 步" relationship="AUTOSCRIPT">
+                <section id="ACTNmain_help_cfgattrdetail2_section1" label="创建带有操作启动点的脚本：第 2 步（共 3 步）">
+                    <sectionrow id="ACTNmain_help_cfgattrdetail2_grid0_row1">
+                        <sectioncol id="ACTNmain_help_cfgattrdetail2_grid0_row1_col1">
+                            <section border="true" id="ACTNstep2_attr_header_variables_grid1">
+                                <sectionrow id="ACTNstep2_attr_header_variables_grid1_row1">
+                                    <sectioncol id="ACTNstep2_attr_header_variables_grid1_row1_col1">
+                                        <section id="ACTNstep2_attr_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgactn" descdataattribute="description" id="ACTNstep2_attr_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="ACTNstep2_attr_variables_grid1_row1_col1_1_1" ondatachange="resetchildren"/>
+                                            <textbox dataattribute="scriptlanguage" id="ACTNstep2_attr_variables_grid1_row1_col3_1_1" lookup="scriptengines"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="ACTNstep2_attr_header_variables_grid1_row1_col2_empty">
+                                        <section id="ACTNstep2_attr_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgactn" id="ACTNstep2_attr_main_cfgattrdetail_section11_text3" inputmode="readonly"/>
+                                            <textbox dataattribute="loglevel" id="ACTNattrstep2_variables_grid1_row1_col2_2_2" lookup="valuelist"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section datasrc="cfgactn" id="ACTNstep2_cfgattrvariables_grid01" sigoption="HIDEIMP">
+                                <sectionrow id="ACTNstepppp3cfgattr_attr1_main_grid030_1_row2">
+                                    <sectioncol id="ACTNsteppppp3cfgattr_attr1_main_grid030_1_row2_col1">
+                                        <section id="ACTNmain_help_cfgattr_detail_section2111">
+                                            <sectionrow id="ACTNmain_help_cfgattr_detail2111_grid0_row1">
+                                                <sectioncol id="ACTNmain_help_cfgattr_detail2111_grid0_row1_col1">
+                                                    <helpgrid id="ACTNmain_help_cfgcfgattr_detail_help2" innerhtml="您可以导入在其他应用程序中创建的脚本文件，或者在下一步的“源代码”字段中输入脚本。"/>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                        <section id="ACTNstep2_cfgattrvariables_grid1">
+                                            <sectionrow id="ACTNstepppp3_cfgattrattr1_main_grid30_1_row2">
+                                                <sectioncol id="ACTNsteppppp3_cfgattrattr1_main_grid30_1_row2_col1">
+                                                    <section id="ACTNstepppp3_cfgattrattr1_main_grid30_1_row2_col1_1">
+                                                        <importapp id="ACTNiiimportfileattr1cfgattr_file_2_0" label="导入脚本文件："/>
+                                                    </section>
+                                                </sectioncol>
+                                                <sectioncol id="ACTNsssstep311_attr1cfgattr_main_grid30_1_row2_col1">
+                                                    <section id="ACTNsssstep311_attr1cfgattr_main_grid30_1_row2_col1_1">
+                                                        <buttongroup id="ACTNsssstep311cfgattr1cfgattrdetail_detail_buttons">
+                                                            <doclinkuploadbutton default="true" id="ACTNsssstep3cfgattrcfgattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                                                        </buttongroup>
+                                                    </section>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="ACTNstep2_cfgattr5_variables_grid112">
+                                <sectionrow id="ACTNstep2_cfgattr5_variables_grid112_row1">
+                                    <sectioncol id="ACTNstep2_cfgattr5_variables_grid112_row1_col1">
+                                        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptConditionalBean" id="ACTNstep2_attr_variables_main_table" label="变量" orderby="vartype" parentdatasrc="wcreate_lp_vars_action" relationship="AUTOSCRIPTVARS">
+                                            <tablebody displayrowsperpage="10" filterable="true" id="ACTNstep2_attr_variables_main_table_tablebody">
+                                                <tablecol filterable="false" id="ACTNstep2_attr_variables_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                                                <tablecol dataattribute="varname" id="ACTNstep2_attr_variables_main_table_tablebody_2" linkedcontrolid="ACTNstep2_attr_main_table_row1_col1_1_1" sortable="true"/>
+                                                <tablecol dataattribute="vartype" id="ACTNstep2_attr_variables_main_table_tablebody_3" linkedcontrolid="ACTNstep2_attr_main_table_row1_col1_1_2" sortable="true">
+                                                    <textbox id="ACTNstep2_attr_variables_main_table_tablebody_3_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingtype" id="ACTNstep2_attr_variables_main_table_tablebody_4" linkedcontrolid="ACTNstep2_attr_main_table_row1_col1_1_3" sortable="true">
+                                                    <textbox id="ACTNstep2_attr_variables_main_table_tablebody_4_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingvalue" id="ACTNstep2_attr_variables_main_table_tablebody_5" linkedcontrolid="ACTNstep2_attr_main_table_row1_col2_1_1" sortable="false"/>
+                                                <tablecol dataattribute="allowoverride" id="ACTNstep2_attr_variables_main_table_tablebody_6" linkedcontrolid="ACTNstep2_attr_main_table_row1_col2_1_2" sortable="false"/>
+                                                <tablecol filterable="false" id="ACTNstep2_attr_variables_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                                            </tablebody>
+                                            <tabledetails id="ACTNstep2_attr_variables_main_table_1">
+                                                <section id="ACTNmain_help_cfgattr6detail21_section1" label="详细信息">
+                                                    <sectionrow id="ACTNmain_help_cfgattr6detail21_grid0_row1">
+                                                        <sectioncol id="ACTNmain_help_cfgattr6detail21_grid0_row1_col1">
+                                                            <helpgrid id="ACTNmain_help_cfgattr6detail21_help" innerhtml="指定要在脚本中使用的变量，包括变量类型和绑定类型。 根据您指定的绑定类型，还必须在关联的字段中输入其他值。" morehelp="com.ibm.mbs.doc,autoscript/c_variables.html"/>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                                <section id="ACTNstep2_attr_variables_main_table_1_grid2" label="详细信息">
+                                                    <sectionrow id="ACTNstep2_attr_main_table_row1">
+                                                        <sectioncol id="ACTNstep2_attr_main_table_row1_col1">
+                                                            <section id="ACTNstep2_attr_main_table_row1_col1_1">
+                                                                <multiparttextbox dataattribute="varname" descdataattribute="description" id="ACTNstep2_attr_main_table_row1_col1_1_1"/>
+                                                                <textbox dataattribute="vartype" id="ACTNstep2_attr_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingtype" id="ACTNstep2_attr_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                                                <textbox dataattribute="literaldatatype" id="ACTNstep2_attr_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingvalue" id="ACTNstep2_attr_main_table_row1_col2_1_1" label="全局绑定值"/>
+                                                                <textbox dataattribute="attributevaluenp" id="ACTNstep2_main_table_row1_col22_1_1" label="启动点属性" menutype="SELECTOBJATTRNAME3" sigoption="ATTRVAL" sigoptiondatasrc="ACTNstep2_attr_variables_main_table"/>
+                                                                <textbox dataattribute="lpvarbindval" id="ACTNstep2_attr_main_table_row1_col4_1_1" label="启动点绑定值" sigoption="HIDEATTR" sigoptiondatasrc="ACTNstep2_attr_variables_main_table"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                        <sectioncol id="ACTNstep2_attr_main_table_row1_col2">
+                                                            <section id="ACTNstep2_attr_main_table_row1_col2_1">
+                                                                <checkbox dataattribute="allowoverride" id="ACTNstep2_attr_main_table_row1_col2_1_2"/>
+                                                                <checkbox dataattribute="novalidation" id="ACTNstep2_attr_main_table_row1_col2_1_3"/>
+                                                                <checkbox dataattribute="noaccesscheck" id="ACTNstep2_attr_main_table_row1_col2_1_4"/>
+                                                                <checkbox dataattribute="noaction" id="ACTNstep2_attr_main_table_row1_col2_1_5"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                            </tabledetails>
+                                            <buttongroup id="ACTNstep2_attr_variables_main_table_2">
+                                                <pushbutton default="true" id="ACTNstep2_attr_variables_main_table_2_1" label="新建行" mxevent="addrow"/>
+                                            </buttongroup>
+                                        </table>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="Step2cfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="Step2cfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="Step2cfgactiondetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="Step2cfgactiondetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab datasrc="wcreate_lp_vars_action" id="wscript_gen_action" label="第 3 步">
+                <section id="main_help_cfgactiondetail3_section1" label="创建带有操作启动点的脚本：第 3 步（共 3 步）">
+                    <sectionrow id="ACTNmain_help_cfgobjectdetail3_grid0_row1">
+                        <sectioncol id="ACTNmain_help_cfgobjectdetail3_grid0_row1_col1">
+                            <section id="ACTNmain_help_cfgobjectdetail3_section1111">
+                                <sectionrow id="ACTNmain_help_cfgobjectdetail3_grid0_row1111">
+                                    <sectioncol id="ACTNmain_help_cfgobjectdetail3_grid0_row1_col1111">
+                                        <helpgrid id="ACTNmain_help_cfgobjectdetail3_help" innerhtml="您可以在“源代码”字段中输入脚本，也可以在上一步中导入脚本文件。"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section border="true" id="ACTNstep3_header_variables_grid1">
+                                <sectionrow id="ACTNstep3_header_variables_grid1_row1">
+                                    <sectioncol id="ACTNstep3_header_variables_grid1_row1_col1">
+                                        <section id="ACTNstep3_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgactn" descdataattribute="description" id="ACTNstep3_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="ACTNstep3_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="ACTNstep3_header_variables_grid1_row1_col2_empty">
+                                        <section id="ACTNstep3_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgactn" id="ACTNstep3_main_cfgobjectdetail_section11_text3" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="ACTNstep3_object_main_grid2_1">
+                                <sectionrow id="ACTNstep3_object_main_grid2_1_row2">
+                                    <sectioncol id="ACTNstep3_object_main_grid2_1_row2_col1">
+                                        <section id="ACTNstep3_object_main_grid2_1_row2_col1_1">
+                                            <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="ACTNstep3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="step3cfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="step3cfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="step3cfgactiondetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="step3cfgactiondetail_detail_buttons_3" label="创建" mxevent="complete"/>
+                </buttongroup>
+            </tab>
+        </tabgroup>
+    </dialog>
+    <dialog beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptCustomConditionLpWizardBean" id="cfgccond" mboname="SCRIPTLAUNCHPOINT">
+        <tabgroup format="carddeck" id="wgenerate11_tabs_cc_2">
+            <tab default="true" id="wcreate_lp_cc" label="第 1 步">
+                <section id="CONDmain_help_cfgactiondetail_section1" label="创建带有定制条件启动点的脚本：第 1 步（共 3 步）">
+                    <sectionrow id="CONDmain_help_cfgactiondetail_grid0_row1">
+                        <section id="CONDmain_help_cfgactnnnndetail_section1111">
+                            <sectionrow id="CONDmain_help_cfgactnnndetail_grid0_row1111">
+                                <sectioncol id="CONDmain_help_cfgactiondetail_grid0_row1_col1">
+                                    <helpgrid id="CONDmain_help_cfgactiondetail_help" innerhtml="指定与您要使用的条件完全同名的启动点名称。 在“条件表达式管理器”应用程序中指定定制条件。 您可以复用现有脚本或指定新脚本。 如果选择新脚本，向导会引导您完成脚本创建过程。" morehelp="com.ibm.mbs.doc,autoscript/c_cond_lp.html"/>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                        <section id="CONDmain_cfgactiondetail_section1">
+                            <sectionrow id="CONDcfgactiondetail_main1_row_1">
+                                <sectioncol id="CONDcfgactiondetail_main1_row1_col1">
+                                    <section id="CONDcfgactiondetail_main1_row1_col1_section">
+                                        <multiparttextbox dataattribute="launchpointname" descdataattribute="description" id="CONDcfgactiondetail_domainid"/>
+                                        <checkbox dataattribute="active" id="CONDcfgactiondetail_main1_sec_77"/>
+                                    </section>
+                                </sectioncol>
+                                <sectioncol id="CONDcfgactiondetail_main1_row1_col2">
+                                    <section id="CONDcfgactiondetail_main1_row1_col2_section">
+                                        <textbox dataattribute="objectname" id="CONDcfgactiondetail__text3" lookup="objectname"/>
+                                    </section>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                        <section id="CONDmain_cfgactiondetail_section2" label="脚本">
+                            <sectionrow id="CONDcfgactiondetail_main2_row_2">
+                                <sectioncol id="CONDcfgactiondetail_main2_row2_col2">
+                                    <section id="CONDcfgactiondetail_main2_row2_col2_section">
+                                        <radiobuttongroup dataattribute="scriptorigin" id="CONDcfgactiondetail_main2_sec_radio2">
+                                            <radiobutton default="true" id="CONDcfgactiondetail_main2_sec2_radio1_1" label="新建" value="NEW"/>
+                                            <radiobutton id="CONDcfgactiondetail_main2_sec2_radio1_2" label="现有：" value="EXISTING">
+                                                <textbox dataattribute="autoscriptnp" id="CONDcfgactiondetail_main2_sec2_radio1_3" lookup="autoscript"/>
+                                            </radiobutton>
+                                        </radiobuttongroup>
+                                    </section>
+                                </sectioncol>
+                            </sectionrow>
+                        </section>
+                    </sectionrow>
+                </section>
+                <buttongroup id="CONDcfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="CONDcfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton default="true" id="CONDcfgactiondetail_detail_buttons_3" label="下一步" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab id="wcreate_lp_vars_cc" label="第 2 步" relationship="AUTOSCRIPT">
+                <section id="CONDACTNmain_help_cfgattrdetail2_section1" label="创建带有定制条件启动点的脚本：第 2 步（共 3 步）">
+                    <sectionrow id="CONDACTNmain_help_cfgattrdetail2_grid0_row1">
+                        <sectioncol id="CONDACTNmain_help_cfgattrdetail2_grid0_row1_col1">
+                            <section border="true" id="CONDACTNstep2_attr_header_variables_grid1">
+                                <sectionrow id="CONDACTNstep2_attr_header_variables_grid1_row1">
+                                    <sectioncol id="CONDACTNstep2_attr_header_variables_grid1_row1_col1">
+                                        <section id="CONDACTNstep2_attr_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgccond" descdataattribute="description" id="CONDACTNstep2_attr_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="CONDACTNstep2_attr_header_variables_grid1_row1_col2_empty">
+                                        <section id="CONDACTNstep2_attr_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgccond" id="CONDACTNstep2_attr_main_cfgattrdetail_section11_text3" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                                <sectionrow id="CONDACTNstep2_attr_variables_grid1_row1">
+                                    <sectioncol id="CONDACTNstep2_attr_variables_grid1_row1_col1">
+                                        <section id="CONDACTNstep2_attr_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" id="CONDACTNstep2_attr_variables_grid1_row1_col1_1_1" ondatachange="resetchildren"/>
+                                            <textbox dataattribute="scriptlanguage" id="CONDACTNstep2_attr_variables_grid1_row1_col3_1_1" lookup="scriptengines"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="CONDACTNstep2_attr_variables_grid1_row1_col3">
+                                        <section id="CONDACTNstep2_attr_variables_grid1_row1_col3_1">
+                                            <textbox dataattribute="loglevel" id="CONDACTNattrstep2_variables_grid1_row1_col2_2_2" lookup="valuelist"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section datasrc="cfgccond" id="CONDACTNstep2_cfgattrvariables_grid01" sigoption="HIDEIMP">
+                                <sectionrow id="CONDACTNstepppp3cfgattr_attr1_main_grid030_1_row2">
+                                    <sectioncol id="CONDACTNsteppppp3cfgattr_attr1_main_grid030_1_row2_col1">
+                                        <section id="CONDACTNmain_help_cfgattr_detail_section2111">
+                                            <sectionrow id="CONDACTNmain_help_cfgattr_detail2111_grid0_row1">
+                                                <sectioncol id="CONDACTNmain_help_cfgattr_detail2111_grid0_row1_col1">
+                                                    <helpgrid id="CONDACTNmain_help_cfgcfgattr_detail_help2" innerhtml="您可以导入在其他应用程序中创建的脚本文件，或者在下一步的“源代码”字段中输入脚本。"/>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                        <section id="CONDACTNstep2_cfgattrvariables_grid1">
+                                            <sectionrow id="CONDACTNstepppp3_cfgattrattr1_main_grid30_1_row2">
+                                                <sectioncol id="CONDACTNsteppppp3_cfgattrattr1_main_grid30_1_row2_col1">
+                                                    <section id="CONDACTNstepppp3_cfgattrattr1_main_grid30_1_row2_col1_1">
+                                                        <importapp id="CONDACTNiiimportfileattr1cfgattr_file_2_0" label="导入脚本文件："/>
+                                                    </section>
+                                                </sectioncol>
+                                                <sectioncol id="CONDACTNsssstep311_attr1cfgattr_main_grid30_1_row2_col1">
+                                                    <section id="CONDACTNsssstep311_attr1cfgattr_main_grid30_1_row2_col1_1">
+                                                        <buttongroup id="CONDACTNsssstep311cfgattr1cfgattrdetail_detail_buttons">
+                                                            <doclinkuploadbutton default="true" id="CONDACTNsssstep3cfgattrcfgattr1detail_detail_buttons_5" label="导入" mxevent="loadData"/>
+                                                        </buttongroup>
+                                                    </section>
+                                                </sectioncol>
+                                            </sectionrow>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="CONDACTNstep2_cfgattr5_variables_grid112">
+                                <sectionrow id="CONDACTNstep2_cfgattr5_variables_grid112_row1">
+                                    <sectioncol id="CONDACTNstep2_cfgattr5_variables_grid112_row1_col1">
+                                        <table beanclass="com.ibm.ism.script.webclient.beans.autoscript.ScriptConditionalBean" id="CONDACTNstep2_attr_variables_main_table" label="变量" orderby="vartype" parentdatasrc="wcreate_lp_vars_cc" relationship="AUTOSCRIPTVARS">
+                                            <tablebody displayrowsperpage="10" filterable="true" id="CONDACTNstep2_attr_variables_main_table_tablebody">
+                                                <tablecol filterable="false" id="CONDACTNstep2_attr_variables_main_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+                                                <tablecol dataattribute="varname" id="CONDACTNstep2_attr_variables_main_table_tablebody_2" linkedcontrolid="CONDACTNstep2_attr_main_table_row1_col1_1_1" sortable="true"/>
+                                                <tablecol dataattribute="vartype" id="CONDACTNstep2_attr_variables_main_table_tablebody_3" linkedcontrolid="CONDACTNstep2_attr_main_table_row1_col1_1_2" sortable="true">
+                                                    <textbox id="CONDACTNstep2_attr_variables_main_table_tablebody_3_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingtype" id="CONDACTNstep2_attr_variables_main_table_tablebody_4" linkedcontrolid="CONDACTNstep2_attr_main_table_row1_col1_1_3" sortable="true">
+                                                    <textbox id="CONDACTNstep2_attr_variables_main_table_tablebody_4_1" lookup="valuelist"/>
+                                                </tablecol>
+                                                <tablecol dataattribute="varbindingvalue" id="CONDACTNstep2_attr_variables_main_table_tablebody_5" linkedcontrolid="CONDACTNstep2_attr_main_table_row1_col2_1_1" sortable="false"/>
+                                                <tablecol dataattribute="allowoverride" id="CONDACTNstep2_attr_variables_main_table_tablebody_6" linkedcontrolid="CONDACTNstep2_attr_main_table_row1_col2_1_2" sortable="false"/>
+                                                <tablecol filterable="false" id="CONDACTNstep2_attr_variables_main_table_tablebody_10" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                                            </tablebody>
+                                            <tabledetails id="CONDACTNstep2_attr_variables_main_table_1">
+                                                <section id="CONDACTNmain_help_cfgattr6detail21_section1" label="详细信息">
+                                                    <sectionrow id="CONDACTNmain_help_cfgattr6detail21_grid0_row1">
+                                                        <sectioncol id="CONDACTNmain_help_cfgattr6detail21_grid0_row1_col1">
+                                                            <helpgrid id="CONDACTNmain_help_cfgattr6detail21_help" innerhtml="指定要在脚本中使用的变量，包括变量类型和绑定类型。 根据您指定的绑定类型，还必须在关联的字段中输入其他值。" morehelp="com.ibm.mbs.doc,autoscript/c_variables.html"/>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                                <section id="CONDACTNstep2_attr_variables_main_table_1_grid2" label="详细信息">
+                                                    <sectionrow id="CONDACTNstep2_attr_main_table_row1">
+                                                        <sectioncol id="CONDACTNstep2_attr_main_table_row1_col1">
+                                                            <section id="CONDACTNstep2_attr_main_table_row1_col1_1">
+                                                                <multiparttextbox dataattribute="varname" descdataattribute="description" id="CONDACTNstep2_attr_main_table_row1_col1_1_1"/>
+                                                                <textbox dataattribute="vartype" id="CONDACTNstep2_attr_main_table_row1_col1_1_2" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingtype" id="CONDACTNstep2_attr_main_table_row1_col1_1_3" lookup="valuelist"/>
+                                                                <textbox dataattribute="literaldatatype" id="CONDACTNstep2_attr_main_table_row1_col3_1_1" lookup="valuelist"/>
+                                                                <textbox dataattribute="varbindingvalue" id="CONDACTNstep2_attr_main_table_row1_col2_1_1" label="全局绑定值"/>
+                                                                <textbox dataattribute="attributevaluenp" id="CONDACTNstep2_main_table_row1_col22_1_1" label="启动点属性" menutype="SELECTOBJATTRNAME4" sigoption="ATTRVAL" sigoptiondatasrc="CONDACTNstep2_attr_variables_main_table"/>
+                                                                <textbox dataattribute="lpvarbindval" id="CONDACTNstep2_attr_main_table_row1_col4_1_1" label="启动点绑定值" sigoption="HIDEATTR" sigoptiondatasrc="CONDACTNstep2_attr_variables_main_table"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                        <sectioncol id="CONDACTNstep2_attr_main_table_row1_col2">
+                                                            <section id="CONDACTNstep2_attr_main_table_row1_col2_1">
+                                                                <checkbox dataattribute="allowoverride" id="CONDACTNstep2_attr_main_table_row1_col2_1_2"/>
+                                                                <checkbox dataattribute="novalidation" id="CONDACTNstep2_attr_main_table_row1_col2_1_3"/>
+                                                                <checkbox dataattribute="noaccesscheck" id="CONDACTNstep2_attr_main_table_row1_col2_1_4"/>
+                                                                <checkbox dataattribute="noaction" id="CONDACTNstep2_attr_main_table_row1_col2_1_5"/>
+                                                            </section>
+                                                        </sectioncol>
+                                                    </sectionrow>
+                                                </section>
+                                            </tabledetails>
+                                            <buttongroup id="CONDACTNstep2_attr_variables_main_table_2">
+                                                <pushbutton default="true" id="CONDACTNstep2_attr_variables_main_table_2_1" label="新建行" mxevent="addrow"/>
+                                            </buttongroup>
+                                        </table>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="CONDStep2cfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="CONDStep2cfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="CONDStep2cfgactiondetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="CONDStep2cfgactiondetail_detail_buttons_3" label="下一个" mxevent="nexttab"/>
+                </buttongroup>
+            </tab>
+            <tab datasrc="wcreate_lp_vars_cc" id="wscript_gen_cc" label="第 3 步">
+                <section id="CONDmain_help_cfgactiondetail3_section1" label="创建带有定制条件启动点的脚本：第 3 步（共 3 步）">
+                    <sectionrow id="CONDACTNmain_help_cfgobjectdetail3_grid0_row1">
+                        <sectioncol id="CONDACTNmain_help_cfgobjectdetail3_grid0_row1_col1">
+                            <section id="CONDACTNmain_help_cfgobjectdetail3_section1111">
+                                <sectionrow id="CONDACTNmain_help_cfgobjectdetail3_grid0_row1111">
+                                    <sectioncol id="CONDACTNmain_help_cfgobjectdetail3_grid0_row1_col1111">
+                                        <helpgrid id="CONDACTNmain_help_cfgobjectdetail3_help" innerhtml="您可以在“源代码”字段中输入脚本，也可以在上一步中导入脚本文件。"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section border="true" id="CONDACTNstep3_header_variables_grid1">
+                                <sectionrow id="CONDACTNstep3_header_variables_grid1_row1">
+                                    <sectioncol id="CONDACTNstep3_header_variables_grid1_row1_col1">
+                                        <section id="CONDACTNstep3_header_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="launchpointname" datasrc="cfgccond" descdataattribute="description" id="CONDACTNstep3_header_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="CONDACTNstep3_header_variables_grid1_row1_col2_empty">
+                                        <section id="CONDACTNstep3_header_variables_grid1_row1_col1_2_empty">
+                                            <textbox dataattribute="objectname" datasrc="cfgccond" id="CONDACTNstep3_main_cfgobjectdetail_section11_text3" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                                <sectionrow id="CONDACTNstep3_variables_grid1_row1">
+                                    <sectioncol id="CONDACTNstep3_variables_grid1_row1_col1">
+                                        <section id="CONDACTNstep3_variables_grid1_row1_col1_1">
+                                            <multiparttextbox dataattribute="autoscript" descdataattribute="description" descinputmode="readonly" id="CONDACTNstep3_variables_grid1_row1_col1_1_1" inputmode="readonly"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="CONDACTNstep3_variables_grid1_row1_col3">
+                                        <section id="CONDACTNstep3_variables_grid1_row1_col3_1"/>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                            <section id="CONDACTNstep3_object_main_grid2_1">
+                                <sectionrow id="CONDACTNstep3_object_main_grid2_1_row2">
+                                    <sectioncol id="CONDACTNstep3_object_main_grid2_1_row2_col1">
+                                        <section id="CONDACTNstep3_object_main_grid2_1_row2_col1_1">
+                                            <miniapp beanclass="com.ibm.tivoli.maximo.miniapps.aceeditor.AceEditorBean" id="CONDACTNstep3_object_main_grid2_attr1_5_aceeditor" mainclass="AceEditor" appid="aceeditor" width="400" height="400" progressindicator="false" options="dataattribute: 'source'"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+                <buttongroup id="CONDstep3cfgactiondetail_detail_buttons">
+                    <pushbutton default="true" id="CONDstep3cfgactiondetail_detail_buttons_1" label="取消" mxevent="cancelchanges"/>
+                    <pushbutton id="CONDstep3cfgactiondetail_detail_buttons_4" label="上一个" mxevent="prevtab"/>
+                    <pushbutton default="true" id="CONDstep3cfgactiondetail_detail_buttons_3" label="创建" mxevent="complete"/>
+                </buttongroup>
+            </tab>
+        </tabgroup>
+    </dialog>
+    <dialog datasrc="actiondetail_table" id="showattribute7" label="选择字段">
+        <section id="showattributereltree7">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree7" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute7_node7" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute7_node7_attr7"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons7">
+            <pushbutton default="true" id="showattributetree7_77" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog datasrc="ccdetail_table" id="showattribute8" label="选择字段">
+        <section id="showattributereltree8">
+            <tree beanclass="com.ibm.ism.script.webclient.beans.autoscript.AttributeTreeBean" height="300" id="showattributetree8" maxchildren="5000" relationship="SCRATTRTREE" restrictactionon="LEAF_NODES" usedatasrc="true" width="250">
+                <treenode displaykeyattribute="false" displayobjectname="false" id="showattribute8_node8" keyattribute="scrattrtreeid">
+                    <treeattribute dataattribute="title" display="true" id="showattribute8_node8_attr8"/>
+                </treenode>
+            </tree>
+        </section>
+        <buttongroup id="showattributebuttons8">
+            <pushbutton default="true" id="showattributetree8_88" label="取消" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <configurationblock id="datastore_configurationblock"></configurationblock>
+</presentation>

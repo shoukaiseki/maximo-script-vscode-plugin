@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mbs.doc,startcntr/c_result_set_setup_portlet.html" beanclass="psdi.webclient.beans.rsconfig.RSConfigAppBean" id="rsconfig" mboname="LAYOUT" trackrecent="false" version="7.1.0.0">
+	<page id="rsconfigpage">
+		<include id="selfServicePageHeader"/>
+		<clientarea id="clientarea">
+			<tabgroup format="carddeck" id="maintab" style="form">
+				<tab id="main" type="insert">
+					<section border="true" id="mainSection">
+						<sectionrow id="mainSection_row1">
+							<sectioncol id="mainSection_col1">
+								<textbox dataattribute="portlet.description" id="mainSection_1" inputmode="readonly" label="Portlet 类型"/>
+								<textbox dataattribute="queryapp" id="configSection_1" label="应用程序" lookup="rsappname" ondatachange="resetchildren"/>
+								<textbox dataattribute="intobjectdesc" id="configSection_3" lookup="parentcat" sigoption="RELOBJSTR"/>
+							</sectioncol>
+							<sectioncol id="mainSection_col2">
+								<textbox dataattribute="description" id="mainSection_2"/>
+								<multiparttextbox dataattribute="queryclausename" descdataattribute="queryname" descinputmode="readonly" id="configSection_2" label="查询" lookup="query"/>
+							</sectioncol>
+							<sectioncol id="mainSection_col3">
+								<textbox dataattribute="rowstodisplay" id="mainSection_3"/>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<tabgroup id="subtabs">
+						<tab id="queryConfig" label="字段配置" type="column">
+							<helpgrid id="queryConfig_help1" innerhtml="要选择在 portlet 中显示的字段，首先在“应用程序”字段中选择应用程序，然后从“对象列表”选择对象。"/>
+							<sectionrow id="configSection_row3">
+								<sectioncol id="configSection_row3_col1">
+									<section id="configSection_row3_col1_sec1" useproportionalcols="false">
+										<sectionrow id="configSection_row3_col1_sec1_row1">
+											<sectioncol id="configSection_row3_col1_sec1_row1_col1">
+												<section border="false" id="configSection_row3_col1_sec1_row1_col1_sec1" label="对象列表">
+													<tree beanclass="psdi.webclient.beans.rsconfig.RSConfigRelatedMboTreeBean" classname="tcontrInSection" height="100%" id="objecttree" ignorestructurechange="false" relationship="MAXINTOBJDETAIL" selectfirstnode="true" usedatasrc="true" width="100%">
+														<treenode displaykeyattribute="false" displayobjectname="false" id="objecttree_node1" keyattribute="maxintobjdetailid">
+															<treeattribute dataattribute="description" display="true" id="objecttree_node1_attr1"/>
+														</treenode>
+													</tree>
+												</section>
+											</sectioncol>
+											<sectioncol id="configSection_row3_col1_sec1_row1_col2">
+												<table beanclass="psdi.webclient.beans.rsconfig.RSConfigAttributesAvailableBean" id="available_columns_table" inputmode="readonly" label="可用的字段" orderby="attributename" relationship="MAXATTRIBUTE" selectmode="multiple">
+													<tablebody displayrowsperpage="6" filterable="true" filterexpanded="true" hideselectrows="true" id="available_cols_table_body">
+														<tablecol dataattribute="attributename" filterable="false" hidden="false" id="available_fields_table_col_1" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+														<tablecol dataattribute="title" id="available_cols_table_col_2" label="描述" mxevent="selectAttribute" mxevent_desc="选择字段" showfilterfield="true" sortable="true"/>
+														<tablecol dataattribute="attributename" id="available_cols_table_col_3" label="姓名" showfilterfield="true" sortable="true"/>
+													</tablebody>
+													<buttongroup align="left" id="configsection_btngrp1">
+														<pushbutton default="true" id="configsection_btngrp1_btn2" label="添加所选项" mxevent="addselectedatt" targetid="available_columns_table"/>
+														<pushbutton id="configsection_btngrp1_btn1" label="全部添加" mxevent="addallatt" targetid="available_columns_table"/>
+													</buttongroup>
+												</table>
+												<table beanclass="psdi.webclient.beans.rsconfig.RSConfigAttributesSelectedBean" id="selected_field_table" label="选定的字段" relationship="RSCONFIGSELECT" selectmode="multiple">
+													<tablebody displayrowsperpage="10" filterable="false" filterexpanded="false" hideselectrows="true" id="selected_fields_table_body">
+														<tablecol dataattribute="querycolumn" filterable="false" hidden="false" id="selected_fields_table_col_4" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+														<tablecol dataattribute="columnorder" id="selected_fields_table_col_1" showfilterfield="false" sortable="false"/>
+														<tablecol dataattribute="description" id="selected_fields_table_col_2" label="描述" showfilterfield="false" sortable="false"/>
+														<tablecol dataattribute="querycolumn" id="selected_fields_table_col_3" inputmode="readonly" label="姓名" showfilterfield="false" sortable="false"/>
+													</tablebody>
+													<buttongroup align="left" id="configsection_btngrp2">
+														<pushbutton id="configsection_btngrp2_btn1" label="移除所选项" mxevent="unselectatt" targetid="selected_field_table"/>
+														<pushbutton default="false" id="configsection_btngrp2_btn2" label="全部移除" mxevent="unselectallatt" targetid="selected_field_table"/>
+													</buttongroup>
+												</table>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</sectioncol>
+							</sectionrow>
+						</tab>
+						<tab id="graphoptions" label="图标选项" type="display">
+							<section border="true" id="graphoptions_section">
+								<checkbox dataattribute="showchart" datasrc="MAINRECORD" id="graphoptions_section_row1_col2_1"/>
+								<combobox allowblank="false" dataattribute="charttype" datasrc="MAINRECORD" id="graphoptions_section_row1_col3_1"/>
+								<textbox dataattribute="rsgraphattr" datasrc="MAINRECORD" id="graphoptions_section_row1_col4_1" lookup="rsconfigatt"/>
+								<textbox dataattribute="legendattributetitle" datasrc="MAINRECORD" id="graphoptions_section_row1_col4_2"/>
+								<textbox dataattribute="legendvaluetitle" datasrc="MAINRECORD" id="graphoptions_section_row1_col4_3"/>
+							</section>
+						</tab>
+						<tab id="displayoptions" label="颜色选项" type="display">
+							<section border="true" id="displayoptions_section">
+								<textbox dataattribute="rsconditionattr" datasrc="MAINRECORD" id="displayoptions_section_2" lookup="rsconfigatt"/>
+							</section>
+							<table id="displayoptions_table" label="颜色参数" orderby="portletdisplayid asc" relationship="PORTLET_DISPLAY" selectmode="multiple">
+								<tablebody displayrowsperpage="15" filterable="true" filterexpanded="false" id="displayoptions_tablebody">
+									<tablecol filterable="false" hidden="false" id="displayoptions_tablebody_1" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+									<tablecol dataattribute="expression" id="displayoptions_tablebody_2"/>
+									<tablecol dataattribute="expvalue" id="displayoptions_tablebody_3"/>
+									<tablecol dataattribute="color" id="displayoptions_tablebody_4"/>
+									<tablecol filterable="false" id="displayoptions_tablebody_5" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+								</tablebody>
+								<tabledetails id="displayoptions_td_1">
+									<section id="displayoptions_td_1_1" label="详细信息">
+										<sectionrow id="displayoptions_td_1_1_1">
+											<sectioncol id="displayoptions_td_1_1_1_1">
+												<section id="displayoptions_td_1_1_1_1_sec1">
+													<combobox dataattribute="expression" defaultfocus="true" id="displayoptions_td_1_1_1_1_1"/>
+												</section>
+											</sectioncol>
+											<sectioncol id="displayoptions_td_1_1_1_2">
+												<section id="displayoptions_td_1_1_1_2_sec1">
+													<textbox dataattribute="expvalue" id="displayoptions_td_1_1_1_1_2"/>
+												</section>
+											</sectioncol>
+											<sectioncol id="displayoptions_td_1_1_1_3">
+												<section id="displayoptions_td_1_1_1_3_sec1">
+													<combobox dataattribute="color" id="displayoptions_td_1_1_1_1_3"/>
+												</section>
+											</sectioncol>
+										</sectionrow>
+									</section>
+								</tabledetails>
+								<buttongroup id="displayoptions_buttongroup">
+									<pushbutton id="displayoptions_table_buttongroup_1" label="添加颜色警报" mxevent="addrow"/>
+								</buttongroup>
+							</table>
+						</tab>
+					</tabgroup>
+					<buttongroup id="buttongroup" show="false">
+						<pushbutton id="buttongroup_1" label="完成" mxevent="gotostartcenter" targetid="rsconfig"/>
+						<pushbutton id="buttongroup_3" label="保存" mxevent="savedata" targetid="rsconfig"/>
+						<pushbutton id="buttongroup_2" label="取消" mxevent="cancel" targetid="rsconfig"/>
+					</buttongroup>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include id="pageFooter"/>
+	</page>
+
+	<dialog beanclass="psdi.webclient.beans.rsconfig.RSConfigLookupBean" icon="img_lookup.gif" id="lookup_rsconfigatt" label="选择值">
+		<table id="lookup_rsconfig_table" inputmode="readonly" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="rsconfig_lookup_tablebody">
+				<tablecol dataattribute="querycolumn" id="rsconfig_lookup_tablebody_col_a" mxevent="selectrecord" mxevent_desc="转到%1" sortable="true" type="link"/>
+				<tablecol dataattribute="description" id="rsconfig_lookup_tablebody_col_2" sortable="true"/>
+			</tablebody>
+		</table>
+		<buttongroup id="rsconfig_lookup_btns">
+			<pushbutton default="true" id="rsconfig_lookup_btn_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.rsconfig.SelectParentCategoryBean" icon="img_lookup.gif" id="lookup_parentcat" label="对象结构" mboname="MAXINTOBJECT">
+		<table id="parentcat" inputmode="readonly" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="parentcat_tablebody">
+				<tablecol dataattribute="description" id="parentcat_col_1" label="对象结构描述" mxevent="selectrecord" mxevent_desc="转到%1" sortable="true" type="link"/>
+			</tablebody>
+		</table>
+		<buttongroup id="lookup_parentcat_btns">
+			<pushbutton default="true" id="lookup_parentcat_btn_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.rsconfig.SelectApplicationBean" icon="img_lookup.gif" id="lookup_rsappname" label="选择值">
+		<table id="selApptable" inputmode="readonly" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="selapp_tablebody">
+				<tablecol dataattribute="app" id="selapp_lookup_tablebody_col_1" mxevent="selectrecord" mxevent_desc="转到%1" sortable="true" type="link"/>
+				<tablecol dataattribute="description" id="selapp_lookup_tablebody_col_2" mxevent="selectrecord" mxevent_desc="转到%1" sortable="true" type="link"/>
+			</tablebody>
+		</table>
+		<buttongroup id="lookup_selapp_btns">
+			<pushbutton default="true" id="lookup_selapp_btn_1" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+</presentation>

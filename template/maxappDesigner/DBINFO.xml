@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<presentation apphelp="com.ibm.mt.doc,mt_mods_apps/c_ctr_db_info_app.html" beanclass="psdi.webclient.beans.dbinfo.DBInfoBean" id="dbinfo" mboname="DBINFOOBJECTVIEW" resultstableid="results_showlist">
+    <page id="mainrec">
+        <include id="pageHeader"/>
+        <clientarea id="clientarea">
+            <tabgroup id="maintabs" style="form">
+                <tab default="true" id="results" label="List" type="list">
+                    <menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+                    <table id="results_showlist" label="Objects" mboname="DBINFOOBJECTVIEW" selectmode="multiple">
+                        <tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+                            <tablecol dataattribute="OBJECTNAME" filterable="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="Select Row {0}" sortable="false" type="event"/>
+                            <tablecol dataattribute="viewchanged" id="results_showlist_tablebody_2"/>
+                            <tablecol dataattribute="objectname" id="results_showlist_tablebody_3" mxevent="selectrecord" mxevent_desc="Go To %1" type="link"/>
+                            <tablecol dataattribute="description" id="results_showlist_tablebody_4"/>
+                            <tablecol filterable="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="Add to Bookmarks" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+                        </tablebody>
+                    </table>
+                </tab>
+                <tab id="main" label="Object" type="insert">
+                    <section border="true" id="main_header">
+                        <sectionrow id="main_header_row1">
+                            <sectioncol id="main_header_row1_col1">
+                                <section id="main_grid3">
+                                    <multiparttextbox dataattribute="objectname" descdataattribute="description" id="main_grid3_1" ondatachange="resetchildren"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="main_header_row1_col2"/>
+                        </sectionrow>
+                    </section>
+                    <section id="main_section">
+                        <sectionrow id="main_section_row1">
+                            <sectioncol id="main_section_row1_col1">
+                                <section id="main_section_row1_col1_section" label="Details">
+                                    <sectionrow id="details1">
+                                        <sectioncol id="details2">
+                                            <section id="details3">
+                                                <textbox dataattribute="siteorgtype" id="main_details3_6" lookup="valuelist"/>
+                                                <checkbox dataattribute="islangtable" id="1335463253359"/>
+                                                <checkbox dataattribute="EAUDITENABLED" id="1335463414828"/>
+                                            </section>
+                                        </sectioncol>
+                                        <sectioncol id="details4">
+                                            <section id="details5">
+                                                <checkbox dataattribute="PERSISTENT" id="main_details5_2" ondatachange="resetchildren"/>
+                                                <checkbox dataattribute="isaudittable" id="1335463288921"/>
+                                                <textbox dataattribute="EAUDITTBNAME" id="1335463441968"/>
+                                            </section>
+                                        </sectioncol>
+                                    </sectionrow>
+                                </section>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <table beanclass="psdi.webclient.beans.dbinfo.AttributesBean" id="1335463851406" label="Attributes" relationship="MAXATTRIBUTECFG">
+                        <tablebody displayrowsperpage="10" filterable="true" id="13354638514062">
+                            <tablecol filterable="false" id="1335463851421" mxevent="toggledetailstate" mxevent_desc="Show Detail" sortable="false" type="event"/>
+                            <tablecol dataattribute="attributename" id="13354638514213"/>
+                            <tablecol dataattribute="remarks" id="13354638514214"/>
+                            <tablecol dataattribute="maxtype" id="13354638514215" linkedcontrolid="columns_basic_row1_col1_3" ondatachange="refreshtable"/>
+                            <tablecol dataattribute="required" id="13354638514372" linkedcontrolid="columns_basic_row1_col1_6"/>
+                            <tablecol dataattribute="viewchanged" filterable="false" id="13354638514373" ondatachange="refreshtable" sortable="false"/>
+                            <tablecol filterable="false" id="13354638514374" mxevent="maxlookupmap" mxevent_desc="Edit Lookup Map" mxevent_icon="btn_edit.gif" sortable="false" type="event"/>
+                            <tablecol filterable="false" id="columns_columns_table_tablebody" mxevent="toggledeleterow" mxevent_desc="Mark Row for Delete" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="13354638514375">
+                            <section id="13354638514376" label="Details">
+                                <sectionrow id="13354638514377">
+                                    <sectioncol id="1335463851453">
+                                        <section id="13354638514532">
+                                            <textbox dataattribute="attributename" id="13354638514533"/>
+                                            <textbox dataattribute="remarks" id="13354638514534"/>
+                                            <textbox dataattribute="maxtype" id="13354638514535" lookup="valuelist" ondatachange="resetchildren"/>
+                                            <textbox dataattribute="length" id="13354638514536"/>
+                                            <textbox dataattribute="autokeyname" id="13354638514539" lookup="autokey"/>
+                                            <checkbox dataattribute="required" id="1335463851468"/>
+                                            <textbox dataattribute="sameasobject" id="dbinfo_samasobject" lookup="objectname"/>
+                                            <textbox dataattribute="sameasattribute" id="dbinfo_sameasattribute" lookup="attributename" moreinformation="com.ibm.mt.doc_7.6.0/mt_mbs/r_mt_mod_ext_att.html"/>
+                                            <textbox dataattribute="searchtype" id="dbinfo_searchtype" lookup="valuelist"/>
+                                            <textbox dataattribute="columnname" id="13354638514689"/>
+                                            <checkbox dataattribute="eauditenabled" id="13354638514682"/>
+                                            <checkbox dataattribute="MLSUPPORTED" id="13354638514683" label="Multilanguage Supported"/>
+                                            <textbox dataattribute="viewchanged" id="13354638514537"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="13354638514684">
+                                        <section id="13354638514685">
+                                            <textbox dataattribute="title" id="13354638514686"/>
+                                            <textbox dataattribute="classname" id="13354638514688"/>
+                                            <textbox applink="domainadm" dataattribute="domainid" id="13354638514687" lookup="domain" menutype="normal"/>
+                                            <textbox dataattribute="defaultvalue" id="1335463851484"/>
+                                            <textbox dataattribute="scale" id="13354638514842"/>
+                                            <textbox dataattribute="entityname" id="13354638514847"/>
+                                            <checkbox dataattribute="persistent" id="13354638514843"/>
+                                            <checkbox dataattribute="canautonum" id="13354638514846"/>
+                                            <checkbox dataattribute="esigenabled" id="13354638514844"/>
+                                            <checkbox dataattribute="mlinuse" id="13354638514845"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="dbinfoattr_2">
+                            <pushbutton default="true" id="dbinfoattr_2_1" label="New Row" mxevent="addrow"/>
+                        </buttongroup>
+                    </table>
+                </tab>
+                <tab id="relationships" label="Relationships">
+                    <section border="true" id="relationships_header">
+                        <sectionrow id="relationships_header_row1">
+                            <sectioncol id="relationships_header_row1_col1">
+                                <section id="relationships_grid3">
+                                    <multiparttextbox dataattribute="objectname" descdataattribute="description" id="relationships_grid3_1"/>
+                                </section>
+                            </sectioncol>
+                            <sectioncol id="relationships_header_row1_col2">
+                                <section id="relationships_grid3a">
+                                    <textbox dataattribute="viewchanged" id="relationships_grid4_6"/>
+                                </section>
+                            </sectioncol>
+                        </sectionrow>
+                    </section>
+                    <table id="relationships_relationships_table" label="Relationships" relationship="DBINFORELATIONVIEW">
+                        <tablebody displayrowsperpage="15" filterable="true" id="relationships_relationships_table_tablebody">
+                            <tablecol filterable="false" hidden="false" id="relationships_relationships_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="Show Detail" sortable="false" type="event"/>
+                            <tablecol dataattribute="name" id="relationships_relationships_table_tablebody_2" linkedcontrolid="relationships_row1_col1_sec1_1"/>
+                            <tablecol dataattribute="child" id="relationships_relationships_table_tablebody_3" linkedcontrolid="relationships_row1_col2_sec1_1"/>
+                            <tablecol dataattribute="whereclause" id="relationships_relationships_table_tablebody_4"/>
+                            <tablecol dataattribute="remarks" id="relationships_relationships_table_tablebody_5"/>
+                            <tablecol filterable="false" hidden="false" id="relationships_relationships_table_tablebody_6" mxevent="toggledeleterow" mxevent_desc="Mark Row for Delete" mxevent_icon="btn_garbage.gif" sigoption="DELREL" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="relationships_relationships_table_1">
+                            <section id="relationships_relationships_table_1_grid30" label="Details">
+                                <sectionrow id="relationships_row1">
+                                    <sectioncol id="relationships_row1_col1">
+                                        <section id="relationships_row1_col1_sec1">
+                                            <textbox dataattribute="name" defaultfocus="true" id="relationships_row1_col1_sec1_1"/>
+                                            <multilinetextbox columns="30" dataattribute="whereclause" id="relationships_row1_col1_sec1_2" rows="4"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="relationships_row1_col2">
+                                        <section id="relationships_row1_col2_sec1">
+                                            <textbox dataattribute="child" id="relationships_row1_col2_sec1_1" lookup="objectname"/>
+                                            <multilinetextbox columns="30" dataattribute="remarks" id="relationships_row1_col2_sec1_2" rows="4"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="relationships_relationships_table_2">
+                            <pushbutton default="true" id="relationships_relationships_table_2_1" label="New Row" mxevent="addrow" sigoption="ADDREL"/>
+                        </buttongroup>
+                    </table>
+                </tab>
+            </tabgroup>
+        </clientarea>
+        <include id="pageFooter"/>
+    </page>
+    <dialog beanclass="psdi.webclient.beans.dbinfo.SaveChildOnlyDialogBean" id="maxlookupmap" label="Lookup Key Map" mboname="MAXLOOKUPMAP">
+        <section border="true" id="maxlookupmap_header">
+            <sectionrow id="maxlookupmap_header_row1">
+                <sectioncol id="maxlookupmap_header_row1_col1">
+                    <section id="maxlookupmap_grid3">
+                        <multiparttextbox dataattribute="objectname" datasrc="MAINRECORD" descdataattribute="description" descinputmode="readonly" id="maxlookupmap_grid3_1" inputmode="readonly"/>
+                        <multiparttextbox dataattribute="attributename" datasrc="1335463851406" descdataattribute="title" descinputmode="readonly" id="maxlookupmap_grid3_2" inputmode="readonly"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <table id="maxlookupmap_table" label="Lookup Map">
+            <tablebody displayrowsperpage="20" filterable="true" id="maxlookupmap_table_tablebody" orderby="source">
+                <tablecol filterable="false" id="maxlookupmap_tablebody_0" mxevent="toggledetailstate" mxevent_desc="Show Detail" sortable="false" type="event"/>
+                <tablecol dataattribute="targetattr" id="maxlookupmap_tablebody_1" linkedcontrolid="maxlookupmap_detail_3" lookup="attributename"/>
+                <tablecol dataattribute="source" id="maxlookupmap_tablebody_2" linkedcontrolid="maxlookupmap_detail_6" lookup="objectname"/>
+                <tablecol dataattribute="sourcekey" id="maxlookupmap_tablebody_3" linkedcontrolid="maxlookupmap_detail_7" lookup="attributename"/>
+                <tablecol dataattribute="seqnum" id="maxlookupmap_tablebody_4" linkedcontrolid="maxlookupmap_detail_8"/>
+                <tablecol dataattribute="allownull" id="maxlookupmap_tablebody_5" linkedcontrolid="maxlookupmap_detail_9">
+                    <checkbox dataattribute="allownull" id="maxlookupmap_tablebody_5_box"/>
+                </tablecol>
+                <tablecol filterable="false" hidden="false" id="maxlookupmap_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="Mark Row for Delete" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+            </tablebody>
+            <tabledetails id="maxlookupmap_table_tabledetail">
+                <section border="true" height="300" id="maxlookupmap_table_tabledetail_1">
+                    <sectionrow id="maxlookupmap_detail_row_1">
+                        <sectioncol id="maxlookupmap_detail_row1_col1">
+                            <section id="maxlookupmap_detail_row1_col1_section">
+                                <textbox dataattribute="targetattr" id="maxlookupmap_detail_3" lookup="attributename"/>
+                                <textbox dataattribute="source" id="maxlookupmap_detail_6" lookup="objectname"/>
+                                <textbox dataattribute="sourcekey" id="maxlookupmap_detail_7" lookup="attributename"/>
+                                <textbox dataattribute="seqnum" id="maxlookupmap_detail_8"/>
+                                <checkbox dataattribute="allownull" id="maxlookupmap_detail_9"/>
+                            </section>
+                        </sectioncol>
+                    </sectionrow>
+                </section>
+            </tabledetails>
+            <buttongroup id="maxlookupmap_2">
+                <pushbutton default="true" id="maxlookupmap_columns_table_2_1" label="New Row" mxevent="addrow"/>
+            </buttongroup>
+        </table>
+        <buttongroup id="maxlookupmap_3">
+            <pushbutton default="true" id="maxlookupmap_3_1" label="OK" mxevent="dialogok"/>
+            <pushbutton id="maxlookupmap_3_2" label="Cancel" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog id="esigoption" label="Manage eSig Actions" mboname="MAXAPPS" orderby="description">
+        <table id="esigoption_app_table" label="Applications" orderby="description">
+            <tablebody displayrowsperpage="7" filterable="true" id="esigoption_app_table_tablebody">
+                <tablecol dataattribute="description" id="esigoption_app_table_tablebody_1"/>
+            </tablebody>
+        </table>
+        <table id="esigoption_sigo_table" label="Options for {0}" orderby="description" parentdatasrc="esigoption" parentemptylabel="Options" relationship="SIGOWITHOUTREAD">
+            <sectionheader id="main_esigoption_sigo_table_sectionheader">
+                <paramvalues id="main_esigoption_sigo_table_1_sec_params" property="label">
+                    <paramvalue dataattribute="description" id="main_esigoption_sigo_table_1_sec_param_0" position="0"/>
+                </paramvalues>
+            </sectionheader>
+            <tablebody displayrowsperpage="7" filterable="true" id="esigoption_sigo_table_tablebody">
+                <tablecol dataattribute="description" id="esigoption_sigo_table_tablebody_1"/>
+                <tablecol dataattribute="esigenabled" id="esigoption_sigo_table_tablebody_2" sortable="false">
+                    <checkbox dataattribute="esigenabled" id="esigoption_sigo_table_tablebody_2_box"/>
+                </tablecol>
+            </tablebody>
+        </table>
+        <buttongroup id="esigoption_table_buttongroup">
+            <pushbutton id="esigoption_2_1" label="OK" mxevent="dialogok"/>
+            <pushbutton id="esigoption_2_2" label="Cancel" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="psdi.webclient.beans.dbinfo.GLConfigureBean" id="glconfig" label="GL Account Configuration" mboname="GLCONFIGURE" orderby="glorder">
+        <section id="glconfig_grid1">
+            <sectionrow id="glconfig_grid1_1">
+                <sectioncol id="glconfig_grid1_1_1">
+                    <table filterable="false" id="glconfig_table" label="GL Account Configuration">
+                        <tablebody displayrowsperpage="15" id="glconfig_table_tablebody">
+                            <tablecol filterable="false" hidden="false" id="glconfig_table_tablebody_1" mxevent="toggledetailstate" mxevent_desc="Show Detail" sortable="false" type="event"/>
+                            <tablecol dataattribute="glaccountfield" id="glconfig_table_tablebody_2" linkedcontrolid="glconfig_table_details_1_1"/>
+                            <tablecol dataattribute="gllength" id="glconfig_table_tablebody_3" linkedcontrolid="glconfig_table_details_1_2"/>
+                            <tablecol dataattribute="gltype" id="glconfig_table_tablebody_4" linkedcontrolid="glconfig_table_details_1_3"/>
+                            <tablecol dataattribute="mandatory" id="glconfig_table_tablebody_5" linkedcontrolid="glconfig_table_details_1_4"/>
+                            <tablecol dataattribute="delimiter" id="glconfig_table_tablebody_6" linkedcontrolid="glconfig_table_details_1_5"/>
+                            <tablecol filterable="false" hidden="false" id="glconfig_table_tablebody_7" mxevent="toggledeleterow" mxevent_desc="Mark Row for Delete" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+                        </tablebody>
+                        <tabledetails id="glconfig_table_details">
+                            <section id="glconfig_table_details_1" label="Details">
+                                <sectionrow id="glconfig_row1">
+                                    <sectioncol id="glconfig_row1_col1">
+                                        <section id="glconfig_row1_col1_sec1">
+                                            <textbox dataattribute="glaccountfield" defaultfocus="true" id="glconfig_table_details_1_1"/>
+                                            <textbox dataattribute="gllength" id="glconfig_table_details_1_2"/>
+                                            <textbox dataattribute="gltype" id="glconfig_table_details_1_3" lookup="valuelist"/>
+                                        </section>
+                                    </sectioncol>
+                                    <sectioncol id="glconfig_row1_col2">
+                                        <section id="glconfig_row1_col2_sec1">
+                                            <checkbox dataattribute="mandatory" id="glconfig_table_details_1_4"/>
+                                            <textbox dataattribute="delimiter" id="glconfig_table_details_1_5"/>
+                                            <textbox dataattribute="glorder" id="glconfig_table_details_1_6"/>
+                                        </section>
+                                    </sectioncol>
+                                </sectionrow>
+                            </section>
+                        </tabledetails>
+                        <buttongroup id="glconfig_table_buttongroup">
+                            <pushbutton default="true" id="glconfig_table_buttongroup_1" label="New Row" mxevent="addrow"/>
+                        </buttongroup>
+                    </table>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="glconfig_2">
+            <pushbutton default="true" id="glconfig_2_1" label="OK" mxevent="dolongop"/>
+            <pushbutton id="glconfig_2_2" label="Cancel" mxevent="dialogcancel"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" id="searchbook" label="My Bookmarks" mboname="DBINFOOBJECTVIEW">
+        <table id="bookmarks_table" inputmode="readonly" label="Objects" selectmode="single">
+            <tablebody displayrowsperpage="20" filterable="true" id="bookmarks_table_tablebody">
+                <tablecol dataattribute="objectname" id="bookmarks_tablebody_1" mxevent="selectrecord" type="link"/>
+                <tablecol dataattribute="description" id="bookmarks_table_tablebody_2"/>
+                <tablecol filterable="false" id="bookmarks_table_tablebody_delete" mxevent="instantdelete" mxevent_desc="Delete" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+            </tablebody>
+        </table>
+        <buttongroup id="bookmarks_2">
+            <pushbutton default="true" id="bookmarks_2_1" label="OK" mxevent="dialogok"/>
+        </buttongroup>
+    </dialog>
+    <dialog beanclass="psdi.webclient.system.beans.QbeBean" id="searchmore" inputmode="query" label="More Search Fields">
+        <section id="qbe_grid2">
+            <sectionrow id="1335792514218">
+                <sectioncol id="13357925142182">
+                    <section id="1335792714703">
+                        <textbox dataattribute="OBJECTNAME" id="1335792831937" inputmode="query"/>
+                        <textbox dataattribute="SITEORGTYPE" id="13357927147183" inputmode="query"/>
+                        <textbox dataattribute="PERSISTENT" id="13357927147182" inputmode="query"/>
+                        <textbox dataattribute="ISLANGTABLE" id="13357927147184" inputmode="query"/>
+                    </section>
+                </sectioncol>
+                <sectioncol id="1335792543015">
+                    <section id="1335792556125">
+                        <textbox dataattribute="ISAUDITTABLE" id="13357925561252" inputmode="query"/>
+                        <textbox dataattribute="EAUDITENABLED" id="13357925561253" inputmode="query"/>
+                        <textbox dataattribute="EAUDITTBNAME" id="13357925561254" inputmode="query"/>
+                        <textbox dataattribute="INTERNAL" id="13357925561255" inputmode="query"/>
+                    </section>
+                </sectioncol>
+            </sectionrow>
+        </section>
+        <buttongroup id="qbe_grid5_1_1_grid6">
+            <pushbutton default="true" id="qbe_grid5_1_1_grid6_1" label="Find" mxevent="dialogok"/>
+            <pushbutton id="qbe_restoreappdefault_button" label="Restore Application Defaults" mxevent="qbeclear"/>
+            <pushbutton id="qbe_revisebutton" label="Revise" menutype="SEARCHMOREREVISE" targetid="searchmore"/>
+            <pushbutton id="qbe_grid5_1_1_grid6_3" label="Cancel" mxevent="qbecancel"/>
+        </buttongroup>
+    </dialog>
+    <configurationblock id="datastore_configurationblock"/>
+</presentation> 

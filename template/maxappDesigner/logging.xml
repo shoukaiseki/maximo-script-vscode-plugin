@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mbs.doc,logging/c_logging_application.html" beanclass="psdi.webclient.beans.logging.LoggingAppBean" id="logging" ismobile="false" mboname="maxlogger" version="7.1.0.0">
+	<page id="mainrec" scroll="false">
+		<include controltoclone="single_pageHeader" id="INCLUDE-single_pageHeader"/>
+		<clientarea id="clientarea">
+			<tabgroup format="carddeck" id="maintabs" style="form">
+				<tab default="true" id="results" label="列表">
+					<table id="resultsTable" label="根记录器" startrow="0">
+						<tablebody displayrowsperpage="50" filterable="true" filterexpanded="true" id="resultsTablebody">
+							<tablecol filterable="false" id="results_col_details" mxevent="toggledetailstate" sortable="false" type="event"/>
+							<tablecol dataattribute="logger" id="results_col_1" inputmode="readonly"/>
+							<tablecol dataattribute="loglevel" id="results_col_2" lookup="valuelist"/>
+							<tablecol dataattribute="logkey" id="results_col_3" inputmode="readonly"/>
+							<tablecol dataattribute="active" id="results_col_4">
+								<checkbox dataattribute="active" id="results_col_4_1"/>
+							</tablecol>
+							<tablecol filterable="false" id="results_col_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="resultsTabledetails">
+							<section id="resultsTable_section_1" label="详细信息">
+								<sectionrow id="resultsTable_section_1_row_1">
+									<sectioncol id="resultsTable_section_1_row_1_col_1">
+										<section id="resultsTable_section_1_row_1_col_1_section">
+											<textbox dataattribute="logger" id="results_details_1"/>
+											<textbox dataattribute="loglevel" id="results_details_2" lookup="valuelist"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="resultsTable_section_1_row_1_col_2">
+										<section id="resultsTable_section_1_row_1_col_2_section">
+											<textbox dataattribute="logkey" id="results_details_3"/>
+											<textbox dataattribute="inheritedappenders" id="results_details_5" inputmode="readonly"/>
+											<textbox dataattribute="appenders" id="results_details_4" inputmode="readonly" menutype="MANAGEAPPENDERS" moreinformation="com.ibm.mbs.doc,logging/c_logging_components.html"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="resultsTable_section_1_row_1_col_3">
+										<section id="resultsTable_section_1_row_1_col_3_section">
+											<checkbox dataattribute="active" id="results_details_6"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="resultsButtongroup">
+							<pushbutton default="true" id="results_button_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+					<table id="childTable" label="记录器" parentdatasrc="mainrecord" relationship="CHILDLOGGERS">
+						<tablebody displayrowsperpage="5" filterable="true" filterexpanded="true" id="childTablebody">
+							<tablecol filterable="false" id="child_col_details" mxevent="toggledetailstate" sortable="false" type="event"/>
+							<tablecol dataattribute="logger" id="child_col_1" menutype="normal" smartfilloff="true"/>
+							<tablecol dataattribute="loglevel" id="child_col_2" lookup="valuelist"/>
+							<tablecol dataattribute="logkey" id="child_col_3" inputmode="readonly"/>
+							<tablecol dataattribute="active" id="child_col_4">
+								<checkbox dataattribute="active" id="child_col_4_1"/>
+							</tablecol>
+							<tablecol filterable="false" id="child_col_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<tabledetails id="childTabledetails">
+							<section id="childTable_section_1" label="详细信息">
+								<sectionrow id="childTable_section_1_row_1">
+									<sectioncol id="childTable_section_1_row_1_col_1">
+										<section id="childTable_section_1_row_1_col_1_section">
+											<textbox dataattribute="logger" id="child_details_1" menutype="normal" smartfilloff="true"/>
+											<textbox dataattribute="loglevel" id="child_details_2" lookup="valuelist"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="childTable_section_1_row_1_col_2">
+										<section id="childTable_section_1_row_1_col_2_section">
+											<textbox dataattribute="logkey" id="child_details_3" inputmode="readonly"/>
+											<textbox dataattribute="inheritedappenders" id="child_details_5" inputmode="readonly"/>
+											<textbox dataattribute="appenders" id="child_details_4" inputmode="readonly" menutype="manageappenders" moreinformation="com.ibm.mbs.doc,logging/c_logging_components.html"/>
+										</section>
+									</sectioncol>
+									<sectioncol id="childTable_section_1_row_1_col_3">
+										<section id="childTable_section_1_row_1_col_3_section">
+											<checkbox dataattribute="active" id="child_details_6"/>
+										</section>
+									</sectioncol>
+								</sectionrow>
+							</section>
+						</tabledetails>
+						<buttongroup id="childButtongroup">
+							<pushbutton default="true" id="child_button_1" label="新建行" mxevent="addrow"/>
+						</buttongroup>
+					</table>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+	</page>
+
+	<dialog beanclass="psdi.webclient.beans.logging.ManageAppendersBean" id="MANAPPDRS" label="管理附加字符串" relationship="APPENDERS">
+		<table id="MANAPPDRSTable">
+			<tablebody displayrowsperpage="5" filterable="true" id="MANAPPDRSTableBody">
+				<tablecol filterable="false" id="MANAPPDRS_col_2" mxevent="toggledetailstate" sortable="false" type="event"/>
+				<tablecol dataattribute="APPENDER" id="MANAPPDRS_col_3"/>
+				<tablecol dataattribute="DESCRIPTION" id="MANAPPDRS_col_4"/>
+				<tablecol dataattribute="filename" id="MANAPPDRS_col_5" inputmode="readonly"/>
+				<tablecol filterable="false" id="MANAPPDRS_col_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="MANAPPDRSTabledetails">
+				<section id="MANAPPDRSTable_section_1" label="详细信息">
+					<sectionrow id="MANAPPDRSTable_section_1_row_1">
+						<sectioncol id="MANAPPDRSTable_section_1_row_1_col_1">
+							<section id="MANAPPDRSTable_section_1_row_1_col_1_section">
+								<multiparttextbox dataattribute="appender" descdataattribute="description" id="MANAPPDRS_details_1"/>
+								<textbox dataattribute="APPENDERIMPL" id="MANAPPDRS_details_2" lookup="valuelist"/>
+								<textbox dataattribute="CONVPATTERN" id="MANAPPDRS_details_3"/>
+								<textbox dataattribute="datepattern" id="MANAPPDRS_details_4"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="MANAPPDRSTable_section_1_row_1_col_2">
+							<section id="MANAPPDRSTable_section_1_row_1_col_2_section">
+								<textbox dataattribute="defltfolder" id="MANAPPDRS_details_8"/>
+								<textbox dataattribute="filename" id="MANAPPDRS_details_5"/>
+								<textbox dataattribute="filesize" id="MANAPPDRS_details_6"/>
+								<textbox dataattribute="backupindex" id="MANAPPDRS_details_7"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="MANAPPDRSTableButtongroup">
+				<pushbutton default="true" id="MANAPPDRSTable_button_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="MANAPPDRSButtongroup">
+			<pushbutton default="true" id="MANAPPDRS_button_1" label="确定" mxevent="addAppenders"/>
+			<pushbutton id="MANAPPDRS_button_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.logging.DlgAddLogMsgToolIconToApp" id="logmsgtool" label="在应用程序中启用定制日志消息" mboname="MAXLOGMSGTOOLDISP">
+		<table id="logmsgtool_table" label="应用程序">
+			<tablebody displayrowsperpage="15" filterable="false" hideselectrows="true" id="logmsgtool_tablebody">
+				<tablecol dataattribute="description" id="logmsgtool_tablebody_2" inputmode="readonly"/>
+				<tablecol id="logmsgtool_tablebody_4">
+					<checkbox dataattribute="addsupport" id="logmsgtool_tablebody_3_chk"/>
+				</tablecol>
+			</tablebody>
+		</table>
+		<section id="logmsgtool_btngrp_select_section">
+			<buttongroup id="logmsgtool_btngrp_select">
+				<pushbutton id="logmsgtool_btn_1_select" label="全选" mxevent="selectall"/>
+				<pushbutton id="logmsgtool_btn_2_select" label="取消全选" mxevent="unselectall"/>
+			</buttongroup>
+		</section>
+		<buttongroup id="logmsgtool_btngrp">
+			<pushbutton default="true" id="logmsgtool_btn_1" label="确定" mxevent="addlogmsgicontoapp"/>
+			<pushbutton id="logmsgtool_btn_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="GENLOGPROP" label="列表日志记录属性">
+		<multilinetextbox columns="60" dataattribute="genprop" id="prop_1" inputmode="readonly" rows="15"/>
+		<buttongroup id="GENPROP_buttons">
+			<pushbutton id="GENPROP_buttons_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.DataBean" id="INMEMLOG" label="在会话日志中" mboname="INMEMDISP">
+		<section id="main_grid2_122">
+			<sectionrow id="main_grid2_1_row2222">
+				<sectioncol id="main_grid2_1_row2_col1222">
+					<section id="main_grid2_1_row2_col1_1222">
+						<textbox dataattribute="fromline" id="aaaaaaa1"/>
+						<textbox dataattribute="toline" id="aaaaaaa2"/>
+						<textbox dataattribute="totalline" id="aaaaaaa3" inputmode="readonly"/>
+						<pushbutton id="but11" label="刷新" mxevent="refresh"/>
+						<multilinetextbox columns="80" dataattribute="logtext" id="main_grid2_attr1_52222" rows="100"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="logmsgtool_btngrp222">
+			<pushbutton id="logmsgtool_btn_222" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="MANMAXIMO" label="管理 Maximo 根记录器" relationship="MAXIMOROOTLOGGER">
+		<section id="MaxRootLoggerTable_section_1" label="详细信息">
+			<sectionrow id="MaxRootLoggerTable_section_1_row_1">
+				<sectioncol id="MaxRootLoggerTable_section_1_row_1_col_1">
+					<section id="MaxRootLoggerTable_section_1_row_1_col_1_section">
+						<textbox dataattribute="logger" id="MaxRootLogger_details_1" menutype="normal"/>
+						<textbox dataattribute="loglevel" id="MaxRootLogger_details_2" lookup="valuelist"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="MaxRootLoggerTable_section_1_row_1_col_2">
+					<section id="MaxRootLoggerTable_section_1_row_1_col_2_section">
+						<textbox dataattribute="logkey" id="MaxRootLogger_details_3" inputmode="readonly"/>
+						<textbox dataattribute="appenders" id="MaxRootLogger_details_4" inputmode="readonly" menutype="manageappenders" moreinformation="com.ibm.mbs.doc,logging/c_logging_components.html"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="buttons">
+			<pushbutton default="true" id="buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="buttons_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.logging.DlgSetFolderBean" id="SETFOLDER" label="设置日志记录根文件夹" mboname="maxlogger">
+		<textbox dataattribute="defltfolder" id="defltFolder"/>
+		<buttongroup id="SETFOLDER_buttons">
+			<pushbutton default="true" id="SETFOLDER_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="SETFOLDER_buttons_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.logging.ManageAppendersBean" id="manageappenders" label="管理附加字符串" relationship="APPENDERS">
+		<table id="appendersTable" selectmode="multiple">
+			<tablebody displayrowsperpage="5" filterable="true" id="appendersTableBody">
+				<tablecol filterable="false" id="appenders_col_1" mxevent="toggleselectrow" sortable="false" type="event"/>
+				<tablecol filterable="false" id="appenders_col_2" mxevent="toggledetailstate" sortable="false" type="event"/>
+				<tablecol dataattribute="APPENDER" id="appenders_col_3"/>
+				<tablecol dataattribute="DESCRIPTION" id="appenders_col_4"/>
+				<tablecol dataattribute="filename" id="appenders_col_5" inputmode="readonly"/>
+				<tablecol filterable="false" id="appenders_col_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="appendersTabledetails">
+				<section id="appendersTable_section_1" label="详细信息">
+					<sectionrow id="appendersTable_section_1_row_1">
+						<sectioncol id="appendersTable_section_1_row_1_col_1">
+							<section id="appendersTable_section_1_row_1_col_1_section">
+								<multiparttextbox dataattribute="appender" descdataattribute="description" id="appender_details_1"/>
+								<textbox dataattribute="APPENDERIMPL" id="appender_details_2" lookup="valuelist"/>
+								<textbox dataattribute="CONVPATTERN" id="appender_details_3"/>
+								<textbox dataattribute="datepattern" id="appender_details_4"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="appendersTable_section_1_row_1_col_2">
+							<section id="appendersTable_section_1_row_1_col_2_section">
+								<textbox dataattribute="defltfolder" id="appenders_details_8"/>
+								<textbox dataattribute="filename" id="appenders_details_5"/>
+								<textbox dataattribute="filesize" id="appenders_details_6"/>
+								<textbox dataattribute="backupindex" id="appenders_details_7"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+		</table>
+		<buttongroup id="appendersButtongroup">
+			<pushbutton default="true" id="appenders_button_1" label="确定" mxevent="addAppenders"/>
+			<pushbutton id="selectgroups_2_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+	<configurationblock id="datastore_configurationblock">
+	</configurationblock>
+</presentation>

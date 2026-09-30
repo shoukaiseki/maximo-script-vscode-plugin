@@ -1238,7 +1238,7 @@
         <buttongroup id="conditions_security_button_select">
           <pushbutton id="conditions_security_button_select_button" label="选择条件" mxevent="selectsecurityconditions"/>
           <pushbutton default="true" id="conditions_security_button_new_row_button" label="新建行" mxevent="addrow"/>
-          <pushbutton default="true" id="conditions_security_button_hide_button" label="当前条件下新建隐藏属性" mxevent="addrow"/>
+          <!-- <pushbutton default="true" id="conditions_security_button_hide_button" label="当前条件下新建隐藏属性" mxevent="addrow"/> -->
         </buttongroup>
       </table>
     </section>

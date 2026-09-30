@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<presentation apphelp="com.ibm.mbs.doc,wfdesign/c_workflow_designer_app.html" beanclass="psdi.webclient.beans.wfdesign.WFDesignAppBean" id="wfdesign" ismobile="false" keyattribute="processname" mboname="wfprocess" resultstableid="results_showlist" version="7.1.0.0">
+	<page id="mainrec" scroll="false">
+		<include controltoclone="pageHeader" id="INCLUDE-pageHeader"/>
+		<clientarea id="clientarea">
+			<datasrc beanclass="psdi.webclient.beans.wfdesign.NodesBean" id="nodes_table" orderby="nodeid" relationship="nodes"/>
+			<datasrc beanclass="psdi.webclient.beans.wfdesign.ActionsBean" id="actions_table" parentdatasrc="nodes_table" relationship="actions"/>
+			<tabgroup id="maintabs" style="form">
+				<tab default="true" id="results" label="列表" type="list">
+					<menubar event="search" id="actiontoolbar" sourcemethod="getAppSearchOptions"/>
+					<table datasrc="results_showlist" id="results_showlist" inputmode="readonly" label="过程" mboname="wfprocess" orderby="processname, processrev" selectmode="multiple">
+						<tablebody displayrowsperpage="20" filterable="true" filterexpanded="true" id="results_showlist_tablebody">
+							<tablecol dataattribute="processname" filterable="false" id="results_showlist_tablebody_1" mxevent="toggleselectrow" mxevent_desc="选择行{0}" sortable="false" type="event"/>
+							<tablecol dataattribute="processname" id="results_showlist_tablebody_2" mxevent="selectrecord" mxevent_desc="转到 %1" type="link"/>
+							<tablecol dataattribute="description" id="results_showlist_tablebody_3"/>
+							<tablecol dataattribute="objectname" id="results_showlist_tablebody_4" linkedcontrolid="qbe1_5"/>
+							<tablecol dataattribute="processrev" id="results_showlist_tablebody_5"/>
+							<tablecol dataattribute="enabled" id="results_showlist_tablebody_6"/>
+							<tablecol dataattribute="active" id="results_showlist_tablebody_7"/>
+							<tablecol filterable="false" id="results_bookmark" mxevent="BOOKMARK" mxevent_desc="添加到书签" mxevent_icon="btn_addtobookmarks.gif" sortable="false" type="event"/>
+						</tablebody>
+					</table>
+				</tab>
+				<tab id="wfdesigner" label="画布" type="insert">
+					<section border="true" id="designer_outerGrid_1_1_grid1">
+						<sectionrow id="designer_outerGrid_1_1_grid1_row1">
+							<sectioncol id="designer_outerGrid_1_1_grid1_col1">
+								<section id="designer_outerGrid_1_1_grid1_col1_1">
+									<multiparttextbox dataattribute="processname" descdataattribute="description" id="designer_outerGrid_1_1_grid1_1"/>
+									<textbox dataattribute="objectname" id="designer_outerGrid_1_1_grid2_1" lookup="objectname"/>
+									<textbox dataattribute="processrev" id="designer_outerGrid_1_1_grid2_2"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="designer_outerGrid_1_1_grid1_col2">
+								<section id="designer_outerGrid_1_1_grid1_col2_1">
+									<textbox dataattribute="changeby" id="designer_outerGrid_1_1_grid4_1"/>
+									<textbox dataattribute="changedate" id="designer_outerGrid_1_1_grid4_2"/>
+									<checkbox dataattribute="SHOWDELETABLE" id="designer_outerGrid_1_1_grid4_3"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="designer_outerGrid_1_1_grid1_col3">
+								<section id="designer_outerGrid_1_1_grid1_col3_1">
+									<checkbox dataattribute="enabled" id="designer_outerGrid_1_1_grid3_1"/>
+									<checkbox dataattribute="active" id="designer_outerGrid_1_1_grid3_2"/>
+									<checkbox dataattribute="autoinitiate" id="designer_outerGrid_1_1_grid3_3"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<miniapp actiondatasrc="actions_table" appid="wfdesigner" datasrc="MAINRECORD" fillheight="false" id="wfdesigner_miniapp" mainclass="WFDesignerApp" nodedatasrc="nodes_table" sizetoparentdomid="m397b0593"/>
+				</tab>
+				<tab id="main" label="过程">
+					<section border="true" id="main_outerGrid_1_1_grid1">
+						<sectionrow id="main_outerGrid_1_1_grid1_row1">
+							<sectioncol id="main_outerGrid_1_1_grid1_col1">
+								<section id="main_outerGrid_1_1_grid1_col1_1">
+									<multiparttextbox dataattribute="processname" descdataattribute="description" id="main_outerGrid_1_1_grid1_1"/>
+									<textbox dataattribute="objectname" id="main_outerGrid_1_1_grid2_1" lookup="objectname"/>
+									<textbox dataattribute="processrev" id="main_outerGrid_1_1_grid2_2"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="main_outerGrid_1_1_grid1_col2">
+								<section id="main_outerGrid_1_1_grid1_col2_1">
+									<textbox dataattribute="changeby" id="main_outerGrid_1_1_grid4_1"/>
+									<textbox dataattribute="changedate" id="main_outerGrid_1_1_grid4_2"/>
+									<checkbox dataattribute="SHOWDELETABLE" id="main_outerGrid_1_1_grid4_3"/>
+								</section>
+							</sectioncol>
+							<sectioncol id="main_outerGrid_1_1_grid1_col3">
+								<section id="main_outerGrid_1_1_grid1_col3_1">
+									<checkbox dataattribute="enabled" id="main_outerGrid_1_1_grid3_1"/>
+									<checkbox dataattribute="active" id="main_outerGrid_1_1_grid3_2"/>
+									<checkbox dataattribute="autoinitiate" id="main_outerGrid_1_1_grid3_3"/>
+								</section>
+							</sectioncol>
+						</sectionrow>
+					</section>
+					<table beanclass="psdi.webclient.beans.wfdesign.WFNodesBean" datasrc="nodes_table" id="nodes_table_visible" label="过程节点">
+						<tablebody displayrowsperpage="10" id="nodes_table_tablebody">
+							<tablecol dataattribute="title" id="nodes_table_tablebody_3"/>
+							<tablecol dataattribute="description" id="nodes_table_tablebody_4"/>
+							<tablecol dataattribute="nodetype" id="nodes_table_tablebody_5"/>
+							<tablecol dataattribute="POINTEDTO" id="nodes_table_tablebody_6"/>
+							<tablecol id="nodes_table_tablebody_1" mxevent="properties" mxevent_desc="编辑属性" mxevent_icon="workflow/properties.gif" sortable="false" type="event"/>
+							<tablecol filterable="false" id="nodes_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<buttongroup id="nodes_table_visible_buttongroup">
+							<pushbutton id="nodes_table_visible_button" label="新建节点" menutype="NEWNODE" targetid="nodes_table_visible"/>
+						</buttongroup>
+					</table>
+					<table datasrc="actions_table" id="actions_table_visible" label="{0} 操作">
+						<sectionheader id="actions_table_sectionheader">
+							<paramvalues id="actions_table_table_1_sec_params" property="label">
+								<paramvalue dataattribute="title" datasrc="nodes_table" id="actions_table_table_1_sec_param_1" position="0"/>
+							</paramvalues>
+						</sectionheader>
+						<tablebody displayrowsperpage="5" id="actions_table_tablebody">
+							<tablecol applink="action" dataattribute="ACTION" id="actions_table_tablebody_3" lookup="action" menutype="normal"/>
+							<tablecol dataattribute="INSTRUCTION" id="actions_table_tablebody_5"/>
+							<tablecol dataattribute="membernodetitle" id="actions_table_tablebody_7" menutype="SELECTTONODE"/>
+							<tablecol dataattribute="ispositive" id="actions_table_tablebody_8">
+								<checkbox dataattribute="ispositive" id="actions_table_tablebody_8cb"/>
+							</tablecol>
+							<tablecol id="actions_table_tablebody_1" mxevent="properties" mxevent_desc="编辑属性" mxevent_icon="workflow/properties.gif" sortable="false" type="event"/>
+							<tablecol filterable="false" id="actions_table_tablebody_delete" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+						</tablebody>
+						<buttongroup id="actions_table_visible_buttongroup">
+							<pushbutton id="actions_table_visible_button" label="新建操作" menutype="NEWACTION" targetid="actions_table_visible"/>
+						</buttongroup>
+					</table>
+				</tab>
+			</tabgroup>
+		</clientarea>
+		<include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+	</page>
+
+	<dialog beanclass="psdi.webclient.system.beans.QbeBean" id="searchmore" inputmode="query" label="更多搜索字段">
+		<section id="qbe_s2">
+			<sectionrow id="qbe_s2_sr1">
+				<sectioncol id="qbe_s2_sr1_sc1">
+					<section id="qbe1_colsec1">
+						<multiparttextbox dataattribute="processname" descdataattribute="description" descinputmode="query" id="qbe1_1" inputmode="query"/>
+						<textbox dataattribute="objectname" id="qbe1_5" inputmode="query" lookup="objectname"/>
+						<textbox dataattribute="processrev" id="qbe1_2" inputmode="query"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="qbe_s3_sr1_sc1">
+					<section id="qbe1a">
+						<textbox dataattribute="enabled" id="qbe1_7" inputmode="query"/>
+						<textbox dataattribute="active" id="qbe1_8" inputmode="query"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<buttongroup id="qbe_pb">
+			<pushbutton default="true" id="qbe_pb_1" label="查找" mxevent="dialogok"/>
+			<pushbutton id="qbe_pb_2" label="清除"/>
+			<pushbutton id="qbe_pb_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.system.beans.ViewBookmarksBean" id="searchbook" label="我的书签" mboname="wfprocess">
+		<table id="bookmarks_table" inputmode="readonly" label="过程" selectmode="single">
+			<tablebody displayrowsperpage="20" filterable="true" id="bookmarks_table_tablebody">
+				<tablecol dataattribute="processname" id="bookmarks_tablebody_1" mxevent="selectrecord" type="link"/>
+				<tablecol dataattribute="description" id="bookmarks_table_tablebody_2"/>
+				<tablecol filterable="false" id="bookmarks_table_tablebody_delete" mxevent="instantdelete" mxevent_desc="删除" mxevent_icon="btn_delete.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<buttongroup id="bookmarks_2">
+			<pushbutton default="true" id="bookmarks_2_1" label="确定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="apptoolbar" label="编辑工作流开始按钮" relationship="EDITWFAPPTOOLBAR" width="650">
+		<helpgrid id="wfapptoolbar_help" innerhtml="表显示“工作流开始”按钮，这些按钮可以从目标应用程序的工具栏启动或者发送工作流。要使某个按钮特定于特殊的过程，请从应用程序/对象的活动过程查找中选择一个过程名称。要使按钮称为常规按钮，忽略过程名称。一般情况下，如果应用程序/对象有多个活动过程，系统将提示用户启动哪个过程。您可以为按钮的活动和非活动状态提供工具提示（描述）及图标。"/>
+		<table beanclass="psdi.webclient.beans.wfdesign.WFAppToollBarBean" id="watb_table" label="{0}工具栏按钮" relationship="WFAPPTOOLBAR">
+			<sectionheader id="watb_table_sectionheader">
+				<paramvalues id="watb_table_params" property="label">
+					<paramvalue dataattribute="objectname" datasrc="MAINRECORD" id="watb_table_param_1" position="0"/>
+				</paramvalues>
+			</sectionheader>
+			<tablebody displayrowsperpage="5" filterable="true" filterexpanded="false" id="watb_tablebody" orderby="appname,toolbarsequence">
+				<tablecol filterable="false" id="watb_col0" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="appname" id="watb_col2" lookup="maxapps"/>
+				<tablecol dataattribute="toolbarsequence" id="watb_col3"/>
+				<tablecol dataattribute="processname" id="watb_col4" lookup="wfprocess"/>
+				<tablecol dataattribute="description" id="watb_col5"/>
+				<tablecol filterable="false" id="watb_col6" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="watb_tabledetails">
+				<section id="watb_tabledetails_sect" label="详细信息">
+					<multiparttextbox dataattribute="appname" descdataattribute="MAXAPPS.description" descinputmode="readonly" id="watb_tabledetails_sect2" lookup="maxapps"/>
+					<multiparttextbox dataattribute="processname" descdataattribute="WFPROCESS.description" descinputmode="readonly" id="watb_tabledetails_sect3" lookup="wfprocess"/>
+					<textbox dataattribute="toolbarsequence" id="watb_tabledetails_sect4"/>
+					<textbox dataattribute="description" id="watb_tabledetails_sect5"/>
+					<textbox dataattribute="toolbaricon" id="watb_tabledetails_sect6"/>
+					<textbox dataattribute="toolbariconactive" id="watb_tabledetails_sect7"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="watb_table_buttons">
+				<pushbutton default="true" id="watb_table_buttons1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="watb_add_buttons">
+			<pushbutton default="true" id="watb_button1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="watb_button2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfwaitproperties" label="等待节点属性" relationship="SHOWWFWAIT">
+		<section id="wait_prop_1">
+			<multiparttextbox dataattribute="title" descdataattribute="description" id="wait_prop_1_1"/>
+		</section>
+		<table id="waitlist_table" label="等待列表" relationship="SHOWWFWAITLIST">
+			<tablebody displayrowsperpage="8" filterable="true" id="waitlist_table_tablebody">
+				<tablecol filterable="false" id="waitlist_table_tablebody_0" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol dataattribute="eventname" id="waitlist_table_tablebody_1" linkedcontrolid="waitlist_table_details_1_1"/>
+				<tablecol filterable="false" id="waitlist_table_tablebody_2" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="waitlist_table_details">
+				<section id="waitlist_table_details_1" label="详细信息">
+					<textbox dataattribute="eventname" id="waitlist_table_details_1_1"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="waitlist_table_buttons">
+				<pushbutton default="true" id="waitlist_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<table id="waitnotify_table" label="通知" relationship="SHOWWFNOTIFICATIONS">
+			<tablebody displayrowsperpage="4" filterable="true" id="waitnotify_table_tablebody">
+				<tablecol filterable="false" id="waitnotify_table_tablebody_5" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="commtmplt" dataattribute="templateid" id="waitnotify_table_tablebody_0" lookup="commtmplt" menutype="normal"/>
+				<tablecol applink="role" dataattribute="sendto" id="waitnotify_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol filterable="false" id="waitnotify_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="waitnotify_table_details">
+				<section id="waitnotify_table_details_1" label="详细信息">
+					<multiparttextbox applink="commtmplt" applinkkey="templateid" dataattribute="templateid" descdataattribute="tempdesc" id="waitnotify_table_details_1_0" lookup="commtmplt" menutype="normal"/>
+					<textbox applink="role" dataattribute="sendto" id="waitnotify_table_details_1_1" lookup="role" menutype="normal"/>
+					<textbox dataattribute="subject" id="waitnotify_table_details_1_3"/>
+					<textbox dataattribute="message" id="waitnotify_table_details_1_4"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="waitnotify_table_buttons">
+				<pushbutton default="true" id="waitnotify_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="wait_prop_buttons">
+			<pushbutton default="true" id="wait_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="wait_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="appsupport" label="添加“工作流支持”至应用程序" relationship="APPSUPPORT" savemode="ONLOAD">
+		<helpgrid id="appsupport_help" innerhtml="本表显示进程对象类型的应用程序和应用程序中工作流支持的当前状态。单击“确定”，为选中“添加支持”列的应用程序，添加支持。"/>
+		<section id="appsupport_sect1">
+			<textbox dataattribute="OBJECTNAME" id="appsupport_sect1_1"/>
+		</section>
+		<table id="appsupport_table">
+			<tablebody displayrowsperpage="3" filterable="false" id="appsupport_tablebody">
+				<tablecol dataattribute="app" id="appsupport_table1"/>
+				<tablecol dataattribute="currentsupport" id="appsupport_table2"/>
+				<tablecol dataattribute="addsupport" id="appsupport_table3">
+					<checkbox dataattribute="addsupport" id="appsupport_table3cb"/>
+				</tablecol>
+			</tablebody>
+		</table>
+		<buttongroup id="appsupport_bgroup">
+			<pushbutton default="true" id="appsupport_button1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="appsupport_button2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" height="380" id="wftaskproperties" label="任务节点属性" relationship="SHOWWFTASK" width="900">
+		<section id="task_prop_1">
+			<sectionrow id="task_prop_1_r1">
+				<sectioncol id="task_prop_1_r1_c1">
+					<section id="task_prop_1_r1_c1_s1">
+						<multiparttextbox dataattribute="title" descdataattribute="description" id="task_prop_1_1"/>
+						<multiparttextbox dataattribute="app" descdataattribute="taskapp.description" descinputmode="readonly" id="task_prop_1_2" lookup="application"/>
+					</section>
+				</sectioncol>
+				<sectioncol id="task_prop_1_r1_c2">
+					<section id="task_prop_1_r1_c2_s1">
+						<textbox dataattribute="timelimit" id="task_prop_1_3"/>
+						<checkbox dataattribute="displayone" id="task_prop_1_4"/>
+						<textbox dataattribute="wftasktype" id="task_prop_1_5"/>
+					</section>
+				</sectioncol>
+			</sectionrow>
+		</section>
+		<table id="assignments_table" label="任务分配" relationship="SHOWWFTASKASSIGNMENTS">
+			<tablebody displayrowsperpage="4" filterable="true" id="assignments_table_tablebody">
+				<tablecol filterable="false" id="assignments_table_tablebody_0" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="role" dataattribute="roleid" id="assignments_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol dataattribute="role.description" id="assignments_table_tablebody_2" inputmode="readonly"/>
+				<tablecol dataattribute="emailnotification" id="assignments_table_tablebody_3" linkedcontrolid="assignments_table_details_1_3"/>
+				<tablecol dataattribute="description" id="assignments_table_tablebody_4" label="任务描述" linkedcontrolid="assignments_table_details_1_4"/>
+				<tablecol dataattribute="timelimit" id="assignments_table_tablebody_7" linkedcontrolid="assignments_table_details_1_7"/>
+				<tablecol filterable="false" id="assignments_table_tablebody_9" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="assignments_table_details">
+				<section id="assignments_table_details_1" label="详细信息">
+					<sectionrow id="assignments_table_details_1_r1">
+						<sectioncol id="assignments_table_details_1_r1_c1">
+							<section id="assignments_table_details_1_r1_c1_s1">
+								<multiparttextbox applink="role" dataattribute="roleid" descdataattribute="role.description" descinputmode="readonly" id="assignments_table_details_1_1" lookup="role" menutype="normal"/>
+								<textbox dataattribute="relationship" id="assignments_table_details_1_gd"/>
+								<multiparttextbox dataattribute="app" descdataattribute="WFASSIGNAPP.description" descinputmode="readonly" id="assignments_table_details_1_10" lookup="application"/>
+								<textbox dataattribute="description" id="assignments_table_details_1_4"/>
+								<multiparttextbox applink="role" dataattribute="escrole" descdataattribute="escrole.description" descinputmode="readonly" id="assignments_table_details_1_6" lookup="role" menutype="normal"/>
+								<multiparttextbox applink="commtmplt" dataattribute="templateid" descdataattribute="commtemplate.description" descinputmode="readonly" id="assignments_table_details_100" lookup="commtmplt" menutype="normal"/>
+								<multilinetextbox columns="40" dataattribute="usersql" id="assignments_table_details_1_8" menutype="wfexpbuilder" rows="3"/>
+							</section>
+						</sectioncol>
+						<sectioncol id="assignments_table_details_1_r1_c2">
+							<section id="assignments_table_details_1_r1_c2_s1">
+								<textbox dataattribute="timelimit" id="assignments_table_details_1_7"/>
+								<textbox dataattribute="priority" id="assignments_table_details_1_5"/>
+								<checkbox dataattribute="emailnotification" id="assignments_table_details_1_3"/>
+								<checkbox dataattribute="calendarbased" id="assignments_table_details_1_11"/>
+								<checkbox dataattribute="iscustomclass" id="assignments_table_details_1_9"/>
+								<checkbox dataattribute="KEEPORIGASSGN" id="assignments_table_details_1_90"/>
+							</section>
+						</sectioncol>
+					</sectionrow>
+				</section>
+			</tabledetails>
+			<buttongroup id="assignments_table_buttons">
+				<pushbutton default="true" id="assignments_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<table id="notifications_table" label="通知" relationship="SHOWWFTASKNOTIFICATIONS">
+			<tablebody displayrowsperpage="4" filterable="true" id="notifications_table_tablebody">
+				<tablecol filterable="false" id="notifications_table_tablebody_5" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="commtmplt" dataattribute="templateid" id="notifications_table_tablebody_0" lookup="commtmplt" menutype="normal"/>
+				<tablecol applink="role" dataattribute="sendto" id="notifications_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol filterable="false" id="notifications_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="notifications_table_details">
+				<section id="notifications_table_details_1" label="详细信息">
+					<multiparttextbox applink="commtmplt" applinkkey="templateid" dataattribute="templateid" descdataattribute="tempdesc" id="notifications_table_details_1_0" lookup="commtmplt" menutype="normal"/>
+					<textbox applink="role" dataattribute="sendto" id="notifications_table_details_1_1" lookup="role" menutype="normal"/>
+					<textbox dataattribute="subject" id="notifications_table_details_1_3"/>
+					<richtexteditor dataattribute="message" id="notifications_table_details_1_4"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="notifications_table_buttons">
+				<pushbutton default="true" id="notifications_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<section id="perform_action_radio_section1">
+			<radiobuttongroup border="true" dataattribute="firstcomplete" id="perform_action_radio" label="执行接受操作">
+				<radiobutton id="perform_action_radio_1" label="当任何任务分配被接受时" value="1"/>
+				<radiobutton id="perform_action_radio_2" label="当所有任务分配都被接受时。" value="0"/>
+			</radiobuttongroup>
+		</section>
+		<buttongroup id="condition_prop_buttons">
+			<pushbutton default="true" id="condition_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="condition_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfactionproperties" label="操作属性" relationship="SHOWWFACTIONS" width="800">
+		<section id="action_prop_1">
+			<multiparttextbox applink="action" dataattribute="action" descdataattribute="action.description" descinputmode="readonly" id="action_prop_1_4" lookup="action" menutype="normal"/>
+			<textbox dataattribute="instruction" id="action_prop_1_3"/>
+			<checkbox dataattribute="ispositive" id="action_prop_1_1" inputmode="readonly"/>
+			<multilinetextbox columns="40" dataattribute="usersql" id="action_prop_1_8" menutype="wfexpbuilder" rows="3"/>
+			<checkbox dataattribute="iscustomclass" id="action_prop_1_9"/>
+		</section>
+		<table id="action_notifications_table" label="通知" relationship="SHOWWFACTIONNOTIFICATION">
+			<tablebody displayrowsperpage="4" filterable="true" id="action_notifications_table_tablebody">
+				<tablecol filterable="false" id="action_notifications_table_tablebody_5" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="commtmplt" dataattribute="templateid" id="action_notifications_table_tablebody_0" lookup="commtmplt" menutype="normal"/>
+				<tablecol applink="role" dataattribute="sendto" id="action_notifications_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol filterable="false" id="action_notifications_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="action_notifications_table_details">
+				<section id="action_notifications_table_details_1" label="详细信息">
+					<multiparttextbox applink="commtmplt" applinkkey="templateid" dataattribute="templateid" descdataattribute="tempdesc" id="action_notifications_table_details_1_0" lookup="commtmplt" menutype="normal"/>
+					<textbox applink="role" dataattribute="sendto" id="action_notifications_table_details_1_1" lookup="role" menutype="normal"/>
+					<textbox dataattribute="subject" id="action_notifications_table_details_1_3"/>
+					<textbox dataattribute="message" id="action_notifications_table_details_1_4"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="newrowbutton">
+				<pushbutton default="true" id="newrow_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="action_prop_buttons">
+			<pushbutton default="true" id="action_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="action_prop_buttons_2" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog hidehelp="true" id="wfstartproperties" label="开始节点属性">
+		<section id="wfstart">
+			<statictext id="wfstartnoprop" label="节点类型无可编辑属性。" plaintext="true"/>
+		</section>
+		<buttongroup id="wfstart_buttons">
+			<pushbutton default="true" id="wfstart_buttons_1" label="确定" mxevent="dialogok"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfsubprocessproperties" label="子过程节点属性" relationship="SHOWWFSUBPROCESS">
+		<section id="subproc_prop_1">
+			<multiparttextbox dataattribute="title" descdataattribute="description" id="subproc_prop_1_1"/>
+			<multiparttextbox dataattribute="subprocessname" descdataattribute="wfprocess.description" descinputmode="readonly" id="subproc_prop_1_2" lookup="wfprocess"/>
+		</section>
+		<buttongroup id="subproc_prop_buttons">
+			<pushbutton default="true" id="subproc_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="subproc_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfinputactionproperties" label="输入操作属性" relationship="SHOWWFACTIONS" width="800">
+		<section id="input_action_prop_1">
+			<textbox dataattribute="instruction" id="input_action_prop_1_2"/>
+			<multiparttextbox applink="action" dataattribute="action" descdataattribute="action.description" descinputmode="readonly" id="input_action_prop_1_1" lookup="action" menutype="normal"/>
+			<textbox dataattribute="ispositive" id="input_action_prop_1_3" inputmode="readonly"/>
+			<multilinetextbox columns="40" dataattribute="usersql" id="input_action_prop_1_8" menutype="wfexpbuilder" rows="3"/>
+			<checkbox dataattribute="iscustomclass" id="input_action_prop_1_9"/>
+		</section>
+		<table id="input_action_notifications_table" label="通知" relationship="SHOWWFACTIONNOTIFICATION">
+			<tablebody displayrowsperpage="8" filterable="true" id="input_action_notifications_table_tablebody">
+				<tablecol filterable="false" id="input_action_notifications_table_tablebody_5" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="commtmplt" dataattribute="templateid" id="input_action_notifications_table_tablebody_0" lookup="commtmplt" menutype="normal"/>
+				<tablecol applink="role" dataattribute="sendto" id="input_action_notifications_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol dataattribute="subject" id="input_action_notifications_table_tablebody_2"/>
+				<tablecol dataattribute="message" id="input_action_notifications_table_tablebody_3"/>
+				<tablecol filterable="false" id="input_action_notifications_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="input_action_notifications_table_details">
+				<section id="input_action_notifications_table_details_1">
+					<multiparttextbox applink="commtmplt" applinkkey="templateid" dataattribute="templateid" descdataattribute="tempdesc" id="input_action_notifications_table_details_1_0" lookup="commtmplt" menutype="normal"/>
+					<textbox applink="role" dataattribute="sendto" id="input_action_notifications_table_details_1_1" lookup="role" menutype="normal"/>
+					<textbox dataattribute="subject" id="input_action_notifications_table_details_1_3"/>
+					<textbox dataattribute="message" id="input_action_notifications_table_details_1_4"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="input_action_notifications_table_buttons">
+				<pushbutton default="true" id="input_action_notifications_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="input_action_prop_buttons">
+			<pushbutton default="true" id="input_action_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="input_action_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfconditionproperties" label="条件节点属性" relationship="SHOWWFCONDITION">
+		<section id="condition_prop_1">
+			<multiparttextbox dataattribute="title" descdataattribute="description" id="condition_prop_1_1"/>
+			<multilinetextbox columns="40" dataattribute="usersql" id="condition_prop_1_8" menutype="wfexpbuilder" rows="3"/>
+			<checkbox dataattribute="iscustomclass" id="condition_prop_1_9"/>
+		</section>
+		<buttongroup id="cond_prop_buttons">
+			<pushbutton default="true" id="cond_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="cond_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfinteractionproperties" label="交互节点属性" relationship="SHOWWFINTERACT">
+		<section id="interaction_prop_1">
+			<multiparttextbox dataattribute="title" descdataattribute="description" id="interaction_prop_1_1"/>
+			<textbox dataattribute="app" id="interaction_prop_1_2" lookup="maxapps"/>
+			<checkbox dataattribute="staycurrentapp" id="interaction_prop_1_9"/>
+			<textbox dataattribute="tabname" id="interaction_prop_1_3"/>
+			<textbox dataattribute="action" id="interaction_prop_1_4" lookup="maxmenu"/>
+			<textbox dataattribute="relation" id="interaction_prop_1_5" menutype="relationshipstree"/>
+			<textbox dataattribute="launchprocess" id="interaction_prop_1_6" lookup="wfprocess"/>
+			<textbox dataattribute="directions" id="interaction_prop_1_7" label="目标标题"/>
+			<textbox dataattribute="directions_longdescription" id="interaction_prop_1_8" label="目标主体"/>
+		</section>
+		<buttongroup id="interaction_prop_buttons">
+			<pushbutton default="true" id="interaction_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="interaction_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog id="viewsync" label="查看同步化过程">
+		<helpgrid id="viewsync_help" innerhtml="此表显示过程和与已激活过程关联的每个过程的修订本。"/>
+		<section id="viewsync_sect">
+			<multiparttextbox dataattribute="processname" descdataattribute="description" descinputmode="readonly" id="viewsync_sect1"/>
+			<textbox dataattribute="processrev" id="viewsync_sect2" inputmode="readonly"/>
+		</section>
+		<table id="viewsync_table" inputmode="readonly" label="子过程" orderby="processname" relationship="REVISIONS">
+			<tablebody filterable="true" filterexpanded="false" id="viewsync_tablebody">
+				<tablecol dataattribute="processname" id="viewsync_tablebody_1" mxevent="selectrecord" mxevent_desc="转到 %1" type="link"/>
+				<tablecol dataattribute="processrev" id="viewsync_tablebody_2"/>
+			</tablebody>
+		</table>
+		<buttongroup id="viewsync_buttons">
+			<pushbutton default="true" id="viewsync_buttons_1" label="确定" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog hidehelp="true" id="wfstopproperties" label="停止节点属性">
+		<section id="wfstop">
+			<statictext id="wfstopnoprop" label="节点类型无可编辑属性。" plaintext="true"/>
+		</section>
+		<buttongroup id="wfstop_buttons">
+			<pushbutton default="true" id="wfstop_buttons_1" label="确定" mxevent="dialogclose"/>
+		</buttongroup>
+	</dialog>
+
+	<dialog beanclass="psdi.webclient.beans.wfdesign.DialogSaveBean" id="wfinputproperties" label="手工输入节点属性" relationship="SHOWWFINPUT" width="750">
+		<section id="input_prop_1">
+			<multiparttextbox dataattribute="title" descdataattribute="description" id="input_prop_1_1"/>
+			<checkbox dataattribute="displayone" id="input_prop_1_2"/>
+		</section>
+		<table id="input_prop_table" label="操作" relationship="SHOWWFACTIONS">
+			<tablebody displayrowsperpage="4" id="input_prop_table_tablebody" orderby="sequence">
+				<tablecol dataattribute="sequence" id="input_prop_table_tablebody_1"/>
+				<tablecol applink="action" dataattribute="ACTION" id="input_prop_table_tablebody_3" lookup="action" menutype="normal"/>
+				<tablecol dataattribute="INSTRUCTION" id="input_prop_table_tablebody_5"/>
+				<tablecol dataattribute="membernodetitle" id="input_prop_table_tablebody_7" inputmode="readonly"/>
+				<tablecol dataattribute="ISPOSITIVE" id="input_prop_table_tablebody_8">
+					<checkbox dataattribute="ispositive" id="input_prop_table_tablebody_8cb" inputmode="readonly"/>
+				</tablecol>
+				<tablecol filterable="false" id="input_prop_table_tablebody_9" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+		</table>
+		<table id="input_prop_notifications_table" label="通知" parentdatasrc="input_prop_table" relationship="SHOWWFACTIONNOTIFICATION">
+			<tablebody displayrowsperpage="4" filterable="true" id="input_prop_notifications_table_tablebody">
+				<tablecol filterable="false" id="input_prop_notifications_table_tablebody_5" mxevent="toggledetailstate" mxevent_desc="显示详细信息" sortable="false" type="event"/>
+				<tablecol applink="commtmplt" dataattribute="templateid" id="input_prop_notifications_table_tablebody_0" lookup="commtmplt" menutype="normal"/>
+				<tablecol applink="role" dataattribute="sendto" id="input_prop_notifications_table_tablebody_1" lookup="role" menutype="normal"/>
+				<tablecol filterable="false" id="input_prop_notifications_table_tablebody_4" mxevent="toggledeleterow" mxevent_desc="标记要删除的行" mxevent_icon="btn_garbage.gif" sortable="false" type="event"/>
+			</tablebody>
+			<tabledetails id="input_prop_notifications_table_details">
+				<section id="input_prop_notifications_table_details_1" label="详细信息">
+					<multiparttextbox applink="commtmplt" applinkkey="templateid" dataattribute="templateid" descdataattribute="tempdesc" id="input_prop_notifications_table_details_1_0" lookup="commtmplt" menutype="normal"/>
+					<textbox applink="role" dataattribute="sendto" id="input_prop_notifications_table_details_1_1" lookup="role" menutype="normal"/>
+					<textbox dataattribute="subject" id="input_prop_notifications_table_details_1_3"/>
+					<textbox dataattribute="message" id="input_prop_notifications_table_details_1_4"/>
+				</section>
+			</tabledetails>
+			<buttongroup id="input_prop_notifications_table_buttons">
+				<pushbutton default="true" id="input_prop_notifications_table_buttons_1" label="新建行" mxevent="addrow"/>
+			</buttongroup>
+		</table>
+		<buttongroup id="input_prop_buttons">
+			<pushbutton default="true" id="input_prop_buttons_1" label="确定" mxevent="dialogok"/>
+			<pushbutton id="input_prop_buttons_3" label="取消" mxevent="dialogcancel"/>
+		</buttongroup>
+	</dialog>
+	<configurationblock id="datastore_configurationblock">
+	</configurationblock>
+</presentation>
