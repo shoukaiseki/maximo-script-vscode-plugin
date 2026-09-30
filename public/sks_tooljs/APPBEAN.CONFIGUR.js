@@ -337,6 +337,12 @@ function setupTableOrViewByMbo(invoker, mbo, doSave, doShowMessageBox, appBean) 
 
   var changed = mbo.getString("changed")
 
+  if(!mbo.getBoolean("IMPORTED")){
+    logger.info("[" + scriptName + "] setupTableOrViewByMbo skip: IMPORTED=0")
+    report.skipped = "IMPORTED=0"
+    return report
+  }
+
   // 新增的不理会: 会触发 FldMaxObjectCfgObjectName.action 自动设置
   if (changed === "I") {
     logger.info("[" + scriptName + "] setupTableOrViewByMbo skip: changed=I")

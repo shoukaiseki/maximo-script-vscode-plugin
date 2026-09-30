@@ -1,7 +1,7 @@
 {
   "autoscript": "APPBEAN.CONFIGUR",
   "description": "数据库配置",
-  "version": "1.0.39",
+  "version": "1.0.41",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
