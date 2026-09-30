@@ -1,7 +1,7 @@
 {
-  "autoscript": "SKS_DEMO_TEST_TYPE",
+  "autoscript": "TEST_TYPE",
   "description": "graphite内嵌页面接口",
-  "version": "1.0.26",
+  "version": "1.0.20",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

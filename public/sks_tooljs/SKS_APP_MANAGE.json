@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_APP_MANAGE",
   "description": "应用相关管理",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

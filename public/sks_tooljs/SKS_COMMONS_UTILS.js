@@ -314,11 +314,11 @@ function getValueByMaxTypeDateTimeAutoZhcn(service, mbo, attrName) {
       return getMboTimeToString(service, mbo, attrName)
     }
   }
-  if(maxType==MaxType.LONGALN){
+  if (maxType == MaxType.LONGALN) {
     return getMboStringValue(service, mbo, attrName)
 
   }
-  if(maxType==MaxType.BLOB||maxType==MaxType.CLOB){
+  if (maxType == MaxType.BLOB || maxType == MaxType.CLOB) {
     return getMboStringValue(service, mbo, attrName)
   }
 
@@ -452,7 +452,7 @@ function parseDateString(dateStr) {
  * @returns {number}          调整后的总数量
  */
 function adjustTotalDoubleByMbo(service, sumDouble, mboTmp, attrName) {
-    var mbv = mboTmp.getMboValue(attrName);
+  var mbv = mboTmp.getMboValue(attrName);
   logger.info("[" + scriptName + "] adjustTotalDoubleByMbo  mboTmp.toBeDeleted=" + mboTmp.toBeDeleted() + ",mboTmp.isNew=" + mboTmp.isNew() + ",mboTmp.isModified=" + mboTmp.isModified() + ",mv.isModified=" + mbv.isModified() + ",mv.isNull=" + mbv.isNull());
   if (!mboTmp.toBeDeleted() || !mboTmp.isNew()) {
     if (mboTmp.toBeDeleted()) {
@@ -495,13 +495,21 @@ function autoMboSetValue(service, mbo, attributeName, value, accessModifier) {
   }
   if (value == null || typeof value === "undefined") {
     mbo.setValueNull(attributeName, accessModifier);
+    return
+  }
+  // YORN 直接写字符串,避免 ScriptUtil.getValueFromMaxType → asBoolean() 抛 booleannull
+  var maxTypeInt = null;
+  maxTypeInt = mbo.getThisMboSet().getMboSetInfo().getAttribute(attributeName).getTypeAsInt();
+  if (maxTypeInt === 12) {
+    mbo.setValue(attributeName, convertStrToYorn(value), accessModifier); 
+    return;
+  }
+
+  var valueType = getValueAutoType(service, mbo, attributeName);
+  if (valueType == null) {
+    mbo.setValueNull(attributeName, accessModifier);
   } else {
-    var valueType = getValueAutoType(service, mbo, attributeName);
-    if (valueType == null) {
-      mbo.setValueNull(attributeName, accessModifier);
-    } else {
-      mbo.setValue(attributeName, value, accessModifier);
-    }
+    mbo.setValue(attributeName, value, accessModifier);
   }
 }
 
@@ -646,6 +654,14 @@ function trimAll(str) {
   return String(str).replace(/^[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+|[\s\u3000\u00A0\u2000-\u200A\u202F\u205F\uFEFF]+$/g, "");
 }
 
+
+
+function convertStrToYorn(value) {
+  if(value==null){
+    throw new MXApplicationException("system", "invalidyorn");
+  }
+  return value==='Y'||value==='1'||value==='true'||value===true;
+}
 
 
 //调用工具的示例代码

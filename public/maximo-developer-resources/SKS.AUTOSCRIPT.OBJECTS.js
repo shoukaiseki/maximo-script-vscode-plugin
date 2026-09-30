@@ -1673,13 +1673,13 @@ function _attributeExists(objectName, attributeName) {
 
 function checkPermissions(app, optionName) {
   if (!userInfo) {
-    throw new AdminError('no_user_info', 'The userInfo global variable has not been set, therefore the user permissions cannot be verified.');
+    throw new MXApplicationException('no_user_info', 'The userInfo global variable has not been set, therefore the user permissions cannot be verified.');
   }
 
   var userProfile = MXServer.getMXServer().lookup('SECURITY').getProfile(userInfo);
 
   if (!userProfile.hasAppOption(app, optionName) && !isInAdminGroup()) {
-    throw new AdminError(
+    throw new MXApplicationException(
       'no_permission',
       'The user ' + userInfo.getUserName() + ' does not have access to the ' + optionName + ' option in the ' + app + ' object structure.'
     );

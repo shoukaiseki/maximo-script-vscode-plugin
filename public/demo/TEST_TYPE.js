@@ -8,43 +8,30 @@
 //可用于控制字段只读
 
 // =============================================================================
-// SKS_DEMO_TYPE
-// SKS_DEMO_TYPE 表(graphite 内嵌页面) 的 REST 接口脚本,
-// 接口风格与 SKS.AUTOSCRIPT.WORKFLOW / SKS_DEMO_TEST_TYPE 保持一致
-// (URL 参数 + JSON 请求体 + MBO 读写)。
-//
-// 注意: 本文件名 = Maximo Automation Script 名 = 接口名(见同目录 SKS_DEMO_TEST_TYPE.json),
-//       三者必须一致; 被操作的对象(MBO)是 SKS_DEMO_TYPE。
-//
-// 对象定义来源: DBCONFIG_SKS_DEMO_TYPE.json(MAFAPPDATA应用/SKS_DEMO_TYPE)
-//   主对象     : SKS_DEMO_TYPE
-//   主键       : SKS_DEMO_TYPEID  (BIGINT, 自动生成)
-//   业务字段   : DESCRIPTION / DESCRIPTION_LONGDESCRIPTION
-//                FIELD_01 ~ FIELD_17 (17 个, 覆盖 Maximo 全部标量类型)
-//                HASLD (MBO 自动维护)
+// SKS_DEMO_TEST_TYPE
+// TEST_TYPE 表(graphite 内嵌页面) 的 REST 接口脚本,
+// 接口风格与 SKS.AUTOSCRIPT.WORKFLOW 保持一致(URL 参数 + JSON 请求体 + MBO 读写)。
 //
 // 调用方式(HTTP, 通过 Maximo ScriptRouteHandler 暴露, 与项目内其他脚本一致):
 //   GET    /maximo/oslc/script/SKS_DEMO_TEST_TYPE?page=1&pageSize=20
-//            &SKS_DEMO_TYPEID=<精确>&DESCRIPTION=<包含>&FIELD_01=<包含>&FIELD_02=<包含>
-//                                                                      列表(分页+搜索)
-//   GET    /maximo/oslc/script/SKS_DEMO_TEST_TYPE?detail=1&SKS_DEMO_TYPEID=<主键>  单条详情(全字段)
+//            &testtypeid=<精确>&description=<包含>&field_01=<包含>&field_03=<包含>   列表(分页+搜索)
+//   GET    /maximo/oslc/script/SKS_DEMO_TEST_TYPE?detail=1&testtypeid=<主键>        单条详情(全字段)
 //   POST   /maximo/oslc/script/SKS_DEMO_TEST_TYPE
-//          body: {"DESCRIPTION":"...", ...}                                  新建(主键自动生成)
-//          body: {"SKS_DEMO_TYPEID":123,"DESCRIPTION":"...", ...}             也可显式提供主键(查重后使用)
-//   POST   /maximo/oslc/script/SKS_DEMO_TEST_TYPE?_op=update&SKS_DEMO_TYPEID=123
-//          body: {"DESCRIPTION":"...", ...}                                  保存更新(主键不可改)
-//   PATCH  /maximo/oslc/script/SKS_DEMO_TEST_TYPE?SKS_DEMO_TYPEID=123
-//          (或 PUT, 主键也可放请求体) body: {...}                              保存更新(Servlet 2.5 下推荐 POST+_op=update)
+//          body: {"description":"...", ...}                                       新建(主键自动生成, 查 MAX+1)
+//          body: {"testtypeid":123,"description":"...", ...}                       也可显式提供主键(查重后使用)
+//   PATCH  /maximo/oslc/script/SKS_DEMO_TEST_TYPE?testtypeid=123
+//          (或 PUT, testtypeid 也可放请求体) body: {"description":"...", ...}      保存更新(主键不可改)
 //
 // 返回结构(外层由 main 统一包裹):
 //   成功: {"status":"success","data":<列表{list,total,page,pageSize} | 单条全字段记录>,"message":"Script executed successfully"}
 //   失败: {"status":"error","message":<错误堆栈>}
 //
-// 字段类型(DBCONFIG + MAXATTRIBUTE 核实), 读值统一委托 SKS_COMMONS_UTILS:
-//   FIELD_01 ALN / FIELD_02 UPPER / FIELD_03 LOWER / FIELD_04 ALN / FIELD_05 CLOB
-//   FIELD_06 BLOB(不读不写) / FIELD_07 SMALLINT / FIELD_08 INTEGER / FIELD_09 BIGINT
-//   FIELD_10 DECIMAL(2) / FIELD_11 FLOAT(4) / FIELD_12 AMOUNT(2) / FIELD_13 DURATION
-//   FIELD_14 DATE / FIELD_15 TIME / FIELD_16 DATETIME / FIELD_17 YORN
+// 字段口径(TEST_TYPE 对象权威定义 + DB2 核实):
+//   列表 11 列(前端顺序): testtypeid, description, field_01, field_03, field_06, field_07,
+//                         field_10, field_12, field_14, field_17, hasld
+//   编辑页全字段 34 个:  TEST_TYPEID/DESCRIPTION/DESCRIPTION_LONGDESCRIPTION/FIELD_01~FIELD_32
+//                        (FIELD_20/21 不存在)/HASLD;  YORN: hasld, field_12, field_13;
+//                        BLOB: field_26(不回写); CRYPTO: field_27/28(编辑时保持原值, 仅新建可写)
 // =============================================================================
 
 // load('nashorn:mozilla_compat.js');
@@ -75,9 +62,6 @@ OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
 /** @type {psdi.mbo.MboConstants} */
 MboConstants = Java.type("psdi.mbo.MboConstants");
-
-/** @type {psdi.util.MaxType} */
-MaxType = Java.type("psdi.util.MaxType");
 
 /** 省略访问控制检查(No Access), setValue/add/save 通用 */
 var NA = MboConstants.NOACCESS;
@@ -134,31 +118,27 @@ if (request.getQueryParam("_debug") !== 'undefined' && request.getQueryParam("_d
 // =============================================================================
 
 /** 目标 MBO 对象 */
-var OBJECT_NAME = "SKS_DEMO_TYPE";
-
-/** 主键属性 */
-var KEY_ATTR = "SKS_DEMO_TYPEID";
+var OBJECT_NAME = "TEST_TYPE";
 
 /**
- * 列表字段(与前端列表页一致)
+ * 列表字段(与前端列表页一致, 用户指定顺序, 全小写实际列名)
  */
 var LIST_FIELDS = [
-  KEY_ATTR, "DESCRIPTION",
-  "FIELD_01", "FIELD_02", "FIELD_03", "FIELD_05",
-  "FIELD_07", "FIELD_08", "FIELD_09", "FIELD_10", "FIELD_11", "FIELD_12", "FIELD_13",
-  "FIELD_14", "FIELD_15", "FIELD_16", "FIELD_17",
-  "HASLD"
+  "test_typeid", "description", "field_01", "field_03", "field_06", "field_07",
+  "field_10", "field_12", "field_14", "field_17", "hasld"
 ];
 
 /**
- * 编辑页全字段(SKS_DEMO_TYPE 全部属性: 主键 + DESCRIPTION + FIELD_01~FIELD_17 + HASLD)
+ * 编辑页全字段(TEST_TYPE 表 34 个业务字段, 不含 FIELD_20/21)
  */
 var ALL_FIELDS = [
-  KEY_ATTR, "DESCRIPTION", "DESCRIPTION_LONGDESCRIPTION",
-  "FIELD_01", "FIELD_02", "FIELD_03", "FIELD_04", "FIELD_05", "FIELD_06",
-  "FIELD_07", "FIELD_08", "FIELD_09", "FIELD_10", "FIELD_11", "FIELD_12", "FIELD_13",
-  "FIELD_14", "FIELD_15", "FIELD_16", "FIELD_17",
-  "HASLD"
+  "test_typeid", "description", "description_longdescription",
+  "field_01", "field_02", "field_03", "field_04", "field_05", "field_06", "field_07",
+  "field_08", "field_09", "field_10", "field_11", "field_12", "field_13", "field_14",
+  "field_15", "field_16", "field_17", "field_18", "field_19",
+  "field_22", "field_23", "field_24", "field_25", "field_26", "field_27", "field_28",
+  "field_29", "field_30", "field_31", "field_32",
+  "hasld"
 ];
 
 // -----------------------------------------------------------------------------
@@ -166,14 +146,14 @@ var ALL_FIELDS = [
 // -----------------------------------------------------------------------------
 
 /** 不经 JSON 读取的字段(BLOB 二进制无法 JSON 化) */
-var SKIP_READ_FIELDS = { "FIELD_06": true };
+var SKIP_READ_FIELDS = { "field_26": true };
 
 /** 不经 JSON 回写的字段(BLOB + HASLD 由 MBO 自动维护) */
-var SKIP_WRITE_FIELDS = { "FIELD_06": true, "HASLD": true };
+var SKIP_WRITE_FIELDS = { "field_26": true, "hasld": true };
 
-/** UPPER/LOWER 字段: 写入前统一大小写, 保证与库中一致 */
-var UPPER_FIELDS = { "FIELD_02": true };
-var LOWER_FIELDS = { "FIELD_03": true };
+/** CRYPTO/CRYPTOX 字段: 编辑时不回写(避免把密文当明文二次加密), 仅新建可写 */
+var CRYPTO_FIELDS = { "field_27": true, "field_28": true };
+
 
 var successData = {}
 
@@ -224,23 +204,22 @@ function main() {
 
 // =============================================================================
 // 接口入口: 按 HTTP 方法分发
-//   GET       列表(分页+搜索) / detail=1&SKS_DEMO_TYPEID= 详情
-//   POST      新建 / _op=update 更新
-//   PATCH/PUT 保存更新(主键从 URL 或请求体取, 主键不可改)
+//   GET       列表(分页+搜索) / detail=1&testtypeid= 详情
+//   POST      新建(testtypeid 必填+查重)
+//   PATCH/PUT 保存更新(testtypeid 从 URL 或请求体取, 主键不可改)
 // =============================================================================
 function process() {
-    checkPermissions('SKS_DEMO_TYPE', 'READ');
   try {
     var method = String(typeof httpMethod !== 'undefined' && httpMethod ? httpMethod : "GET").toUpperCase();
-    var qpId = getQueryParam(KEY_ATTR);
+    var qpTestTypeId = getQueryParam("testtypeid");
     var qpDetail = getQueryParam("detail");
     logger.info("[" + scriptName + "] process() method=" + method +
-      ", queryParams: detail=" + qpDetail + ", " + KEY_ATTR + "=" + qpId +
+      ", queryParams: detail=" + qpDetail + ", testtypeid=" + qpTestTypeId +
       ", page=" + getQueryParam("page") + ", pageSize=" + getQueryParam("pageSize"));
 
     if (method === "GET") {
-      if (qpDetail === "1" && qpId) {
-        return getDetail(qpId);
+      if (qpDetail === "1" && qpTestTypeId) {
+        return getDetail(qpTestTypeId);
       }
       return getList();
     }
@@ -252,23 +231,20 @@ function process() {
 
     if (method === "POST") {
       if (op === "update") {
-        checkPermissions('SKS_DEMO_TYPE', 'SAVE');
-        var tid = qpId;
-        if (!tid && body && body[KEY_ATTR] !== undefined && body[KEY_ATTR] !== null && String(body[KEY_ATTR]) !== "") {
-          tid = String(body[KEY_ATTR]);
+        var tid = qpTestTypeId;
+        if (!tid && body && body.test_typeid !== undefined && body.test_typeid !== null && String(body.test_typeid) !== "") {
+          tid = String(body.test_typeid);
         }
         return updateRecord(tid, body);
       }
-      checkPermissions('SKS_DEMO_TYPE', 'INSERT');
       return createRecord(body);
     }
 
     if (method === "PATCH" || method === "PUT") {
-      var tid2 = qpId;
-      if (!tid2 && body && body[KEY_ATTR] !== undefined && body[KEY_ATTR] !== null && String(body[KEY_ATTR]) !== "") {
-        tid2 = String(body[KEY_ATTR]);
+      var tid2 = qpTestTypeId;
+      if (!tid2 && body && body.test_typeid !== undefined && body.test_typeid !== null && String(body.test_typeid) !== "") {
+        tid2 = String(body.test_typeid);
       }
-      checkPermissions('SKS_DEMO_TYPE', 'SAVE');
       return updateRecord(tid2, body);
     }
 
@@ -284,7 +260,7 @@ function process() {
 // =============================================================================
 
 /**
- * 列表: GET ?page=&pageSize=&SKS_DEMO_TYPEID=&DESCRIPTION=&FIELD_01=&FIELD_02=
+ * 列表: GET ?page=&pageSize=&testtypeid=&description=&field_01=&field_03=
  * 返回 {list:[...], total, page, pageSize}
  */
 function getList() {
@@ -300,7 +276,7 @@ function getList() {
 
     set = MXServer.getMXServer().getMboSet(OBJECT_NAME, userInfo);
     set.setWhere(whereClause);
-    set.setOrderBy(KEY_ATTR);
+    set.setOrderBy("test_typeid");
     set.reset();
 
     var total = set.count();
@@ -325,24 +301,24 @@ function getList() {
 }
 
 /**
- * 单条详情: GET ?detail=1&SKS_DEMO_TYPEID=<主键> 返回全部字段
+ * 单条详情: GET ?detail=1&testtypeid=<主键> 返回全部 34 个字段
  */
-function getDetail(sksDemoTypeId) {
+function getDetail(testtypeid) {
   /** @type {psdi.mbo.MboSetRemote} */
   var set = null;
   try {
-    var n = toLong(sksDemoTypeId, null);
+    var n = toLong(testtypeid, null);
     if (n === null) {
-      throw new MXApplicationException("#", KEY_ATTR + " 必须是数字: " + sksDemoTypeId);
+      throw new MXApplicationException("#", "testtypeid 必须是数字: " + testtypeid);
     }
     set = MXServer.getMXServer().getMboSet(OBJECT_NAME, userInfo);
-    var f = new SqlFormat(KEY_ATTR + " = :1");
+    var f = new SqlFormat("test_typeid = :1");
     f.setLong(1, n);
     set.setWhere(f.format());
     set.reset();
     var mbo = set.moveFirst();
     if (mbo == null) {
-      throw new MXApplicationException("#", "未找到 " + KEY_ATTR + "=" + sksDemoTypeId + " 的记录");
+      throw new MXApplicationException("#", "未找到 testtypeid=" + testtypeid + " 的记录");
     }
     return buildFullRow(mbo);
   } finally {
@@ -351,24 +327,24 @@ function getDetail(sksDemoTypeId) {
 }
 
 /**
- * 列表搜索条件(主键精确, DESCRIPTION/FIELD_01/FIELD_02 模糊包含)
+ * 列表搜索条件(testtypeid 精确, description/field_01/field_03 模糊包含)
  */
 function buildSearchWhere() {
   var conds = [];
-  var t = getQueryParam(KEY_ATTR);
+  var t = getQueryParam("testtypeid");
   if (t) {
     var n = toLong(t, null);
     if (n !== null) {
-      var f = new SqlFormat(KEY_ATTR + " = :1");
+      var f = new SqlFormat("test_typeid = :1");
       f.setLong(1, n);
       conds.push(f.format());
     }
   }
-  // FIELD_02 为 UPPER 类型(库中存大写), 用 UPPER(列) like 匹配
+  // field_03 为 UPPER 类型(库中存大写), 用 UPPER(列) like 匹配
   var likeCols = [
-    { col: "DESCRIPTION", upper: false },
-    { col: "FIELD_01", upper: false },
-    { col: "FIELD_02", upper: true }
+    { col: "description", upper: false },
+    { col: "field_01", upper: false },
+    { col: "field_03", upper: true }
   ];
   for (var i = 0; i < likeCols.length; i++) {
     var v = getQueryParam(likeCols[i].col);
@@ -382,7 +358,7 @@ function buildSearchWhere() {
   return conds.length > 0 ? conds.join(" and ") : "1=1";
 }
 
-/** 列表行(与前端列一致) */
+/** 列表行(11 字段, 与前端列一致) */
 function buildListRow(mbo) {
   var row = {};
   for (var i = 0; i < LIST_FIELDS.length; i++) {
@@ -391,7 +367,7 @@ function buildListRow(mbo) {
   return row;
 }
 
-/** 详情/新建/更新后的完整记录(全部字段) */
+/** 详情/新建/更新后的完整记录(全部 34 个字段) */
 function buildFullRow(mbo) {
   var row = {};
   for (var i = 0; i < ALL_FIELDS.length; i++) {
@@ -407,9 +383,9 @@ function buildFullRow(mbo) {
  *     整数/大整数 → getLong()
  *     小数/金额/浮点 → getDouble()
  *     YORN → getBoolean() (JS true/false)
+ *     DATETIME → SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
  *     DATE → MXFormat.dateToSQLString() (yyyy-MM-dd)
  *     TIME → MXFormat.timeToSQLString() (HH:mm:ss)
- *     DATETIME → SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
  *     BLOB → null (前端不处理二进制)
  * 空值统一返回 null, 异常兜底返回 null。
  */
@@ -433,7 +409,7 @@ function getFieldValue(mbo, attr) {
 // =============================================================================
 
 /**
- * 新建: POST, 请求体主键可选——未提供时由 MboSet.add() 自动生成;
+ * 新建: POST, 请求体 testtypeid 可选——未提供时由 MboSet.add() 自动生成;
  *       若显式提供则查重后使用(主键必须为数字)
  * 返回完整记录
  */
@@ -441,25 +417,24 @@ function createRecord(body) {
   if (!body) {
     throw new MXApplicationException("#", "新建记录请求体(requestBody)不能为空");
   }
-  var explicitId = (body[KEY_ATTR] === undefined || body[KEY_ATTR] === null || String(body[KEY_ATTR]) === "") ? null : toLong(body[KEY_ATTR], null);
-  if (explicitId === null && body[KEY_ATTR] !== undefined && body[KEY_ATTR] !== null && String(body[KEY_ATTR]) !== "") {
-    throw new MXApplicationException("#", KEY_ATTR + " 必须是数字: " + body[KEY_ATTR]);
+  var explicitId = (body.test_typeid === undefined || body.test_typeid === null || String(body.test_typeid) === "") ? null : toLong(body.test_typeid, null);
+  if (explicitId === null && body.test_typeid !== undefined && body.test_typeid !== null && String(body.test_typeid) !== "") {
+    throw new MXApplicationException("#", "test_typeid 必须是数字: " + body.test_typeid);
   }
 
   /** @type {psdi.mbo.MboSetRemote} */
   var set = null;
-  var actualId = null;
   try {
     set = MXServer.getMXServer().getMboSet(OBJECT_NAME, userInfo);
 
     // 显式提供主键 → 先查重
     if (explicitId !== null) {
-      var f = new SqlFormat(KEY_ATTR + " = :1");
+      var f = new SqlFormat("test_typeid = :1");
       f.setLong(1, explicitId);
       set.setWhere(f.format());
       set.reset();
       if (!set.isEmpty()) {
-        throw new MXApplicationException("#", KEY_ATTR + "=" + explicitId + " 已存在, 不能重复新建");
+        throw new MXApplicationException("#", "test_typeid=" + explicitId + " 已存在, 不能重复新建");
       }
       set.setWhere("1=0");   // 清空 where，add() 才能成功
       set.reset();
@@ -467,7 +442,7 @@ function createRecord(body) {
 
     var mbo = set.add(NA);
     if (explicitId !== null) {
-      mbo.setValue(KEY_ATTR, explicitId, NA);
+      mbo.setValue("test_typeid", explicitId, NA);
     }
     // 否则: MboSet.add() 会自动填充主键(MustBe+Required 触发 setAutoKey)
 
@@ -475,8 +450,8 @@ function createRecord(body) {
     set.save(NA);
 
     // 取实际生成的主键(自动/显式)
-    actualId = mbo.getLong(KEY_ATTR);
-    logger.info("[" + scriptName + "] createRecord 成功: " + KEY_ATTR + "=" + actualId + " (" + (explicitId !== null ? "显式提供" : "自动生成") + ")");
+    var actualId = mbo.getLong("test_typeid");
+    logger.info("[" + scriptName + "] createRecord 成功: test_typeid=" + actualId + " (" + (explicitId !== null ? "显式提供" : "自动生成") + ")");
   } finally {
     _close(set);
   }
@@ -484,33 +459,33 @@ function createRecord(body) {
 }
 
 /**
- * 更新: PATCH/PUT 或 POST+_op=update, 主键从 URL 或请求体取(主键本身不可修改)
+ * 更新: PATCH/PUT, testtypeid 从 URL 或请求体取(主键本身不可修改)
  * 返回完整记录
  */
-function updateRecord(sksDemoTypeId, body) {
+function updateRecord(testtypeid, body) {
   if (!body) {
     throw new MXApplicationException("#", "更新记录请求体(requestBody)不能为空");
   }
-  var n = toLong(sksDemoTypeId, null);
+  var n = toLong(testtypeid, null);
   if (n === null) {
-    throw new MXApplicationException("#", KEY_ATTR + "(主键, 从 URL 或请求体提供)必须是数字: " + sksDemoTypeId);
+    throw new MXApplicationException("#", "testtypeid(主键, 从 URL 或请求体提供)必须是数字: " + testtypeid);
   }
 
   /** @type {psdi.mbo.MboSetRemote} */
   var set = null;
   try {
     set = MXServer.getMXServer().getMboSet(OBJECT_NAME, userInfo);
-    var f = new SqlFormat(KEY_ATTR + " = :1");
+    var f = new SqlFormat("test_typeid = :1");
     f.setLong(1, n);
     set.setWhere(f.format());
     set.reset();
     if (set.isEmpty()) {
-      throw new MXApplicationException("#", "未找到 " + KEY_ATTR + "=" + sksDemoTypeId + " 的记录, 无法保存");
+      throw new MXApplicationException("#", "未找到 testtypeid=" + testtypeid + " 的记录, 无法保存");
     }
     var mbo = set.getMbo(0);
     applyFields(mbo, body, true);
     set.save(NA);
-    logger.info("[" + scriptName + "] updateRecord 成功: " + KEY_ATTR + "=" + n);
+    logger.info("[" + scriptName + "] updateRecord 成功: testtypeid=" + n);
   } finally {
     _close(set);
   }
@@ -519,224 +494,33 @@ function updateRecord(sksDemoTypeId, body) {
 
 /**
  * 按 ALL_FIELDS 把请求体中的字段写入 mbo
- * 主键单独处理不在此写; BLOB 不回写
- *
- * 注意: 这里**不使用** SKS_COMMONS_UTILS.autoMboSetValue。
- * 该工具会先调用 ScriptUtil.getValueFromMaxType(mbo.getMboValue(attr).getMaxType()),
- * 而 ScriptUtil 对 YORN(maxType=12) 的实现是 maxType.asBoolean(),
- * MaxTypeYORN.asBoolean() 在字段当前为 null 时会抛
- * "BMXAA4118I - The Boolean field is blank and requires a value."。
- * 因此新建/更新时只要写入任意 YORN 字段就会失败。
- * 改用 Maximo 原生 mbo.setValue(attr, value, NA) 直接写入,
- * 由 Maximo 按字段 MAXTYPE 完成转换(YORN 传 'Y'/'N' 字符串最稳妥)。
+ * 主键 test_typeid 单独处理不在此写; BLOB 不回写; 编辑时 CRYPTO/CRYPTOX 保持原值
+ * 类型转换委托 Maximo setValue 自动完成(YORN 接受 boolean, 数字接受 number, 日期接受字符串)
  */
 function applyFields(mbo, body, isUpdate) {
   for (var i = 0; i < ALL_FIELDS.length; i++) {
     var attr = ALL_FIELDS[i];
-    if (attr === KEY_ATTR) {
+    if (attr === "test_typeid") {
       continue;
     }
     if (SKIP_WRITE_FIELDS[attr]) {
       continue;
     }
-    var raw = body[attr];
-    if (raw === undefined) {
+    if (isUpdate && CRYPTO_FIELDS[attr]) {
       continue;
     }
-    // UPPER/LOWER 字段统一大小写
-    if (raw !== null && typeof raw === "string") {
-      if (UPPER_FIELDS[attr]) {
-        raw = raw.toUpperCase();
-      } else if (LOWER_FIELDS[attr]) {
-        raw = raw.toLowerCase();
-      }
+    var raw = body[attr];
+    if (raw === undefined ) {
+      continue;
     }
     logger.info("\x1b[34;40m[" + scriptName + "] applyFields: " + attr + "=" + raw + "\x1b[0m")
-    try {
-      setFieldValue(mbo, attr, raw);
-    } catch (fieldError) {
-      // 逐字段定位: 抛出时带上字段名与类型, 避免只看到一段调用堆栈
-      var detail = "";
-      try {
-        detail = " (maxType=" + getMaxTypeCode(mbo, attr) + ")";
-      } catch (ignored) { }
-      logger.error("[" + scriptName + "] applyFields 写入字段失败: " + attr + detail + " value=" + raw + " -> " + fieldError);
-      throw new MXApplicationException("#", "写入字段 " + attr + detail +
-        " 失败(value=" + raw + "): " + fieldError);
-    }
+    // Maximo setValue 按字段 MAXTYPE 自动完成转换:
+    //   boolean → YORN 的 Y/N
+    //   number (int/double) → INTEGER/BIGINT/DECIMAL/AMOUNT/FLOAT/DURATION
+    //   string → ALN/UPPER/LOWER/LONGALN/CLOB/CRYPTO, 以及 DATE/DATETIME/TIME
+    //            (日期字符串按 MXFormat 标准格式解析, 前端已发送正确格式)
+    sksCommonsUtils.autoMboSetValue(service, mbo, attr, raw, NA);
   }
-}
-
-/**
- * 取字段的 Maximo 类型码(只读元数据, 不读取字段当前值, 因此不会触发 booleannull)
- * @returns {number|null} MAXTYPE 类型码, 取不到时返回 null
- */
-function getMaxTypeCode(mbo, attr) {
-  try {
-    var info = mbo.getThisMboSet().getMboSetInfo().getAttribute(attr);
-    if (info != null) {
-      return info.getTypeAsInt();
-    }
-  } catch (ignored) { }
-  return null;
-}
-
-/**
- * 按字段 MAXTYPE 写入字段值
- *
- * 使用 Maximo 原生 mbo.setValue(attr, value, NA), 由 Maximo 完成类型转换:
- *   YORN               → boolean / 'Y'|'N' / 'true'|'false' / 1|0
- *   各类数值            → number(JS 数字 Nashorn 自动转 Double)
- *   DATE/DATETIME/TIME → 'yyyy-MM-dd' / 'yyyy-MM-dd HH:mm:ss' / 'HH:mm:ss'
- *   ALN/UPPER/LOWER/CLOB → string
- *
- * 空值(null / '')统一 setValueNull, 避免把空串写进数值或日期字段。
- */
-function setFieldValue(mbo, attr, raw) {
-  // 归一化空值
-  if (raw === null || typeof raw === "undefined") {
-    mbo.setValueNull(attr, NA);
-    return;
-  }
-  if (typeof raw === "string" && raw === "") {
-    mbo.setValueNull(attr, NA);
-    return;
-  }
-  // 空数组/空对象视为清空
-  if (typeof raw === "object" && !(raw instanceof Date)) {
-    mbo.setValueNull(attr, NA);
-    return;
-  }
-
-  var maxType = getMaxTypeCode(mbo, attr);
-
-  if (maxType === MaxType.YORN) {
-    mbo.setValue(attr, toYornString(raw), NA);
-    return;
-  }
-  if (maxType === MaxType.INTEGER || maxType === MaxType.SMALLINT ||
-      maxType === MaxType.BIGINT || maxType === MaxType.FLOAT ||
-      maxType === MaxType.DECIMAL || maxType === MaxType.AMOUNT ||
-      maxType === MaxType.DURATION) {
-    var num = toNumberOrNull(raw);
-    if (num === null) {
-      mbo.setValueNull(attr, NA);
-    } else {
-      mbo.setValue(attr, num, NA);
-    }
-    return;
-  }
-  if (maxType === MaxType.DATE || maxType === MaxType.DATETIME || maxType === MaxType.TIME) {
-    mbo.setValue(attr, normalizeDateValue(raw, maxType), NA);
-    return;
-  }
-  // 字符串 / 其他: 交给 Maximo 按 MAXTYPE 解析
-  mbo.setValue(attr, String(raw), NA);
-}
-
-/**
- * 归一化日期时间入参, 使 Maximo 能正确解析
- *
- * Maximo 的 setValue 对日期类字段走 MXFormat.jmigStringToDateTime(),
- * 其内部是 newXMLGregorianCalendar(s), 标准 ISO-8601 可直接解析:
- *   DATETIME '2026-05-20T08:30:00+08:00'  ✓
- *   DATE     '2026-05-20'                 ✓
- *   TIME     '08:30:00'                   ✓
- * 但前端未改动日期控件时会原样回传脚本读出的
- *   DATETIME '2026-05-20 08:30:00'(空格分隔、无偏移)
- * 这种写法不是合法 ISO-8601, 需要补 'T' 与服务器时区偏移。
- *
- * @param {*} raw
- * @param {number} maxType MaxType.DATE / DATETIME / TIME
- * @returns {string}
- */
-function normalizeDateValue(raw, maxType) {
-  var s = String(raw).trim();
-  if (s === "") {
-    return s;
-  }
-  if (maxType === MaxType.DATE) {
-    // 只保留 yyyy-MM-dd
-    return s.length > 10 ? s.substring(0, 10) : s;
-  }
-  if (maxType === MaxType.TIME) {
-    // 只保留 HH:mm:ss
-    var tm = s.match(/(\d{1,2}:\d{2}(:\d{2})?)/);
-    return tm ? tm[1] : s;
-  }
-  // DATETIME
-  // 1) 已带时区偏移或 Z(ISO-8601) → 原样
-  if (/[T ]\d{1,2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/.test(s)) {
-    return s.replace(" ", "T");
-  }
-  // 2) yyyy-MM-dd HH:mm:ss / yyyy-MM-ddTHH:mm:ss → 补服务器时区偏移
-  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (m) {
-    var hh = m[4], mi = m[5], ss = m[6] || "00";
-    return m[1] + "-" + m[2] + "-" + m[3] + "T" + hh + ":" + mi + ":" + ss + getServerOffset();
-  }
-  // 3) 兜底: 交给 Maximo
-  return s;
-}
-
-/**
- * 当前服务器时区偏移, 形如 '+08:00'
- * 用 Date.getTimezoneOffset()(=UTC-本地, 分钟)取反得到相对 UTC 的偏移
- */
-function getServerOffset() {
-  try {
-    var offsetMin = -new Date().getTimezoneOffset();
-    return formatOffsetMinutes(offsetMin);
-  } catch (ignored) {
-    return "+00:00";
-  }
-}
-
-/** 分钟偏移 → '+08:00' */
-function formatOffsetMinutes(offsetMinutes) {
-  var sign = offsetMinutes < 0 ? "-" : "+";
-  var abs = Math.abs(offsetMinutes);
-  var hh = Math.floor(abs / 60);
-  var mm = abs % 60;
-  return sign + (hh < 10 ? "0" + hh : "" + hh) + ":" + (mm < 10 ? "0" + mm : "" + mm);
-}
-
-/**
- * 归一化为 YORN 可接受的 'Y' / 'N'
- */
-function toYornString(value) {
-  if (value === true || value === 1 || value === "1") {
-    return "Y";
-  }
-  if (value === false || value === 0 || value === "0") {
-    return "N";
-  }
-  var s = String(value).trim();
-  if (s === "") {
-    return "N";
-  }
-  if (/^(Y|YES|TRUE|T|1)$/i.test(s)) {
-    return "Y";
-  }
-  return "N";
-}
-
-/**
- * 归一化为数字, 无效/空返回 null
- */
-function toNumberOrNull(value) {
-  if (value === null || typeof value === "undefined" || value === "") {
-    return null;
-  }
-  if (typeof value === "number") {
-    return isNaN(value) ? null : value;
-  }
-  var s = String(value).replace(/,/g, "").trim();
-  if (s === "") {
-    return null;
-  }
-  var n = Number(s);
-  return isNaN(n) ? null : n;
 }
 
 // =============================================================================
@@ -833,20 +617,4 @@ function addLog() {
       ", requestBody=" + requestBody +
       ", responseBody=" + (typeof responseBody !== 'undefined' ? responseBody : ""));
   } catch (ignored) { }
-}
-
-
-function checkPermissions(app, optionName) {
-  if (!userInfo) {
-    throw new MXApplicationException('no_user_info', 'The userInfo global variable has not been set, therefore the user permissions cannot be verified.');
-  }
-
-  var userProfile = MXServer.getMXServer().lookup('SECURITY').getProfile(userInfo);
-
-  if (!userProfile.hasAppOption(app, optionName) && !isInAdminGroup()) {
-    throw new MXApplicationException(
-      'no_permission',
-      'The user ' + userInfo.getUserName() + ' does not have access to the ' + optionName + ' option in the ' + app + ' object structure.'
-    );
-  }
 }
