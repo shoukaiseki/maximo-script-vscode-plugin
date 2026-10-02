@@ -13,6 +13,37 @@ interface IgnoreClassEntry {
 }
 
 /**
+ * 判断工作区根目录是否为 Maximo 脚本项目。
+ * 判定规则：工作区根目录下存在配置项 scriptStoragePath 指定的脚本存放目录。
+ * @param workspaceRoot 工作区根目录绝对路径
+ */
+export function isMaximoScriptProject(workspaceRoot: string): boolean {
+  try {
+    const scriptStoragePath = vscode.workspace
+      .getConfiguration('maximoScript')
+      .get<string>('scriptStoragePath', 'masscript');
+    const configuredDir = path.join(workspaceRoot, scriptStoragePath || 'masscript');
+    return fs.existsSync(configuredDir) && fs.statSync(configuredDir).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 解析 javaapi 目录路径。
+ * 仅当工作区为 Maximo 脚本项目（存在配置的脚本存放目录）时使用 <workspaceRoot>/javaapi，
+ * 否则回退到用户目录，避免在非 Maximo 项目中生成 javaapi 目录。
+ */
+export function resolveJavaapiPath(): string {
+  const userHome = os.homedir();
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0 && isMaximoScriptProject(workspaceFolders[0].uri.fsPath)) {
+    return path.join(workspaceFolders[0].uri.fsPath, 'javaapi');
+  }
+  return path.join(userHome, '.sks', 'maximo-script-helper', 'javaapi');
+}
+
+/**
  * Maximo 反射数据管理器
  * 负责管理反射 API 的持久化存储和缓存
  */
@@ -34,14 +65,9 @@ export class ReflectionDataManager {
     this.lastRequestTime = new Map();
     
     const userHome = os.homedir();
-    // javaapi 目录存储在项目根目录，以便 VSCode 能够识别 .d.ts 文件
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders && workspaceFolders.length > 0) {
-      this.javaapiPath = path.join(workspaceFolders[0].uri.fsPath, 'javaapi');
-    } else {
-      // 如果没有工作区，回退到用户目录
-      this.javaapiPath = path.join(userHome, '.sks', 'maximo-script-helper', 'javaapi');
-    }
+    // javaapi 目录：仅当工作区是 Maximo 脚本项目（存在配置的脚本存放目录）时才创建于项目根目录，
+    // 否则回退到用户目录，避免在非 Maximo 项目中生成 javaapi 目录
+    this.javaapiPath = resolveJavaapiPath();
     // reflection-data 存储在用户目录
     this.reflectionDataPath = path.join(userHome, '.sks', 'maximo-script-helper', 'reflection-data');
   }

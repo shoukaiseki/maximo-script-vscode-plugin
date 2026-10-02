@@ -5,6 +5,7 @@ import { CreateScriptPanel } from './createScriptPanel';
 import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, HttpRequestOptions, HttpResponse, fetchClassReflection, fetchClassReflectionLocal } from './httpRequest';
 import { QuickCodeManager } from './quickCodeManager';
 import { registerSksDebugger } from './debug';
+import { isMaximoScriptProject } from './reflectionDataManager';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
@@ -690,7 +691,9 @@ export function activate(context: vscode.ExtensionContext) {
             const workspaceRoot = workspaceFolders[0].uri.fsPath;
             const userHome = require('os').homedir();
             const reflectionDataDir = path.join(userHome, '.sks', 'maximo-script-helper', 'reflection-data');
-            const javaapiDir = path.join(workspaceRoot, 'javaapi');
+            const javaapiDir = isMaximoScriptProject(workspaceRoot)
+              ? path.join(workspaceRoot, 'javaapi')
+              : path.join(userHome, '.sks', 'maximo-script-helper', 'javaapi');
             
             // 1. 保存 JSON 到 reflection-data 目录
             const jsonRelativePath = selectedText.replace(/\./g, path.sep) + '.json';
@@ -884,7 +887,9 @@ export function activate(context: vscode.ExtensionContext) {
             const workspaceRoot = workspaceFolders[0].uri.fsPath;
             const userHome = require('os').homedir();
             const reflectionDataDir = path.join(userHome, '.sks', 'maximo-script-helper', 'reflection-data');
-            const javaapiDir = path.join(workspaceRoot, 'javaapi');
+            const javaapiDir = isMaximoScriptProject(workspaceRoot)
+              ? path.join(workspaceRoot, 'javaapi')
+              : path.join(userHome, '.sks', 'maximo-script-helper', 'javaapi');
             
             // 1. 保存 JSON 到 reflection-data 目录
             const jsonRelativePath = selectedText.replace(/\./g, path.sep) + '.json';
