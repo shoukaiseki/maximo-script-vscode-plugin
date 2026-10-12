@@ -2900,6 +2900,11 @@ function mainLibrary() {
     // if the script is being invoked from the web then parse the requestBody and proces.
     if (typeof request !== "undefined" && typeof requestBody !== "undefined" && requestBody && request.getQueryParam("develop") == "true") {
         var config = JSON.parse(requestBody);
+        //nodejs 调用时验证json,不在这里处理了
+        // if(typeof config==='string'){
+        //     config = JSON.parse(config);
+        // }
+        logger.info("\x1b[32m[" + scriptName + "] requestBody=" + requestBody.substring(0, 100) + "\x1b[0m")
         try {
             deployConfig(config);
             responseBody = JSON.stringify(

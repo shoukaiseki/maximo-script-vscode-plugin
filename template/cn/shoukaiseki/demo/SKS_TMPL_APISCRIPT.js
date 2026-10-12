@@ -56,8 +56,8 @@ logger.info("[" + scriptName + "]-------------webclientsession=" + service.webcl
 var _langcode = "EN";
 if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
   _langcode = request.getQueryParam("_langcode").toUpperCase();
-  uInfo.setLangCode(_langcode);
-  logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + uInfo.getLocale().getLanguage());
+  userInfo.setLangCode(_langcode);
+  logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + userInfo.getLocale().getLanguage());
 }
 
 /** @type {java.lang.StringBuilder} */
@@ -142,7 +142,6 @@ function main() {
   } finally {
     logger.info("[" + scriptName + "]----------------responseBodyTmp finally");
     logger.info("[" + scriptName + "]----------------responseBodyTmp=" + responseBody + ".");
-    addLog()
   }
 
 }
