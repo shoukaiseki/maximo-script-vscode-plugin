@@ -16,11 +16,21 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
     const axios = require('axios');
     const https = require('https');
     
-    // 配置 Axios 忽略 HTTPS 证书验证（用于开发环境）
+    // 1) 全局关闭证书验证
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     const httpsAgent = new https.Agent({
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      keepAlive: true
     });
     axios.defaults.httpsAgent = httpsAgent;
+    // 兜底：覆盖全局 agent，使未显式指定 agent 的 HTTPS 请求也忽略证书
+    https.globalAgent.options.rejectUnauthorized = false;
+
+    // 2) 请求拦截器兜底：确保每个请求都带上忽略证书的 httpsAgent
+    axios.interceptors.request.use((config) => {
+      if (!config.httpsAgent) { config.httpsAgent = httpsAgent; }
+      return config;
+    });
     
     logger.info('[Axios] 已配置忽略 HTTPS 证书验证（仅用于开发环境）');
     
@@ -40,6 +50,68 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
 - ✅ 所有通过 `httpRequestToMaximo` 函数发出的请求
 - ✅ 包括脚本部署、查询、删除等所有 API 调用
 - ✅ 自动应用于整个插件生命周期
+
+## ⚠️ 关键：VSCode 设置会导致证书忽略失效（必读）
+
+### 现象
+
+即使上面代码全部配置正确，并且已用**纯 Node 进程验证有效**，但在 **VSCode 扩展宿主** 里请求自签名证书服务器时，仍可能报错：
+
+```
+unable to verify the first certificate
+[Axios Response Error] No response received
+```
+
+### 根本原因
+
+VSCode 默认：
+
+- `http.proxySupport = "override"`（默认值）
+- `http.fetchAdditionalSupport = true`（默认开启）
+
+这两项会让 VSCode **在扩展宿主中注入自己的网络栈/代理处理**，接管扩展发起的 HTTPS 请求，改用 VSCode 自身的证书校验（系统证书库），从而**完全绕过扩展代码里的 `httpsAgent.rejectUnauthorized:false`**。
+
+> 典型识别特征：axios 的 `config.adapter='http'`、`config.httpsAgent.options.rejectUnauthorized=false` 都已正确，纯 Node 直连同一服务器成功，但在扩展宿主内依旧被证书校验拦截。
+
+### 解决方案（必须）
+
+在 VSCode **用户设置 / 工作区设置** 中加入以下两项，并**重启 VSCode**：
+
+```jsonc
+"http.proxySupport": "off",
+"http.fetchAdditionalSupport": false
+```
+
+设置后请求即恢复正常。
+
+### 请求侧的防御性配置
+
+在 `httpRequestToMaximo` 的 axios 请求中显式指定，避免被代理/适配器接管：
+
+```typescript
+const response = await axios({
+  method: method.toLowerCase(),
+  url: apiUrl,
+  headers: requestHeaders,
+  data: data,
+  timeout: timeout,
+  adapter: 'http',   // 强制 http 适配器（Node 下才会读取 httpsAgent）
+  proxy: false,      // 关闭代理自动探测（proxy-from-env 会读 HTTPS_PROXY/ALL_PROXY）
+  httpsAgent: httpsAgent
+});
+```
+
+### 诊断日志
+
+插件内置了一次性诊断日志，便于定位此类问题：
+
+```
+[Axios Diag] node=..., typeofFetch=..., typeofXHR=..., axios.defaults.adapter=..., config.adapter=..., hasHttpsAgent=..., agentRejectUnauthorized=...
+[Axios Diag Env] HTTPS_PROXY=...; HTTP_PROXY=...; ALL_PROXY=...; NO_PROXY=...; electron=...; NODE_OPTIONS=...; NODE_EXTRA_CA_CERTS=...; execPath=...
+[Axios Diag Probe] 原生 https 请求成功 status=... / 失败 code=...
+```
+
+说明：`[Axios Diag Probe]` 用**原生 https（绕过 axios）** 直接请求同一地址 —— 若它成功而 axios 失败，说明问题在 axios 层；若它也失败，说明是扩展宿主的 TLS/网络注入问题（即本节所述的 VSCode 设置）。
 
 ## 安全注意事项
 

@@ -50,6 +50,7 @@ if (request.getQueryParam("_aliasname") !== 'undefined' && request.getQueryParam
 }
 
 RuntimeException = Java.type("java.lang.RuntimeException");
+Exception = Java.type("java.lang.Exception");
 System.out.println("----------------Starting execution of script " + service.getScriptName());
 
 URLDecoder = Java.type("java.net.URLDecoder");
@@ -574,18 +575,21 @@ function main() {
             } else if (error instanceof Error) {
                 response.message = error.message;
             } else if (error instanceof MXException) {
-                throw error;
                 response.reason = error.getErrorGroup() + "_" + error.getErrorKey();
                 response.message = error.getMessage();
+                throw error;
             } else if (error instanceof RuntimeException) {
                 if (error.getCause() instanceof MXException) {
-                    throw error.getCause();
                     response.reason = error.getCause().getErrorGroup() + "_" + error.getCause().getErrorKey();
                     response.message = error.getCause().getMessage();
+                    throw error.getCause();
                 } else {
                     response.reason = "runtime_exception";
                     response.message = error.getMessage();
                 }
+            } else if (error instanceof Exception) {
+                    response.reason = "exception";
+                    response.message = error.getMessage();
             } else {
                 response.cause = error;
             }

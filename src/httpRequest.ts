@@ -30,9 +30,20 @@ function limitLogOutput(data: any, maxLength: number = 200): { truncated: boolea
 export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
   try {
     const axios = require('axios');
+    const https = require('https');
     
     // 完全禁用 TLS 证书验证（仅用于开发环境）
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
+    // 显式创建忽略证书验证的 httpsAgent，并设为全局默认值
+    // 说明：部分 Node.js 版本下仅设置 NODE_TLS_REJECT_UNAUTHORIZED 不足以忽略自签名/链不完整证书
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false,
+      keepAlive: true
+    });
+    axios.defaults.httpsAgent = httpsAgent;
+    // 兑底：覆盖全局 agent，使所有未显式指定 agent 的 HTTPS 请求也忽略证书
+    https.globalAgent.options.rejectUnauthorized = false;
     
     logger.info('[Axios] 已配置忽略 HTTPS 证书验证（仅用于开发环境）');
     
@@ -40,6 +51,49 @@ export function initializeAxiosInterceptors(logger: vscode.LogOutputChannel) {
     if (!(axios.interceptors.request as any)._maximoScriptHelperConfigured) {
       axios.interceptors.request.use(
         (config: any) => {
+          // 兑底：确保每个请求都使用忽略证书验证的 httpsAgent
+          if (!config.httpsAgent) {
+            config.httpsAgent = httpsAgent;
+          }
+          // 【诊断】打印运行环境与适配器信息，便于排查证书忽略为何未生效
+          try {
+            const diagMsg = `[Axios Diag] node=${process.version}, typeofFetch=${typeof (globalThis as any).fetch}, `
+              + `typeofXHR=${typeof (globalThis as any).XMLHttpRequest}, `
+              + `axios.defaults.adapter=${JSON.stringify(axios.defaults.adapter)}, `
+              + `config.adapter=${JSON.stringify(config.adapter)}, `
+              + `hasHttpsAgent=${!!config.httpsAgent}, `
+              + `agentRejectUnauthorized=${config.httpsAgent && config.httpsAgent.options && config.httpsAgent.options.rejectUnauthorized}`;
+            logger.info(diagMsg);
+          } catch (diagErr) {
+            logger.warn(`[Axios Diag] 诊断日志失败: ${diagErr}`);
+          }
+          // 【诊断】一次性探针：打印代理相关环境变量，并用原生 https 直接请求（绕过 axios）以定位问题层级
+          if (!(globalThis as any).__mxsTlsProbeDone) {
+            (globalThis as any).__mxsTlsProbeDone = true;
+            try {
+              const envKeys = ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy'];
+              const envDump = envKeys.map((k) => `${k}=${process.env[k] || ''}`).join('; ');
+              logger.info(`[Axios Diag Env] ${envDump}; electron=${(process.versions as any).electron || '-'}; NODE_OPTIONS=${process.env.NODE_OPTIONS || ''}; NODE_EXTRA_CA_CERTS=${process.env.NODE_EXTRA_CA_CERTS || ''}; execPath=${process.execPath}`);
+              const target = new URL(String(config.url));
+              const probeAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
+              const preq = https.request({
+                host: target.hostname,
+                port: target.port || 443,
+                path: target.pathname + target.search,
+                method: 'GET',
+                agent: probeAgent,
+                timeout: 15000
+              } as any, (res: any) => {
+                logger.info(`[Axios Diag Probe] 原生 https 请求成功 status=${res.statusCode}`);
+                res.resume();
+              });
+              preq.on('error', (e: any) => logger.info(`[Axios Diag Probe] 原生 https 请求失败 ${e.code || e.message}`));
+              preq.on('timeout', () => { preq.destroy(); logger.info('[Axios Diag Probe] 原生 https 请求超时'); });
+              preq.end();
+            } catch (probeErr) {
+              logger.warn(`[Axios Diag Probe] 异常: ${probeErr}`);
+            }
+          }
           // 在发送请求之前做些什么
           const logMessage = `[Axios Request] ${config.method?.toUpperCase()} ${config.url}`;
           if(logger.logLevel!==vscode.LogLevel.Debug&&logger.logLevel!==vscode.LogLevel.Trace){
@@ -509,7 +563,12 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     console.log(`[HTTP Request] Timeout: ${timeout}`);
     console.log(`[HTTP Request] Headers:`, JSON.stringify(requestHeaders, null, 2));
     
-    // 发送请求
+    // 发送请求（显式传入忽略证书验证的 httpsAgent）
+    const https = require('https');
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false,
+      keepAlive: true
+    });
     console.log('[HTTP Request] 开始发送请求...');
     const startTime = Date.now();
     const response = await axios({
@@ -517,7 +576,14 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
       url: apiUrl,
       headers: requestHeaders,
       data: data,
-      timeout: timeout
+      timeout: timeout,
+      // 显式强制使用 http 适配器（Node 环境下 http 适配器才会读取 httpsAgent；
+      // 若被 fetch/xhr 适配器接管，httpsAgent 会被忽略导致证书校验失败）
+      adapter: 'http',
+      // 禁用代理自动探测（axios 内置 proxy-from-env 会读取 HTTPS_PROXY/ALL_PROXY 等环境变量，
+      // 一旦走代理隧道会用其他 TLS 逻辑，导致 httpsAgent 的 rejectUnauthorized 失效）
+      proxy: false,
+      httpsAgent: httpsAgent
     });
     const endTime = Date.now();
     console.log(`[HTTP Response] 状态码: ${response.status}, 耗时: ${endTime - startTime}ms`);

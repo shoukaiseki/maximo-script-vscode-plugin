@@ -15,6 +15,7 @@ interface ConfigData {
   apiKey: string;
   apiType: string;
   version: string;
+  extensionVersion: string;  // 插件版本号（来自 package.json）
   completionMode: string;
   localApiPath: string;
   enableJSDocParsing: boolean;
@@ -109,6 +110,7 @@ const App: React.FC = () => {
     apiKey: '',
     apiType: 'oslc',
     version: '7.6',
+    extensionVersion: '1.0.0',
     completionMode: 'vscode',
     localApiPath: '',
     enableJSDocParsing: true,
@@ -3843,7 +3845,7 @@ const App: React.FC = () => {
           <div className="section active">
             <h2>关于</h2>
             <p><strong>Maximo Script Helper</strong></p>
-            <p>版本：1.0.0</p>
+            <p>版本：{config.extensionVersion || '1.0.0'}</p>
             <p>作者：shoukaiseki</p>
           </div>
         )}

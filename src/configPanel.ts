@@ -913,7 +913,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       exportIntObjectWhere: config.get('exportIntObjectWhere', '1=1'),
       exportIntObjectIgnoreDefVal: config.get('exportIntObjectIgnoreDefVal', false),
       exportIntObjectZipEnabled: config.get('exportIntObjectZipEnabled', true),
-      scheduledExportBaseDir: config.get('scheduledExportBaseDir', '')
+      scheduledExportBaseDir: config.get('scheduledExportBaseDir', ''),
+      // 插件版本号（读取 package.json 的 version，供前端"关于"页显示）
+      extensionVersion: vscode.extensions.getExtension('shoukaiseki.maximo-script-helper')?.packageJSON?.version || '1.0.0'
     };
     
     // 如果当前环境存在于 envs.json 中，使用该环境的配置
