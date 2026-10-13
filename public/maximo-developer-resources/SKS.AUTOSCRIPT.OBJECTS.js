@@ -2286,7 +2286,7 @@ function saveOrUpdateDomain(domainData, index) {
     domainSet.save();
     logger.info("域定义保存成功: DOMAINID=" + domainId + ", DOMAINTYPE=" + domainType);
   } catch (error) {
-    logger.error("保存MAXDOMAIN表失败: " + error);
+    logger.error("保存MAXDOMAIN表失败: " , error);
     throw new MXApplicationException("#", "保存域定义失败: ", error);
   } finally {
     _close(domainSet);
@@ -2294,34 +2294,31 @@ function saveOrUpdateDomain(domainData, index) {
 }
 
 /**
- * 按 domaintype 分发域值子表保存(ALN/SYNONYM/NUMERIC/NUMRANGE/CROSSOVER/TABLE)
+ * 按 domaintype 分发域值子表处理(ALN/SYNONYM/NUMERIC/NUMRANGE/CROSSOVER/TABLE)
+ * 子表 MboSet 均取自 domainMbo 的关系, 这里不单独 save/close,
+ * 由外层 domainSet.save() 一次性级联保存(一个域只做一次保存)
  */
 function saveOrUpdateDomainValues(domainMbo, domainData, domainType) {
   // ALN
   if (domainData.alndomain) {
-    var alnSet = domainMbo.getMboSet("ALNDOMAINVALUE");
-    try { saveOrUpdateAlnDomain(alnSet, domainData.alndomain); alnSet.save(); } finally { _close(alnSet); }
+    saveOrUpdateAlnDomain(domainMbo.getMboSet("ALNDOMAINVALUE"), domainData.alndomain);
   }
   // SYNONYM
   if (domainData.synonymdomain) {
-    var synSet = domainMbo.getMboSet("SYNONYMDOMAIN");
-    try { saveOrUpdateSynonymDomain(synSet, domainData.synonymdomain); synSet.save(); } finally { _close(synSet); }
+    saveOrUpdateSynonymDomain(domainMbo.getMboSet("SYNONYMDOMAIN"), domainData.synonymdomain);
   }
   // NUMERIC
   if (domainData.numericdomain) {
-    var numSet = domainMbo.getMboSet("NUMDOMAINVALUE");
-    try { saveOrUpdateNumericDomain(numSet, domainData.numericdomain); numSet.save(); } finally { _close(numSet); }
+    saveOrUpdateNumericDomain(domainMbo.getMboSet("NUMDOMAINVALUE"), domainData.numericdomain);
   }
   // NUMRANGE
   if (domainData.numrangedomain) {
-    var nrSet = domainMbo.getMboSet("RANGEDOMSEGMENT");
-    try { saveOrUpdateNumRangeDomain(nrSet, domainData.numrangedomain); nrSet.save(); } finally { _close(nrSet); }
+    saveOrUpdateNumRangeDomain(domainMbo.getMboSet("RANGEDOMSEGMENT"), domainData.numrangedomain);
   }
   // TABLE / CROSSOVER (值记录在 MAXTABLEDOMAIN)
   if (domainData.tabledomain) {
     var tbRel = domainType === "CROSSOVER" ? "MAXTABLEDOMAINFORCROSSOVER" : "MAXTABLEDOMAIN";
-    var tbSet = domainMbo.getMboSet(tbRel);
-    try { saveOrUpdateTableDomain(tbSet, domainData.tabledomain, domainType); tbSet.save(); } finally { _close(tbSet); }
+    saveOrUpdateTableDomain(domainMbo.getMboSet(tbRel), domainData.tabledomain, domainType);
   }
 }
 
@@ -2527,7 +2524,10 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
       } else {
         if (!synMbo) {
           synMbo = synonymdomainSet.add();
-          synMbo.setValue("MAXVALUE", maxvalue);
+          // MAXVALUE 字段类 FldMXValueValue 会校验"同域同内部值的记录必须已存在",
+          // 批量导入时一个域只统一保存一次,首次创建必然查不到 -> BMXAA4051E,
+          // 故新增时用 NOVALIDATION 写入内部值(合法性由导入数据保证)
+          synMbo.setValue("MAXVALUE", maxvalue, MboConstants.NOVALIDATION);
           synMbo.setValue("VALUE", value);
         }
         if (data.description) { synMbo.setValue("DESCRIPTION", data.description); }
@@ -2539,7 +2539,7 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
         logger.info("已保存 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
       }
     } catch (error) {
-      logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " + error);
+      logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " , error);
     }
   }
   logger.info("SYNONYMDOMAIN 记录处理完成");

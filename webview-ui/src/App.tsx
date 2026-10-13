@@ -55,9 +55,7 @@ interface ConfigData {
   exportDomainDirectory: string;  // 域导出目录
   exportConditionDirectory: string;  // 条件表达式导出目录
   exportConditionWhere: string;  // 条件表达式导出 where 过滤条件
-  exportDomainThreadCount: number;  // 域导出线程数
   exportDomainZipEnabled: boolean;  // 域导出打包ZIP
-  exportDomainPageSize: number;  // 域导出单文件行数
   exportDomainIgnoreDefVal: boolean;  // 域导出忽略默认值
   exportIntObjectDirectory: string;  // 对象结构导出目录
   exportIntObjectWhere: string;  // 对象结构导出 where 过滤条件
@@ -150,9 +148,7 @@ const App: React.FC = () => {
     exportDomainDirectory: '',
     exportConditionDirectory: '',
     exportConditionWhere: '1=1',
-    exportDomainThreadCount: 5,
     exportDomainZipEnabled: true,
-    exportDomainPageSize: 50000,
     exportDomainIgnoreDefVal: false,
     exportIntObjectDirectory: '',
     exportIntObjectWhere: '1=1',
@@ -2892,14 +2888,13 @@ const App: React.FC = () => {
             }}>
               <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🏷️ 导出 MAXDOMAIN 域定义</p>
               <p style={{ margin: '0 0 10px 0' }}>
-                此功能将通过 SKS_EXPORT_DOMAIN 接口从 Maximo 服务器导出域定义（MAXDOMAIN），支持分页导出为多个 JSON 文件，兼容 SKS_DEPLOY_DOMAIN 导入。
+                此功能将通过 SKS.AUTOSCRIPT.OBJECTS?_type=domains 接口从 Maximo 服务器一次性导出全部域定义（MAXDOMAIN），导出为单个 domains.json 文件，兼容 SKS_DEPLOY_DOMAIN 导入。
               </p>
               <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--vscode-descriptionForeground)' }}>
                 📌 <strong>使用说明：</strong><br/>
                 1. 选择要保存域 JSON 的本地目录<br/>
-                2. 设置单文件行数（分页大小），根据分页查询导出多个文件<br/>
-                3. 可选勾选忽略默认值（简化 JSON）<br/>
-                4. 点击"开始导出"按钮
+                2. 可选勾选忽略默认值（简化 JSON）<br/>
+                3. 点击"开始导出"按钮（一次性导出全部域，生成单个 domains.json）
               </p>
             </div>
 
@@ -2918,24 +2913,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* 分页大小配置 */}
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📄 单文件行数（分页大小）：</span>
-                <input
-                  type="number"
-                  min="100"
-                  max="50000"
-                  value={config.exportDomainPageSize}
-                  onChange={(e) => updateConfig({ exportDomainPageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 50000)) })}
-                  style={{ width: '100px', textAlign: 'center' }}
-                />
-              </label>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
-                每个 JSON 文件包含的域定义条数（范围 100~50000，根据导出结果分页生成多个文件）
-              </p>
-            </div>
-
             {/* 忽略默认值选项 */}
             <div className="form-group" style={{ marginBottom: '20px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -2951,24 +2928,6 @@ const App: React.FC = () => {
                 {config.exportDomainIgnoreDefVal 
                   ? '✅ 精简模式已开启，导出时将忽略默认值字段'
                   : '💡 完整模式（默认），导出时将包含所有字段'}
-              </p>
-            </div>
-
-            {/* 并发线程数配置 */}
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🔄 导出线程数：</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={config.exportDomainThreadCount}
-                  onChange={(e) => updateConfig({ exportDomainThreadCount: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) })}
-                  style={{ width: '80px', textAlign: 'center' }}
-                />
-              </label>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
-                并发导出页数（范围 1~20，推荐 5~10）
               </p>
             </div>
 
@@ -3467,21 +3426,25 @@ const App: React.FC = () => {
                       />
                     ) : task.exportFunction === 'extractMessage' || task.exportFunction === 'extractDomain' ? (
                       <>
-                        <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>
-                        <input
-                          type="number"
-                          min="100"
-                          max="50000"
-                          step="100"
-                          value={task.pageSize !== undefined ? task.pageSize : 5000}
-                          onChange={(e) => {
-                            const newTasks = [...(scheduledExportPlan.tasks || [])];
-                            newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
-                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                          }}
-                          style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
-                          disabled={isScheduledExportRunning}
-                        />
+                        {task.exportFunction === 'extractMessage' && (
+                          <>
+                            <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>
+                            <input
+                              type="number"
+                              min="100"
+                              max="50000"
+                              step="100"
+                              value={task.pageSize !== undefined ? task.pageSize : 5000}
+                              onChange={(e) => {
+                                const newTasks = [...(scheduledExportPlan.tasks || [])];
+                                newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
+                                setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                              }}
+                              style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
+                              disabled={isScheduledExportRunning}
+                            />
+                          </>
+                        )}
                         <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', marginTop: '2px' }}>
                           <input
                             type="checkbox"
