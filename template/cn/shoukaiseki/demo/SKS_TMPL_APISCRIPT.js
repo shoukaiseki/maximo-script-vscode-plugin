@@ -97,6 +97,12 @@ var httpMethodTmp = httpMethod
 // clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("fusion", "TestOk"));
 //成功时
 var successData = {}
+//多个对象处理使用同一个事务
+/** @type {psdi.txn.MXTransaction} */
+var mxt = null;
+//因为要同一事务处理,所以mboset也要全部保存之后关闭
+var tx2MboSet = null
+var tx3MboSet = null
 
 main()
 function main() {
@@ -128,13 +134,13 @@ function main() {
     logger.error(">>> [API ERROR] 全局捕获异常:", error)
     // if (e instanceof MXException || e instanceof MXApplicationException) {
     // }
-    var errorMessage="error"
+    var errorMessage = "error"
     try {
       errorMessage = sksLogAnsiUtils.getErrorStackTrace(error)
       debugPrint(errorMessage);
     } catch (e) { service.log_error(">>> [API ERROR] 获取异常堆栈:") }
 
-    var errorData = { "status": "error", "message": errorMessage}
+    var errorData = { "status": "error", "message": errorMessage }
     if (paramDebug) {
       errorData.debugMsg = debugMsg.toString();
     }
@@ -146,19 +152,35 @@ function main() {
 
 }
 
-function process(){
-  var mboSet =null
-  try{
+function process() {
+  var mboSet = null
+  try {
+    //这里改成要处理的表
+    mboSet = service.getMboSet("PERSON", userInfo)
+    //以第一次获取的MboSet的事务为准,最后只调用这个mboset的save方法,其它mboset都不要调用save,否则不是同一事务
+    mxt = mboSet.getMXTransaction()
 
-  }catch(error){
-    if(mboSet){
+    //示例:service获取的MboSet,使用全局事务
+    var tx2MboSet = service.getMboSet("ASSET", userInfo)
+    tx2MboSet.setMXTransaction(mxt)
+    tx2MboSet.setWhere("1=2")
+    tx2MboSet.reset()
+    var tx3MboSet = service.getMboSet("ITEM", userInfo)
+    tx3MboSet.setMXTransaction(mxt)
+    tx3MboSet.setWhere("1=2")
+    tx3MboSet.reset()
+
+  } catch (error) {
+    if (mboSet) {
       mboSet.rollback()
     }
     logger.error(">>> [API ERROR] 脚本执行异常:", error)
-    sksLogAnsiUtils.throwError(e)
-  }finally{
+    sksLogAnsiUtils.throwError(error)
+  } finally {
     // 关闭MboSet
     _close(mboSet)
+    _close(tx2MboSet)
+    _close(tx3MboSet)
   }
   return "成功的数据"
 }

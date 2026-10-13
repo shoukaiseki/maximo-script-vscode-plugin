@@ -7,6 +7,9 @@ import * as envConfig from './envConfig';
 // 创建日志输出通道
 const logger = vscode.window.createOutputChannel('Maximo Script Helper', { log: true });
 
+// 导出类请求的超时时间（毫秒，1800 秒）。与 httpRequestToMaximo 的默认超时保持一致。
+const EXPORT_REQUEST_TIMEOUT_MS = 1800000;
+
 // Maximo API 路径常量
 
 export class ConfigPanel {
@@ -4491,12 +4494,14 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 发送请求获取总记录数
       this._sendToolboxOutput('\n📊 正在获取域定义总数...');
       
-      const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=1&pageSize=1`;
+      const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export`;
       const countResult = await httpRequestToMaximo({
         url: countUrl,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        data: { where: '1=1' }
+        // 分页参数必须放在请求体（服务端 readPager 从 requestData 读取）；否则不会返回 total
+        data: { where: '1=1', pageNum: 1, pageSize: 1 },
+        timeout: EXPORT_REQUEST_TIMEOUT_MS
       });
 
       if (countResult.status !== 200 || !countResult.data) {
@@ -4540,12 +4545,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${page}/${totalPages}] 正在导出第 ${page} 页...`);
           
-          const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+          const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${langcode}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export`;
           const exportResult = await httpRequestToMaximo({
             url: exportUrl,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            data: { where: '1=1' }
+            data: { where: '1=1', pageNum: page, pageSize: pageSize },
+            timeout: EXPORT_REQUEST_TIMEOUT_MS
           });
 
           if (exportResult.status !== 200 || !exportResult.data) {
@@ -5216,12 +5222,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   private async _extractDomainsForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, pageSize: number, taskIndex: number): Promise<void> {
     
     // 获取总数
-    const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&apiType=exp&_action=export&pageNum=1&pageSize=1`;
+    const countUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&apiType=exp&_action=export`;
     const countResult = await httpRequestToMaximo({
       url: countUrl,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: { where: '1=1' }
+      data: { where: '1=1', pageNum: 1, pageSize: 1 },
+      timeout: EXPORT_REQUEST_TIMEOUT_MS
     });
 
     if (countResult.status !== 200 || !countResult.data) {
@@ -5256,12 +5263,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const page = pageList[pageNum];
 
       try {
-        const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export&pageNum=${page}&pageSize=${pageSize}`;
+        const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=domains&_action=export`;
         const exportResult = await httpRequestToMaximo({
           url: exportUrl,
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          data: { where: '1=1' }
+          data: { where: '1=1', pageNum: page, pageSize: pageSize },
+          timeout: EXPORT_REQUEST_TIMEOUT_MS
         });
 
         if (exportResult.status !== 200 || !exportResult.data) {

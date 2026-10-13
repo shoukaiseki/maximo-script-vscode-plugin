@@ -447,7 +447,8 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     headers = {},
     data,
     noAuth = false,
-    timeout = 10000,
+    // 默认超时 1800 秒（30 分钟）
+    timeout = 1800000,
     authTypeIn = '',
     logger,
   } = options;
