@@ -16,6 +16,9 @@ var SksJsonArray = Java.type("com.ibm.json.java.JSONArray");
 var SksJsonObject = Java.type("com.ibm.json.java.JSONObject");
 var SksOrderedJsonObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
+/** @type {psdi.app.system.ALNValue} */
+var ALNValue=Java.type("psdi.app.system.ALNValue");
+
 // MAXDOMAIN 上的域值子表关系名(根据 MAXRELATIONSHIP 确认)
 var DOMAIN_VALUE_REL = {
   "ALN": "ALNDOMAINVALUE",
@@ -561,7 +564,7 @@ function buildIntObject(maxIntObject) {
   }
 
   while (maxIntObjDetail != null) {
-    logger.info("\x1b[32m[" + scriptName + "] intObjectName=" + maxIntObject.getString('INTOBJECTNAME') + " intObjDetail=" + maxIntObjDetail.getString('OBJECTNAME')+"\x1b[0m")
+    logger.info("\x1b[32m[" + scriptName + "] intObjectName=" + maxIntObject.getString('INTOBJECTNAME') + " intObjDetail=" + maxIntObjDetail.getString('OBJECTNAME') + "\x1b[0m")
     var intObjDetail = {
       objectName: maxIntObjDetail.getString('OBJECTNAME'),
     };
@@ -598,7 +601,7 @@ function buildIntObject(maxIntObject) {
       intObjDetail.fdResource = maxIntObjDetail.getString('FDRESOURCE');
     }
 
-    logger.info("\x1b[32m[" + scriptName + "] parentObjName=" + maxIntObjDetail.getString('PARENTOBJNAME')+"\x1b[0m")
+    logger.info("\x1b[32m[" + scriptName + "] parentObjName=" + maxIntObjDetail.getString('PARENTOBJNAME') + "\x1b[0m")
     if (!maxIntObjDetail.isNull('PARENTOBJNAME')) {
       intObjDetail.parentObjName = maxIntObjDetail.getString('PARENTOBJNAME');
     } else if (!maxIntObjDetail.isNull('PARENTOBJID')) {
@@ -2217,6 +2220,7 @@ function saveOrUpdateDomain(domainData, index) {
   var domainSet = null;
   try {
     domainSet = MXServer.getMXServer().getMboSet("MAXDOMAIN", userInfo);
+    domainSet.setDMDeploySet(true);
 
     var sqlf = new SqlFormat("domainid = :1");
     sqlf.setObject(1, "MAXDOMAIN", "DOMAINID", domainId);
@@ -2283,10 +2287,11 @@ function saveOrUpdateDomain(domainData, index) {
     // 按 domaintype 处理域值子表
     saveOrUpdateDomainValues(domainMbo, domainData, domainType);
 
+    logger.info("\x1b[32m[" + scriptName + "] isDMDeploySet=" + domainSet.isDMDeploySet() + " \x1b[0m")
     domainSet.save();
     logger.info("域定义保存成功: DOMAINID=" + domainId + ", DOMAINTYPE=" + domainType);
   } catch (error) {
-    logger.error("保存MAXDOMAIN表失败: " , error);
+    logger.error("保存MAXDOMAIN表失败: ", error);
     throw new MXApplicationException("#", "保存域定义失败: ", error);
   } finally {
     _close(domainSet);
@@ -2305,7 +2310,10 @@ function saveOrUpdateDomainValues(domainMbo, domainData, domainType) {
   }
   // SYNONYM
   if (domainData.synonymdomain) {
-    saveOrUpdateSynonymDomain(domainMbo.getMboSet("SYNONYMDOMAIN"), domainData.synonymdomain);
+    var domainvalueSet = domainMbo.getMboSet("SYNONYMDOMAIN")
+    //不校验
+    domainvalueSet.setDMDeploySet(true);
+    saveOrUpdateSynonymDomain(domainvalueSet, domainData.synonymdomain);
   }
   // NUMERIC
   if (domainData.numericdomain) {
@@ -2336,6 +2344,7 @@ function saveOrUpdateMaxDomValCond(valueMbo, condDatas) {
 
   /** @type {psdi.mbo.MboSetRemote} */
   var condSet = valueMbo.getMboSet("MAXDOMVALCOND");
+  condSet.setDMDeploySet(true)
   try {
     condSet.reset();
 
@@ -2509,12 +2518,13 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
         logger.info("syncFlag 非 true, 跳过删除 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
         continue;
       }
-      var synMbo = synonymdomainSet.moveFirst();
-      while (synMbo) {
-        if (synMbo.getString("MAXVALUE") == maxvalue && synMbo.getString("VALUE") == value) {
+      var synMbo = null
+      for (var synMboTmp = synonymdomainSet.moveFirst(); synMboTmp != null; synMboTmp = synonymdomainSet.moveNext()) {
+        if (synMboTmp.getString("MAXVALUE") == maxvalue && synMboTmp.getString("VALUE") == value) {
+          synMbo = synMboTmp;
           break;
         }
-        synMbo = synonymdomainSet.moveNext();
+
       }
       if (data._delete) {
         if (synMbo != null) {
@@ -2527,19 +2537,21 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
           // MAXVALUE 字段类 FldMXValueValue 会校验"同域同内部值的记录必须已存在",
           // 批量导入时一个域只统一保存一次,首次创建必然查不到 -> BMXAA4051E,
           // 故新增时用 NOVALIDATION 写入内部值(合法性由导入数据保证)
-          synMbo.setValue("MAXVALUE", maxvalue, MboConstants.NOVALIDATION);
+          synMbo.setValue("MAXVALUE", maxvalue,11);
           synMbo.setValue("VALUE", value);
         }
         if (data.description) { synMbo.setValue("DESCRIPTION", data.description); }
         if (data.defaults) { synMbo.setValue("DEFAULTS", data.defaults); }
         if (data.orgid) { synMbo.setValue("ORGID", data.orgid); }
         if (data.siteid) { synMbo.setValue("SITEID", data.siteid); }
+       
+        synMbo.setValue("VALUEID", ALNValue.genValueId(synMbo), 11)
         // 同步域值条件子记录 MAXDOMVALCOND
         saveOrUpdateMaxDomValCond(synMbo, data.maxdomvalcond);
         logger.info("已保存 SYNONYMDOMAIN 记录: " + maxvalue + "/" + value);
       }
     } catch (error) {
-      logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: " , error);
+      logger.error("处理第 " + (i + 1) + " 条 SYNONYMDOMAIN 记录失败: ", error);
     }
   }
   logger.info("SYNONYMDOMAIN 记录处理完成");
