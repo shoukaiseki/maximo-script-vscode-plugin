@@ -114,6 +114,9 @@ function cleanUpHistory(runAsUserInfo) {
         var sqlDelete = "DELETE FROM IBM_AUTOSCRIPT_HISTORY WHERE ALIASNAME='_crontask_' AND CREATETIME < CURRENT_DATE - 37 DAYS";
         var deletedCount = stmtBackup.executeUpdate(sqlDelete);
         logger.info("[" + scriptName + "]----------------已清理 " + deletedCount + " 条历史记录");
+        sqlDelete = "delete from LONGDESCRIPTION where 1=1 and LDOWNERTABLE='IBM_AUTOSCRIPT_HISTORY' and not exists (select 1 from IBM_AUTOSCRIPT_HISTORY where  IBM_AUTOSCRIPT_HISTORYID=ldkey);";
+        deletedCount = stmtBackup.executeUpdate(sqlDelete);
+        logger.info("[" + scriptName + "]----------------已清理 " + deletedCount + " 条历史记录关联的LONGDESCRIPTION");
     } finally {
         _closeOnly(stmtBackup)
         _closeOnly(connBackup)
