@@ -17,7 +17,7 @@ var SksJsonObject = Java.type("com.ibm.json.java.JSONObject");
 var SksOrderedJsonObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
 /** @type {psdi.app.system.ALNValue} */
-var ALNValue=Java.type("psdi.app.system.ALNValue");
+var ALNValue = Java.type("psdi.app.system.ALNValue");
 
 // MAXDOMAIN 上的域值子表关系名(根据 MAXRELATIONSHIP 确认)
 var DOMAIN_VALUE_REL = {
@@ -152,9 +152,8 @@ function main() {
     }
     // apiType 从请求体读取(ignoreDefVal 在顶部从 URL 读取)
     apiType = requestData.apiType;
-    // syncFlag 从请求体读取(仅布尔 true 生效, 数组/单对象裸传时为 undefined -> 不删除)
-    syncFlag = requestData.syncFlag === true;
 
+    syncFlag=getParamAutoBool(requestData, 'syncFlag', false)
     var response = {
       status: 'success',
     };
@@ -1850,6 +1849,7 @@ function buildDomainListObject(domainMbo) {
   if (apiType !== 'exp') {
     putLangField(obj, domainMbo, "description_zh", "DESCRIPTION", "ZH");
     putLangField(obj, domainMbo, "description_en", "DESCRIPTION", "EN");
+    putLangField(obj, domainMbo, "description_ja", "DESCRIPTION", "JA");
   }
   putIfNotDef(obj, "maxtype", getString(domainMbo, "MAXTYPE"));
   putIfNotDef(obj, "length", getInt(domainMbo, "LENGTH"));
@@ -1880,6 +1880,7 @@ function buildDomainObject(domainMbo) {
   if (apiType !== 'exp') {
     putLangField(obj, domainMbo, "description_zh", "DESCRIPTION", "ZH");
     putLangField(obj, domainMbo, "description_en", "DESCRIPTION", "EN");
+    putLangField(obj, domainMbo, "description_ja", "DESCRIPTION", "JA");
   }
   putIfNotDef(obj, "maxtype", getString(domainMbo, "MAXTYPE"));
   putIfNotDef(obj, "length", getInt(domainMbo, "LENGTH"));
@@ -2062,6 +2063,7 @@ function putDescFields(o, mbo) {
   if (apiType !== 'exp') {
     putLangField(o, mbo, "description_zh", "DESCRIPTION", "ZH");
     putLangField(o, mbo, "description_en", "DESCRIPTION", "EN");
+    putLangField(o, mbo, "description_ja", "DESCRIPTION", "JA");
   }
 }
 
@@ -2537,14 +2539,14 @@ function saveOrUpdateSynonymDomain(synonymdomainSet, datas) {
           // MAXVALUE 字段类 FldMXValueValue 会校验"同域同内部值的记录必须已存在",
           // 批量导入时一个域只统一保存一次,首次创建必然查不到 -> BMXAA4051E,
           // 故新增时用 NOVALIDATION 写入内部值(合法性由导入数据保证)
-          synMbo.setValue("MAXVALUE", maxvalue,11);
+          synMbo.setValue("MAXVALUE", maxvalue, 11);
           synMbo.setValue("VALUE", value);
         }
         if (data.description) { synMbo.setValue("DESCRIPTION", data.description); }
         if (data.defaults) { synMbo.setValue("DEFAULTS", data.defaults); }
         if (data.orgid) { synMbo.setValue("ORGID", data.orgid); }
         if (data.siteid) { synMbo.setValue("SITEID", data.siteid); }
-       
+
         synMbo.setValue("VALUEID", ALNValue.genValueId(synMbo), 11)
         // 同步域值条件子记录 MAXDOMVALCOND
         saveOrUpdateMaxDomValCond(synMbo, data.maxdomvalcond);
@@ -3000,6 +3002,7 @@ function buildIntObjectListRow(mbo) {
   if (apiType !== 'exp') {
     jsPutLangField(row, "description_zh", mbo, "DESCRIPTION", "ZH");
     jsPutLangField(row, "description_en", mbo, "DESCRIPTION", "EN");
+    jsPutLangField(row, "description_ja", mbo, "DESCRIPTION", "JA");
   }
   return row;
 }
@@ -3699,4 +3702,25 @@ function jsPutLangField(obj, jsonKey, mbo, attr, langCode) {
       obj[jsonKey] = val;
     }
   } catch (e) { }
+}
+
+/**
+ * 获取参数,先通过url获取,url中存在则直接返回,不存在再判断请求体中是否存在该参数,存在则返回,否则返回默认值
+ * @param {*} requestData 
+ * @param {*} paramName 
+ * @param {*} defaVal 
+ */
+function getParamAutoBool(requestData, paramName, defaVal) {
+  if (request.getQueryParam(paramName) !== null) {
+    if (request.getQueryParam(paramName) === "true") {
+      return true;
+    } else {
+      return false
+    }
+  }
+  if (requestData && requestData[paramName] !== undefined) {
+    return requestData[paramName];
+  }
+  return defaVal;
+
 }

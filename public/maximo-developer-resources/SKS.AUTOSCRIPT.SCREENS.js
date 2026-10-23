@@ -432,6 +432,10 @@ function main() {
                     var presentationSet;
                     try {
                         presentationSet = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
+                        // presentationSet.setUserWhere("app in (select app from maxapps where apptype not in ('OS', 'APP', 'WC', 'MAS') and app not in('ACTUALCI','CHANGE','CONTSFW','DBINFO','DPAMADPT','DPAMMANU','DPAMOS','DPAMPROC','DPAMSW','DPAMSWS','DPAMSWUSG','DPLDASSET','GRPASSIGN','IBMCONTENT','IMICONF','INCIDENT','NDASSET','NPASSET','PROBLEM','PRODUCT','RCNASTLINK','RCNASTRSLT','RCNCILINK','RCNCIRSLT','RCNCMPRULE','RCNLNKRULE','RCNTSKFLTR','RECONLINK','RECONTASK','RELEASE','SFWLICVIEW','TENANTREG','TLOAMSWCTG','WORKER_LH'))")
+                        //这几个导入会报错的,直接不导出
+                        presentationSet.setUserWhere(" app not in('ACTUALCI','CHANGE','CONTSFW','DBINFO','DPAMADPT','DPAMMANU','DPAMOS','DPAMPROC','DPAMSW','DPAMSWS','DPAMSWUSG','DPLDASSET','GRPASSIGN','IBMCONTENT','IMICONF','INCIDENT','NDASSET','NPASSET','PROBLEM','PRODUCT','RCNASTLINK','RCNASTRSLT','RCNCILINK','RCNCIRSLT','RCNCMPRULE','RCNLNKRULE','RCNTSKFLTR','RECONLINK','RECONTASK','RELEASE','SFWLICVIEW','TENANTREG','TLOAMSWCTG','WORKER_LH')")
+                        presentationSet.reset();
 
                         var presentations = [];
                         var presentation = presentationSet.getMbo(0);
@@ -444,6 +448,7 @@ function main() {
 
                         response.status = "success";
                         response.screenNames = presentations;
+                        response.screenNamesCount = presentations.length;
                         responseBody = JSON.stringify(response);
                     } catch (error) {
                         logger.error("[SKS.AUTOSCRIPT.SCREENS]", error);
@@ -873,6 +878,9 @@ function extractScreen(screenName) {
             var maxpresentation = maxpresentationSet.moveFirst();
             var xml = maxpresentation.getString("PRESENTATION");
             logger.info("\x1b[33m[SKS.AUTOSCRIPT.SCREENS] ignoreMetadata=" + ignoreMetadata + " \x1b[0m")
+            xml = formatXMLByLangCode(xml)
+            //不能转换,转换之后导入就有问题了
+            // xml = xml.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
             if (ignoreMetadata) {
                 // 如果请求ignoreMetadata=true，则直接返回原始XML，不添加metadata（控制组/权限组等附加信息）
                 logger.info("[SKS.AUTOSCRIPT.SCREENS] extractScreen: ignoreMetadata=true, 直接返回原始XML");
@@ -885,6 +893,115 @@ function extractScreen(screenName) {
     } catch (error) {
     } finally {
         _close(maxpresentationSet);
+    }
+}
+
+/**
+ * 根据用户语言代码替换label等多语言信息
+ * 模拟 Maximo 导出应用XML的逻辑(SystemEventHandler.exportxml):
+ * 1. MAXPRESENTATION 本身不区分 langcode(无 LANGCODE 列), 取到的是基础语言的 XML 骨架
+ * 2. 语言差异来自 MAXLABELS: 打开 MboSet 时设置 PROCESSML 标志(32),
+ *    框架会按 userInfo 的 langcode 自动合并翻译表 L_MAXLABELS(OWNERID/LANGCODE/VALUE) 中的译文
+ * 3. 遍历 XML, 元素有 id 属性时, 凡属性名(id|property)命中 label 缓存的, 用当前语言的译文替换属性值
+ *    (对应 SystemEventHandler.writeFormattedXML 中 LabelCache.makeUniqueKey 的替换逻辑)
+ * @param {string} xml - MAXPRESENTATION 中导出的原始应用 XML
+ * @returns {string} 替换当前 langcode 标签后的 XML
+ */
+function formatXMLByLangCode(xml) {
+    if (!xml) {
+        return xml;
+    }
+    var langCode = userInfo.getLangCode();
+    if (!langCode) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: langcode为空, 返回原始XML");
+        return xml;
+    }
+
+    // 解析XML, 失败则原样返回
+    var screen;
+    try {
+        screen = new SAXBuilder().build(new StringReader(xml));
+    } catch (e) {
+        logger.error("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: 解析XML失败, 返回原始XML", e);
+        return xml;
+    }
+
+    var root = screen.getRootElement();
+    var appID = root.getAttributeValue("id");
+    if (!appID) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: 根元素无id属性, 返回原始XML");
+        return xml;
+    }
+    appID = appID.toUpperCase();
+
+    // 加载该应用在当前用户langcode下的标签, key = id|property (同LabelCache.makeUniqueKey)
+    var labelMap = {};
+    var labelSet;
+    try {
+        labelSet = MXServer.getMXServer().getMboSet("MAXLABELS", userInfo);
+        labelSet.setLogLargFetchResultDisabled(true);
+        labelSet.setFlag(32, true); // PROCESSML: 按userInfo的langcode自动合并L_MAXLABELS译文
+        labelSet.resetQbe();
+        labelSet.setQbeExactMatch(true);
+        labelSet.setQbe("app", appID);
+        labelSet.reset();
+
+        var label = labelSet.moveFirst();
+        while (label) {
+            var labelId = label.getString("id");
+            var labelProperty = label.getString("property");
+            var labelValue = label.getString("value");
+            if (labelId && labelProperty && labelValue !== null) {
+                labelMap[labelId + "|" + labelProperty.toLowerCase()] = labelValue;
+            }
+            label = labelSet.moveNext();
+        }
+    } catch (e) {
+        logger.error("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: 加载MAXLABELS失败, 返回原始XML", e);
+        return xml;
+    } finally {
+        _close(labelSet);
+    }
+
+    var labelCount = 0;
+    for (var key in labelMap) {
+        labelCount++;
+    }
+    if (labelCount === 0) {
+        logger.info("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: langcode=" + langCode + ", app=" + appID + " 无label记录, 返回原始XML");
+        return xml;
+    }
+
+    // 递归替换元素属性值(对应writeFormattedXML: 按元素id+属性名查缓存, 命中则替换)
+    replaceLabelsInElement(root, labelMap);
+
+    var writer = new StringWriter();
+    new XMLOutputter(Format.getPrettyFormat()).output(screen, writer);
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] formatXMLByLangCode: langcode=" + langCode + ", app=" + appID + ", 加载label " + labelCount + " 条");
+    return writer.toString();
+}
+
+/**
+ * 递归遍历元素: 元素有id属性时, 逐个属性按 id|属性名 在labelMap中查找译文并替换
+ * @param {org.jdom2.Element} element
+ * @param {Object} labelMap - key: id|property, value: 当前langcode的译文
+ */
+function replaceLabelsInElement(element, labelMap) {
+    var id = element.getAttributeValue("id");
+    if (id) {
+        var attrs = element.getAttributes();
+        for (var i = 0; i < attrs.size(); i++) {
+            var attr = attrs.get(i);
+            var mapKey = id + "|" + attr.getName().toLowerCase();
+            if (labelMap[mapKey] !== undefined) {
+                attr.setValue(labelMap[mapKey]);
+            }
+        }
+    }
+
+    var children = element.getChildren();
+    for (var c = 0; c < children.size(); c++) {
+        replaceLabelsInElement(children.get(c), labelMap);
     }
 }
 
