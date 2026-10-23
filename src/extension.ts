@@ -6,6 +6,7 @@ import { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID, Http
 import { QuickCodeManager } from './quickCodeManager';
 import { registerSksDebugger } from './debug';
 import { isMaximoScriptProject } from './reflectionDataManager';
+import { PushToMultipleEnvs } from './pushToMultipleEnvs';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
@@ -602,6 +603,17 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(pullScriptFromJsCommand);
+
+  // 注册"推送到多个环境"命令（右键 JS / XML / JSON，可多选环境）
+  const pushToMultipleEnvsCommand = vscode.commands.registerCommand('maximoScript.pushToMultipleEnvs', async (uri?: vscode.Uri) => {
+    try {
+      await PushToMultipleEnvs.run(uri, logger);
+    } catch (error: any) {
+      logger.error(`[PushToMultipleEnvs] ❌ 推送到多个环境失败: ${error.message}`);
+      vscode.window.showErrorMessage(`推送到多个环境失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(pushToMultipleEnvsCommand);
 
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {

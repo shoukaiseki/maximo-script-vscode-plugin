@@ -458,14 +458,17 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     
     var authType = authTypeIn;
     // 获取服务器配置（优先使用传入的参数，否则从配置中读取）
-    const serverUrl =(config.get('serverUrl', '') as string);
+    // 说明：多环境推送时通过参数覆盖，避免修改 VS Code 全局配置
+    const serverUrl = ((options.serverUrl ?? config.get('serverUrl', '')) as string);
     if(!authType){
-      authType = (config.get('authType', 'maxauth') as string);
+      authType = ((options.authTypeIn ?? config.get('authType', 'maxauth')) as string);
     }
-    const maxauth = (config.get('maxauth', '') as string);
-    const apiKey = (config.get('apiKey', '') as string);
-    const apiType =  (config.get('apiType', 'oslc') as string);
-    const langcode = (config.get('langcode', '') as string);  // 语言代码
+    const maxauth = ((options.maxauth ?? config.get('maxauth', '')) as string);
+    const apiKey = ((options.apiKey ?? config.get('apiKey', '')) as string);
+    const apiType =  ((options.apiType ?? config.get('apiType', 'oslc')) as string);
+    const langcode = ((options.langcode ?? config.get('langcode', '')) as string);  // 语言代码
+    // 当显式传入 serverUrl（多环境/测试场景）时，不复用/不写入全局 JSESSIONID，避免不同环境会话串用
+    const useSessionCache = !options.serverUrl;
     
     if (!serverUrl) {
       throw new Error('未配置服务器地址，请先在配置面板中设置');
@@ -495,7 +498,7 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     
     // 添加 JSESSIONID 到 Cookie（如果存在）
     // 根据认证类型选择不同的 JSESSIONID
-    const currentJSESSIONID = authType === 'maxauth' ? globalMaxAuthJSESSIONID : globalJSESSIONID;
+    const currentJSESSIONID = useSessionCache ? (authType === 'maxauth' ? globalMaxAuthJSESSIONID : globalJSESSIONID) : null;
     if (currentJSESSIONID) {
       requestHeaders['Cookie'] = `JSESSIONID=${currentJSESSIONID}`;
       console.log(`[HTTP Request] 使用缓存的 JSESSIONID (${authType})`);
@@ -592,7 +595,7 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     
     // 检查响应中是否包含 JSESSIONID，如果有则缓存
     const setCookie = response.headers['set-cookie'];
-    if (setCookie) {
+    if (useSessionCache && setCookie) {
       const jsessionMatch = Array.isArray(setCookie) 
         ? setCookie.join('; ').match(/JSESSIONID=([^;]+)/)
         : setCookie.match(/JSESSIONID=([^;]+)/);

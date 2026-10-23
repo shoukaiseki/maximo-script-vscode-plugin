@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.8.38",
+  "version": "1.8.39",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -34,6 +34,7 @@
     "onLanguage:javascript",
     "onCommand:maximoScript.showConfig",
     "onCommand:maximoScript.pushToMaximo",
+    "onCommand:maximoScript.pushToMultipleEnvs",
     "onCommand:extension.triggerComplete",
     "onDebug",
     "onDebugResolve:maximo-script-helper"
@@ -112,6 +113,10 @@
       {
         "command": "maximoScript.pullScriptFromJs",
         "title": "Maximo Script: Pull 自动化脚本"
+      },
+      {
+        "command": "maximoScript.pushToMultipleEnvs",
+        "title": "Maximo Script: 推送到多个环境"
       }
     ],
     "menus": {
@@ -155,6 +160,16 @@
           "command": "maximoScript.repairAppXmlPush",
           "when": "editorLangId == xml",
           "group": "navigation@4"
+        },
+        {
+          "command": "maximoScript.pushToMultipleEnvs",
+          "when": "editorLangId == javascript",
+          "group": "navigation@9"
+        },
+        {
+          "command": "maximoScript.pushToMultipleEnvs",
+          "when": "editorLangId == xml",
+          "group": "navigation@9"
         }
       ],
       "explorer/context": [
@@ -177,6 +192,21 @@
           "command": "maximoScript.pullScriptFromJs",
           "when": "resourceLangId == javascript",
           "group": "navigation@4"
+        },
+        {
+          "command": "maximoScript.pushToMultipleEnvs",
+          "when": "resourceLangId == javascript",
+          "group": "navigation@9"
+        },
+        {
+          "command": "maximoScript.pushToMultipleEnvs",
+          "when": "resourceLangId == xml",
+          "group": "navigation@9"
+        },
+        {
+          "command": "maximoScript.pushToMultipleEnvs",
+          "when": "resourceLangId == json",
+          "group": "navigation@9"
         }
       ]
     },
