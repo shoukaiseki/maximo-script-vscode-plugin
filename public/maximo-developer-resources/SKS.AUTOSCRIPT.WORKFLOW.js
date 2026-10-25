@@ -23,7 +23,8 @@
 //   _type    可选: workflows(缺省, 工作流) / actions(操作 ACTION) / maxroles(角色 MAXROLE),
 //                  未给时按请求体推断(只含 actions 或 maxroles 时按对应类型导入)
 //   _impMode 可选: migration(缺省)=按 WFPROCESS 的 PROCESSNAME+PROCESSREV 匹配, 存在则修改, 不存在则新增;
-//                  add=新增, 已存在的主记录与子记录不做修改, 只补齐缺失的子记录
+//                  add=操作(ACTION)/角色(MAXROLE) 只新增不修改(已存在则跳过),
+//                      工作流(主记录描述 + 节点/出线/分配等子记录)仍按 JSON 新增或修改
 //   _enable  可选: 缺省 true=导入后按源定义调用框架 validateProcess/enableProcess/makeProcessActive
 //                  启用并激活工作流(定义校验不通过则保持草稿, 校验信息在返回结果中给出);
 //                  false=只导入定义, 不改变目标环境原有的启用/激活状态(新增记录保持草稿状态)。
@@ -135,7 +136,8 @@
 //   5) 新增的工作流: WFProcess.add() 会自动创建 开始/停止 两个节点, 其 NODEID(0/1)可能与 JSON 里的节点号相同,
 //      同一事务内"先插入后删除"会违反 WFNODE_NDX1 唯一索引, 因此先提交一个不含节点的流程, 再在第二个事务内
 //      建节点/操作/分配/通知; 若第二段失败会把这个空流程删掉。
-//   6) add 模式对已存在的记录一律不修改(主记录保持原值, 子记录按业务键匹配, 已存在则跳过、缺失则新增)。
+//   6) add 模式只对操作(ACTION)/角色(MAXROLE) 做"仅新增"限制(已存在则跳过);
+//      工作流主记录与节点/出线/分配/通知等子记录仍按 JSON 新增或修改, 便于只补充操作/角色时同步流程定义。
 //   7) syncFlag 仅 migration 模式生效, 用于按 JSON 全量同步(删除 JSON 中不存在的子记录);
 //      缺省只增改不删除, 避免误删目标环境中另有用途的节点/操作/分配。
 //   8) syncFlag 的执行顺序是"先删多余的、再建/改"(节点出线有唯一性约束: 开始/条件节点只允许一条正向出线,
@@ -972,7 +974,8 @@ function buildWfAssignment(asgnMbo) {
  *   {"actions":[...],"maxroles":[...],"workflows":[...]} —— 迁移包(导出结果), 按 操作→角色→工作流 顺序导入
  *   只含 workflows / wfprocess 的请求体
  *   裸数组 / 单个工作流对象
- * 模式(_impMode): migration=存在则修改 / add=只新增, 已存在的不修改
+ * 模式(_impMode): migration=工作流按 processName+processRev 存在则修改, 不存在则新增, 操作/角色同样存在则修改;
+ *                 add=操作/角色只新增不修改, 工作流仍新增或修改
  * @returns {string} JSON 字符串
  */
 function importBundleResponse(requestData) {
@@ -1198,15 +1201,14 @@ function saveOrUpdateWorkflow(data, index) {
       processSet.reset();
       processMbo = processSet.getMboForUniqueId(newProcessId);
       message = "新增成功";
-    } else if (impMode === IMP_MODE_ADD) {
-      logger.info("[" + scriptName + "] 工作流已存在, add 模式不修改主记录: " + processName + "(" + processRev + ")");
-      message = "已存在, 按 add 模式仅补齐缺失的子记录";
     } else {
-      logger.info("[" + scriptName + "] 更新现有工作流: " + processName + "(" + processRev + ")");
+      // add 模式的"已存在不修改"只针对操作(ACTION)和角色(MAXROLE);
+      // 工作流本身(主记录描述 + 节点/出线等子记录)始终按 JSON 新增/修改
+      logger.info("[" + scriptName + "] 更新现有工作流(" + impMode + "): " + processName + "(" + processRev + ")");
       setStrValue(processMbo, "DESCRIPTION", data.description);
       // 主对象为系统关键字段: 值相同则跳过, 只有确实变化时才写
       setStrValue(processMbo, "OBJECTNAME", targetObjectName);
-      message = "修改成功";
+      message = impMode === IMP_MODE_ADD ? "已存在, 按 add 模式更新流程及节点(操作/角色仅新增)" : "修改成功";
     }
 
     // 子表: 节点(含类型子表/出线操作/分配/分配组/节点通知)
@@ -1385,10 +1387,7 @@ function saveOrUpdateNodes(processMbo, nodeDatas, index) {
       }
 
       saved.push({ data: nodeData, internalType: internalType, mbo: nodeMbo });
-      if (existed && impMode === IMP_MODE_ADD) {
-        // add 模式: 节点已存在则属性与类型子表保持原样
-        continue;
-      }
+      // 节点属性(标题/描述/坐标)与类型子表: migration 与 add 模式都按 JSON 新增或修改
       setStrValue(nodeMbo, "TITLE", nodeData.title);
       setStrValue(nodeMbo, "DESCRIPTION", nodeData.description);
       setIntValue(nodeMbo, "XCOORDINATE", nodeData.x);
@@ -1583,8 +1582,6 @@ function saveOrUpdateWfActions(nodeMbo, actionDatas) {
         if (actionId >= 0) {
           actionMbo.setValue("ACTIONID", actionId, NA);
         }
-      } else if (impMode === IMP_MODE_ADD) {
-        continue;
       }
 
       // 顺序要求: MEMBERNODEID 的 action 会用目标节点的标题/描述覆盖 INSTRUCTION, 故 INSTRUCTION 最后写
@@ -1644,9 +1641,6 @@ function saveOrUpdateWfAssignments(nodeMbo, asgnDatas, nodeType) {
         keep[String(assignId)] = true;
       } else {
         keep[String(assignId)] = true;
-        if (impMode === IMP_MODE_ADD) {
-          continue;
-        }
       }
 
       // ROLEID 与 RELATIONSHIP 互斥(框架 action 会互相清空): 先写 RELATIONSHIP 再写 ROLEID
@@ -1717,9 +1711,6 @@ function saveOrUpdateWfAsgnGroups(nodeMbo, groupDatas) {
         keep[String(groupNum)] = true;
       } else {
         keep[String(groupNum)] = true;
-        if (impMode === IMP_MODE_ADD) {
-          continue;
-        }
       }
       setStrValue(groupMbo, "GRPDESC", d.description);
       setYornValue(groupMbo, "FIRSTCOMPLETE", d.firstComplete);
@@ -1785,9 +1776,6 @@ function saveOrUpdateNotifications(ownerMbo, noteDatas, processLevel) {
       } else {
         keep[String(noteMbo.getInt("UNIQUEID"))] = true;
         importCtx.noteUniqueIds[String(uniqueId)] = true;
-        if (impMode === IMP_MODE_ADD) {
-          continue;
-        }
       }
       if (processLevel) {
         // WFProcess 作为 owner 时框架不填 NODEID/ACTIONID, 显式补 0

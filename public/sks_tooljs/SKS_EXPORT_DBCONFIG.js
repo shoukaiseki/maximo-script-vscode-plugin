@@ -428,6 +428,7 @@ function exportAttributes(objectName,objectEntity,maxObjectCfg) {
         //AND persistent = 1  -- 去掉临时字段
         sqlf.setObject(1, "MAXATTRIBUTECFG", "OBJECTNAME", objectName);
         maxAttributeCfgSet.setWhere(sqlf.format());
+        maxAttributeCfgSet.setOrderBy("ATTRIBUTENAME")
         maxAttributeCfgSet.reset();
         logger.info("\x1b[32m查询到 " + maxAttributeCfgSet.count() + " 个属性\x1b[0m");
         /** @type {com.ibm.json.java.JSONArray} */
