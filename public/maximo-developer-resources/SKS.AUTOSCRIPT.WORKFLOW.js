@@ -388,7 +388,8 @@ function workflowListResponse(requestData) {
 /**
  * 单条完整导出
  * 请求体: {"id":<WFPROCESSID>} 或 {"processName":"...","processRev":1}
- * 返回 {workflows:[{...}]}, 单个元素可直接用于导入
+ * 返回 {actions?[...], maxroles?[...], workflows:[{...}]}(前两项为本流程引用到的操作/角色, 供详情页显示描述),
+ * workflows 的单个元素可直接用于导入
  * @returns {string} JSON 字符串
  */
 function workflowDetailResponse(requestData) {
@@ -410,7 +411,22 @@ function workflowDetailResponse(requestData) {
     if (processMbo == null) {
       return JSON.stringify({ status: "error", message: "未找到指定的工作流" });
     }
-    return JSON.stringify({ workflows: [buildWorkflow(processMbo)] });
+    var wf = buildWorkflow(processMbo);
+    // 详情页需要用操作/角色描述做只读提示, 因此一并按引用关系带出(与 export 的 migration 包结构一致)
+    var refs = collectWorkflowRefs([wf]);
+    var actions = buildReferencedActions(refs.actions);
+    var maxroles = buildReferencedMaxRoles(refs.maxroles);
+    var bundle = {};
+    if (actions.length > 0) {
+      bundle.actions = actions;
+    }
+    if (maxroles.length > 0) {
+      bundle.maxroles = maxroles;
+    }
+    bundle.workflows = [wf];
+    logger.info("[" + scriptName + "] workflows detail 完成: " + (wf.processName || "") + "(" + (wf.processRev || "") + ")" +
+      ", 引用操作 " + actions.length + " 个, 引用角色 " + maxroles.length + " 个");
+    return JSON.stringify(bundle);
   } catch (error) {
     logger.error("[" + scriptName + "] 导出工作流详情失败: " + error);
     return JSON.stringify({ status: "error", message: errorMessage(error) });

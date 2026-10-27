@@ -242,13 +242,163 @@ javascript:
               return 
           }
 
+  - name: "脚本demo"
+    childrens:
+      - name: "关闭mboset或其他类close调用"
+        remark: |
+            关闭mboset或其他类close调用
+        code: |
+          /**
+          * 关闭（有close方法的对象）
+          */
+          function _closeOnly(f) {
+            try {
+              if (f) {
+                f.close()
+              }
+            } catch (ignored) { }
+          }
 
-  
+          /**
+          * 关闭MboSet
+          * 官方推荐关闭方式,先close及其下子表,再cleanup清除内存占用
+          */
+          function _close(set) {
+            try {
+              if (set) {
+                try { set.close(); } catch (ignored) { }
+                try { set.cleanup(); } catch (ignored) { }
+              }
+            } catch (ignored) { }
+          }
+
+      - name: "tabgroup使用类似element的STEPS方式显示时设置默认tab"
+        remark: |
+            tabgroup 类似与 饿了吗 el-element el-step方式展示时,设置当前位置
+        code: |
+            页面
+            ```xml
+            <tabgroup format="wizard" id="GBGkvHEGOPuqdxa9">
+            <tab default="true" id="ibm_tabg_step_1" label="第 1 步" >
+            </tab>
+            <tab id="ibm_tabg_step_2" label="第 2 步" >
+            </tab>
+            <tab id="ibm_tabg_step_3" label="第 3 步" >
+            </tab>
+            </tabgroup>
+            ```
+
+            脚本,appbean中触发改脚本即可
+            ```js
+            /**
+            * tabgroup 类似与 饿了吗 step方式展示时,设置当前位置
+            * @param {psdi.webclient.system.beans.DataBeanContext} dbctx - 数据Bean上下文
+            */
+            function tabGroupAutoStep(dbctx) {
+                initLogger(dbctx);
+                logger.info("[" + scriptName + "] tabGroupAutoStep")
+                /** @type {psdi.webclient.system.controller.AppInstance} */
+                var appInstance = dbctx.getAppInstance();
+                /** @type {psdi.webclient.system.session.WebClientSession} */
+                var clientsession = dbctx.webclientsession();
+                /** @type {psdi.webclient.system.beans.DataBean} */
+                var appBean = appInstance.getAppBean();
+
+                if (clientsession != null) {
+                    var step = 3;   // 索引是1-3
+                    //tab中id命名以此方式命名,这样维护代码更方便["ibm_tabg_step_1", "ibm_tabg_step_2", "ibm_tabg_step_3"]
+                    var tabid = "ibm_tabg_step_" + step;
+                    var page = clientsession.getCurrentApp().getApplicationPage();
+                    var tab = page.getControlInstance(tabid);
+                    logger.info("[" + scriptName + "] tab: " + tab);
+                    if (tab != null && !tab.isCurrent()) {
+                        tab.getParentInstance().setCurrentTab(tab);  // TabGroup.setCurrentTab(Tab)
+                        logger.info("[" + scriptName + "] setCurrentTab: " + tab.getId());
+                    }
+                }
+            }
+
+            ```
 
 #应用程序设计器xml
 maxappxml:
   - name: "组件"
     childrens:
+      - name: 个性化页面
+        childrens:
+          - name: pageHeader各种结构
+            componentName: "pageHeader"
+            remark: |
+                include controltoclone="pageHeader"
+            code: |
+              <!-- 
+              | 页头 id | 结构特征（本文件中的定义） | 典型用途 |
+              | ‌pageHeader‌ | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
+              | ‌single_pageHeader‌ | 标题栏保留完整链接；工具栏精简——‌无 Query、无 Find、无工作流/报表按钮‌，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
+              | ‌selfServicePageHeader‌ | 只有标题栏，‌完全没有工具栏‌，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
+              | ‌pageHeader2‌ | 与 pageHeader 基本一致，但工具栏去掉了 ‌Find 快速搜索框‌，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
+              | ‌pageHeaderNoAction‌ | 有 Query、Find、工具栏按钮、工作流、报表，但‌没有 Select Action 下拉‌ | 不需要"选择操作"菜单的应用 |
+              | ‌pageHeader_designer‌ | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | ‌应用程序设计器（Application Designer）‌ 专用 |
+              | ‌desktopReqPageHeader‌ | 只有标题栏，‌无工具栏‌ | 桌面请购（Create Requisition / desktopreq）应用 |
+              | ‌selfregpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌自助注册（Self Registration）‌ 流程 |
+              | ‌forgotpswdpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌忘记密码‌ 流程 |
+              | ‌changepswdHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌修改密码‌ 流程 |
+              -->
+              <!-- <include controltoclone="pageHeader" id="INCLUDE-pageHeader"/> -->
+              <!-- <include controltoclone="single_pageHeader" id="INCLUDE-single_pageHeader" /> -->
+              <!-- <include controltoclone="pageHeader2" id="INCLUDE-single_pageHeader" /> -->
+              <include controltoclone="selfServicePageHeader" id="INCLUDE-selfServicePageHeader" />
+
+          - name: pageHeader和tabgroup查询页面设计
+            componentName: "tabgroup"
+            remark: |
+                自定义页面,主页多table设计
+            code: |
+              <?xml version="1.0" encoding="UTF-8"?>
+              <presentation id="ibm_itemtrack2" ismobile="false" mboname="IBM_RLLINE" resultstableid="results_showlist" version="6.0.0">
+                <page id="mainrec" scroll="false">
+                  <!-- 
+              | 页头 id | 结构特征（本文件中的定义） | 典型用途 |
+              | ‌pageHeader‌ | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
+              | ‌single_pageHeader‌ | 标题栏保留完整链接；工具栏精简——‌无 Query、无 Find、无工作流/报表按钮‌，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
+              | ‌selfServicePageHeader‌ | 只有标题栏，‌完全没有工具栏‌，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
+              | ‌pageHeader2‌ | 与 pageHeader 基本一致，但工具栏去掉了 ‌Find 快速搜索框‌，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
+              | ‌pageHeaderNoAction‌ | 有 Query、Find、工具栏按钮、工作流、报表，但‌没有 Select Action 下拉‌ | 不需要"选择操作"菜单的应用 |
+              | ‌pageHeader_designer‌ | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | ‌应用程序设计器（Application Designer）‌ 专用 |
+              | ‌desktopReqPageHeader‌ | 只有标题栏，‌无工具栏‌ | 桌面请购（Create Requisition / desktopreq）应用 |
+              | ‌selfregpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌自助注册（Self Registration）‌ 流程 |
+              | ‌forgotpswdpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌忘记密码‌ 流程 |
+              | ‌changepswdHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌修改密码‌ 流程 |
+                -->
+                  <!-- <include controltoclone="pageHeader" id="INCLUDE-pageHeader"/> -->
+                  <!-- <include controltoclone="single_pageHeader" id="INCLUDE-single_pageHeader" /> -->
+                  <!-- <include controltoclone="pageHeader2" id="INCLUDE-single_pageHeader" /> -->
+                  <include controltoclone="selfServicePageHeader" id="INCLUDE-selfServicePageHeader" />
+                  <clientarea id="clientarea">
+                  <!-- 
+                    如果不显示主tab下面的子tab标签页
+                        方案1:  则将主tabgroup 中的 style="form" 去掉
+                        方案2:  或者将主tab的 type="list"  属性删掉
+                                       -->
+                    <tabgroup id="maintabs">
+                      <tab id="results" label="列表" type="list">
+                        <tabgroup format="default" id="Dbcr8EOyj2BB4RPd">
+                          <tab id="tab1" label="标签页1">
+                          </tab>
+                          <tab id="tab2" label="标签页2">
+                          </tab>
+                        </tabgroup>
+                        <!-- <menubar event="search" id="actiontoolbar1" sourcemethod="getAppSearchOptions"/> -->
+                      </tab>
+                    </tabgroup>
+                  </clientarea>
+                  <include controltoclone="pageFooter" id="INCLUDE-pageFooter"/>
+                </page>
+
+                <configurationblock id="datastore_configurationblock">
+                </configurationblock>
+              </presentation>
+
       - name: 通用属性
         childrens:
           - name: synchronous同步
