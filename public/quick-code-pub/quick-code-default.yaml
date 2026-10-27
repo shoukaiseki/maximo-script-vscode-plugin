@@ -333,16 +333,16 @@ maxappxml:
             code: |
               <!-- 
               | 页头 id | 结构特征（本文件中的定义） | 典型用途 |
-              | ‌pageHeader‌ | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
-              | ‌single_pageHeader‌ | 标题栏保留完整链接；工具栏精简——‌无 Query、无 Find、无工作流/报表按钮‌，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
-              | ‌selfServicePageHeader‌ | 只有标题栏，‌完全没有工具栏‌，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
-              | ‌pageHeader2‌ | 与 pageHeader 基本一致，但工具栏去掉了 ‌Find 快速搜索框‌，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
-              | ‌pageHeaderNoAction‌ | 有 Query、Find、工具栏按钮、工作流、报表，但‌没有 Select Action 下拉‌ | 不需要"选择操作"菜单的应用 |
-              | ‌pageHeader_designer‌ | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | ‌应用程序设计器（Application Designer）‌ 专用 |
-              | ‌desktopReqPageHeader‌ | 只有标题栏，‌无工具栏‌ | 桌面请购（Create Requisition / desktopreq）应用 |
-              | ‌selfregpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌自助注册（Self Registration）‌ 流程 |
-              | ‌forgotpswdpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌忘记密码‌ 流程 |
-              | ‌changepswdHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌修改密码‌ 流程 |
+              | pageHeader | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
+              | single_pageHeader | 标题栏保留完整链接；工具栏精简——无 Query、无 Find、无工作流/报表按钮，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
+              | selfServicePageHeader | 只有标题栏，完全没有工具栏，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
+              | pageHeader2 | 与 pageHeader 基本一致，但工具栏去掉了 Find 快速搜索框，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
+              | pageHeaderNoAction | 有 Query、Find、工具栏按钮、工作流、报表，但没有 Select Action 下拉 | 不需要"选择操作"菜单的应用 |
+              | pageHeader_designer | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | 应用程序设计器（Application Designer） 专用 |
+              | desktopReqPageHeader | 只有标题栏，无工具栏 | 桌面请购（Create Requisition / desktopreq）应用 |
+              | selfregpageHeader | 标题栏只有 Exit + Help | 自助注册（Self Registration） 流程 |
+              | forgotpswdpageHeader | 标题栏只有 Exit + Help | 忘记密码 流程 |
+              | changepswdHeader | 标题栏只有 Exit + Help | 修改密码 流程 |
               -->
               <!-- <include controltoclone="pageHeader" id="INCLUDE-pageHeader"/> -->
               <!-- <include controltoclone="single_pageHeader" id="INCLUDE-single_pageHeader" /> -->
@@ -358,17 +358,19 @@ maxappxml:
               <presentation id="ibm_itemtrack2" ismobile="false" mboname="IBM_RLLINE" resultstableid="results_showlist" version="6.0.0">
                 <page id="mainrec" scroll="false">
                   <!-- 
+                  在 LIBRARY.xml 中定义
+
               | 页头 id | 结构特征（本文件中的定义） | 典型用途 |
-              | ‌pageHeader‌ | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
-              | ‌single_pageHeader‌ | 标题栏保留完整链接；工具栏精简——‌无 Query、无 Find、无工作流/报表按钮‌，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
-              | ‌selfServicePageHeader‌ | 只有标题栏，‌完全没有工具栏‌，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
-              | ‌pageHeader2‌ | 与 pageHeader 基本一致，但工具栏去掉了 ‌Find 快速搜索框‌，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
-              | ‌pageHeaderNoAction‌ | 有 Query、Find、工具栏按钮、工作流、报表，但‌没有 Select Action 下拉‌ | 不需要"选择操作"菜单的应用 |
-              | ‌pageHeader_designer‌ | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | ‌应用程序设计器（Application Designer）‌ 专用 |
-              | ‌desktopReqPageHeader‌ | 只有标题栏，‌无工具栏‌ | 桌面请购（Create Requisition / desktopreq）应用 |
-              | ‌selfregpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌自助注册（Self Registration）‌ 流程 |
-              | ‌forgotpswdpageHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌忘记密码‌ 流程 |
-              | ‌changepswdHeader‌ | 标题栏只有 ‌Exit + Help‌ | ‌修改密码‌ 流程 |
+              | pageHeader | 最完整页头：标题栏（Accessibility Help / Runbook / Performance / Bulletins / Go To / Reports / Start Center / Profile / Sign Out / Help）+ 完整工具栏（Query 下拉、Find 快速搜索、Select Action 下拉、工具按钮、工作流按钮、报表按钮） | 绝大多数标准业务应用（主记录页等），使用最广 |
+              | single_pageHeader | 标题栏保留完整链接；工具栏精简——无 Query、无 Find、无工作流/报表按钮，只剩 Select Action 下拉和工具按钮 | 单记录 / 无列表导航的单页面 |
+              | selfServicePageHeader | 只有标题栏，完全没有工具栏，即"不显示工具栏和左侧操作菜单" | 面向普通终端用户的自助服务页面 |
+              | pageHeader2 | 与 pageHeader 基本一致，但工具栏去掉了 Find 快速搜索框，只保留 Query 下拉 | CI 类型类应用（文件注释明确写 used in CITypes app） |
+              | pageHeaderNoAction | 有 Query、Find、工具栏按钮、工作流、报表，但没有 Select Action 下拉 | 不需要"选择操作"菜单的应用 |
+              | pageHeader_designer | 只有标题栏，且链接精简为 Go To / Start Center / Profile / Sign Out / Help | 应用程序设计器（Application Designer） 专用 |
+              | desktopReqPageHeader | 只有标题栏，无工具栏 | 桌面请购（Create Requisition / desktopreq）应用 |
+              | selfregpageHeader | 标题栏只有 Exit + Help | 自助注册（Self Registration） 流程 |
+              | forgotpswdpageHeader | 标题栏只有 Exit + Help | 忘记密码 流程 |
+              | changepswdHeader | 标题栏只有 Exit + Help | 修改密码 流程 |
                 -->
                   <!-- <include controltoclone="pageHeader" id="INCLUDE-pageHeader"/> -->
                   <!-- <include controltoclone="single_pageHeader" id="INCLUDE-single_pageHeader" /> -->
