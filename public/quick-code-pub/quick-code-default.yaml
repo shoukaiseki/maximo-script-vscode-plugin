@@ -36,6 +36,7 @@ javascript:
           var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
           /** @type {psdi.util.logging.MXLogger} */
           var logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+
   - name: "SKS_COMMONS_UTILS通用工具"
     childrens:
       - name: "getAppNameByMbo 获取appName"
@@ -47,7 +48,7 @@ javascript:
         remark: "除常规空白字符(空格/制表符/换行等)外，还会清除中文全角空格(\\u3000),不间断空格(\\u00A0)等 Unicode 空白字符。"
         code: |
           /** @type {java.lang.String} */
-          var str = service.invokeScript("COMMON.UTILS", "trimAll", [itemnum]);
+          var str = service.invokeScript("SKS_COMMONS_UTILS", "trimAll", [itemnum]);
       - name: printComponentInfo 遍历打印组件信息
         remark: "遍历打印组件信息,用于调试"
         code: |

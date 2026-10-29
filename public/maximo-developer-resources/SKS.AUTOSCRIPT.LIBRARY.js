@@ -36,6 +36,12 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
     }
 }
 
+//强制导入,该模式下将不会对数据进行有效性校验
+//目前只对 maxobject导入判断
+//会对mboSet进行设置迁移模式以忽略校验 maxObjectSet.setDMDeploySet(true)
+var forceImport = getParamAutoBool(null, "forceImport", true)
+
+
 // Array find polyfill.
 if (typeof Array.prototype.find != "function") {
     Array.prototype.find = function (callback) {
@@ -2298,6 +2304,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
     if (!ignoreAttributes) {
         /** @type {psdi.mbo.MboSetRemote} */
         var attributeSet = mbo.getMboSet("MAXATTRIBUTECFG");
+        if (forceImport) { attributeSet.setDMDeploySet(true) }
         // attributeSet.reset()
         var keyAttributes = ["ATTRIBUTENAME", "TITLE", "REMARKS", "AUTOKEYNAME", "DEFAULTVALUE", "CLASSNAME", "DOMAINID", "SAMEASOBJECT", "SAMEASATTRIBUTE"];
 
@@ -2362,7 +2369,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
                 } else {
                     if (!attribute) {
                         attribute = attributeSet.add();
-                            currentCacheUseError.ind3 = " setValue ATTRIBUTENAME";
+                        currentCacheUseError.ind3 = " setValue ATTRIBUTENAME";
                         attribute.setValue("ATTRIBUTENAME", attributeConfig.attribute);
                         logger.info("attributeConfig.attribute=" + attributeConfig.attribute + ".added")
                     }
@@ -2406,7 +2413,13 @@ MaxObject.prototype.setMboValues = function (mbo) {
 
 
                         if (typeof attributeConfig.domain !== "undefined" && !attribute.getMboValueData("DOMAINID").isReadOnly()) {
-                            attributeConfig.domain == null ? attribute.setValueNull("DOMAINID", 2) : attribute.setValue("DOMAINID", attributeConfig.domain, 2);
+                            currentCacheUseError.ind3 = " setValue DOMAINID";
+                            if (forceImport) {
+                                attributeConfig.domain == null ? attribute.setValueNull("DOMAINID", 11) : attribute.setValue("DOMAINID", attributeConfig.domain, 11);
+                            } else {
+                                attributeConfig.domain == null ? attribute.setValueNull("DOMAINID", 2) : attribute.setValue("DOMAINID", attributeConfig.domain, 2);
+                            }
+
                         }
 
                         if (typeof attributeConfig.alias !== "undefined") {
@@ -2935,6 +2948,7 @@ function mainLibrary() {
                 },
                 null,
                 4);
+            logger.error("\x1b[31m[" + scriptName + "] " + responseBody + "\x1b[0m")
         }
     }
 }
@@ -3158,6 +3172,7 @@ function addOrUpdateMaxObject(maxObject) {
     var maxObjectSet;
     try {
         maxObjectSet = MXServer.getMXServer().getMboSet("MAXOBJECTCFG", userInfo);
+        if (forceImport) { maxObjectSet.setDMDeploySet(true) }
         var maxObjectConfig = new MaxObject(maxObject);
         var sqlf = new SqlFormat("objectname = :1");
         sqlf.setObject(1, "MAXOBJECTCFG", "OBJECTNAME", maxObject.object);
@@ -4463,6 +4478,26 @@ function loggerError(e) {
     } catch (ignored) { }
 }
 
+/**
+ * 获取参数,先通过url获取,url中存在则直接返回,不存在再判断请求体中是否存在该参数,存在则返回,否则返回默认值
+ * @param {*} requestData 
+ * @param {*} paramName 
+ * @param {*} defaVal 
+ */
+function getParamAutoBool(requestData, paramName, defaVal) {
+    if (request.getQueryParam(paramName) !== null) {
+        if (request.getQueryParam(paramName) === "true") {
+            return true;
+        } else {
+            return false
+        }
+    }
+    if (requestData && requestData[paramName] !== undefined) {
+        return requestData[paramName];
+    }
+    return defaVal;
+
+}
 
 var scriptConfig = {
     "autoscript": "SHARPTREE.AUTOSCRIPT.LIBRARY",

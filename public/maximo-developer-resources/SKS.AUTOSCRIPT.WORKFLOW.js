@@ -2096,7 +2096,9 @@ function buildActionListRow(mbo) {
     id: mbo.getUniqueIDValue(),
     action: mbo.getString("ACTION"),
     description: getStr(mbo, "DESCRIPTION"),
-    type: getStr(mbo, "TYPE")
+    type: getStr(mbo, "TYPE"),
+    // 与 Maximo 列表一致, 取 DISPVALUE(按 TYPE display 值)
+    value: getStr(mbo, "DISPVALUE")
   };
   var objectName = getStr(mbo, "OBJECTNAME");
   if (objectName) {

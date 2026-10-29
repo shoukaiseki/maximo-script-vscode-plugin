@@ -33,6 +33,18 @@ interface PushResult {
   errorMessage?: string;
 }
 
+/** 本轮多环境推送的版本信息（只计算一次，各环境共用） */
+interface VersionInfo {
+  version: string;
+  logLevel: any;
+  /** true 表示未打开工作区，跳过版本管理 */
+  skip: boolean;
+}
+
+interface VersionCache {
+  info?: VersionInfo;
+}
+
 /**
  * 单环境请求覆盖参数（传给 httpRequestToMaximo，避免读取/修改 VS Code 全局配置）
  */
@@ -168,6 +180,57 @@ export class PushToMultipleEnvs {
     return 0;
   }
 
+  /**
+   * 读取本地 JSON 并把版本号末位 +1（会写回文件）。
+   * 多环境推送时只应调用一次，结果由 VersionCache 复用。
+   */
+  private static readAndBumpVersion(
+    autoscript: string,
+    scriptStoragePath: string,
+    logger: vscode.LogOutputChannel,
+    filePath?: string
+  ): VersionInfo {
+    let version: string = '1.0.1';
+    let loglevel: any = undefined;
+
+    let jsonFilePath: string;
+    if (filePath) {
+      jsonFilePath = path.join(path.dirname(filePath), `${autoscript}.json`);
+    } else {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
+        return { version: '', logLevel: undefined, skip: true };
+      }
+      jsonFilePath = path.join(workspaceFolders[0].uri.fsPath, scriptStoragePath || 'masscript', `${autoscript}.json`);
+    }
+
+    if (fs.existsSync(jsonFilePath)) {
+      try {
+        const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
+        if (jsonData && jsonData.loglevel !== undefined && jsonData.loglevel !== null && jsonData.loglevel !== '') {
+          loglevel = jsonData.loglevel;
+        }
+        if (jsonData.version) {
+          version = jsonData.version;
+          const parts = version.split('.');
+          const lastPart = parts[parts.length - 1];
+          if (/^\d+$/.test(lastPart)) {
+            parts[parts.length - 1] = (parseInt(lastPart) + 1).toString();
+            version = parts.join('.');
+            jsonData.version = version;
+            fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2), 'utf-8');
+            logger.info(`[_saveScriptHistory] 版本号已更新: ${version}`);
+          }
+        }
+      } catch (parseError: any) {
+        logger.error(`[_saveScriptHistory] 解析 JSON 文件失败: ${parseError.message}`);
+      }
+    }
+
+    return { version, logLevel: loglevel, skip: false };
+  }
+
   /** 保存脚本历史记录（按环境服务器地址提交） */
   private static async saveScriptHistory(
     autoscript: string,
@@ -176,45 +239,22 @@ export class PushToMultipleEnvs {
     aliasName: string,
     scriptStoragePath: string,
     logger: vscode.LogOutputChannel,
-    filePath?: string
+    filePath?: string,
+    cache?: VersionCache
   ): Promise<{ version: string; logLevel: any }> {
-    let version: string = '1.0.1';
-    let loglevel: any = undefined;
     try {
-      let jsonFilePath: string;
-      if (filePath) {
-        jsonFilePath = path.join(path.dirname(filePath), `${autoscript}.json`);
-      } else {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-          logger.warn('[_saveScriptHistory] 未打开工作区，跳过版本管理');
-          return { version: '', logLevel: undefined };
-        }
-        jsonFilePath = path.join(workspaceFolders[0].uri.fsPath, scriptStoragePath || 'masscript', `${autoscript}.json`);
+      // 版本号在一轮多环境推送中只递增一次，其余环境复用同一版本
+      const versionCache = cache || {};
+      if (!versionCache.info) {
+        versionCache.info = PushToMultipleEnvs.readAndBumpVersion(autoscript, scriptStoragePath, logger, filePath);
       }
+      const info = versionCache.info;
 
-      if (fs.existsSync(jsonFilePath)) {
-        try {
-          const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
-          if (jsonData && jsonData.loglevel !== undefined && jsonData.loglevel !== null && jsonData.loglevel !== '') {
-            loglevel = jsonData.loglevel;
-          }
-          if (jsonData.version) {
-            version = jsonData.version;
-            const parts = version.split('.');
-            const lastPart = parts[parts.length - 1];
-            if (/^\d+$/.test(lastPart)) {
-              parts[parts.length - 1] = (parseInt(lastPart) + 1).toString();
-              version = parts.join('.');
-              jsonData.version = version;
-              fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2), 'utf-8');
-              logger.info(`[_saveScriptHistory] 版本号已更新: ${version}`);
-            }
-          }
-        } catch (parseError: any) {
-          logger.error(`[_saveScriptHistory] 解析 JSON 文件失败: ${parseError.message}`);
-        }
+      if (info.skip) {
+        return { version: '', logLevel: undefined };
       }
+      const version = info.version;
+      const loglevel = info.logLevel;
 
       const hostname = require('os').hostname();
       const historyUrl = `${env.serverUrl}/api/script/SKS_AUTOSCRIPT_HISTORY_SAVE`;
@@ -242,11 +282,11 @@ export class PushToMultipleEnvs {
       } else {
         logger.error(`[_saveScriptHistory] 历史记录保存失败，状态码: ${result.status}`);
       }
+      return { version, logLevel: loglevel };
     } catch (error: any) {
       logger.error(`[_saveScriptHistory] 保存历史记录异常: ${error.message}`);
       throw error;
     }
-    return { version, logLevel: loglevel };
   }
 
   /**
@@ -257,7 +297,8 @@ export class PushToMultipleEnvs {
     source: string,
     env: EnvironmentConfig,
     logger: vscode.LogOutputChannel,
-    filePath?: string
+    filePath?: string,
+    versionCache?: VersionCache
   ): Promise<PushResult> {
     logger.debug(`[MultiEnv][pushScript] 开始推送脚本: ${autoscript} @ ${env.envnum}`);
     try {
@@ -367,7 +408,7 @@ export class PushToMultipleEnvs {
       // 步骤1: 保存历史记录
       let historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
       try {
-        historyResult = await PushToMultipleEnvs.saveScriptHistory(autoscript, source, env, aliasName, scriptStoragePath, logger, filePath);
+        historyResult = await PushToMultipleEnvs.saveScriptHistory(autoscript, source, env, aliasName, scriptStoragePath, logger, filePath, versionCache);
       } catch (historyError: any) {
         logger.error(`[MultiEnv][pushScript] 保存历史记录失败: ${historyError.message}`);
       }
@@ -484,7 +525,8 @@ export class PushToMultipleEnvs {
     scriptConfig: any,
     env: EnvironmentConfig,
     logger: vscode.LogOutputChannel,
-    filePath?: string
+    filePath?: string,
+    versionCache?: VersionCache
   ): Promise<PushResult> {
     try {
       const cfg = vscode.workspace.getConfiguration('maximoScript');
@@ -501,7 +543,7 @@ export class PushToMultipleEnvs {
 
       let historyResult: { version: string; logLevel: any } = { version: '', logLevel: undefined };
       try {
-        historyResult = await PushToMultipleEnvs.saveScriptHistory(scriptName, source, env, aliasName, scriptStoragePath, logger, filePath);
+        historyResult = await PushToMultipleEnvs.saveScriptHistory(scriptName, source, env, aliasName, scriptStoragePath, logger, filePath, versionCache);
       } catch (historyError: any) {
         logger.error(`[MultiEnv][importScript] 保存历史记录失败: ${historyError.message}`);
       }
@@ -644,14 +686,19 @@ export class PushToMultipleEnvs {
   /**
    * 对单个环境执行推送（根据类型分发）
    */
-  private static async pushToEnv(target: PushTarget, env: EnvironmentConfig, logger: vscode.LogOutputChannel): Promise<void> {
+  private static async pushToEnv(
+    target: PushTarget,
+    env: EnvironmentConfig,
+    logger: vscode.LogOutputChannel,
+    versionCache?: VersionCache
+  ): Promise<void> {
     let result: PushResult;
     if (target.kind === 'script') {
-      result = await PushToMultipleEnvs.pushScriptToEnv(target.scriptName, target.source!, env, logger, target.filePath);
+      result = await PushToMultipleEnvs.pushScriptToEnv(target.scriptName, target.source!, env, logger, target.filePath, versionCache);
     } else if (target.kind === 'xml') {
       result = await PushToMultipleEnvs.pushXmlToEnv(target.xmlContent!, env, logger);
     } else if (target.kind === 'import') {
-      result = await PushToMultipleEnvs.importScriptToEnv(target.scriptName, target.source!, target.scriptConfig, env, logger, target.filePath);
+      result = await PushToMultipleEnvs.importScriptToEnv(target.scriptName, target.source!, target.scriptConfig, env, logger, target.filePath, versionCache);
     } else {
       throw new Error('未知推送类型');
     }
@@ -680,6 +727,8 @@ export class PushToMultipleEnvs {
     logger.info(`[PushToMultipleEnvs] 开始${kindLabel}: ${target.scriptName}，目标环境: ${envs.map(e => e.envnum).join(', ')}`);
 
     const results: PerEnvResult[] = [];
+    // 本轮所有环境共用一个版本号，避免每推一个环境版本号 +1
+    const versionCache: VersionCache = {};
 
     await vscode.window.withProgress(
       {
@@ -693,7 +742,7 @@ export class PushToMultipleEnvs {
           const env = envs[i];
           progress.report({ message: `(${i + 1}/${total}) ${env.envnum}`, increment: 100 / total });
           try {
-            await PushToMultipleEnvs.pushToEnv(target, env, logger);
+            await PushToMultipleEnvs.pushToEnv(target, env, logger, versionCache);
             results.push({ envnum: env.envnum, success: true });
             logger.info(`[PushToMultipleEnvs] ✅ ${env.envnum} 成功`);
           } catch (error: any) {

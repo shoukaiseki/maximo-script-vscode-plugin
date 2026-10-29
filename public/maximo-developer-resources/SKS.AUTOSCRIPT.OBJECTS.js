@@ -2267,10 +2267,12 @@ function saveOrUpdateDomain(domainData, index) {
     var maxType = domainData.maxtype;
     if (!isTableType && typeof maxType !== 'undefined' && maxType !== null) {
       domainMbo.setValue("MAXTYPE", maxType, 11);
+      logger.info("设置域定义 MAXTYPE: " + maxType);
     }
 
     if (!isTableType && typeof length !== 'undefined') {
       domainMbo.setValue("LENGTH", length, 2);
+      logger.info("设置域定义 LENGTH: " + length);
     }
 
     if (typeof scale !== 'undefined' && scale != null) {

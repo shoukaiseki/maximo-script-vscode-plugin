@@ -641,7 +641,7 @@ function findComponentByCompId(node, compId) {
  * 不间断空格(\u00A0)等 Unicode 空白字符。
  *
  * 调用示例：
- *   var str = service.invokeScript("COMMON.UTILS", "trimAll", [rawStr]);
+ *   var str = service.invokeScript("SKS_COMMONS_UTILS", "trimAll", [rawStr]);
  *   var str = trimAll(mbo.getString("DESCRIPTION"));
  *
  * @param {string} str - 输入字符串
