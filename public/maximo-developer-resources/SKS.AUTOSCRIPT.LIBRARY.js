@@ -39,7 +39,8 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
 //强制导入,该模式下将不会对数据进行有效性校验
 //目前只对 maxobject导入判断
 //会对mboSet进行设置迁移模式以忽略校验 maxObjectSet.setDMDeploySet(true)
-var forceImport = getParamAutoBool(null, "forceImport", true)
+//在数据库配置中,只能在特殊情况下开启,因为启用后更改并不会触发表结构变更标识的更新
+var forceImport = getParamAutoBool(null, "forceImport", false)
 
 
 // Array find polyfill.

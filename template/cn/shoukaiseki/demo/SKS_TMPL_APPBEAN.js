@@ -102,16 +102,7 @@ function MKITEM(dbctx) {
   /** @type {psdi.webclient.system.beans.AppBean} */
   var appBean = appInstance.getAppBean();
   /** @type {psdi.mbo.MboRemote} */
-  var mbo = appBean.getMbo();
-  if (!mbo) {
-    var appInstance = dbctx.getAppInstance()
-    logger.info("[" + scriptName + "] appInstance= " + appInstance)
-    var appBean = appInstance.getAppBean()
-    logger.info("[" + scriptName + "] appBean= " + appBean)
-    //应用主列表按钮的mbo获取
-    mbo = appBean.getMbo()
-    logger.info("[" + scriptName + "] mbo= " + mbo)
-  }
+  var mbo = getMainMbo(dbctx);
   if (!mbo) {
     throw new MXApplicationException("#", "error,can't find mbo")
   }
