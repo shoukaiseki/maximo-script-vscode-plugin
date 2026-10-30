@@ -19,7 +19,7 @@ MXApplicationException = Java.type("psdi.util.MXApplicationException");
 MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 MXServer = Java.type("psdi.server.MXServer");
 /**  @type {psdi.util.logging.MXLogger}*/
-var logger = MXLoggerFactory.getLogger("maximo.script.SHARPTREE.AUTOSCRIPT.LIBRARY");
+var logger = MXLoggerFactory.getLogger("maximo.script.SKS.AUTOSCRIPT.LIBRARY");
 logger.setLevel(Level.INFO);
 
 //用于存储当前处理的进度,当出现一场时候,可以更方便的查看和处理
@@ -32,7 +32,7 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
     // uInfo.setLocale(lang);
     userInfo.setLangCode(_langcode.toLowerCase())
     if (userInfo.getLocale()) {
-        logger.error("\x1b[35;40m[SHARPTREE.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
+        logger.error("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS]------------------没有错误,只为一直显示_langcode=" + userInfo.getLangCode() + ",locale.language=" + userInfo.getLocale().getLanguage() + ",country=" + userInfo.getLocale().getCountry() + "\x1b[0m");
     }
 }
 
@@ -4501,7 +4501,7 @@ function getParamAutoBool(requestData, paramName, defaVal) {
 }
 
 var scriptConfig = {
-    "autoscript": "SHARPTREE.AUTOSCRIPT.LIBRARY",
+    "autoscript": "SKS.AUTOSCRIPT.LIBRARY",
     "description": "Library Script",
     "version": "1.0.0",
     "active": true,

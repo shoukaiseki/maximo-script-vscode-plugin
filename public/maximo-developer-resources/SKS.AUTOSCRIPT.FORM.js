@@ -749,7 +749,7 @@ FormError.prototype.constructor = FormError;
 FormError.prototype.element;
 
 var scriptConfig = {
-    autoscript: "SHARPTREE.AUTOSCRIPT.FORM",
+    autoscript: "SKS.AUTOSCRIPT.FORM",
     description: "Export Inspection Form",
     version: "1.0.0",
     active: true,

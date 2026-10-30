@@ -40,7 +40,7 @@ MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 
 var logger = MXLoggerFactory.getLogger("maximo.script." + service.getScriptName());
 
-load({ script: ScriptCache.getInstance().getScriptInfo("SHARPTREE.AUTOSCRIPT.LIBRARY").getScriptSource(), name: "SHARPTREE.AUTOSCRIPT.LIBRARY" });
+load({ script: ScriptCache.getInstance().getScriptInfo("SKS.AUTOSCRIPT.LIBRARY").getScriptSource(), name: "SKS.AUTOSCRIPT.LIBRARY" });
 
 if (typeof httpMethod !== "undefined") {
     main();
@@ -100,7 +100,7 @@ function main() {
             action = getRequestAction();
             if (action) {
                 if (action.startsWith("version")) {
-                    var response = { version: getScriptVersion("SHARPTREE.AUTOSCRIPT.DEPLOY") };
+                    var response = { version: getScriptVersion("SKS.AUTOSCRIPT.DEPLOY") };
                     responseBody = JSON.stringify(response);
                     return;
                 }
@@ -413,7 +413,7 @@ function deployScript(scriptSource, language) {
             try {
                 // save the configuration details.
                 service
-                    .invokeScript("SHARPTREE.AUTOSCRIPT.STORE")
+                    .invokeScript("SKS.AUTOSCRIPT.STORE")
                     .createOrUpdateScript(scriptConfig.autoscript.toUpperCase(), scriptSource, userInfo.getUserName());
             } catch (error) {
                 log_error("Error saving script configuration history." + JSON.stringify(error));

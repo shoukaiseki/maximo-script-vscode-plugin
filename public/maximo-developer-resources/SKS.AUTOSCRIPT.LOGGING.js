@@ -347,7 +347,7 @@ function _close(set) {
 
 // eslint-disable-next-line no-unused-vars
 var scriptConfig = {
-    "autoscript": "SHARPTREE.AUTOSCRIPT.LOGGING",
+    "autoscript": "SKS.AUTOSCRIPT.LOGGING",
     "description": "Stream the log file.",
     "version": "1.0.0",
     "active": true,

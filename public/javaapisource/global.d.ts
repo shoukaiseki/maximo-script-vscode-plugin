@@ -3,3 +3,4 @@
 /// <reference path="./jscustom/AnsiLogger.d.ts" />
 /// <reference path="./jscustom/sksLogAnsiUtils.d.ts" />
 /// <reference path="./psdi/mbo/MboConstants.d.ts" />
+/// <reference path="./jscustom/SksMigrateParamConfig.d.ts" />

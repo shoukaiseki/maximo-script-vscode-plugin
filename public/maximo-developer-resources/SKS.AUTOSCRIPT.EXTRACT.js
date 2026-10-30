@@ -602,8 +602,8 @@ ScriptError.prototype.constructor = ScriptError;
 ScriptError.prototype.element;
 
 var scriptConfig = {
-    "autoscript": "SHARPTREE.AUTOSCRIPT.EXTRACT",
-    "description": "Sharptree Automation Script Extract Script",
+    "autoscript": "SKS.AUTOSCRIPT.EXTRACT",
+    "description": "SKS Automation Script Extract Script",
     "version": "1.0.0",
     "active": true,
     "logLevel": "INFO"

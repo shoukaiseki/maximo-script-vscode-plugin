@@ -286,8 +286,8 @@ AdminError.prototype.constructor = AdminError;
 AdminError.prototype.element;
 
 var scriptConfig = {
-    "autoscript": "SHARPTREE.AUTOSCRIPT.ADMIN",
-    "description": "Sharptree automation script for admin operations",
+    "autoscript": "SKS.AUTOSCRIPT.ADMIN",
+    "description": "SKS automation script for admin operations",
     "version": "1.0.0",
     "active": true,
     "logLevel": "INFO"

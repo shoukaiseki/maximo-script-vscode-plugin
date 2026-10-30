@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 // @ts-nocheck
 /*
- *   Bootstrap script that is used to install the Sharptree Automation Script deploy utility.
+ *   Bootstrap script that is used to install the SKS Automation Script deploy utility.
  */
 MboConstants = Java.type("psdi.mbo.MboConstants");
 
@@ -40,7 +40,7 @@ function main() {
                 "The user " + userInfo.getUserName() + " is not in the Maximo Administrators group and cannot perform the install."
             );
         }
-        // Set up the Maximo loggers that will be used by the Sharptree Automation Script deploy utility.
+        // Set up the Maximo loggers that will be used by the SKS Automation Script deploy utility.
         setupLoggers();
 
         setupProperties();
@@ -98,9 +98,9 @@ function fixInspectionForms() {
     }
 }
 
-// Set up the Sharptree Automation Script deploy utility loggers
+// Set up the SKS Automation Script deploy utility loggers
 function setupLoggers() {
-    service.log_info("Setting up the Sharptree Automation Script deploy utility Maximo loggers.");
+    service.log_info("Setting up the SKS Automation Script deploy utility Maximo loggers.");
 
     var loggerSet;
 
@@ -115,23 +115,23 @@ function setupLoggers() {
         // if the out of the box root logger is missing, abort.
         if (!loggerSet.isEmpty()) {
             var scriptLogger = loggerSet.getMbo(0);
-            // Add or update the Sharptree and Opqo loggers.
-            addOrUpdateLogger("SHARPTREE.AUTOSCRIPT", "WARN", scriptLogger);
+            // Add or update the SKS and Opqo loggers.
+            addOrUpdateLogger("SKS.AUTOSCRIPT", "WARN", scriptLogger);
             loggerSet.save();
             try {
                 MXServer.getMXServer().lookup("LOGGING").applySettings(false);
             } catch (error) {
                 if (error instanceof MXException && error.getErrorKey() == "applySettingsForFile" && error.getErrorGroup() == "logging") {
-                    service.log_info("Set up the Sharptree Automation Script deploy utility Maximo loggers.");
+                    service.log_info("Set up the SKS Automation Script deploy utility Maximo loggers.");
                     return;
                 } else {
                     throw error;
                 }
             }
-            service.log_info("Set up the Sharptree Automation Script deploy utility Maximo loggers.");
+            service.log_info("Set up the SKS Automation Script deploy utility Maximo loggers.");
         } else {
             service.log_warn(
-                "The root out of the box logger 'autoscript' does not exist, skipping setting up Sharptree Automation Script deploy utility Maximo loggers."
+                "The root out of the box logger 'autoscript' does not exist, skipping setting up SKS Automation Script deploy utility Maximo loggers."
             );
         }
     } finally {
@@ -139,7 +139,7 @@ function setupLoggers() {
     }
 }
 
-// Adds or updates a Sharptree Automation Script deploy utility logger.
+// Adds or updates a SKS Automation Script deploy utility logger.
 // This relies on the calling function calling save on the provided parent MboSet to save the changes.
 function addOrUpdateLogger(logger, level, parent) {
     service.log_info("Adding or updating the logger " + logger + " and setting the level to " + level + ".");
@@ -303,9 +303,9 @@ function verifyIntegrationObjectSecurity() {
     }
 }
 
-// Sets up the required signature security options for performing the Sharptree Automation Script deploy utility installation.
+// Sets up the required signature security options for performing the SKS Automation Script deploy utility installation.
 function setupSigOptions() {
-    service.log_info("Setting up deploy script security options for Sharptree Automation Script deploy utility.");
+    service.log_info("Setting up deploy script security options for SKS Automation Script deploy utility.");
     var sigOptionSet;
     try {
         sigOptionSet = MXServer.getMXServer().getMboSet("SIGOPTION", MXServer.getMXServer().getSystemUserInfo());
@@ -335,7 +335,7 @@ function setupSigOptions() {
             service.log_info("The administrative security option DEPLOYSCRIPT for the SKS_UTILS integration object structure already exists, skipping.");
         }
 
-        service.log_info("Set up administrative security options for Sharptree Automation Script deploy utility.");
+        service.log_info("Set up administrative security options for SKS Automation Script deploy utility.");
     } finally {
         _close(sigOptionSet);
     }
