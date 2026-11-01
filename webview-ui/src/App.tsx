@@ -45,6 +45,7 @@ interface ConfigData {
   extractZipEnabled: boolean;  // 导出脚本完成后打包ZIP
   extractXmlZipEnabled: boolean;  // 导出应用XML完成后打包ZIP
   extractXmlIgnoreMetadata: boolean;  // 导出应用XML时忽略metadata
+  extractXmlExportMafZip: boolean;  // 导出应用XML时同时导出 MAFAPPDATA 的 zip 文件
   pullAppXmlIgnoreMetadata: boolean;  // 右键菜单Pull应用XML时忽略metadata
   extractMaxobjectZipEnabled: boolean;  // 导出MAXOBJECT完成后打包ZIP
   exportMessageDirectory: string;  // 消息导出目录
@@ -138,6 +139,7 @@ const App: React.FC = () => {
     extractZipEnabled: false,
     extractXmlZipEnabled: false,
     extractXmlIgnoreMetadata: false,
+    extractXmlExportMafZip: false,
     pullAppXmlIgnoreMetadata: false,
     extractMaxobjectZipEnabled: false,
     exportMessageDirectory: '',
@@ -2491,6 +2493,24 @@ const App: React.FC = () => {
                   </p>
                 </div>
 
+                {/* 导出 MAFAPPDATA zip 选项 */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={config.extractXmlExportMafZip}
+                      onChange={(e) => updateConfig({ extractXmlExportMafZip: e.target.checked })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🗜️ 同时导出 MAFAPPDATA 的 zip 文件</span>
+                  </label>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '0.85em', color: 'var(--vscode-descriptionForeground)' }}>
+                    {config.extractXmlExportMafZip
+                      ? '✅ 每个有 MAF 应用包的应用额外保存一个 .zip（没有的应用自动跳过）'
+                      : '默认不导出 zip（仅导出应用 XML）'}
+                  </p>
+                </div>
+
                 {/* 打包ZIP选项 */}
                 <div className="form-group" style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -3488,19 +3508,34 @@ const App: React.FC = () => {
                         </label>
                       </>
                     ) : task.exportFunction === 'extractAppXml' ? (
-                      <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={task.ignoreMetadata || false}
-                          onChange={(e) => {
-                            const newTasks = [...(scheduledExportPlan.tasks || [])];
-                            newTasks[index] = { ...newTasks[index], ignoreMetadata: e.target.checked };
-                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                          }}
-                          disabled={isScheduledExportRunning}
-                        />
-                        忽略metadata
-                      </label>
+                      <>
+                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.ignoreMetadata || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], ignoreMetadata: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          忽略metadata
+                        </label>
+                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.exportMafZip || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], exportMafZip: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          导出zip
+                        </label>
+                      </>
                     ) : (
                       <span style={{ textAlign: 'center', color: 'var(--vscode-descriptionForeground)', fontSize: '0.85em', alignSelf: 'center' }}>-</span>
                     )}

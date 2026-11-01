@@ -1,0 +1,33 @@
+{
+  "autoscript": "DATABEAN.CONFIGATTR",
+  "description": "数据库配置字段配置Table",
+  "version": "1.0.28",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 1,
+  "launchPoints": [],
+  "variables": [
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "sks:varbindingvalue:remark": "应用中URL参数中的value=ITEM,其中的ITEM是应用的名称,转为大写",
+      "varbindingvalue": "CONFIGUR",
+      "varname": "beanapp"
+    },
+    {
+      "varbindingtype": "LITERAL",
+      "vartype": "IN",
+      "allowoverride": "Y",
+      "sks:varbindingvalue:remark": "maximo.script的日志级别设置为debug,点击按钮之后查看日志, attempting to find databean script for <appName>~<bean.getId()> 的日志,设置正确的beanid",
+      "varbindingvalue": "columns_columns_table",
+      "varname": "beanid"
+    }
+  ],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools.system.configur.bean"
+}

@@ -199,6 +199,33 @@ javascript:
           JSONObject = Java.type("com.ibm.json.java.JSONObject");
           /** @type {com.ibm.json.java.OrderedJSONObject} */
           OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
+      - name: "MXServer相关"
+        remark: "MXServer "
+        code: |
+          /** @type {psdi.server.MXServer} */
+          var MXServer = Java.type("psdi.server.MXServer");
+          /** @type {psdi.util.logging.MXLoggerFactory} */
+          MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+          /** @type {psdi.util.MXApplicationException} */
+          var MXApplicationException = Java.type("psdi.util.MXApplicationException");
+          /** @type {psdi.util.MXApplicationYesNoCancelException} */
+          var MXApplicationYesNoCancelException = Java.type("psdi.util.MXApplicationYesNoCancelException")
+
+
+      - name: "sks脚本包相关"
+        remark: "SKS_LOG_ANSI_UTILS WebClientEvent"
+        code: |
+          /** @type {jscustom.AnsiLogger} */
+          var logger = null
+          /** @type {jscustom.sksLogAnsiUtils} */
+          var sksLogAnsiUtils = null
+          sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+          logger = sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true })
+
+          //不要使用常规导入方式,需要使用调用脚本的线程类加载器获取class方式导入
+          /** @type {psdi.webclient.system.controller.WebClientEvent} */
+          var WebClientEvent = null;
+          WebClientEvent = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.WebClientEvent")
 
   - name: "java常用模板"
     childrens:
@@ -320,6 +347,50 @@ javascript:
             }
 
             ```
+      - name: "操作确认提示框"
+        remark: |
+            提示用户操作确认,使用 MXApplicationYesNoCancelException
+        code: |
+              /** @type {psdi.util.MXApplicationYesNoCancelException} */
+              //var MXApplicationYesNoCancelException = Java.type("psdi.util.MXApplicationYesNoCancelException")
+              function yesOrNoTest(mbo) { 
+                //点击确认/是等则执行
+                /** @type {psdi.webclient.system.controller.AppInstance} */
+                var appInstance = dbctx.getAppInstance();
+                /** @type {psdi.webclient.system.session.WebClientSession} */
+                var clientsession = dbctx.webclientsession();
+                if (!yesOrNoTestMsg(mbo)) {
+                  //点击否/取消等则不再执行
+                  return
+                }
+                clientsession.showMessageBox(clientsession.getCurrentEvent(), new MXApplicationException("#", "你点击了确认,继续执行之后的消息提示" , Java.to([""], "java.lang.Object[]")));
+              }
+              function yesOrNoTestMsg(mbo) {
+               //custom_id 不要重就行,推荐使用脚本名+方法名
+                var inputId = "test_sks_wf1__yesOrNoTestMsg";
+                var input = MXApplicationYesNoCancelException.getUserInput(
+                  inputId,
+                  MXServer.getMXServer(),
+                  mbo.getUserInfo()
+                );
+
+                switch (input) {
+                  case MXApplicationYesNoCancelException.NULL:
+                    // 显式传入 Object[]，避免 null 同时匹配 Object[] 和 Throwable 重载。
+                    throw new MXApplicationYesNoCancelException(
+                      inputId,
+                      "person",
+                      "SavePersonAvail",
+                      Java.to([""], "java.lang.Object[]")
+                    );
+                  case MXApplicationYesNoCancelException.OK:
+                  case MXApplicationYesNoCancelException.YES:
+                    return true;
+                  case MXApplicationYesNoCancelException.CANCEL:
+                  default:
+                    return false;
+                }
+              }
 
 #应用程序设计器xml
 maxappxml:
@@ -904,6 +975,14 @@ maxappxml:
                   sigoptiondatasrc="签名数据源标识"/>
                   -->
                   <defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
+      - name: 帮助网格
+        childrens:
+          - name: helpgrid帮助
+            componentName: "helpgrid"
+            remark: |
+              helpgrid帮助按钮和文档,支持html
+            code: |
+                   <helpgrid id="GzWgS6fXu5aVOs2W" innerhtml="&lt;style&gt;td[data-control=&quot;helpgrid&quot;] .helpgrid td:first-child{display:none}&lt;/style&gt;&lt;iframe src=&quot;/maximo/oslc/graphite/sksmasdemotype/index.html&quot; width=&quot;100%&quot; height=&quot;1000px&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;" />
 
 # MAXOBJECT导入配置json
 maxobjectjson:

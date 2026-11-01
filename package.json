@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.8.44",
+  "version": "1.8.45",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -328,6 +328,11 @@
           "type": "boolean",
           "default": false,
           "description": "导出应用XML时忽略metadata（不导出控制组/权限组/条件表达式等附加信息）"
+        },
+        "maximoScript.extractXmlExportMafZip": {
+          "type": "boolean",
+          "default": false,
+          "description": "导出应用XML时同时导出 MAFAPPDATA 的 zip 文件（每个有 MAF 应用包的应用保存为 .zip，默认不导出）"
         },
         "maximoScript.pullAppXmlIgnoreMetadata": {
           "type": "boolean",

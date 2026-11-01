@@ -34,5 +34,12 @@ declare namespace jscustom {
 
       //该参数包含所有支持的语言代码,都是大写,例如: ["EN","ZH","JA"] 
       _langcodeList:Array<java.lang.String> 
+
+      //true,如果在迁移过程中,错误数量大于0,则会抛出异常,默认为false
+      //false:错误会累加,异常后处理下个Mbo,继续迁移
+      _errorAssert: boolean
+
+      //true,mboset获取之后调用 mboSet.setDMDeploySet(dmDeploySet)方法,默认为false
+      dmDeploySet: boolean
     }
 }

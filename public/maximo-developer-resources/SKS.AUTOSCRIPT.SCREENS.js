@@ -418,18 +418,35 @@ ImportAppScript.prototype.refreshApp = function (name) {
 
 }
 
-main();
 function main() {
     if (typeof httpMethod !== "undefined") {
         var response = {};
         try {
             checkPermissions("SKS_UTILS", "DEPLOYSCRIPT");
 
+            // 应用信息导入导出(新方式, 使用 SKS_MIGRATE_* 对象处理脚本)
+            var actionParam = request.getQueryParam("_action");
+            if (actionParam === "exportAppInfo" || actionParam === "importAppInfo") {
+                var migrateResult = actionParam === "exportAppInfo" ? exportAppInfo() : importAppInfo();
+                response.status = "success";
+                responseBody = JSON.stringify(migrateResult);
+                return;
+            }
+            if (actionParam === "exportAppZip") {
+                // 二进制下载: 直接返回 byte[], 不经过 base64/JSON
+                var zipResult = exportAppZip();
+                if (zipResult) {
+                    responseBody = JSON.stringify(zipResult);
+                }
+                return;
+            }
+
             if (httpMethod.toLowerCase() === "get") {
                 var screenName = getRequestScreentName();
                 if (typeof screenName === "undefined" || screenName === null || !screenName) {
                     // If nothing is requested then return a list of all screens.
                     var presentationSet;
+                    var mafappdataSet;
                     try {
                         presentationSet = MXServer.getMXServer().getMboSet("MAXPRESENTATION", userInfo);
                         // presentationSet.setUserWhere("app in (select app from maxapps where apptype not in ('OS', 'APP', 'WC', 'MAS') and app not in('ACTUALCI','CHANGE','CONTSFW','DBINFO','DPAMADPT','DPAMMANU','DPAMOS','DPAMPROC','DPAMSW','DPAMSWS','DPAMSWUSG','DPLDASSET','GRPASSIGN','IBMCONTENT','IMICONF','INCIDENT','NDASSET','NPASSET','PROBLEM','PRODUCT','RCNASTLINK','RCNASTRSLT','RCNCILINK','RCNCIRSLT','RCNCMPRULE','RCNLNKRULE','RCNTSKFLTR','RECONLINK','RECONTASK','RELEASE','SFWLICVIEW','TENANTREG','TLOAMSWCTG','WORKER_LH'))")
@@ -445,6 +462,11 @@ function main() {
                             presentationSet.remove(0);
                             presentation = presentationSet.getMbo(0);
                         }
+                        mafappdataSet = MXServer.getMXServer().getMboSet("MAFAPPDATA", userInfo)
+                        mafappdataSet.reset()
+                        for (var mafappdata = mafappdataSet.moveFirst(); mafappdata != null; mafappdata = mafappdataSet.moveNext()) {
+                            presentations.push(mafappdata.getString("APPID"));
+                        }
 
                         response.status = "success";
                         response.screenNames = presentations;
@@ -454,6 +476,7 @@ function main() {
                         logger.error("[SKS.AUTOSCRIPT.SCREENS]", error);
                     } finally {
                         _close(presentationSet);
+                        _close(mafappdataSet);
                     }
                 } else {
                     response.status = "success";
@@ -1005,6 +1028,386 @@ function replaceLabelsInElement(element, labelMap) {
     }
 }
 
+// ==================== 应用信息导入导出(新方式) ====================
+// 对象处理脚本统一放在 cn/shoukaiseki/tools/migrate 目录, 命名 SKS_MIGRATE_<对象名>
+// 每个脚本对外提供 getScriptSigoption/getDetail/exportApp/importApp/changeMbo/_close
+// objectName: MboSet 读取时使用的 Maximo 对象
+// filterField: 按应用过滤的字段(导出 where 条件)
+// appField: 导出 JSON 中需要删除的应用字段(null 表示保留, 如 MAXAPPS.APP)
+var MIGRATE_OBJECTS = [
+    // 主对象: 导出保留 APP, 导入时由 body.app 覆盖(支持复制到其它应用)
+    { key: "maxapps", script: "SKS_MIGRATE_MAXAPPS", objectName: "MAXAPPS", filterField: "APP", appField: null, single: true },
+    // 应用 XML: 每个应用最多一条, 也可能没有; 默认不返回 PRESENTATION 大字段
+    { key: "presentation", script: "SKS_MIGRATE_MAXPRESENTATION", objectName: "MAXPRESENTATION", filterField: "APP", appField: "APP", single: true },
+    // MAF 应用包: 每个应用最多一条, 也可能没有; 默认不返回 zip 字节码(用 _action=exportAppZip 下载)
+    { key: "mafappdata", script: "SKS_MIGRATE_MAFAPPDATA", objectName: "MAFAPPDATA", filterField: "APPID", appField: "APPID", single: true },
+    { key: "sigoptions", script: "SKS_MIGRATE_SIGOPTION", objectName: "SIGOPTION", filterField: "APP", appField: "APP" },
+    { key: "maxlabels", script: "SKS_MIGRATE_MAXLABELS", objectName: "MAXLABELS", filterField: "APP", appField: "APP" },
+    { key: "menus", script: "SKS_MIGRATE_MAXMENU", objectName: "MAXMENU", filterField: "MODULEAPP", appField: "MODULEAPP" },
+    { key: "appdoctype", script: "SKS_MIGRATE_APPDOCTYPE", objectName: "APPDOCTYPE", filterField: "APP", appField: "APP" }
+];
+// APPLICATIONAUTH(应用授权)不纳入应用信息, 后续由安全组导出功能单独处理
+
+/**
+ * 查询启用的语言代码(select MAXLANGCODE,LANGUAGENAME from LANGUAGE where ENABLED=1)
+ * @returns {Array<string>} 大写语言代码, 如 ["EN","ZH"]
+ */
+function getEnabledLangcodes() {
+    var list = [];
+    var langSet = null;
+    try {
+        langSet = MXServer.getMXServer().getMboSet("LANGUAGE", userInfo);
+        langSet.setWhere("ENABLED = 1");
+        langSet.reset();
+        for (var i = 0; i < langSet.count(); i++) {
+            var langMbo = langSet.getMbo(i);
+            if (!langMbo) {
+                continue;
+            }
+            var code = langMbo.getString("MAXLANGCODE");
+            if (code) {
+                list.push(String(code).toUpperCase());
+            }
+        }
+    } catch (e) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] 查询启用语言失败", e);
+    } finally {
+        _close(langSet);
+    }
+    return list;
+}
+
+/**
+ * 构造迁移配置对象(jscustom.SksMigrateParamConfig)
+ * @param {string} apiAction export/imp/add
+ * @param {string} [app] 当前处理的应用
+ * @returns {Object}
+ */
+function buildMigrateConfig(apiAction, app) {
+    var langcode = null;
+    try { langcode = userInfo.getLangCode(); } catch (ignored) { }
+    return {
+        service: service,
+        _userInfo: userInfo,
+        _langcode: langcode,
+        _apiAction: apiAction,
+        _apiMode: "migrate",
+        _apiType: request.getQueryParam("_apiType") || "",
+        _app: app || null,
+        _deferredCloseSets: [],
+        _allLangcode: request.getQueryParam("_allLangcode") === "true",
+        _langcodeList: getEnabledLangcodes(),
+        _errorAssert: request.getQueryParam("_errorAssert") === "true",
+        dmDeploySet: request.getQueryParam("dmDeploySet") === "true"
+    };
+}
+
+/**
+ * 生成随机 uuid(导出时写入每行 sks:uuid, 便于导入结果与导出行对应排查)
+ * @returns {string}
+ */
+function createUuid() {
+    try {
+        return String(Java.type("java.util.UUID").randomUUID());
+    } catch (ignored) {
+        return "";
+    }
+}
+
+/**
+ * 统计当前层级(不含嵌套子数组)的成功/失败数量
+ * @param {Array|Object} list
+ * @returns {{success:number, fail:number}}
+ */
+function countImportLevel(list) {
+    var stat = { success: 0, fail: 0 };
+    if (!list) {
+        return stat;
+    }
+    var rows = Array.isArray(list) ? list : [list];
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row) {
+            continue;
+        }
+        if (row._status === "success") {
+            stat.success++;
+        } else {
+            stat.fail++;
+        }
+    }
+    return stat;
+}
+
+/**
+ * 递归统计成功/失败数量(含行内嵌套数组, 如 sigoptions 的 flags)
+ * @param {Array|Object} list
+ * @returns {{success:number, fail:number}}
+ */
+function countImportRecursive(list) {
+    var stat = countImportLevel(list);
+    if (!list) {
+        return stat;
+    }
+    var rows = Array.isArray(list) ? list : [list];
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row) {
+            continue;
+        }
+        for (var k in row) {
+            if (!row.hasOwnProperty(k) || !Array.isArray(row[k])) {
+                continue;
+            }
+            var child = countImportRecursive(row[k]);
+            stat.success += child.success;
+            stat.fail += child.fail;
+        }
+    }
+    return stat;
+}
+
+/**
+ * 给某个对象导入结果追加统计字段(每行写入, JSON 数组无法挂属性)
+ * sks:successTotal/sks:failTotal: 当前对象本层级成功/失败总数
+ * sks:successSumTotal/sks:failSumTotal: 含嵌套子级(递归)的成功/失败总数
+ * @param {Array|Object} list
+ * @returns {{success:number, fail:number, successSum:number, failSum:number}}
+ */
+function stampImportStats(list) {
+    var own = countImportLevel(list);
+    var all = countImportRecursive(list);
+    if (!list) {
+        return { success: own.success, fail: own.fail, successSum: all.success, failSum: all.fail };
+    }
+    var rows = Array.isArray(list) ? list : [list];
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row) {
+            continue;
+        }
+        row["sks:successTotal"] = own.success;
+        row["sks:failTotal"] = own.fail;
+        row["sks:successSumTotal"] = all.success;
+        row["sks:failSumTotal"] = all.fail;
+    }
+    return { success: own.success, fail: own.fail, successSum: all.success, failSum: all.fail };
+}
+
+/**
+ * 调用迁移脚本方法
+ * @param {string} scriptName
+ * @param {string} method
+ * @param {Object} config
+ * @param {Object} arg1
+ * @param {Object} arg2
+ */
+function invokeMigrate(scriptName, method, config, arg1, arg2) {
+    var sm = service.invokeScript(scriptName);
+    if (!sm || typeof sm[method] !== "function") {
+        throw new ScreenError("migrate_script_missing", scriptName + " 未实现方法 " + method);
+    }
+    return sm[method](config, arg1, arg2);
+}
+
+/**
+ * 关闭延迟关闭的 MboSet
+ * @param {Object} config
+ */
+function closeDeferredSets(config) {
+    var sets = config._deferredCloseSets || [];
+    for (var i = 0; i < sets.length; i++) {
+        _close(sets[i]);
+    }
+    config._deferredCloseSets = [];
+}
+
+/**
+ * 解析导出参数
+ * _include: 逗号分隔, 可选 presentation(含 XML 文本) / zip(含 zipBase64, 仅适合小包)
+ * 默认两者都不含: 只返回两张表的元信息(MAXPRESENTATION 无 PRESENTATION, MAFAPPDATA 无 APP 字节码)
+ */
+function resolveExportOpts() {
+    var include = String(request.getQueryParam("_include") || "").toLowerCase();
+    var opts = {
+        includePresentation: include.indexOf("presentation") >= 0,
+        includeZip: include.indexOf("zip") >= 0
+    };
+    opts._include = include;
+    return opts;
+}
+
+/**
+ * 使用 MboSet 读取对象数据, 每行调用 SKS_MIGRATE_<对象>.getDetail 转 JSON
+ * getDetail 内部会处理字段值与多语言(config._allLangcode=true 时输出 sks:langdata)
+ * @param {Object} obj MIGRATE_OBJECTS 中的对象定义
+ * @param {Object} config 迁移配置
+ * @param {string} app 应用名
+ * @returns {Array<Object>}
+ */
+function loadObjectRows(obj, config, app) {
+    var rows = [];
+    var set = null;
+    try {
+        set = MXServer.getMXServer().getMboSet(obj.objectName, userInfo);
+        if (config.dmDeploySet === true) {
+            try { set.setDMDeploySet(true); } catch (ignored) { }
+        }
+        if (obj.filterField) {
+            var sqlf = new SqlFormat(obj.filterField.toLowerCase() + " = :1");
+            sqlf.setObject(1, obj.objectName, obj.filterField, app);
+            set.setWhere(sqlf.format());
+        }
+        set.reset();
+        var total = set.count();
+        for (var i = 0; i < total; i++) {
+            var mbo = set.getMbo(i);
+            if (!mbo) {
+                continue;
+            }
+            var row = invokeMigrate(obj.script, "getDetail", config, mbo);
+            // 每个导出行写入随机 uuid, 导入结果会带回该值, 便于排查
+            row["sks:uuid"] = createUuid();
+            rows.push(row);
+        }
+    } finally {
+        _close(set);
+    }
+    return rows;
+}
+
+/**
+ * 导出应用信息: 以 MAXAPPS 为主对象, 子表(签名/标签/菜单/文档类型)删除 APP 字段
+ * 附带 MAXPRESENTATION / MAFAPPDATA 的元信息(默认不含 XML 文本与 zip 字节码)
+ * 参数: app 必填; _include=presentation,zip 可选; _allLangcode=true 导出所有启用的语言
+ */
+function exportAppInfo() {
+    var app = request.getQueryParam("app");
+    if (!app || String(app).trim() === "") {
+        throw new ScreenError("missing_app", "缺少app参数");
+    }
+    app = String(app).trim().toUpperCase();
+    var opts = resolveExportOpts();
+    var config = buildMigrateConfig("export", app);
+    config._include = opts._include;
+    config._includePresentation = opts.includePresentation;
+    config._includeZip = opts.includeZip;
+    var data = {
+        app: app,
+        _langcode: config._langcode,
+        _allLangcode: config._allLangcode,
+        _include: opts._include === "" ? null : opts._include,
+        status: "success"
+    };
+    try {
+        for (var i = 0; i < MIGRATE_OBJECTS.length; i++) {
+            var obj = MIGRATE_OBJECTS[i];
+            var rows = loadObjectRows(obj, config, app);
+            if (obj.appField) {
+                for (var j = 0; j < rows.length; j++) {
+                    if (rows[j]) {
+                        delete rows[j][obj.appField];
+                    }
+                }
+            }
+            data[obj.key] = obj.single ? (rows.length > 0 ? rows[0] : null) : rows;
+        }
+    } finally {
+        closeDeferredSets(config);
+    }
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] exportAppInfo 完成: app=" + app + " include=" + opts._include + " allLangcode=" + config._allLangcode);
+    return data;
+}
+
+/**
+ * 导出应用 zip(MAFAPPDATA.APP 字节码)
+ * 默认: responseBody = byte[], 通过 responseHeaders 设置 application/octet-stream
+ * _format=base64: 返回 JSON { fileName, size, zipBase64 }
+ */
+function exportAppZip() {
+    var app = request.getQueryParam("app");
+    if (!app || String(app).trim() === "") {
+        throw new ScreenError("missing_app", "缺少app参数");
+    }
+    app = String(app).trim().toUpperCase();
+    var config = buildMigrateConfig("export", app);
+    var zip = invokeMigrate("SKS_MIGRATE_MAFAPPDATA", "exportZip", config, app);
+    if (!zip || !zip.bytes) {
+        throw new ScreenError("zip_not_found", "应用 " + app + " 没有 MAFAPPDATA zip 数据");
+    }
+    var format = String(request.getQueryParam("_format") || "").toLowerCase();
+    if (format === "base64") {
+        var Base64 = Java.type("java.util.Base64");
+        return {
+            status: "success",
+            app: app,
+            fileName: zip.fileName,
+            size: zip.size,
+            zipBase64: Base64.getEncoder().encodeToString(zip.bytes)
+        };
+    }
+    try {
+        responseHeaders.put("content-type", "application/octet-stream");
+        responseHeaders.put("content-disposition", "attachment; filename=" + zip.fileName);
+    } catch (ignored) { }
+    responseBody = zip.bytes;
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] exportAppZip 完成: app=" + app + " size=" + zip.size);
+    return null;
+}
+
+/**
+ * 导入应用信息: 请求体为 exportAppInfo 的 JSON(可只包含部分对象)
+ * 子表 APP / menus 的 MODULEAPP / mafappdata 的 APPID 统一由 body.app 注入, 便于复制到其它应用
+ */
+function importAppInfo() {
+    var body = JSON.parse(requestBody);
+    if (!body) {
+        throw new ScreenError("empty_body", "请求体为空");
+    }
+    var app = body.app ? String(body.app).trim().toUpperCase() : null;
+    if (!app) {
+        throw new ScreenError("missing_app", "缺少app参数");
+    }
+    var config = buildMigrateConfig("imp", app);
+    var result = { app: app, _apiAction: "imp", status: "success", data: {} };
+    var totalSuccess = 0;
+    var totalFail = 0;
+    try {
+        for (var i = 0; i < MIGRATE_OBJECTS.length; i++) {
+            var obj = MIGRATE_OBJECTS[i];
+            var rows = body[obj.key];
+            if (!rows) {
+                continue;
+            }
+            if (!Array.isArray(rows)) {
+                rows = [rows];
+            }
+            for (var j = 0; j < rows.length; j++) {
+                if (!rows[j]) {
+                    continue;
+                }
+                if (obj.key === "maxapps") {
+                    rows[j].APP = app;
+                } else if (obj.appField) {
+                    rows[j][obj.appField] = app;
+                }
+            }
+            var outRows = invokeMigrate(obj.script, "importApp", config, rows, app);
+            // 当前对象成功/失败总数 + 递归(含 flags 等子级)总数, 写入每行
+            var stat = stampImportStats(outRows);
+            totalSuccess += stat.successSum;
+            totalFail += stat.failSum;
+            result.data[obj.key] = outRows;
+        }
+    } finally {
+        closeDeferredSets(config);
+    }
+    result["sks:successSumTotal"] = totalSuccess;
+    result["sks:failSumTotal"] = totalFail;
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] importAppInfo 完成: app=" + app);
+    return result;
+}
+
 function addConditionalExpressionsMetaData(xml, screenName) {
     var screen = new SAXBuilder().build(new StringReader(xml));
 
@@ -1256,3 +1659,6 @@ var scriptConfig = {
     active: true,
     logLevel: "ERROR"
 };
+
+// 脚本入口: 放在文件末尾, 确保 main() 执行前所有顶层变量(MIGRATE_OBJECTS、ScreenError 原型等)已完成初始化
+main();

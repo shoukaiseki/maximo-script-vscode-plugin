@@ -441,6 +441,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       await config.update('extractZipEnabled', data.extractZipEnabled !== undefined ? data.extractZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('extractXmlZipEnabled', data.extractXmlZipEnabled !== undefined ? data.extractXmlZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('extractXmlIgnoreMetadata', data.extractXmlIgnoreMetadata !== undefined ? data.extractXmlIgnoreMetadata : false, vscode.ConfigurationTarget.Global);
+      await config.update('extractXmlExportMafZip', data.extractXmlExportMafZip !== undefined ? data.extractXmlExportMafZip : false, vscode.ConfigurationTarget.Global);
       await config.update('pullAppXmlIgnoreMetadata', data.pullAppXmlIgnoreMetadata !== undefined ? data.pullAppXmlIgnoreMetadata : false, vscode.ConfigurationTarget.Global);
       await config.update('extractMaxobjectZipEnabled', data.extractMaxobjectZipEnabled !== undefined ? data.extractMaxobjectZipEnabled : false, vscode.ConfigurationTarget.Global);
       await config.update('exportMessageDirectory', data.exportMessageDirectory || '', vscode.ConfigurationTarget.Global);
@@ -898,6 +899,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       extractZipEnabled: config.get('extractZipEnabled', false),
       extractXmlZipEnabled: config.get('extractXmlZipEnabled', false),
             extractXmlIgnoreMetadata: config.get('extractXmlIgnoreMetadata', false),
+            extractXmlExportMafZip: config.get('extractXmlExportMafZip', false),
             pullAppXmlIgnoreMetadata: config.get('pullAppXmlIgnoreMetadata', false),
       extractMaxobjectZipEnabled: config.get('extractMaxobjectZipEnabled', false),
       exportMessageDirectory: config.get('exportMessageDirectory', ''),
@@ -1707,12 +1709,13 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       var loglevel = undefined;
       logger.debug(`[_saveScriptHistory] 正在检查 JSON 文件: ${jsonFilePath}`);
+      var jsonData = null;
       // 检查 JSON 文件是否存在
       if (fs.existsSync(jsonFilePath)) {
         logger.debug(`[_saveScriptHistory] JSON 文件存在，正在读取: ${jsonFilePath}`);
         try {
           const fileContent = fs.readFileSync(jsonFilePath, 'utf-8');
-          const jsonData = JSON.parse(fileContent);
+          jsonData = JSON.parse(fileContent);
           if(jsonData&&jsonData.loglevel!==undefined&&jsonData.loglevel!==null&&jsonData.loglevel!==''){
             loglevel = jsonData.loglevel
           }
@@ -1752,13 +1755,17 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       // 构建历史记录请求
       const historyUrl = `${serverUrl}/api/script/SKS_AUTOSCRIPT_HISTORY_SAVE`;
-      const historyBody = {
+      var historyBody = {
         source: source,
         autoscript: autoscript,
         version: version,
         aliasname: aliasName || '',
         hostname: hostname
       };
+      
+      // if(jsonData&&Reflect.has(jsonData, 'ibm_packagepath')){
+      //   historyBody.ibm_packagepath = jsonData.ibm_packagepath;
+      // }
 
       logger.debug(`[_saveScriptHistory] 正在保存历史记录: ${autoscript}, 版本: ${version}, 主机名: ${hostname}`);
 
@@ -2724,6 +2731,40 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 导出应用的 MAFAPPDATA zip 包（应用没有 MAF 应用包时静默跳过）
+   * @returns ok=true 表示已保存；message 仅在有异常时返回
+   */
+  private async _exportAppMafZip(appName: string, saveDir: string, langcode?: string): Promise<{ ok: boolean; fileName?: string; message?: string }> {
+    try {
+      const params = ['_action=exportAppZip', `app=${encodeURIComponent(appName)}`, '_format=base64'];
+      if (langcode) {
+        params.push(`_langcode=${langcode}`);
+      }
+      const zipResult = await httpRequestToMaximo({
+        url: `script/SKS.AUTOSCRIPT.SCREENS?${params.join('&')}`,
+        method: 'GET'
+      });
+
+      if (zipResult.status !== 200 || !zipResult.data || !zipResult.data.zipBase64) {
+        return { ok: false, message: `HTTP ${zipResult.status}` };
+      }
+
+      const fileName = path.basename(String(zipResult.data.fileName || `${appName}.zip`)) || `${appName}.zip`;
+      const zipFilePath = path.join(saveDir, fileName);
+      fs.writeFileSync(zipFilePath, Buffer.from(zipResult.data.zipBase64, 'base64'));
+      return { ok: true, fileName };
+    } catch (error: any) {
+      const msg = String(error?.message || error);
+      // 应用没有 MAFAPPDATA 数据（zip_not_found）时静默跳过
+      if (msg.includes('zip_not_found') || msg.includes('MAFAPPDATA')) {
+        return { ok: false };
+      }
+      logger.warn(`[ExtractAppXml] 导出 ${appName} 的 MAFAPPDATA zip 失败: ${msg}`);
+      return { ok: false, message: msg };
+    }
+  }
+
+  /**
    * 导出 Maximo 应用 XML
    */
   private async _extractAppXml(directoryPath: string, autoCreateExportDir: boolean = true) {
@@ -2764,6 +2805,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       // 步骤1: 获取所有应用名称
       this._sendToolboxOutput('\n📋 正在获取应用列表...');
       const extractXmlIgnoreMetadata = config.get('extractXmlIgnoreMetadata', false);
+      const extractXmlExportMafZip = config.get('extractXmlExportMafZip', false);
       let screensUrl = `script/SKS.AUTOSCRIPT.SCREENS`;
       if (extractXmlIgnoreMetadata) {
         screensUrl += '?ignoreMetadata=true';
@@ -2791,6 +2833,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
       let successCount = 0;
       let failCount = 0;
+      let mafZipCount = 0;
+      let mafZipFailCount = 0;
       const totalCount = screenNames.length;
       const config2 = vscode.workspace.getConfiguration('maximoScript');
       const MAX_CONCURRENT = config2.get('extractXmlThreadCount', 5);
@@ -2823,6 +2867,18 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
           const xmlFilePath = path.join(exportDir, `${screenName}.xml`);
           fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
           this._sendToolboxOutput(`  ✅ 已保存: ${screenName}.xml`);
+
+          // 可选: 同时导出 MAFAPPDATA 的 zip 包
+          if (extractXmlExportMafZip) {
+            const zipResult = await this._exportAppMafZip(screenName, exportDir);
+            if (zipResult.ok) {
+              mafZipCount++;
+              this._sendToolboxOutput(`  🗜️ 已保存: ${zipResult.fileName}`);
+            } else if (zipResult.message) {
+              mafZipFailCount++;
+              this._sendToolboxOutput(`  ⚠️ zip 导出失败: ${screenName} - ${zipResult.message}`);
+            }
+          }
           return true;
 
         } catch (error: any) {
@@ -2844,6 +2900,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       }
 
       this._sendToolboxOutput(`\n🎉 导出完成！成功: ${successCount}, 失败: ${failCount}`);
+      if (extractXmlExportMafZip) {
+        this._sendToolboxOutput(`🗜️ MAFAPPDATA zip: 已导出 ${mafZipCount} 个${mafZipFailCount > 0 ? `，失败 ${mafZipFailCount} 个` : ''}（没有 MAF 应用包的应用已跳过）`);
+      }
       this._sendToolboxOutput(`📁 保存位置: ${exportDir}`);
 
       // 自动打包ZIP（仅当自动生成目录时有效）
@@ -4956,8 +5015,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         await this._extractScriptsForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN');
         break;
       case 'extractAppXml':
-        this._sendScheduledLog(`  🔄 正在导出应用XML到 ${taskDir}，线程数: ${task.threadCount || 5}`);
-        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.ignoreMetadata || false);
+        this._sendScheduledLog(`  🔄 正在导出应用XML到 ${taskDir}，线程数: ${task.threadCount || 5}${task.exportMafZip ? '，含 MAFAPPDATA zip' : ''}`);
+        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.ignoreMetadata || false, task.exportMafZip || false);
         break;
       default:
         throw new Error(`未知的导出功能: ${exportFunction}`);
@@ -5452,7 +5511,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的应用 XML 导出
    */
-  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, ignoreMetadata: boolean = false): Promise<void> {
+  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, ignoreMetadata: boolean = false, exportMafZip: boolean = false): Promise<void> {
     const config = vscode.workspace.getConfiguration('maximoScript');
     const serverUrl = config.get<string>('serverUrl', '');
     
@@ -5486,6 +5545,8 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
     let currentIndex = 0;
     let completedCount = 0;
+    let mafZipCount = 0;
+    let mafZipFailCount = 0;
     const total = screenNames.length;
 
     const exportSingleApp = async (): Promise<boolean> => {
@@ -5515,6 +5576,17 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
 
         const xmlFilePath = path.join(taskDir, `${screenName.toLowerCase()}.xml`);
         fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
+
+        // 可选: 同时导出 MAFAPPDATA 的 zip 包
+        if (exportMafZip) {
+          const zipResult = await this._exportAppMafZip(screenName, taskDir, language);
+          if (zipResult.ok) {
+            mafZipCount++;
+          } else if (zipResult.message) {
+            mafZipFailCount++;
+          }
+        }
+
         completedCount++;
         this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
         return true;
@@ -5534,6 +5606,9 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     });
 
     await Promise.all(workers);
+    if (exportMafZip) {
+      this._sendScheduledLog(`  🗜️ MAFAPPDATA zip 已导出 ${mafZipCount} 个${mafZipFailCount > 0 ? `，失败 ${mafZipFailCount} 个` : ''}`);
+    }
     this._sendScheduledLog(`  ✅ 应用 XML 导出完成`);
   }
 
