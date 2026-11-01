@@ -178,6 +178,11 @@ function saveOrUpdateAutokey(autokeyData, index) {
     var setid = (autokeyData.setid !== undefined ? autokeyData.setid : autokeyData.setId) || null;
     /** @type {java.lang.Integer} */
     var seed = autokeyData.seed;
+    /** @type {java.lang.Integer} */
+    var defaultSeed = autokeyData.defautSeed;
+    if (defaultSeed === undefined) {
+        defaultSeed = autokeyData.defaultSeed;
+    }
     /** @type {java.lang.String} */
     var prefix = autokeyData.prefix;
     /** @type {java.lang.String} */
@@ -193,12 +198,24 @@ function saveOrUpdateAutokey(autokeyData, index) {
     try {
         // 如果提供了 SITEORGTYPE，按照源代码的逻辑批量创建
         if (siteorgtype && !autokeyData._delete) {
-            createAutokeyBySiteOrgType(autokeyname, siteorgtype, seed, prefix, langcode, index);
-            
-            // 如果同时提供了 siteid，还需要为指定站点创建站点级自动键
-            if (siteid) {
-                logger.info("同时为指定站点 " + siteid + " 创建站点级自动键");
-                createSingleAutokey(autokeyname, siteid, null, null, seed, prefix, langcode);
+            if (siteid || orgid || setid) {
+                // SITEORGTYPE 用于派生其他级别；派生级别只接收 defautSeed
+                createAutokeyBySiteOrgType(autokeyname, siteorgtype, null, defaultSeed, null, langcode, index);
+
+                // seed 和 prefix 只作用于当前导入的明确级别
+                if (siteid) {
+                    logger.info("同时为指定站点 " + siteid + " 创建站点级自动键");
+                    createSingleAutokey(autokeyname, siteid, null, null, seed, defaultSeed, prefix, langcode);
+                } else if (orgid) {
+                    logger.info("同时为指定组织 " + orgid + " 创建组织级自动键");
+                    createSingleAutokey(autokeyname, null, orgid, null, seed, defaultSeed, prefix, langcode);
+                } else {
+                    logger.info("同时为指定集合 " + setid + " 创建集合级自动键");
+                    createSingleAutokey(autokeyname, null, null, setid, seed, defaultSeed, prefix, langcode);
+                }
+            } else {
+                // 未指定明确的当前级别时，SITEORGTYPE 生成的记录就是导入目标
+                createAutokeyBySiteOrgType(autokeyname, siteorgtype, seed, defaultSeed, prefix, langcode, index);
             }
             
             return;
@@ -347,26 +364,13 @@ function saveOrUpdateAutokey(autokeyData, index) {
             }
         }
 
-        // 查找或创建自动键（findOrCreateAutokey 会保存记录）
+        // 查找或创建自动键（findOrCreateAutokey 会在保存前设置字段）
         logger.info("准备创建/更新自动键: AUTOKEYNAME=" + autokeyname + ", siteid=" + siteid + ", orgid=" + orgid + ", setid=" + setid);
-        var autokeyMbo = findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid);
+        var autokeyResult = findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid,
+                                                seed, defaultSeed, prefix, langcode);
+        var autokeyMbo = autokeyResult ? autokeyResult.autokeyMbo : null;
         if (autokeyMbo) {
             logger.info("自动键 MBO 获取成功: " + autokeyMbo.getString("AUTOKEYNAME"));
-            
-            // 如果需要更新其他字段（seed, prefix, langcode），需要再次保存
-            var needUpdate = false;
-            if (seed !== undefined && seed !== null) { needUpdate = true; }
-            if (prefix !== undefined && prefix !== null && prefix !== 'undefined') { needUpdate = true; }
-            if (langcode !== undefined && langcode !== null && langcode !== 'undefined') { needUpdate = true; }
-            
-            if (needUpdate) {
-                logger.info("需要更新额外字段: seed=" + seed + ", prefix=" + prefix + ", langcode=" + langcode);
-                updateAutokeyFields(autokeyMbo, seed, prefix, langcode);
-                // 重新获取 saveSet 并保存
-                var updateSaveSet = autokeyMbo.getThisMboSet();
-                updateSaveSet.save();
-                logger.info("额外字段更新并保存成功");
-            }
         } else {
             logger.error("无法获取或创建自动键 MBO");
         }
@@ -407,11 +411,12 @@ function __mboSetClose(set) {
  * @param {java.lang.String} autokeyname - 自动键名称
  * @param {java.lang.String} siteorgtypeExternal - 外部 SITEORGTYPE 值
  * @param {java.lang.Integer} seed - 种子值
+ * @param {java.lang.Integer} defaultSeed - 新建自动键的默认种子值
  * @param {java.lang.String} prefix - 前缀
  * @param {java.lang.String} langcode - 语言代码
  * @param {number} index - 当前处理的索引（用于错误提示）
  */
-function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, prefix, langcode, index) {
+function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, defaultSeed, prefix, langcode, index) {
     /** @type {psdi.mbo.MboSetRemote} */
     var orgSet = null;
     /** @type {psdi.mbo.MboSetRemote} */
@@ -430,7 +435,7 @@ function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, pref
         if (siteorgtype.indexOf("SYSTEM") >= 0) {
             // 系统级：创建一个系统级自动键
             logger.info("创建系统级自动键");
-            createSingleAutokey(autokeyname, null, null, null, seed, prefix, langcode);
+            createSingleAutokey(autokeyname, null, null, null, seed, defaultSeed, prefix, langcode);
 
         } else if (siteorgtype !== "ORG" && siteorgtype !== "ORGSITE" &&
                    siteorgtype !== "ORGAPPFILTER" && siteorgtype !== "SITE" &&
@@ -455,7 +460,7 @@ function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, pref
                 /** @type {psdi.mbo.MboRemote} */
                 var setMbo = setSet.moveFirst();
                 while (setMbo) {
-                    createSingleAutokey(autokeyname, null, null, setMbo.getString("SETID"), seed, prefix, langcode);
+                    createSingleAutokey(autokeyname, null, null, setMbo.getString("SETID"), seed, defaultSeed, prefix, langcode);
                     count++;
                     setMbo = setSet.moveNext();
                 }
@@ -479,7 +484,7 @@ function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, pref
                 /** @type {psdi.mbo.MboRemote} */
                 var setMbo = setSet.moveFirst();
                 while (setMbo) {
-                    createSingleAutokey(autokeyname, null, null, setMbo.getString("SETID"), seed, prefix, langcode);
+                    createSingleAutokey(autokeyname, null, null, setMbo.getString("SETID"), seed, defaultSeed, prefix, langcode);
                     count++;
                     setMbo = setSet.moveNext();
                 }
@@ -499,7 +504,7 @@ function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, pref
             /** @type {psdi.mbo.MboRemote} */
             var orgMbo = orgSet.moveFirst();
             while (orgMbo) {
-                createSingleAutokey(autokeyname, null, orgMbo.getString("ORGID"), null, seed, prefix, langcode);
+                createSingleAutokey(autokeyname, null, orgMbo.getString("ORGID"), null, seed, defaultSeed, prefix, langcode);
                 count++;
                 orgMbo = orgSet.moveNext();
             }
@@ -524,10 +529,11 @@ function createAutokeyBySiteOrgType(autokeyname, siteorgtypeExternal, seed, pref
  * @param {java.lang.String} orgid - 组织ID
  * @param {java.lang.String} setid - 集合ID
  * @param {java.lang.Integer} seed - 种子值
+ * @param {java.lang.Integer} defaultSeed - 新建自动键的默认种子值
  * @param {java.lang.String} prefix - 前缀
  * @param {java.lang.String} langcode - 语言代码
  */
-function createSingleAutokey(autokeyname, siteid, orgid, setid, seed, prefix, langcode) {
+function createSingleAutokey(autokeyname, siteid, orgid, setid, seed, defaultSeed, prefix, langcode) {
     // 确保参数中的 undefined 被转换为 null
     siteid = (siteid !== undefined) ? siteid : null;
     orgid = (orgid !== undefined) ? orgid : null;
@@ -564,13 +570,11 @@ function createSingleAutokey(autokeyname, siteid, orgid, setid, seed, prefix, la
         }
 
         // 查找或创建自动键
-        var autokeyMbo = findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid);
-        if (!autokeyMbo) {
+        var autokeyResult = findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid,
+                                                seed, defaultSeed, prefix, langcode);
+        if (!autokeyResult || !autokeyResult.autokeyMbo) {
             throw new Error("无法创建或获取自动键");
         }
-        
-        updateAutokeyFields(autokeyMbo, seed, prefix, langcode);
-        autokeySet.save();
 
         logger.info("创建自动键成功: AUTOKEYNAME=" + autokeyname +
                     ", SITEID=" + (siteid || "null") +
@@ -605,11 +609,18 @@ function createSingleAutokey(autokeyname, siteid, orgid, setid, seed, prefix, la
  * @param {java.lang.String} siteid - 站点ID
  * @param {java.lang.String} orgid - 组织ID
  * @param {java.lang.String} setid - 集合ID
- * @returns {psdi.mbo.MboRemote} 自动键 MBO
+ * @param {java.lang.Integer} seed - 种子值，存在时更新当前级别
+ * @param {java.lang.Integer} defaultSeed - 默认种子值，仅在新建记录时设置
+ * @param {java.lang.String} prefix - 当前级别前缀
+ * @param {java.lang.String} langcode - 语言代码
+ * @returns {{autokeyMbo: psdi.mbo.MboRemote, created: boolean}} 自动键 MBO 和是否为新建记录
  */
-function findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid) {
+function findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid, seed, defaultSeed, prefix, langcode) {
     /** @type {psdi.mbo.MboRemote} */
     var autokeyMbo = null;
+    var created = false;
+    /** @type {psdi.mbo.MboSetRemote} */
+    var saveSet = null;
     /** @type {psdi.mbo.MboRemote} */
     var ownerMbo = null;
     /** @type {psdi.mbo.MboSetRemote} */
@@ -654,8 +665,7 @@ function findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid) {
             // 已存在，返回现有记录
             logger.info("自动键已存在，更新: AUTOKEYNAME=" + autokeyname);
             autokeyMbo = autokeySet.getMbo(0);
-            // 保存现有记录
-            autokeySet.save();
+            saveSet = autokeySet;
         } else {
             // 不存在，创建新记录
             logger.info("创建新自动键: AUTOKEYNAME=" + autokeyname);
@@ -711,12 +721,14 @@ function findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid) {
             // 尝试创建记录
             try {
                 autokeyMbo = parentAutokeySet.add();
+                saveSet = parentAutokeySet;
             } catch (e) {
                 logger.warn("通过父 MBO 创建失败，尝试直接创建: " + (e.message || String(e)));
                 // 如果失败，清除 where 条件后直接添加
                 autokeySet.setWhere("");
                 autokeySet.reset();
                 autokeyMbo = autokeySet.add();
+                saveSet = autokeySet;
             }
             
             if (!autokeyMbo) {
@@ -757,19 +769,39 @@ function findOrCreateAutokey(autokeySet, autokeyname, siteid, orgid, setid) {
                 logger.info("已清除所有级别字段 (系统级)");
             }
             
-            // 保存记录 - 使用 parentAutokeySet
+            created = true;
+        }
+
+        // 在保存前设置字段，避免父 MBO 集合关闭后更新丢失
+        updateAutokeyFields(autokeyMbo, seed, defaultSeed, prefix, langcode, created);
+
+        if (!saveSet) {
+            saveSet = autokeySet;
+        }
+
+        if (created) {
+            // 保存新记录
             logger.info("准备保存自动键记录...");
-            parentAutokeySet.save();
+            saveSet.save();
             logger.info("自动键记录保存成功");
-            
+
             // 验证保存
             logger.info("验证保存: autokeyname=" + autokeyMbo.getString("AUTOKEYNAME") + 
                         ", siteid=" + (autokeyMbo.getString("SITEID") || "null") +
                         ", orgid=" + (autokeyMbo.getString("ORGID") || "null") +
-                        ", setid=" + (autokeyMbo.getString("SETID") || "null"));
+                        ", setid=" + (autokeyMbo.getString("SETID") || "null") +
+                        ", prefix=" + (autokeyMbo.getString("PREFIX") || "null") +
+                        ", seed=" + autokeyMbo.getLong("SEED"));
+        } else {
+            logger.info("准备更新自动键记录...");
+            saveSet.save();
+            logger.info("自动键记录更新成功");
         }
         
-        return autokeyMbo;
+        return {
+            autokeyMbo: autokeyMbo,
+            created: created
+        };
         
     } finally {
         // 清理资源 - 注意：关闭 ownerSet 会自动关闭 parentAutokeySet
@@ -797,14 +829,20 @@ function __mboSetClose(set) {
  * 更新自动键字段
  * @param {psdi.mbo.MboRemote} autokeyMbo - 自动键 MBO
  * @param {java.lang.Integer} seed - 种子值
+ * @param {java.lang.Integer} defaultSeed - 默认种子值
  * @param {java.lang.String} prefix - 前缀
  * @param {java.lang.String} langcode - 语言代码
+ * @param {boolean} created - 是否为新创建记录
  */
-function updateAutokeyFields(autokeyMbo, seed, prefix, langcode) {
+function updateAutokeyFields(autokeyMbo, seed, defaultSeed, prefix, langcode, created) {
     if (seed !== null && seed !== undefined && seed !== 'undefined') {
         autokeyMbo.setValue("SEED", seed);
     }
-    if (prefix && prefix !== 'undefined') {
+    if (created && (seed === null || seed === undefined || seed === 'undefined') &&
+        defaultSeed !== null && defaultSeed !== undefined && defaultSeed !== 'undefined') {
+        autokeyMbo.setValue("SEED", defaultSeed);
+    }
+    if (prefix !== null && prefix !== undefined && prefix !== 'undefined') {
         autokeyMbo.setValue("PREFIX", prefix);
     }
     if (langcode && langcode !== 'undefined') {

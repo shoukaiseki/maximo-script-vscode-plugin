@@ -2846,38 +2846,59 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         try {
           this._sendToolboxOutput(`[${index + 1}/${totalCount}] 正在导出: ${screenName}`);
 
-          const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}${extractXmlIgnoreMetadata ? '?ignoreMetadata=true' : ''}`;
-          const screenResult = await httpRequestToMaximo({
-            url: screenUrl,
+          // 步骤1: 导出应用信息 JSON
+          const appInfoUrl = `script/SKS.AUTOSCRIPT.SCREENS?_action=exportAppInfo&app=${encodeURIComponent(screenName)}&_include=presentation`;
+          const appInfoResult = await httpRequestToMaximo({
+            url: appInfoUrl,
             method: 'GET'
           });
 
-          if (screenResult.status !== 200 || !screenResult.data) {
-            this._sendToolboxOutput(`  ❌ 获取失败: ${screenName} - HTTP ${screenResult.status}`);
+          if (appInfoResult.status !== 200 || !appInfoResult.data) {
+            this._sendToolboxOutput(`  ❌ 获取失败: ${screenName} - HTTP ${appInfoResult.status}`);
             return false;
           }
 
-          const presentation = screenResult.data.presentation;
-          if (!presentation) {
-            this._sendToolboxOutput(`  ⚠️ 应用 ${screenName} 没有 Presentation XML`);
+          let appInfo: any = appInfoResult.data;
+          if (typeof appInfo === 'string') {
+            appInfo = JSON.parse(appInfo.replace(/^\uFEFF/, '').trim());
+          }
+          if (appInfo && appInfo.code !== undefined && appInfo.data) {
+            appInfo = appInfo.data;
+          }
+          if (!appInfo || appInfo.status === 'error') {
+            this._sendToolboxOutput(`  ❌ 导出失败: ${screenName} - 接口返回异常`);
             return false;
           }
 
-          // 保存 XML 文件
-          const xmlFilePath = path.join(exportDir, `${screenName}.xml`);
-          fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
-          this._sendToolboxOutput(`  ✅ 已保存: ${screenName}.xml`);
+          const appName = String(appInfo.app || screenName).toUpperCase();
 
-          // 可选: 同时导出 MAFAPPDATA 的 zip 包
-          if (extractXmlExportMafZip) {
-            const zipResult = await this._exportAppMafZip(screenName, exportDir);
-            if (zipResult.ok) {
-              mafZipCount++;
-              this._sendToolboxOutput(`  🗜️ 已保存: ${zipResult.fileName}`);
-            } else if (zipResult.message) {
-              mafZipFailCount++;
-              this._sendToolboxOutput(`  ⚠️ zip 导出失败: ${screenName} - ${zipResult.message}`);
+          // 保存应用信息 JSON
+          const jsonFilePath = path.join(exportDir, `${appName}.json`);
+          fs.writeFileSync(jsonFilePath, JSON.stringify(appInfo, null, 2), 'utf-8');
+
+          // 步骤2: 根据 JSON 判断是否包含应用 XML
+          const presentationXml = appInfo.presentation && appInfo.presentation.PRESENTATION;
+          if (typeof presentationXml === 'string' && presentationXml.trim() !== '') {
+            fs.writeFileSync(path.join(exportDir, `${appName}.xml`), presentationXml, 'utf-8');
+            this._sendToolboxOutput(`  ✅ 已保存: ${appName}.json / ${appName}.xml`);
+          } else {
+            this._sendToolboxOutput(`  ✅ 已保存: ${appName}.json（无应用 XML，跳过 xml）`);
+          }
+
+          // 步骤3: MAFAPPDATA 类型且启用开关时导出 zip
+          if (appInfo.mafappdata) {
+            if (extractXmlExportMafZip) {
+              const zipResult = await this._exportAppMafZip(appName, exportDir);
+              if (zipResult.ok) {
+                mafZipCount++;
+                this._sendToolboxOutput(`  🗜️ 已保存: ${zipResult.fileName}`);
+              } else if (zipResult.message) {
+                mafZipFailCount++;
+                this._sendToolboxOutput(`  ⚠️ zip 导出失败: ${appName} - ${zipResult.message}`);
+              }
             }
+          } else if (extractXmlExportMafZip) {
+            this._sendToolboxOutput(`  ℹ️ ${appName} 不是 MAFAPPDATA 类型，跳过 zip`);
           }
           return true;
 
@@ -5555,31 +5576,46 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
       const screenName = screenNames[index];
 
       try {
-        const screenUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
-        const screenResult = await httpRequestToMaximo({
-          url: screenUrl,
+        // 步骤1: 导出应用信息 JSON
+        const appInfoUrl = `script/SKS.AUTOSCRIPT.SCREENS?_action=exportAppInfo&app=${encodeURIComponent(screenName)}&_include=presentation&_langcode=${language}`;
+        const appInfoResult = await httpRequestToMaximo({
+          url: appInfoUrl,
           method: 'GET'
         });
 
-        if (screenResult.status !== 200 || !screenResult.data) {
+        if (appInfoResult.status !== 200 || !appInfoResult.data) {
           completedCount++;
           this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
           return false;
         }
 
-        const presentation = screenResult.data.presentation;
-        if (!presentation) {
+        let appInfo: any = appInfoResult.data;
+        if (typeof appInfo === 'string') {
+          appInfo = JSON.parse(appInfo.replace(/^\uFEFF/, '').trim());
+        }
+        if (appInfo && appInfo.code !== undefined && appInfo.data) {
+          appInfo = appInfo.data;
+        }
+        if (!appInfo || appInfo.status === 'error') {
           completedCount++;
           this._updateScheduledTaskProgress(taskIndex, completedCount, total, `${screenName}`);
           return false;
         }
 
-        const xmlFilePath = path.join(taskDir, `${screenName.toLowerCase()}.xml`);
-        fs.writeFileSync(xmlFilePath, presentation, 'utf-8');
+        const appName = String(appInfo.app || screenName).toUpperCase();
 
-        // 可选: 同时导出 MAFAPPDATA 的 zip 包
-        if (exportMafZip) {
-          const zipResult = await this._exportAppMafZip(screenName, taskDir, language);
+        // 保存应用信息 JSON
+        fs.writeFileSync(path.join(taskDir, `${appName}.json`), JSON.stringify(appInfo, null, 2), 'utf-8');
+
+        // 步骤2: 根据 JSON 判断是否包含应用 XML
+        const presentationXml = appInfo.presentation && appInfo.presentation.PRESENTATION;
+        if (typeof presentationXml === 'string' && presentationXml.trim() !== '') {
+          fs.writeFileSync(path.join(taskDir, `${appName}.xml`), presentationXml, 'utf-8');
+        }
+
+        // 步骤3: MAFAPPDATA 类型且启用导出 zip 时下载
+        if (appInfo.mafappdata && exportMafZip) {
+          const zipResult = await this._exportAppMafZip(appName, taskDir, language);
           if (zipResult.ok) {
             mafZipCount++;
           } else if (zipResult.message) {

@@ -231,6 +231,44 @@ export class PushToMultipleEnvs {
     return { version, logLevel: loglevel, skip: false };
   }
 
+  /** 读取本地脚本 JSON 元数据（包名、描述、语言、激活状态等），用于新增脚本或补齐部署字段 */
+  private static readLocalScriptMeta(
+    autoscript: string,
+    scriptStoragePath: string,
+    logger: vscode.LogOutputChannel,
+    filePath?: string
+  ): { version?: string; packagePath?: string; description?: string; scriptlanguage?: string; active?: boolean } {
+    let jsonFilePath: string;
+    if (filePath) {
+      jsonFilePath = path.join(path.dirname(filePath), `${autoscript}.json`);
+    } else {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        return {};
+      }
+      jsonFilePath = path.join(workspaceFolders[0].uri.fsPath, scriptStoragePath || 'masscript', `${autoscript}.json`);
+    }
+
+    if (!fs.existsSync(jsonFilePath)) {
+      return {};
+    }
+
+    try {
+      const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
+      const meta: { version?: string; packagePath?: string; description?: string; scriptlanguage?: string; active?: boolean } = {};
+      if (jsonData.version) { meta.version = String(jsonData.version); }
+      const packagePath = jsonData.ibm_packagepath || jsonData.IBM_PACKAGEPATH || jsonData.PACKAGEPATH;
+      if (typeof packagePath === 'string' && packagePath.trim() !== '') { meta.packagePath = packagePath.trim(); }
+      if (jsonData.description) { meta.description = String(jsonData.description); }
+      if (jsonData.scriptlanguage) { meta.scriptlanguage = String(jsonData.scriptlanguage).toLowerCase(); }
+      if (jsonData.active !== undefined) { meta.active = jsonData.active === true || jsonData.active === 1 || jsonData.active === '1'; }
+      return meta;
+    } catch (e: any) {
+      logger.warn(`[MultiEnv][pushScript] 读取本地 JSON 元数据失败: ${e.message}`);
+      return {};
+    }
+  }
+
   /** 保存脚本历史记录（按环境服务器地址提交） */
   private static async saveScriptHistory(
     autoscript: string,
@@ -413,7 +451,7 @@ export class PushToMultipleEnvs {
         logger.error(`[MultiEnv][pushScript] 保存历史记录失败: ${historyError.message}`);
       }
 
-      // 步骤1: 检查脚本是否存在
+      // 步骤2: 检查脚本是否存在
       const checkUrl = `os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${autoscript}"`;
       const checkResult = await httpRequestToMaximo({
         url: checkUrl,
@@ -421,16 +459,52 @@ export class PushToMultipleEnvs {
         ...overridesOf(env)
       });
 
+      let scriptExists = false;
       if (checkResult.status === 200 && checkResult.data) {
         const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
-        if (memberCount === 0) {
-          return { success: false, errorMessage: '脚本不存在,需要先新建,或者导入' };
-        }
+        scriptExists = memberCount > 0;
       } else {
         return { success: false, errorMessage: `检查脚本失败: ${checkResult.status}` };
       }
 
-      // 步骤2-3: 构建部署请求
+      // 读取本地 JSON 元数据（包名、描述、语言、激活状态等）
+      const localMeta = PushToMultipleEnvs.readLocalScriptMeta(autoscript, scriptStoragePath, logger, filePath);
+
+      // 步骤3: 脚本不存在时自动新增
+      if (!scriptExists) {
+        const createBody: any = {
+          'spi:autoscript': autoscript,
+          'spi:description': localMeta.description || autoscript,
+          'spi:scriptlanguage': localMeta.scriptlanguage || 'nashorn',
+          'spi:active': localMeta.active !== undefined ? localMeta.active : true,
+          'spi:source': source.replace(/\r\n/g, '\n')
+        };
+        const createVersion = historyResult.version || localMeta.version;
+        if (createVersion) { createBody['spi:version'] = createVersion; }
+        if (historyResult.logLevel !== undefined && historyResult.logLevel !== null && historyResult.logLevel !== '') {
+          createBody['spi:loglevel'] = historyResult.logLevel;
+        }
+        if (localMeta.packagePath) { createBody['spi:ibm_packagepath'] = localMeta.packagePath; }
+
+        const createResult = await httpRequestToMaximo({
+          url: 'os/MXAPIAUTOSCRIPT',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: createBody,
+          ...overridesOf(env)
+        });
+
+        if (createResult.data && createResult.data.status && createResult.data.status === 'error') {
+          return { success: false, errorMessage: `新增脚本失败: ${JSON.stringify(createResult.data.message || createResult.data)}` };
+        }
+        if (createResult.status === 200 || createResult.status === 201) {
+          logger.info(`[MultiEnv][pushScript] ✅ 脚本不存在，已新增: ${autoscript} @ ${env.envnum}`);
+          return { success: true };
+        }
+        return { success: false, errorMessage: `新增脚本失败: ${createResult.status} ${JSON.stringify(createResult.data)}` };
+      }
+
+      // 步骤4-5: 构建部署请求
       const deployUrl = `os/MXSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
       const deployBody: any = {};
       if (!deployBody['spi:autoscript']) { deployBody['spi:autoscript'] = autoscript; }
@@ -439,8 +513,10 @@ export class PushToMultipleEnvs {
       if (historyResult.logLevel !== undefined && historyResult.logLevel !== null && historyResult.logLevel !== '') {
         deployBody['spi:loglevel'] = historyResult.logLevel;
       }
+      // 带上本地包名
+      if (localMeta.packagePath) { deployBody['spi:ibm_packagepath'] = localMeta.packagePath; }
 
-      // 步骤4: 发送请求
+      // 步骤6: 发送请求
       const deployResult = await httpRequestToMaximo({
         url: deployUrl,
         method: 'POST',
