@@ -17,9 +17,12 @@ load('nashorn:mozilla_compat.js');
 var MXServer = Java.type("psdi.server.MXServer");
 var SqlFormat = Java.type("psdi.mbo.SqlFormat");
 var MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+var MboConstants = Java.type("psdi.mbo.MboConstants");
 var StringReader = Java.type("java.io.StringReader");
 
 var scriptName = service.getScriptName();
+// 通过 invokeScript 调用本脚本时 service 可能不在闭包作用域, 顶层先捕获, 函数内统一使用 svc
+var svc = service;
 var mxserver = MXServer.getMXServer();
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
 var sksLogAnsiUtils = null;
@@ -27,6 +30,12 @@ try {
     sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
 } catch (e) { }
 var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true }) : loggerMX;
+// SKS_COMMONS_UTILS 工具脚本(按 Mbo 类型取值/设值, 缺失时回退旧逻辑)
+var sksCommonsUtils = null;
+try {
+    sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+} catch (ignored) { }
+var OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
 var OBJECT_NAME = "MAXPRESENTATION";
 var APP_FIELD = "APP";
@@ -77,7 +86,24 @@ function getDetail(config, mbo) {
     if (!mbo) {
         return row;
     }
-    readMboFields(config, mbo, row, resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS));
+    var fields = resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS);
+    var aliasMap = {};
+    for (var i = 0; i < fields.length; i++) {
+        aliasMap[fields[i]] = fields[i];
+    }
+    if (sksCommonsUtils) {
+        try {
+            // 按 Mbo 字段类型取值(整数/小数/YORN/日期), 避免 getString 的千分位格式化
+            row = JSON.parse(String(sksCommonsUtils.mboToOrderJSONObject(svc, new OrderedJSONObject(), mbo, aliasMap)));
+        } catch (e) {
+            logger.error("[" + scriptName + "] getDetail mboToOrderJSONObject 失败", e);
+            row = {};
+        }
+    }
+    if (!sksCommonsUtils || Object.keys(row).length === 0) {
+        readMboFields(config, mbo, row, fields);
+    }
+    appendLangData(config, mbo, row, fields);
     var xml = null;
     try { xml = mbo.getString("PRESENTATION"); } catch (ignored) { xml = null; }
     if (xml !== null && xml !== undefined) {
@@ -92,20 +118,36 @@ function getDetail(config, mbo) {
 }
 
 /**
- * 读取 Mbo 字段到 row; 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * 读取 Mbo 字段到 row(回退旧逻辑: 全部按 getString 取值)
  * @param {jscustom.SksMigrateParamConfig} config
  * @param {psdi.mbo.Mbo} mbo
  * @param {Object} row
  * @param {Array<string>} fields
  */
 function readMboFields(config, mbo, row, fields) {
+    for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
+        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
+    }
+}
+
+/**
+ * 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * @param {jscustom.SksMigrateParamConfig} config
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {Object} row
+ * @param {Array<string>} fields
+ */
+function appendLangData(config, mbo, row, fields) {
     var langcodes = (config && config._allLangcode === true && config._langcodeList) ? config._langcodeList : [];
+    if (langcodes.length === 0) {
+        return;
+    }
     var langData = {};
     var hasLangData = false;
     for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
-        if (langcodes.length === 0 || !isMlInUse(mbo, f)) {
+        if (!isMlInUse(mbo, f)) {
             continue;
         }
         var vals = {};
@@ -300,21 +342,23 @@ function changeMbo(config, data) {
                     }
                 }
                 out._operation = "updated";
-            } else if (String(xml) !== "") {
+            } else {
+                // 新增时如果没有 XML 内容, 写入默认的空 systemlib 模板
+                var xmlText = String(xml);
+                if (xmlText === "") {
+                    xmlText = defaultPresentationXml(appValue);
+                }
                 var insPs = null;
                 try {
                     insPs = conn.prepareStatement("INSERT INTO " + OBJECT_NAME +
                         " (MAXPRESENTATIONID, " + APP_FIELD + ", PRESENTATION) VALUES (NEXT VALUE FOR MAXPRESENTATIONSEQ, ?, ?)");
                     insPs.setString(1, appValue);
-                    insPs.setCharacterStream(2, new StringReader(String(xml)), String(xml).length);
+                    insPs.setCharacterStream(2, new StringReader(xmlText), xmlText.length);
                     insPs.executeUpdate();
                 } finally {
                     _closeOnly(insPs);
                 }
                 out._operation = "added";
-            } else {
-                out._status = "skipped";
-                out._message = "无 XML 内容, 未新增记录";
             }
         }
         conn.commit();
@@ -340,6 +384,18 @@ function changeMbo(config, data) {
     }
     out["sks:ref"] = ref;
     return out;
+}
+
+/**
+ * 新增 presentation 且无 XML 内容时的默认模板(id 取小写应用名)
+ * @param {string} appValue
+ * @returns {string}
+ */
+function defaultPresentationXml(appValue) {
+    var appId = String(appValue || "").toLowerCase();
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<systemlib  id="' + appId + '" version="7.1.0.0" xsi:nonamespaceschemalocation="../../../applications/maximo/properties/systemlib.xsd">\n' +
+        '</systemlib>';
 }
 
 /**
@@ -427,19 +483,3 @@ function queryRows(config, sql, appValue, skipColumns) {
     }
     return rows;
 }
-
-/**
- * 返回脚本对外方法(供 service.invokeScript 使用)
- */
-function main() {
-    return {
-        getScriptSigoption: getScriptSigoption,
-        getDetail: getDetail,
-        exportApp: exportApp,
-        importApp: importApp,
-        changeMbo: changeMbo,
-        _close: _close
-    };
-}
-
-main();

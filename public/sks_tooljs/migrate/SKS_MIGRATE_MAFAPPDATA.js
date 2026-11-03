@@ -17,9 +17,12 @@ load('nashorn:mozilla_compat.js');
 var MXServer = Java.type("psdi.server.MXServer");
 var SqlFormat = Java.type("psdi.mbo.SqlFormat");
 var MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
+var MboConstants = Java.type("psdi.mbo.MboConstants");
 var Base64 = Java.type("java.util.Base64");
 
 var scriptName = service.getScriptName();
+// 通过 invokeScript 调用本脚本时 service 可能不在闭包作用域, 顶层先捕获, 函数内统一使用 svc
+var svc = service;
 var mxserver = MXServer.getMXServer();
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
 var sksLogAnsiUtils = null;
@@ -27,6 +30,12 @@ try {
     sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
 } catch (e) { }
 var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true }) : loggerMX;
+// SKS_COMMONS_UTILS 工具脚本(按 Mbo 类型取值/设值, 缺失时回退旧逻辑)
+var sksCommonsUtils = null;
+try {
+    sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+} catch (ignored) { }
+var OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
 var OBJECT_NAME = "MAFAPPDATA";
 var APP_FIELD = "APPID";
@@ -78,7 +87,24 @@ function getDetail(config, mbo) {
     if (!mbo) {
         return row;
     }
-    readMboFields(config, mbo, row, resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS));
+    var fields = resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS);
+    var aliasMap = {};
+    for (var i = 0; i < fields.length; i++) {
+        aliasMap[fields[i]] = fields[i];
+    }
+    if (sksCommonsUtils) {
+        try {
+            // 按 Mbo 字段类型取值(整数/小数/YORN/日期), 避免 getString 的千分位格式化
+            row = JSON.parse(String(sksCommonsUtils.mboToOrderJSONObject(svc, new OrderedJSONObject(), mbo, aliasMap)));
+        } catch (e) {
+            logger.error("[" + scriptName + "] getDetail mboToOrderJSONObject 失败", e);
+            row = {};
+        }
+    }
+    if (!sksCommonsUtils || Object.keys(row).length === 0) {
+        readMboFields(config, mbo, row, fields);
+    }
+    appendLangData(config, mbo, row, fields);
     try { row["sks:ref"] = mbo.getString(APP_FIELD); } catch (ignored) { }
     var appValue = String(row[APP_FIELD] || "").trim().toUpperCase();
     if (config && config._includeZip === true) {
@@ -129,20 +155,36 @@ function queryZipSize(config, appValue) {
 }
 
 /**
- * 读取 Mbo 字段到 row; 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * 读取 Mbo 字段到 row(回退旧逻辑: 全部按 getString 取值)
  * @param {jscustom.SksMigrateParamConfig} config
  * @param {psdi.mbo.Mbo} mbo
  * @param {Object} row
  * @param {Array<string>} fields
  */
 function readMboFields(config, mbo, row, fields) {
+    for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
+        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
+    }
+}
+
+/**
+ * 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * @param {jscustom.SksMigrateParamConfig} config
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {Object} row
+ * @param {Array<string>} fields
+ */
+function appendLangData(config, mbo, row, fields) {
     var langcodes = (config && config._allLangcode === true && config._langcodeList) ? config._langcodeList : [];
+    if (langcodes.length === 0) {
+        return;
+    }
     var langData = {};
     var hasLangData = false;
     for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
-        if (langcodes.length === 0 || !isMlInUse(mbo, f)) {
+        if (!isMlInUse(mbo, f)) {
             continue;
         }
         var vals = {};
@@ -586,20 +628,3 @@ function queryRows(config, sql, appValue, skipColumns) {
     }
     return rows;
 }
-
-/**
- * 返回脚本对外方法(供 service.invokeScript 使用)
- */
-function main() {
-    return {
-        getScriptSigoption: getScriptSigoption,
-        getDetail: getDetail,
-        exportApp: exportApp,
-        exportZip: exportZip,
-        importApp: importApp,
-        changeMbo: changeMbo,
-        _close: _close
-    };
-}
-
-main();

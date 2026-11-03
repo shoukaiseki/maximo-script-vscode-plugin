@@ -1049,24 +1049,39 @@ var MIGRATE_OBJECTS = [
 // APPLICATIONAUTH(应用授权)不纳入应用信息, 后续由安全组导出功能单独处理
 
 /**
- * 查询启用的语言代码(select MAXLANGCODE,LANGUAGENAME from LANGUAGE where ENABLED=1)
+ * 查询语言代码: 优先 MXServer.getLanguageList(), 失败时回退 LANGUAGE 表 ENABLED=1
  * @returns {Array<string>} 大写语言代码, 如 ["EN","ZH"]
  */
 function getEnabledLangcodes() {
     var list = [];
+    // 与导入 setMLValue 一致: 优先使用 MXServer.getLanguageList() ([0]=语言代码, [1]=语言名)
+    try {
+        var langs = MXServer.getMXServer().getLanguageList();
+        for (var i = 0; i < langs.length; i++) {
+            var code = langs[i][0] ? String(langs[i][0]).toUpperCase() : "";
+            if (code) {
+                list.push(code);
+            }
+        }
+    } catch (e) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] getLanguageList 失败, 回退 LANGUAGE 表", e);
+    }
+    if (list.length > 0) {
+        return list;
+    }
     var langSet = null;
     try {
         langSet = MXServer.getMXServer().getMboSet("LANGUAGE", userInfo);
         langSet.setWhere("ENABLED = 1");
         langSet.reset();
-        for (var i = 0; i < langSet.count(); i++) {
-            var langMbo = langSet.getMbo(i);
+        for (var j = 0; j < langSet.count(); j++) {
+            var langMbo = langSet.getMbo(j);
             if (!langMbo) {
                 continue;
             }
-            var code = langMbo.getString("MAXLANGCODE");
-            if (code) {
-                list.push(String(code).toUpperCase());
+            var langCode = langMbo.getString("MAXLANGCODE");
+            if (langCode) {
+                list.push(String(langCode).toUpperCase());
             }
         }
     } catch (e) {
@@ -1132,7 +1147,7 @@ function countImportLevel(list) {
         }
         if (row._status === "success") {
             stat.success++;
-        } else {
+        } else if (row._status === "failed") {
             stat.fail++;
         }
     }

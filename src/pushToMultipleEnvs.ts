@@ -231,13 +231,13 @@ export class PushToMultipleEnvs {
     return { version, logLevel: loglevel, skip: false };
   }
 
-  /** 读取本地脚本 JSON 元数据（包名、描述、语言、激活状态等），用于新增脚本或补齐部署字段 */
-  private static readLocalScriptMeta(
+  /** 读取本地脚本 JSON 完整内容（不存在或解析失败时返回空对象） */
+  private static readLocalScriptConfig(
     autoscript: string,
     scriptStoragePath: string,
     logger: vscode.LogOutputChannel,
     filePath?: string
-  ): { version?: string; packagePath?: string; description?: string; scriptlanguage?: string; active?: boolean } {
+  ): any {
     let jsonFilePath: string;
     if (filePath) {
       jsonFilePath = path.join(path.dirname(filePath), `${autoscript}.json`);
@@ -254,19 +254,101 @@ export class PushToMultipleEnvs {
     }
 
     try {
-      const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
-      const meta: { version?: string; packagePath?: string; description?: string; scriptlanguage?: string; active?: boolean } = {};
-      if (jsonData.version) { meta.version = String(jsonData.version); }
-      const packagePath = jsonData.ibm_packagepath || jsonData.IBM_PACKAGEPATH || jsonData.PACKAGEPATH;
-      if (typeof packagePath === 'string' && packagePath.trim() !== '') { meta.packagePath = packagePath.trim(); }
-      if (jsonData.description) { meta.description = String(jsonData.description); }
-      if (jsonData.scriptlanguage) { meta.scriptlanguage = String(jsonData.scriptlanguage).toLowerCase(); }
-      if (jsonData.active !== undefined) { meta.active = jsonData.active === true || jsonData.active === 1 || jsonData.active === '1'; }
-      return meta;
+      return JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8')) || {};
     } catch (e: any) {
-      logger.warn(`[MultiEnv][pushScript] 读取本地 JSON 元数据失败: ${e.message}`);
+      logger.warn(`[MultiEnv][pushScript] 读取本地 JSON 失败: ${e.message}`);
       return {};
     }
+  }
+
+  /** 从脚本 JSON 构建自定义字段（保留 launchpoints/variables/包名等完整信息，与导入脚本一致） */
+  private static buildCustomFields(scriptConfig: any, scriptName: string, source: string): Record<string, any> {
+    const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID', 'source'];
+    const customFields: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(scriptConfig || {})) {
+      if (ignoreFields.includes(key.toUpperCase())) {
+        continue;
+      }
+      customFields[key.toLowerCase()] = value;
+    }
+
+    customFields.autoscript = scriptName;
+    customFields.source = source.replace(/\r\n/g, '\n');
+
+    if (scriptConfig && scriptConfig.scriptlanguage) {
+      customFields.scriptlanguage = scriptConfig.scriptlanguage;
+    }
+
+    if (scriptConfig && scriptConfig.active !== undefined) {
+      customFields.active = scriptConfig.active === true || scriptConfig.active === 1 || scriptConfig.active === '1';
+    } else {
+      customFields.active = true;
+    }
+
+    return customFields;
+  }
+
+  /** 把自定义字段转换为 Maximo 部署请求体（spi: 前缀、launchpoints/variables 特殊处理） */
+  private static buildDeployBody(customFields: Record<string, any>): any {
+    const deployBody: any = {};
+
+    for (const key in customFields) {
+      if (!customFields.hasOwnProperty(key)) {
+        continue;
+      }
+      const lower = key.toLowerCase();
+      if (lower === 'autoscript' || lower === 'description' || lower === 'source') {
+        continue;
+      }
+      if (lower.startsWith('sks:') || lower === 'changedate' || lower === 'statusdate') {
+        continue;
+      }
+
+      if (lower === 'launchpoints') {
+        const launchPointsTmp: any[] = [];
+        for (const launchPoint of customFields[key]) {
+          const launchPointTmp: any = {};
+          for (const lpKey in launchPoint) {
+            if (lpKey.toLowerCase() === 'eventtype' || lpKey.startsWith('sks:')) {
+              continue;
+            }
+            if (launchPoint.hasOwnProperty(lpKey)) {
+              launchPointTmp[`spi:${lpKey.toLowerCase()}`] = launchPoint[lpKey];
+            }
+          }
+          launchPointsTmp.push(launchPointTmp);
+        }
+        deployBody['spi:scriptlaunchpoint'] = launchPointsTmp;
+        continue;
+      }
+
+      if (lower === 'variables') {
+        const variablesTmp: any[] = [];
+        for (const variable of customFields[key]) {
+          const variableTmp: any = {};
+          for (const vKey in variable) {
+            if (variable.hasOwnProperty(vKey)) {
+              variableTmp[`spi:${vKey.toLowerCase()}`] = variable[vKey];
+            }
+          }
+          variablesTmp.push(variableTmp);
+        }
+        deployBody['spi:autoscriptvars'] = variablesTmp;
+        continue;
+      }
+
+      deployBody[`spi:${lower}`] = customFields[key];
+    }
+
+    if (!deployBody['spi:autoscript']) { deployBody['spi:autoscript'] = customFields.autoscript; }
+    if (!deployBody['spi:description']) { deployBody['spi:description'] = customFields.description || customFields.autoscript; }
+    if (!deployBody['spi:scriptlanguage']) { deployBody['spi:scriptlanguage'] = customFields.scriptlanguage || 'nashorn'; }
+    if (deployBody['spi:active'] === undefined) { deployBody['spi:active'] = true; }
+    if (deployBody['spi:version'] === undefined || deployBody['spi:version'] === '') { deployBody['spi:version'] = '1.0.0'; }
+    deployBody['spi:source'] = customFields.source ? customFields.source.replace(/\r\n/g, '\n') : '';
+
+    return deployBody;
   }
 
   /** 保存脚本历史记录（按环境服务器地址提交） */
@@ -467,24 +549,18 @@ export class PushToMultipleEnvs {
         return { success: false, errorMessage: `检查脚本失败: ${checkResult.status}` };
       }
 
-      // 读取本地 JSON 元数据（包名、描述、语言、激活状态等）
-      const localMeta = PushToMultipleEnvs.readLocalScriptMeta(autoscript, scriptStoragePath, logger, filePath);
+      // 读取本地 JSON（新增时复用导入脚本的完整字段逻辑）
+      const localConfig = PushToMultipleEnvs.readLocalScriptConfig(autoscript, scriptStoragePath, logger, filePath);
 
-      // 步骤3: 脚本不存在时自动新增
+      // 步骤3: 脚本不存在时自动新增（复用导入脚本的新增逻辑，保留 launchpoints/variables/包名等完整信息）
       if (!scriptExists) {
-        const createBody: any = {
-          'spi:autoscript': autoscript,
-          'spi:description': localMeta.description || autoscript,
-          'spi:scriptlanguage': localMeta.scriptlanguage || 'nashorn',
-          'spi:active': localMeta.active !== undefined ? localMeta.active : true,
-          'spi:source': source.replace(/\r\n/g, '\n')
-        };
-        const createVersion = historyResult.version || localMeta.version;
-        if (createVersion) { createBody['spi:version'] = createVersion; }
-        if (historyResult.logLevel !== undefined && historyResult.logLevel !== null && historyResult.logLevel !== '') {
+        const customFields = PushToMultipleEnvs.buildCustomFields(localConfig, autoscript, source);
+        const createBody = PushToMultipleEnvs.buildDeployBody(customFields);
+        if (historyResult.version) { createBody['spi:version'] = historyResult.version; }
+        if (createBody['spi:loglevel'] === undefined
+          && historyResult.logLevel !== undefined && historyResult.logLevel !== null && historyResult.logLevel !== '') {
           createBody['spi:loglevel'] = historyResult.logLevel;
         }
-        if (localMeta.packagePath) { createBody['spi:ibm_packagepath'] = localMeta.packagePath; }
 
         const createResult = await httpRequestToMaximo({
           url: 'os/MXAPIAUTOSCRIPT',
@@ -514,7 +590,10 @@ export class PushToMultipleEnvs {
         deployBody['spi:loglevel'] = historyResult.logLevel;
       }
       // 带上本地包名
-      if (localMeta.packagePath) { deployBody['spi:ibm_packagepath'] = localMeta.packagePath; }
+      const packagePath = localConfig.ibm_packagepath || localConfig.IBM_PACKAGEPATH || localConfig.PACKAGEPATH;
+      if (typeof packagePath === 'string' && packagePath.trim() !== '') {
+        deployBody['spi:ibm_packagepath'] = packagePath.trim();
+      }
 
       // 步骤6: 发送请求
       const deployResult = await httpRequestToMaximo({
@@ -624,28 +703,7 @@ export class PushToMultipleEnvs {
         logger.error(`[MultiEnv][importScript] 保存历史记录失败: ${historyError.message}`);
       }
 
-      const ignoreFields = ['BINARYSCRIPTSOURCE', 'AUTOSCRIPTID', 'source'];
-      const customFields: Record<string, any> = {};
-
-      for (const [key, value] of Object.entries(scriptConfig)) {
-        if (ignoreFields.includes(key.toUpperCase())) {
-          continue;
-        }
-        customFields[key.toLowerCase()] = value;
-      }
-
-      customFields.autoscript = scriptName;
-      customFields.source = source.replace(/\r\n/g, '\n');
-
-      if (scriptConfig.scriptlanguage) {
-        customFields.scriptlanguage = scriptConfig.scriptlanguage;
-      }
-
-      if (scriptConfig.active !== undefined) {
-        customFields.active = scriptConfig.active === true || scriptConfig.active === 1 || scriptConfig.active === '1';
-      } else {
-        customFields.active = true;
-      }
+      const customFields = PushToMultipleEnvs.buildCustomFields(scriptConfig, scriptName, source);
 
       const checkUrl = `os/MXAPIAUTOSCRIPT?lean=1&oslc.select=autoscript&oslc.where=autoscript="${scriptName}"`;
       const checkResult = await httpRequestToMaximo({
@@ -683,62 +741,7 @@ export class PushToMultipleEnvs {
         deployUrl = `os/MXAPIAUTOSCRIPT`;
       }
 
-      const deployBody: any = {};
-
-      for (const key in customFields) {
-        if (!customFields.hasOwnProperty(key)) {
-          continue;
-        }
-        const lower = key.toLowerCase();
-        if (lower === 'autoscript' || lower === 'description' || lower === 'source') {
-          continue;
-        }
-        if (lower.startsWith('sks:') || lower === 'changedate' || lower === 'statusdate') {
-          continue;
-        }
-
-        if (lower === 'launchpoints') {
-          const launchPointsTmp: any[] = [];
-          for (const launchPoint of customFields[key]) {
-            const launchPointTmp: any = {};
-            for (const lpKey in launchPoint) {
-              if (lpKey.toLowerCase() === 'eventtype' || lpKey.startsWith('sks:')) {
-                continue;
-              }
-              if (launchPoint.hasOwnProperty(lpKey)) {
-                launchPointTmp[`spi:${lpKey.toLowerCase()}`] = launchPoint[lpKey];
-              }
-            }
-            launchPointsTmp.push(launchPointTmp);
-          }
-          deployBody['spi:scriptlaunchpoint'] = launchPointsTmp;
-          continue;
-        }
-
-        if (lower === 'variables') {
-          const variablesTmp: any[] = [];
-          for (const variable of customFields[key]) {
-            const variableTmp: any = {};
-            for (const vKey in variable) {
-              if (variable.hasOwnProperty(vKey)) {
-                variableTmp[`spi:${vKey.toLowerCase()}`] = variable[vKey];
-              }
-            }
-            variablesTmp.push(variableTmp);
-          }
-          deployBody['spi:autoscriptvars'] = variablesTmp;
-          continue;
-        }
-
-        deployBody[`spi:${lower}`] = customFields[key];
-      }
-
-      if (!deployBody['spi:autoscript']) { deployBody['spi:autoscript'] = scriptName; }
-      if (!deployBody['spi:description']) { deployBody['spi:description'] = scriptConfig.description || scriptName; }
-      if (!deployBody['spi:scriptlanguage']) { deployBody['spi:scriptlanguage'] = scriptConfig.scriptlanguage || 'nashorn'; }
-      if (deployBody['spi:active'] === undefined) { deployBody['spi:active'] = true; }
-      if (deployBody['spi:version'] === undefined || deployBody['spi:version'] === '') { deployBody['spi:version'] = '1.0.0'; }
-      deployBody['spi:source'] = source ? source.replace(/\r\n/g, '\n') : '';
+      const deployBody = PushToMultipleEnvs.buildDeployBody(customFields);
 
       const deployResult = await httpRequestToMaximo({
         url: deployUrl,

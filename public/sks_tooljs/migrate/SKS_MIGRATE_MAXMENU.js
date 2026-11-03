@@ -17,6 +17,8 @@ var SqlFormat = Java.type("psdi.mbo.SqlFormat");
 var MXLoggerFactory = Java.type("psdi.util.logging.MXLoggerFactory");
 
 var scriptName = service.getScriptName();
+// 通过 invokeScript 调用本脚本时 service 可能不在闭包作用域, 顶层先捕获, 函数内统一使用 svc
+var svc = service;
 var mxserver = MXServer.getMXServer();
 var loggerMX = MXLoggerFactory.getLogger("maximo.script." + scriptName);
 var sksLogAnsiUtils = null;
@@ -24,6 +26,12 @@ try {
     sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
 } catch (e) { }
 var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX, ansiOpen: true }) : loggerMX;
+// SKS_COMMONS_UTILS 工具脚本(按 Mbo 类型取值/设值, 缺失时回退旧逻辑)
+var sksCommonsUtils = null;
+try {
+    sksCommonsUtils = service.invokeScript("SKS_COMMONS_UTILS");
+} catch (ignored) { }
+var OrderedJSONObject = Java.type("com.ibm.json.java.OrderedJSONObject");
 
 var OBJECT_NAME = "MAXMENU";
 var APP_FIELD = "MODULEAPP";
@@ -67,27 +75,60 @@ function getDetail(config, mbo) {
     if (!mbo) {
         return row;
     }
-    readMboFields(config, mbo, row, resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS));
+    var fields = resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS);
+    var aliasMap = {};
+    for (var i = 0; i < fields.length; i++) {
+        aliasMap[fields[i]] = fields[i];
+    }
+    if (sksCommonsUtils) {
+        try {
+            // 按 Mbo 字段类型取值(整数/小数/YORN/日期), 避免 getString 的千分位格式化
+            row = JSON.parse(String(sksCommonsUtils.mboToOrderJSONObject(svc, new OrderedJSONObject(), mbo, aliasMap)));
+        } catch (e) {
+            logger.error("[" + scriptName + "] getDetail mboToOrderJSONObject 失败", e);
+            row = {};
+        }
+    }
+    if (!sksCommonsUtils || Object.keys(row).length === 0) {
+        readMboFields(config, mbo, row, fields);
+    }
+    appendLangData(config, mbo, row, fields);
     row["sks:ref"] = row.MENUTYPE + "/" + row.MODULEAPP + "/" + row.KEYVALUE;
     row._status = "success";
     return row;
 }
 
 /**
- * 读取 Mbo 字段到 row; 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * 读取 Mbo 字段到 row(回退旧逻辑: 全部按 getString 取值)
  * @param {jscustom.SksMigrateParamConfig} config
  * @param {psdi.mbo.Mbo} mbo
  * @param {Object} row
  * @param {Array<string>} fields
  */
 function readMboFields(config, mbo, row, fields) {
+    for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
+        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
+    }
+}
+
+/**
+ * 字段启用多语言时追加 sks:langdata({字段:{语言:值}})
+ * @param {jscustom.SksMigrateParamConfig} config
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {Object} row
+ * @param {Array<string>} fields
+ */
+function appendLangData(config, mbo, row, fields) {
     var langcodes = (config && config._allLangcode === true && config._langcodeList) ? config._langcodeList : [];
+    if (langcodes.length === 0) {
+        return;
+    }
     var langData = {};
     var hasLangData = false;
     for (var i = 0; i < fields.length; i++) {
         var f = fields[i];
-        try { row[f] = mbo.getString(f); } catch (ignored) { row[f] = null; }
-        if (langcodes.length === 0 || !isMlInUse(mbo, f)) {
+        if (!isMlInUse(mbo, f)) {
             continue;
         }
         var vals = {};
@@ -314,11 +355,20 @@ function buildWhere(keyFields) {
 }
 
 function applyFields(mbo, data, cacheUseError) {
+    // 唯一ID列由 Maximo 自动生成, 导入时不能写入(否则不同环境ID重复会触发 -803)
+    var uniqueIDName = "";
+    try { uniqueIDName = String(mbo.getUniqueIDName() || "").toUpperCase(); } catch (ignored) { }
+    // sks:langdata = { 字段: { 语言: 值 } }, 启用多语言的字段改用 setMLValue 逐语言设置
+    var langData = data["sks:langdata"];
     for (var k in data) {
         if (!data.hasOwnProperty(k)) {
             continue;
         }
-        if (k.charAt(0) === "_" || k.indexOf(":") >= 0 || k === "flags") {
+        if (k.charAt(0) === "_" || k.indexOf(":") >= 0 || k === "flags" || k.toUpperCase() === "ROWSTAMP" || k.toUpperCase() === uniqueIDName) {
+            continue;
+        }
+        if (langData && langData.hasOwnProperty(k)) {
+            // 多语言字段交给 applyLangData 统一设置, 避免按当前会话语言写入错误的译文
             continue;
         }
         var v = data[k];
@@ -326,10 +376,57 @@ function applyFields(mbo, data, cacheUseError) {
             continue;
         }
         try {
-            mbo.setValue(k, v, MboConstants.NOACCESSCHECK);
+            if (sksCommonsUtils) {
+                // 按 Mbo 字段类型自动转换后设值(支持 null/YORN/日期/数值)
+                sksCommonsUtils.autoMboSetValue(svc, mbo, k, data[k], MboConstants.NOACCESSCHECK);
+            } else {
+                mbo.setValue(k, data[k], MboConstants.NOACCESSCHECK);
+            }
         } catch (e) {
             cacheUseError.ind2 = " attrName=" + k;
             cacheUseError.ind3 = e.message || String(e);
+            logger.error("[" + scriptName + "] applyFields setValue " + k + " 失败", e);
+        }
+    }
+    applyLangData(mbo, data, cacheUseError);
+}
+
+/**
+ * 设置多语言字段: data["sks:langdata"] = { 字段: { 语言: 值 } }
+ * accessModifier 与 Maximo 内部用法一致: 11 = NOVALIDATION(1) | NOACCESSCHECK(2) | NOACTION(8)
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {Object} data
+ * @param {Object} cacheUseError
+ */
+function applyLangData(mbo, data, cacheUseError) {
+    var langData = data["sks:langdata"];
+    if (!langData || typeof langData !== "object") {
+        return;
+    }
+    for (var field in langData) {
+        if (!langData.hasOwnProperty(field)) {
+            continue;
+        }
+        var vals = langData[field];
+        if (!vals || typeof vals !== "object") {
+            continue;
+        }
+        for (var lang in vals) {
+            if (!vals.hasOwnProperty(lang)) {
+                continue;
+            }
+            var v = vals[lang];
+            // ~null~ 是多语言字段在基表的占位值, 不能当作译文写入
+            if (v === undefined || v === null || String(v) === "~null~") {
+                continue;
+            }
+            try {
+                mbo.setMLValue(field, String(lang).toUpperCase(), String(v), 11);
+            } catch (e) {
+                cacheUseError.ind2 = " mlAttrName=" + field + "@" + lang;
+                cacheUseError.ind3 = e.message || String(e);
+                logger.error("[" + scriptName + "] applyLangData setMLValue " + field + "@" + lang + " 失败", e);
+            }
         }
     }
 }
@@ -365,16 +462,3 @@ function queryRows(config, sql, appValue, skipColumns) {
     }
     return rows;
 }
-
-function main() {
-    return {
-        getScriptSigoption: getScriptSigoption,
-        getDetail: getDetail,
-        exportApp: exportApp,
-        importApp: importApp,
-        changeMbo: changeMbo,
-        _close: _close
-    };
-}
-
-main();

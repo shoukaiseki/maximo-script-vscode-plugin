@@ -98,7 +98,13 @@
 - `app` 必填，是**目标应用**；`maxapps.APP` 与子表的 `APP`/`MODULEAPP`/`APPID` 会被强制覆盖为它。
 - 可只传部分 key（只传 `maxlabels` 就只导入标签）。
 - 行内可加 `"_delete": true` 表示删除该行（各 `changeMbo` 自行支持）。
-- `presentation.PRESENTATION` 有值才写 XML；`mafappdata` 的 zip 字节码字段为 `zipBase64`。
+- `presentation.PRESENTATION` 有值才写 XML；无值且 `MAXPRESENTATION` 无记录时写入默认空模板（`id` 为小写应用名）：
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <systemlib  id="<app 小写>" version="7.1.0.0" xsi:nonamespaceschemalocation="../../../applications/maximo/properties/systemlib.xsd">
+  </systemlib>
+  ```
+  已有记录但导入内容无 XML 时不覆盖原 XML。`mafappdata` 的 zip 字节码字段为 `zipBase64`。
 
 ## 6. importAppInfo 返回结构（重点）
 

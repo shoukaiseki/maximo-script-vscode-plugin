@@ -212,16 +212,3 @@ function queryRows(config, sql, appValue, skipColumns) {
     }
     return rows;
 }
-
-function main() {
-    return {
-        getScriptSigoption: getScriptSigoption,
-        getDetail: getDetail,
-        exportApp: exportApp,
-        importApp: importApp,
-        changeMbo: changeMbo,
-        _close: _close
-    };
-}
-
-main();
