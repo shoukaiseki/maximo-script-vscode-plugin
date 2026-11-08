@@ -7,8 +7,12 @@
 /// <reference path="@javaapi/global.d.ts" />
 // 消息(MAXMESSAGES) 查询 / 导出 / 导入接口
 // 字段名与 messages_page_3.json 保持一致:
-//   msgGroup, msgKey, value, MAXMESSAGESID, value_zh, displayMethod,
+//   msgGroup, msgKey, value, MAXMESSAGESID, displayMethod,
 //   options, sks:options, prefix, msgIdPrefix, msgIdSuffix
+// 查询全部通过 MboSet 读取(Mbo.getString(attr, lang)), 不再写死 ZH/EN/JA 三列 SQL:
+//   - 启用语言由 MXServer.getLanguageList() 动态获取(失败回退 LANGUAGE 表 ENABLED=1)
+//   - 多语言统一输出到 sks:langdata(见 _allLangcode), 不再平铺 value_<lang>
+//   - MboSet.setFlag(MboConstants.DISCARDABLE, true) 取消 MboSet 最多 5000 条的限制
 //
 // 调用方式:
 //   GET/POST /maximo/api/script/SKS_MIGRATEAPI_MAXMESSAGES?_action=query
@@ -22,10 +26,10 @@
 //        按 MSGGROUP+MSGKEY 新增/更新; delete/_delete=true 删除
 //        新增时未给 msgId 且未给 msgIdPrefix/msgIdSuffix 则默认 BMXZZ/E
 //        → { total, added, updated, deleted, failed, results, sks:successSumTotal, sks:failSumTotal }
-//   _langcode=ZH      按语言取值(value 取该语言译文, value_zh 固定取 ZH 译文)
+//   _langcode=ZH      按语言取值(value 取该语言译文)
 //   _includeExtra=true 额外返回 title/buttonText/explanation/.../msgId
-//   _allLangcode=true 按新模式输出多语言: 各多语言字段写入 sks:langdata = { 字段: { EN/ZH/JA: 值 } }
-//                     (不再返回平铺的 value_en / value_ja)
+//   _allLangcode=true 查询/导出时输出 sks:langdata = { 字段: { 语言: 值 } };
+//                     导入时按 sks:langdata 设置多语言, 否则只 setValue("VALUE", value)
 //   _debug=true       返回 debugMsg
 //   dmDeploySet=true  导入时 MboSet.setDMDeploySet(true)(迁移模式)
 
@@ -94,7 +98,7 @@ if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam(
   logger.info("[" + scriptName + "] _langcode=" + _langcode + ", langCode=" + userInfo.getLocale().getLanguage());
 }
 
-// 新模式多语言输出: _allLangcode=true 时返回 sks:langdata = { 字段: { EN/ZH/JA: 值 } }
+// 新模式多语言输出: _allLangcode=true 时返回 sks:langdata = { 字段: { 语言: 值 } }
 var _allLangcode = false;
 if (request.getQueryParam("_allLangcode") !== 'undefined' && request.getQueryParam("_allLangcode")) {
   _allLangcode = String(request.getQueryParam("_allLangcode")) === 'true';
@@ -164,6 +168,8 @@ var IMPORT_FIELDS = [
 ];
 // 多语言字段(MLSUPPORTED=1): TITLE 非多语言
 var ML_FIELD_LIST = ["VALUE", "BUTTONTEXT", "EXPLANATION", "ADMINRESPONSE", "OPERATORRESPONSE", "SYSTEMACTION", "RESPONSE"];
+// 启用语言缓存(必须在 main() 调用前初始化: main() 在 175 行执行, 之后的 top-level 赋值尚未运行)
+var _enabledLangcodesCache = null;
 
 
 //成功时
@@ -427,7 +433,7 @@ function resolveWhere(config) {
     if (where === null || where === "") {
       where = "1=1";
     }
-    // 字段条件已是 SQL(含 EXISTS 子查询), 不走 MboSet where 校验
+    // 字段条件已是 SQL(含 EXISTS 子查询), 直接交给 MboSet.setWhere
     return where;
   }
   if (where === null || where === "") {
@@ -447,6 +453,7 @@ function validateWhere(where) {
   var set = null;
   try {
     set = mxserver.getMboSet(OBJECT_NAME, userInfo);
+    set.setFlag(MboConstants.DISCARDABLE, true);
     set.setWhere(where);
     set.reset();
     var complete = set.getCompleteWhere();
@@ -546,189 +553,301 @@ function escapeSql(str) {
   return String(str).replace(/'/g, "''");
 }
 
+// ---------------------------------------------------------------------------
+// 动态语言 / Mbo 取值
+// ---------------------------------------------------------------------------
+
 /**
- * 只给未带表前缀的 VALUE 加 MAXMESSAGES. 前缀(LEFT JOIN 后有歧义)
- * @param {string} where
- * @returns {string}
+ * 查询启用语言代码: 优先 MXServer.getLanguageList(), 失败时回退 LANGUAGE 表 ENABLED=1
+ * @returns {Array<string>} 大写语言代码, 如 ["EN","ZH","JA"]
  */
-function qualifyValue(where) {
-  return String(where).replace(/\bVALUE\b/gi, function (match, offset, str) {
-    var prev = offset > 0 ? str.charAt(offset - 1) : "";
-    if (prev === "." || /[A-Za-z0-9_$]/.test(prev)) {
-      return match;
+function getEnabledLangcodes() {
+  // 用真值判断而不是 !== null: 避免缓存变量为 undefined 时直接返回 undefined
+  if (_enabledLangcodesCache && _enabledLangcodesCache.length > 0) {
+    return _enabledLangcodesCache;
+  }
+  var list = [];
+  try {
+    var langs = mxserver.getLanguageList();
+    for (var i = 0; i < langs.length; i++) {
+      var code = langs[i][0] ? String(langs[i][0]).toUpperCase() : "";
+      if (code !== "" && list.indexOf(code) < 0) {
+        list.push(code);
+      }
     }
-    return "MAXMESSAGES.VALUE";
-  });
+  } catch (e) {
+    logger.warn("[" + scriptName + "] getLanguageList 失败, 回退 LANGUAGE 表", e);
+  }
+
+  if (list.length === 0) {
+    var langSet = null;
+    try {
+      langSet = mxserver.getMboSet("LANGUAGE", userInfo);
+      langSet.setFlag(MboConstants.DISCARDABLE, true);
+      langSet.setWhere("ENABLED = 1");
+      langSet.reset();
+      var count = langSet.count();
+      for (var j = 0; j < count; j++) {
+        var langMbo = langSet.getMbo(j);
+        if (!langMbo) {
+          continue;
+        }
+        var langCode = String(langMbo.getString("MAXLANGCODE") || "").toUpperCase();
+        if (langCode !== "" && list.indexOf(langCode) < 0) {
+          list.push(langCode);
+        }
+      }
+    } catch (e) {
+      logger.warn("[" + scriptName + "] 查询启用语言失败", e);
+    } finally {
+      _close(langSet);
+    }
+  }
+
+  // 当前请求语言即使未启用也保留, 保证 value_<lang> 字段存在
+  var cur = getLang();
+  if (cur !== "" && list.indexOf(cur) < 0) {
+    list.push(cur);
+  }
+
+  // 兜底: 至少保证返回数组, 并包含基语言
+  if (list.length === 0) {
+    var baseLang = getBaseLang();
+    list.push(baseLang !== "" ? baseLang : "EN");
+  }
+
+  _enabledLangcodesCache = list;
+  logger.info("[" + scriptName + "] langcodes=" + list.join(","));
+  return list;
 }
 
 /**
- * FROM 子句: 始终 JOIN ZH/JA 译文(取 value_zh/value_ja), 非 EN/ZH 再 JOIN 当前语言
+ * 系统基语言(基表字段值所在语言)
  * @returns {string}
  */
-function buildFromClause() {
-  var lang = getLang();
-  var joins = " LEFT JOIN L_MAXMESSAGES L_ZH ON (L_ZH.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_ZH.LANGCODE = 'ZH')";
-  joins += " LEFT JOIN L_MAXMESSAGES L_JA ON (L_JA.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_JA.LANGCODE = 'JA')";
-  if (lang !== "EN" && lang !== "ZH") {
-    joins += " LEFT JOIN L_MAXMESSAGES L_CUR ON (L_CUR.OWNERID = MAXMESSAGES.MAXMESSAGESID AND L_CUR.LANGCODE = '" + lang + "')";
-  }
-  return OBJECT_NAME + joins;
-}
-
-/**
- * 当前语言对应的 L_MAXMESSAGES 别名(EN 为空, 取基表)
- * @returns {string}
- */
-function currentLangAlias() {
-  var lang = getLang();
-  if (lang === "ZH") {
-    return "L_ZH";
-  }
-  if (lang === "EN") {
+function getBaseLang() {
+  try {
+    var lang = mxserver.getBaseLang();
+    return lang === null ? "" : String(lang).toUpperCase();
+  } catch (ignored) {
     return "";
   }
-  return "L_CUR";
 }
 
 /**
- * 构建消息查询 SQL
- * @param {string} where
- * @param {Object|null} page {pageNum, pageSize}
- * @returns {string}
+ * 取 Mbo 多语言字段指定语言的值(无译文返回 null)
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {string} attr
+ * @param {string} lang
+ * @returns {string|null}
  */
-function buildSelectSQL(where, page) {
-  var cur = currentLangAlias();
-  var lang = getLang();
-  var ml = function (attr) {
-    return cur ? ("COALESCE(" + cur + "." + attr + ", MAXMESSAGES." + attr + ")") : ("MAXMESSAGES." + attr);
-  };
-  var valueExpr = ml("VALUE");
-  var valueZhExpr = (lang === "ZH") ? ml("VALUE") : "L_ZH.VALUE";
-  var valueEnExpr = "MAXMESSAGES.VALUE";
-  var valueJaExpr = (lang === "JA") ? ml("VALUE") : "L_JA.VALUE";
-
-  var sql = "SELECT MAXMESSAGES.MSGGROUP AS MSGGROUP"
-    + ", MAXMESSAGES.MSGKEY AS MSGKEY"
-    + ", " + valueExpr + " AS VALUE"
-    + ", MAXMESSAGES.MAXMESSAGESID AS MAXMESSAGESID"
-    + ", " + valueZhExpr + " AS VALUE_ZH"
-    + ", " + valueEnExpr + " AS VALUE_EN"
-    + ", " + valueJaExpr + " AS VALUE_JA"
-    + ", MAXMESSAGES.DISPLAYMETHOD AS DISPLAYMETHOD"
-    + ", MAXMESSAGES.OPTIONS AS OPTIONS"
-    + ", MAXMESSAGES.PREFIX AS PREFIX"
-    + ", MAXMESSAGES.MSGID AS MSGID"
-    + ", MAXMESSAGES.TITLE AS TITLE"
-    + ", " + ml("BUTTONTEXT") + " AS BUTTONTEXT"
-    + ", " + ml("EXPLANATION") + " AS EXPLANATION"
-    + ", " + ml("ADMINRESPONSE") + " AS ADMINRESPONSE"
-    + ", " + ml("OPERATORRESPONSE") + " AS OPERATORRESPONSE"
-    + ", " + ml("SYSTEMACTION") + " AS SYSTEMACTION"
-    + ", " + ml("RESPONSE") + " AS RESPONSE";
-
-  // 新模式导出: 各多语言字段的 EN/ZH/JA 原文, 供 sks:langdata 使用
-  if (_allLangcode) {
-    for (var i = 0; i < ML_FIELD_LIST.length; i++) {
-      var attr = ML_FIELD_LIST[i];
-      sql += ", MAXMESSAGES." + attr + " AS ML_" + attr + "_EN"
-        + ", L_ZH." + attr + " AS ML_" + attr + "_ZH"
-        + ", L_JA." + attr + " AS ML_" + attr + "_JA";
-    }
+function getMlString(mbo, attr, lang) {
+  if (!lang) {
+    return null;
   }
-
-  sql += " FROM " + buildFromClause()
-    + " WHERE " + qualifyValue(where)
-    + " ORDER BY MAXMESSAGES.MSGGROUP, MAXMESSAGES.MSGKEY";
-
-  if (page) {
-    sql += " OFFSET " + ((page.pageNum - 1) * page.pageSize) + " ROWS FETCH NEXT " + page.pageSize + " ROWS ONLY";
-  }
-  return sql;
-}
-
-/**
- * 查询列表(不分页; 供导出/详情使用)
- * @param {Object} config
- * @param {string} where
- * @returns {Array<Object>}
- */
-function queryMessageRows(config, where) {
-  var conn = null;
   try {
-    conn = getConnection(config);
-    return queryMessages(conn, buildSelectSQL(where, null), config);
-  } finally {
-    freeConnection(config, conn);
+    var v = mbo.getString(attr, String(lang).toUpperCase());
+    return isEmptyMlValue(v) ? null : v;
+  } catch (ignored) {
+    return null;
   }
 }
 
 /**
- * 执行 SQL 并转换为消息对象数组
- * @param {java.sql.Connection} conn
- * @param {string} sql
- * @param {Object} config
- * @returns {Array<Object>}
+ * 取 Mbo 字段值(按指定语言, 无译文时回退当前语言/基表)
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {string} attr
+ * @param {string} lang
+ * @returns {string|null}
  */
-function queryMessages(conn, sql, config) {
-  var messages = [];
-  var ps = null;
-  var rs = null;
+function getLangString(mbo, attr, lang) {
+  var v = getMlString(mbo, attr, lang);
+  if (v !== null) {
+    return v;
+  }
+  return mboStr(mbo, attr);
+}
+
+/**
+ * 取 Mbo 字段字符串值
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {string} attr
+ * @returns {string|null}
+ */
+function mboStr(mbo, attr) {
   try {
-    ps = conn.prepareStatement(sql);
-    rs = ps.executeQuery();
-    while (rs.next()) {
-      messages.push(buildMessageObject(rs, config));
-    }
-  } finally {
-    if (rs) { try { rs.close(); } catch (ignored) { } }
-    if (ps) { try { ps.close(); } catch (ignored) { } }
+    var v = mbo.getString(attr);
+    return isEmptyMlValue(v) ? null : v;
+  } catch (ignored) {
+    return null;
   }
-  return messages;
 }
 
 /**
- * ResultSet → 消息对象(字段名/顺序与 messages_page_3.json 一致)
- * @param {java.sql.ResultSet} rs
- * @param {Object} config
- * @returns {Object}
+ * 取 Mbo 长整型字段(避免 getString 的千分位格式化, 如 750,247)
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {string} attr
+ * @returns {string|null}
  */
-function buildMessageObject(rs, config) {
-  var obj = {};
-  obj.msgGroup = getStringFromRS(rs, "MSGGROUP");
-  obj.msgKey = getStringFromRS(rs, "MSGKEY");
-  obj.value = getStringFromRS(rs, "VALUE");
-  obj.MAXMESSAGESID = getStringFromRS(rs, "MAXMESSAGESID");
-  // ZH 译文(无译文时为 null)
-  obj.value_zh = getStringFromRS(rs, "VALUE_ZH");
-  if (config && config._allLangcode) {
-    // 新模式: 多语言统一放 sks:langdata({字段:{EN/ZH/JA:值}})
-    var langData = buildLangData(rs);
-    if (langData !== null) {
-      obj["sks:langdata"] = langData;
-    }
-  } else {
-    // 列表模式: 平铺 ZH/EN/JA 三列
-    obj.value_en = getStringFromRS(rs, "VALUE_EN");
-    obj.value_ja = getStringFromRS(rs, "VALUE_JA");
+function mboLongStr(mbo, attr) {
+  try {
+    return mbo.isNull(attr) ? null : String(mbo.getLong(attr));
+  } catch (ignored) {
+    return null;
   }
-  obj.displayMethod = getStringFromRS(rs, "DISPLAYMETHOD");
+}
 
-  var mask = getIntFromRS(rs, "OPTIONS");
-  if (mask === null) {
-    mask = 0;
+/**
+ * YORN 的 Y/N 转成与表列一致的 1/0
+ * @param {string} value
+ * @returns {string|null}
+ */
+function yornToFlag(value) {
+  if (value === null || value === undefined) {
+    return null;
   }
+  if (String(value).toUpperCase() === "Y") {
+    return "1";
+  }
+  if (String(value).toUpperCase() === "N") {
+    return "0";
+  }
+  return value;
+}
+
+/**
+ * 创建 MAXMESSAGES 查询 MboSet
+ * DISCARDABLE: 取消 MboSet 查询最多 5000 条的限制
+ * @param {Object} config
+ * @param {string} where
+ * @returns {psdi.mbo.MboSet}
+ */
+function createMessageSet(config, where) {
+  var set = mxserver.getMboSet(OBJECT_NAME, config._userInfo);
+  set.setFlag(MboConstants.DISCARDABLE, true);
+  if (where !== null && where !== undefined && String(where) !== "") {
+    set.setWhere(String(where));
+  }
+  set.setOrderBy("MSGGROUP, MSGKEY");
+  set.reset();
+  return set;
+}
+
+/**
+ * 取 OPTIONS 位掩码
+ * @param {psdi.mbo.Mbo} mbo
+ * @returns {number}
+ */
+function getOptionsMask(mbo) {
+  try {
+    var mask = mbo.getInt("OPTIONS");
+    return isNaN(mask) ? 0 : mask;
+  } catch (ignored) {
+    return 0;
+  }
+}
+
+/**
+ * 位掩码 → options 数组
+ * @param {number} mask
+ * @returns {Array<string>}
+ */
+function optionsFromMask(mask) {
   var optionsArr = [];
   if (mask & 1) { optionsArr.push("close"); }
   if (mask & 2) { optionsArr.push("ok"); }
   if (mask & 4) { optionsArr.push("cancel"); }
   if (mask & 8) { optionsArr.push("yes"); }
   if (mask & 16) { optionsArr.push("no"); }
-  obj.options = optionsArr;
+  return optionsArr;
+}
+
+/**
+ * 查询消息(分页/不分页均走 MboSet)
+ * @param {Object} config
+ * @param {string} where
+ * @param {Object|null} page {pageNum, pageSize}
+ * @returns {Object} { messages, total }
+ */
+function queryMessagesByMbo(config, where, page) {
+  var set = null;
+  var messages = [];
+  var total = 0;
+  try {
+    set = createMessageSet(config, where);
+    if (page) {
+      total = set.count();
+      set.reset();
+    }
+    var skip = page ? (page.pageNum - 1) * page.pageSize : 0;
+    var limit = page ? page.pageSize : 0;
+    var index = 0;
+    var mbo = set.getMbo(0);
+    while (mbo !== null) {
+      if (index >= skip) {
+        messages.push(buildMessageObjectFromMbo(mbo, config));
+        if (limit > 0 && messages.length >= limit) {
+          break;
+        }
+      }
+      index++;
+      mbo = set.moveNext();
+    }
+    if (!page) {
+      total = messages.length;
+    }
+  } finally {
+    _close(set);
+  }
+  return { messages: messages, total: total };
+}
+
+/**
+ * 查询单条消息
+ * @param {Object} config
+ * @param {string} where
+ * @returns {Object|null}
+ */
+function queryOneMessage(config, where) {
+  var set = null;
+  try {
+    set = createMessageSet(config, where);
+    var mbo = set.getMbo(0);
+    return mbo === null ? null : buildMessageObjectFromMbo(mbo, config);
+  } finally {
+    _close(set);
+  }
+}
+
+/**
+ * Mbo → 消息对象(字段名/顺序与 messages_page_3.json 一致)
+ * @param {psdi.mbo.Mbo} mbo
+ * @param {Object} config
+ * @returns {Object}
+ */
+function buildMessageObjectFromMbo(mbo, config) {
+  var lang = getLang();
+  var obj = {};
+  obj.msgGroup = mboStr(mbo, "MSGGROUP");
+  obj.msgKey = mboStr(mbo, "MSGKEY");
+  obj.value = getLangString(mbo, "VALUE", lang);
+  obj.MAXMESSAGESID = mboLongStr(mbo, "MAXMESSAGESID");
+
+  if (config && config._allLangcode) {
+    // 多语言统一放 sks:langdata({字段:{语言:值}}), 不再平铺 value_<lang>
+    var langData = buildLangDataFromMbo(mbo);
+    if (langData !== null) {
+      obj["sks:langdata"] = langData;
+    }
+  }
+
+  obj.displayMethod = mboStr(mbo, "DISPLAYMETHOD");
+  var mask = getOptionsMask(mbo);
+  obj.options = optionsFromMask(mask);
   obj["sks:options"] = mask;
+  obj.prefix = yornToFlag(mboStr(mbo, "PREFIX"));
 
-  obj.prefix = getStringFromRS(rs, "PREFIX");
-
-  var msgId = getStringFromRS(rs, "MSGID");
+  var msgId = mboStr(mbo, "MSGID");
   if (msgId !== null && msgId.length > 0) {
     obj.msgIdPrefix = msgId.substring(0, Math.min(5, msgId.length));
     obj.msgIdSuffix = msgId.substring(msgId.length - 1);
@@ -738,46 +857,42 @@ function buildMessageObject(rs, config) {
   }
 
   if (config && config._includeExtra) {
-    for (var i = 0; i < EXTRA_FIELDS.length; i++) {
-      var key = EXTRA_FIELDS[i][0];
-      var attr = EXTRA_FIELDS[i][1];
-      var val = getStringFromRS(rs, attr);
+    for (var j = 0; j < EXTRA_FIELDS.length; j++) {
+      var extraKey = EXTRA_FIELDS[j][0];
+      var attr = EXTRA_FIELDS[j][1];
+      var val = (attr === "TITLE" || attr === "MSGID")
+        ? mboStr(mbo, attr)
+        : getLangString(mbo, attr, lang);
       if (val !== null && val !== "") {
-        obj[key] = val;
+        obj[extraKey] = val;
       }
     }
   }
   return obj;
 }
 
-function getStringFromRS(rs, col) {
-  try {
-    var val = rs.getString(col);
-    return rs.wasNull() ? null : val;
-  } catch (e) {
-    return null;
-  }
-}
-
 /**
- * 按新模式汇总多语言字段: { 字段: { EN: 值, ZH: 值, JA: 值 } }
+ * 按新模式汇总多语言字段: { 字段: { 语言: 值 } }
  * 仅包含实际有值的语言
- * @param {java.sql.ResultSet} rs
+ * @param {psdi.mbo.Mbo} mbo
  * @returns {Object|null}
  */
-function buildLangData(rs) {
+function buildLangDataFromMbo(mbo) {
+  var langcodes = getEnabledLangcodes() || [];
   var langData = {};
   var hasAny = false;
   for (var i = 0; i < ML_FIELD_LIST.length; i++) {
     var attr = ML_FIELD_LIST[i];
     var vals = {};
     var count = 0;
-    var en = getStringFromRS(rs, "ML_" + attr + "_EN");
-    var zh = getStringFromRS(rs, "ML_" + attr + "_ZH");
-    var ja = getStringFromRS(rs, "ML_" + attr + "_JA");
-    if (!isEmptyMlValue(en)) { vals.EN = en; count++; }
-    if (!isEmptyMlValue(zh)) { vals.ZH = zh; count++; }
-    if (!isEmptyMlValue(ja)) { vals.JA = ja; count++; }
+    for (var j = 0; j < langcodes.length; j++) {
+      var code = langcodes[j];
+      var v = getMlString(mbo, attr, code);
+      if (v !== null) {
+        vals[code] = v;
+        count++;
+      }
+    }
     if (count > 0) {
       langData[attr] = vals;
       hasAny = true;
@@ -795,15 +910,6 @@ function isEmptyMlValue(v) {
   return v === null || typeof v === "undefined" || String(v) === "" || String(v) === "~null~";
 }
 
-function getIntFromRS(rs, col) {
-  try {
-    var val = rs.getInt(col);
-    return rs.wasNull() ? null : val;
-  } catch (e) {
-    return null;
-  }
-}
-
 /**
  * 查询列表(支持分页)
  * @param {Object} config
@@ -816,24 +922,11 @@ function doQuery(config) {
   var paginated = pageNum > 0 && pageSize > 0;
   var page = paginated ? { pageNum: pageNum, pageSize: pageSize } : null;
 
-  var sql = buildSelectSQL(where, page);
-  logger.info("[" + scriptName + "] query where=" + where + ", paginated=" + paginated + ", sql=" + sql);
+  logger.info("[" + scriptName + "] query where=" + where + ", paginated=" + paginated);
 
-  var messages = [];
-  var total = 0;
-  var conn = null;
-  try {
-    conn = getConnection(config);
-    if (paginated) {
-      total = countRows(conn, where);
-    }
-    messages = queryMessages(conn, sql, config);
-    if (!paginated) {
-      total = messages.length;
-    }
-  } finally {
-    freeConnection(config, conn);
-  }
+  var rows = queryMessagesByMbo(config, where, page);
+  var messages = rows.messages;
+  var total = rows.total;
 
   var result = { messages: messages, total: total };
   if (paginated) {
@@ -869,9 +962,9 @@ function doDetail(config) {
     where = sqlf.format();
   }
 
-  var rows = queryMessageRows(config, where);
-  logger.info("[" + scriptName + "] detail where=" + where + ", rows=" + rows.length);
-  return rows.length > 0 ? rows[0] : null;
+  var row = queryOneMessage(config, where);
+  logger.info("[" + scriptName + "] detail where=" + where + ", found=" + (row !== null));
+  return row;
 }
 
 /**
@@ -881,28 +974,10 @@ function doDetail(config) {
  */
 function doExport(config) {
   var where = resolveWhere(config);
-  var messages = queryMessageRows(config, where);
+  var rows = queryMessagesByMbo(config, where, null);
+  var messages = rows.messages;
   logger.info("[" + scriptName + "] export 完成, 共 " + messages.length + " 条");
   return { messages: messages };
-}
-
-/**
- * COUNT(*) 查询(分页时返回总数)
- * @param {java.sql.Connection} conn
- * @param {string} where
- * @returns {number}
- */
-function countRows(conn, where) {
-  var ps = null;
-  var rs = null;
-  try {
-    ps = conn.prepareStatement("SELECT COUNT(*) FROM " + buildFromClause() + " WHERE " + qualifyValue(where));
-    rs = ps.executeQuery();
-    return rs.next() ? rs.getInt(1) : 0;
-  } finally {
-    if (rs) { try { rs.close(); } catch (ignored) { } }
-    if (ps) { try { ps.close(); } catch (ignored) { } }
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1088,7 +1163,9 @@ function isDelete(data) {
  * @param {Object} cacheUseError
  */
 function applyMessageFields(config, mbo, data, isNew, cacheUseError) {
-  var langData = data["sks:langdata"];
+  // 仅 _allLangcode=true 时才按 sks:langdata 设置多语言; 否则只写当前语言的 VALUE
+  var useLangData = !!(config && config._allLangcode);
+  var langData = useLangData ? data["sks:langdata"] : null;
 
   setMboValue(mbo, "MSGGROUP", pick(data, "msgGroup", "MSGGROUP"), cacheUseError);
   setMboValue(mbo, "MSGKEY", pick(data, "msgKey", "MSGKEY"), cacheUseError);
@@ -1140,20 +1217,35 @@ function applyMessageFields(config, mbo, data, isNew, cacheUseError) {
     }
   }
 
-  // value_zh: 非 ZH 导入时写 ZH 译文(ZH 导入时 value 已写入 ZH)
-  var valueZh = pick(data, "value_zh", "VALUE_ZH");
-  if (valueZh !== null && getLang() !== "ZH" && !(langData && langData.hasOwnProperty("VALUE"))) {
-    try {
-      mbo.setMLValue("VALUE", "ZH", String(valueZh), 11);
-    } catch (e) {
-      cacheUseError.ind2 = " mlAttrName=VALUE@ZH";
-      cacheUseError.ind3 = e.message || String(e);
-      logger.error("[" + scriptName + "] setMLValue VALUE@ZH 失败", e);
+  // 列表模式平铺的 value_<lang>(value_zh / value_en / value_fr ...): 动态按语言写入译文
+  if (useLangData && !(langData && langData.hasOwnProperty("VALUE"))) {
+    var langcodes = getEnabledLangcodes();
+    var curLang = getLang();
+    var baseLang = getBaseLang();
+    for (var li = 0; li < langcodes.length; li++) {
+      var code = langcodes[li];
+      // 当前语言已由 value 写入, 基语言写基表字段, 均跳过
+      if (code === curLang || code === baseLang) {
+        continue;
+      }
+      var langValue = pick(data, "value_" + code.toLowerCase(), "VALUE_" + code);
+      if (langValue === null) {
+        continue;
+      }
+      try {
+        mbo.setMLValue("VALUE", code, String(langValue), 11);
+      } catch (e) {
+        cacheUseError.ind2 = " mlAttrName=VALUE@" + code;
+        cacheUseError.ind3 = e.message || String(e);
+        logger.error("[" + scriptName + "] setMLValue VALUE@" + code + " 失败", e);
+      }
     }
   }
 
   applyOptions(mbo, data, isNew, cacheUseError);
-  applyLangData(mbo, data, cacheUseError);
+  if (useLangData) {
+    applyLangData(mbo, data, cacheUseError);
+  }
 }
 
 /**
@@ -1280,34 +1372,6 @@ function setMboValue(mbo, attr, value, cacheUseError) {
 
 function newCacheUseError() {
   return { ind1: "", ind2: "", ind3: "", ind4: "" };
-}
-
-// ---------------------------------------------------------------------------
-// 数据库连接
-// ---------------------------------------------------------------------------
-
-/**
- * @param {Object} config
- * @returns {java.sql.Connection}
- */
-function getConnection(config) {
-  var connKey = config._userInfo.getConnectionKey();
-  return mxserver.getDBManager().getConnection(connKey);
-}
-
-/**
- * @param {Object} config
- * @param {java.sql.Connection} conn
- */
-function freeConnection(config, conn) {
-  if (!conn) {
-    return;
-  }
-  try {
-    mxserver.getDBManager().freeConnection(config._userInfo.getConnectionKey(), conn);
-  } catch (ignored) {
-    try { conn.close(); } catch (e) { }
-  }
 }
 
 // ---------------------------------------------------------------------------

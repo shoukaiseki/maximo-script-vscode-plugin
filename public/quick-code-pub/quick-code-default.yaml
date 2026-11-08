@@ -496,12 +496,25 @@ maxappxml:
                 targetid="main_section"
       - name: presentation组件
         childrens:
+          - name: 页面配置
+            componentName: "presentation"
+            remark: |
+              看具体代码
+            code: |
+              <!--主页面配置-->
+              <presentation apprestrictions="worktype='ORDER'[应用程序限制where]" beanclass="psdi.webclient.system.beans.AppBean" id="invqc" mboname="WORKORDER[主对象]" resultstableid="results_showlist"  keyattribute="WONUM[选择操作左边的查找框以WONUM为精确查找字段]" version="7.1.0.0">
+              </presentation>
           - name: keyattribute属性
             componentName: "presentation"
             remark: |
               例如:设置为 WONUM [7.1:选择操作左边的查找框以WONUM为精确查找字段]
                                [9.1:右上角工具栏按钮最左边精确查找框以WONUM为精确查找字段]
             code: "keyattribute"
+          - name: apprestrictions属性
+            componentName: "apprestrictions"
+            remark: |
+              应用程序限制  
+            code: "apprestrictions"
       - name: textbox文本框组件
         childrens:
           - name: textbox组件属性说明

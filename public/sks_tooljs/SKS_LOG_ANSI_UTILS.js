@@ -88,6 +88,36 @@ function notJavaErrorOrIsMXErrorToThrow(error){
     }
 }
 
+
+/**
+ *  获取错误提示信息(纯提取信息,不抛出异常,是否向上抛由调用方决定)
+    var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");
+    var errorMessage = sksLogAnsiUtils.getErrorMessage(error).errorMessage
+ * @param {*} error 错误对象
+ * @returns {{errorMessage: string}} 错误信息始终有值,错误对象为空时为 "error is null"
+ */
+function getErrorMessage(error){
+    var errorMessage;
+    if(!error){
+        return {errorMessage: "error is null"}
+    }
+    if (error instanceof org.openjdk.nashorn.internal.objects.NativeReferenceError
+        || error instanceof org.openjdk.nashorn.internal.objects.NativeTypeError) {
+        //Nashorn JS 错误:取 name+message,堆栈信息走 getErrorStackTrace
+        errorMessage = error.name + ":" + error.message;
+    } else if (error instanceof org.openjdk.nashorn.api.scripting.ScriptObjectMirror) {
+        //JS 抛出后包装的脚本对象:取 stack
+        errorMessage = String(error.stack || error.message || error);
+    } else if (error instanceof MXException || error instanceof MXApplicationException) {
+        errorMessage = error.getMessage();
+    } else {
+        //兜底:Java Throwable 的 .message 由 Nashorn 映射 getMessage(),JS 错误取原生 message
+        errorMessage = String(error.message !== undefined ? error.message : error);
+    }
+    return errorMessage
+    
+}
+
 /**
  *  获取错误堆栈跟踪
     var sksLogAnsiUtils = service.invokeScript("SKS_LOG_ANSI_UTILS");

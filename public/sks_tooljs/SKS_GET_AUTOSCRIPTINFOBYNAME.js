@@ -84,6 +84,7 @@ function getAutoScriptInfo(scriptMbo) {
         varObj.put("varbindingtype", asv.getString("VARBINDINGTYPE"));
         varObj.put("varbindingvalue", asv.getString("VARBINDINGVALUE"));
         varObj.put("allowoverride", asv.getString("ALLOWOVERRIDE"));
+        varObj.put("description", asv.getString("DESCRIPTION"));
         asvArr.add(varObj);
         asv=asvSet.moveNext();
       }

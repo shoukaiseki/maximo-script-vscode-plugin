@@ -2137,11 +2137,12 @@ function buildAction(actionMbo) {
   } else if (!actionMbo.isNull("VALUE2")) {
     action.value = actionMbo.getString("VALUE2");
   }
+  // OBJECTNAME 所有类型都导出(GROUP 在库中也可能带对象值, 如 IBM_SUPREGG1, 导出须保真)
+  var objectName = getStr(actionMbo, "OBJECTNAME");
+  if (objectName) {
+    action.objectName = objectName;
+  }
   if (type !== "GROUP") {
-    var objectName = getStr(actionMbo, "OBJECTNAME");
-    if (objectName) {
-      action.objectName = objectName;
-    }
     var parameter = getStr(actionMbo, "PARAMETER");
     if (parameter) {
       action.parameter = parameter;
@@ -2248,8 +2249,9 @@ function saveOrUpdateAction(data, index) {
         setStrValue(actionMbo, "VALUE2", data.value);
       }
     }
+    // OBJECTNAME 不受 GROUP 限制, 与导出保真一致
+    setStrValue(actionMbo, "OBJECTNAME", data.objectName);
     if (currentType !== "GROUP") {
-      setStrValue(actionMbo, "OBJECTNAME", data.objectName);
       setStrValue(actionMbo, "PARAMETER", data.parameter);
     }
     if (currentType === "CHANGESTATUS") {
@@ -2893,8 +2895,12 @@ function resolveNodeTypeValue(internalValue, nodeMbo) {
  * 值相同则跳过: 回导/迁移场景天然幂等, 同时规避系统交付对象只读字段报错。
  */
 function setStrValue(mbo, attr, val) {
-  if (val === undefined || val === null || val === "") {
+  if (typeof val === 'undefined' ) {
     return;
+  }
+  if(val === null ){
+    mbo.setValueNull(attr, NA)
+    return
   }
   try {
     if (String(mbo.getString(attr)) === String(val)) {

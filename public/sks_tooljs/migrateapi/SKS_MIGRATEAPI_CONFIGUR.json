@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS_MIGRATEAPI_CONFIGUR",
+  "description": "对象配置(DBCONFIG/maxObjects)导入API",
+  "version": "1.0.7",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools.migrateapi"
+}

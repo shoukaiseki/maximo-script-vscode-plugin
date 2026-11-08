@@ -360,11 +360,12 @@ function getAction(id) {
         action.value = actionMbo.getString('VALUE2');
       }
 
-      if (action.type !== 'GROUP') {
-        if (!actionMbo.isNull('OBJECTNAME')) {
-          action.objectName = actionMbo.getString('OBJECTNAME');
-        }
+      // OBJECTNAME 所有类型都导出(GROUP 在库中也可能带对象值, 导出须保真)
+      if (!actionMbo.isNull('OBJECTNAME')) {
+        action.objectName = actionMbo.getString('OBJECTNAME');
+      }
 
+      if (action.type !== 'GROUP') {
         if (!actionMbo.isNull('PARAMETER')) {
           action.parameter = actionMbo.getString('PARAMETER');
         }
@@ -2842,8 +2843,9 @@ function saveOrUpdateAction(data, name) {
         actionMbo.setValue("VALUE2", data.value);
       }
     }
+    // OBJECTNAME 不受 GROUP 限制, 与导出保真一致
+    setStrValue(actionMbo, "OBJECTNAME", data.objectName);
     if (type !== "GROUP") {
-      setStrValue(actionMbo, "OBJECTNAME", data.objectName);
       setStrValue(actionMbo, "PARAMETER", data.parameter);
     }
     if (type === "CHANGESTATUS") {

@@ -25,6 +25,11 @@ logger.setLevel(Level.INFO);
 //用于存储当前处理的进度,当出现一场时候,可以更方便的查看和处理
 var currentCacheUseError = resetCurrentCacheUseError();
 
+var sksResult = {
+    "relationshipErrorTotal": 0,
+    "relationshipSuccessTotal": 0,
+};
+
 
 if (request.getQueryParam("_langcode") !== 'undefined' && request.getQueryParam("_langcode")) {
     //_langcode=zh
@@ -2237,7 +2242,7 @@ MaxObject.prototype.setMboValues = function (mbo) {
             }
 
             if (this.unqiueColumn != null) {
-                mbo.setValue("UNIQUECOLUMNNAME", this.unqiueColumn);
+                mbo.setValue("UNIQUECOLUMNNAME", this.unqiueColumn,2);
             }
         }
         if (typeof this.internal !== "undefined") {
@@ -2858,7 +2863,15 @@ MaxObject.prototype.setMboValues = function (mbo) {
             }
         });
     }
+    var relationshipResult =null;
+    if (!sksResult[mbo.getString("OBJECTNAME")]) {
+        sksResult[mbo.getString("OBJECTNAME")] = {
+                    "relationshipErrorTotal": 0,
+                    "relationshipSuccessTotal": 0,
+        };
 
+    }
+    relationshipResult = sksResult[mbo.getString("OBJECTNAME")];
     var ignoreRelationships = false;
     //加上忽略关系参数
     if (typeof request !== "undefined" && request.getQueryParam("ignoreRelationships") == "true") {
@@ -2868,39 +2881,53 @@ MaxObject.prototype.setMboValues = function (mbo) {
         var relationshipSet = mbo.getMboSet("MAXRELATIONSHIP");
 
         this.relationships.forEach(function (relationshipConfig) {
+            currentCacheUseError.ind4 = " relationship.name=" + relationshipConfig.relationship;
             /** @type {psdi.mbo.MboRemote} */
-            var relationship = relationshipSet.moveFirst();
-            while (relationship) {
-                if (relationship.getString("NAME").equalsIgnoreCase(relationshipConfig.relationship)) {
-                    break;
-                }
-                relationship = relationshipSet.moveNext();
-            }
-            if (relationshipConfig.delete) {
-                if (relationship != null) {
-                    relationship.delete();
-                }
-            } else if (!relationshipConfig.delete) {
-                if (!relationship) {
-                    relationship = relationshipSet.add();
-                    relationship.setValue("NAME", relationshipConfig.relationship);
-                    relationship.setValue("CHILD", relationshipConfig.child);
-                }
-                try {
-                    if (relationshipConfig.cardinality !== "undefined" && relationshipConfig.cardinality) {
-                        //cardinality SINGLE/UNDEFINED/MULTIPLE
-                        relationship.setValue("CARDINALITY", relationshipConfig.cardinality)
+            var relationship = null
+            try {
+                relationship = relationshipSet.moveFirst();
+                while (relationship) {
+                    if (relationship.getString("NAME").equalsIgnoreCase(relationshipConfig.relationship)) {
+                        break;
                     }
-                } catch (eee) {
-                    logger.info("老版本maximo不存在CARDINALITY字段,属于正常现象:" + eee.getMessage())
+                    relationship = relationshipSet.moveNext();
                 }
+                if (relationshipConfig.delete) {
+                    if (relationship != null) {
+                        relationship.delete();
+                    }
+                } else if (!relationshipConfig.delete) {
+                    if (!relationship) {
+                        relationship = relationshipSet.add();
+                        relationship.setValue("NAME", relationshipConfig.relationship, 2);
+                        relationship.setValue("CHILD", relationshipConfig.child, 2);
+                        relationship.setValue("PARENT", mbo.getString("OBJECTNAME"), 2);
+                    }
+                    try {
+                        if (relationshipConfig.cardinality !== "undefined" && relationshipConfig.cardinality) {
+                            //cardinality SINGLE/UNDEFINED/MULTIPLE
+                            relationship.setValue("CARDINALITY", relationshipConfig.cardinality)
+                        }
+                    } catch (eee) {
+                        logger.info("老版本maximo不存在CARDINALITY字段,属于正常现象:" + eee.getMessage())
+                    }
 
-                typeof relationshipConfig.remarks === "undefined" || relationshipConfig.remarks == null
-                    ? relationship.setValueNull("REMARKS")
-                    : relationship.setValue("REMARKS", relationshipConfig.remarks);
-                typeof relationshipConfig.whereClause === "undefined" || relationshipConfig.whereClause == null
-                    ? relationship.setValueNull("WHERECLAUSE")
-                    : relationship.setValue("WHERECLAUSE", relationshipConfig.whereClause);
+                    typeof relationshipConfig.remarks === "undefined" || relationshipConfig.remarks == null
+                        ? relationship.setValueNull("REMARKS")
+                        : relationship.setValue("REMARKS", relationshipConfig.remarks);
+                    typeof relationshipConfig.whereClause === "undefined" || relationshipConfig.whereClause == null
+                        ? relationship.setValueNull("WHERECLAUSE")
+                        : relationship.setValue("WHERECLAUSE", relationshipConfig.whereClause);
+                }
+                logger.info("\x1b[32m[" + scriptName + "]relationship==" + relationship.getString("NAME") + "\x1b[0m")
+                relationshipResult.relationshipSuccessTotal += relationshipResult.relationshipSuccessTotal
+            } catch (rsError) {
+                if (relationship && relationship.toBeAdded()) {
+                    //如果出错,新增的则删除,否则保存会有问题
+                    relationship.delete()
+                }
+                relationshipResult.relationshipErrorTotal += relationshipResult.relationshipErrorTotal
+                loggerError(rsError);
             }
         });
     }
