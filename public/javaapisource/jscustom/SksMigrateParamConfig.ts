@@ -41,5 +41,8 @@ declare namespace jscustom {
 
       //true,mboset获取之后调用 mboSet.setDMDeploySet(dmDeploySet)方法,默认为false
       dmDeploySet: boolean
+
+      //不更新主表信息,默认为false
+      _ignoreMain: boolean
     }
 }

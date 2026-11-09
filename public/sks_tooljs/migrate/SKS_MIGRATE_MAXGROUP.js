@@ -20,11 +20,24 @@
 
 var MXApplicationException = Java.type("psdi.util.MXApplicationException");
 var mxserver = Packages.psdi.server.MXServer.getMXServer();
-var logger = Packages.log4j.Logger.getLogger("SKS_MIGRATE_MAXGROUP");
+var logger = Java.type("psdi.util.logging.MXLoggerFactory").getLogger("maximo.script.SKS_MIGRATE_MAXGROUP");
 
 var OBJECT_NAME = "MAXGROUP";
 var SKIP_FIELDS = ["ROWSTAMP", "LANGCODE"];
 var GROUPNAME_PATTERN = /^[A-Za-z0-9_\-]+$/;
+
+// 日志/异常信息统一转字符串: Nashorn 的 JS Error 不能直接传给 Java 日志方法
+function errText(e) {
+  if (e === null || typeof e === "undefined") {
+    return "";
+  }
+  try {
+    if (e.message) {
+      return String(e.message);
+    }
+  } catch (ignored) { }
+  return String(e);
+}
 
 var _sksCommonsUtils = null;
 var _close = function () {
@@ -119,7 +132,7 @@ function changeMbo(config, data) {
     }
     return result;
   } catch (e) {
-    logger.error("SKS_MIGRATE_MAXGROUP.changeMbo 失败: " + groupname, e);
+    logger.error("SKS_MIGRATE_MAXGROUP.changeMbo 失败: " + groupname + " - " + errText(e));
     throw e;
   } finally {
     if (set != null) {
@@ -151,7 +164,7 @@ function getDetail(config, data) {
     result._operation = "none";
     return result;
   } catch (e) {
-    logger.error("SKS_MIGRATE_MAXGROUP.getDetail 失败: " + groupname, e);
+    logger.error("SKS_MIGRATE_MAXGROUP.getDetail 失败: " + groupname + " - " + errText(e));
     throw e;
   } finally {
     if (set != null) {
