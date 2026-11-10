@@ -1531,7 +1531,17 @@ function saveOrUpdateNodeDetail(nodeMbo, nodeData, internalType) {
       setStrValue(detailMbo, "RELATION", detailData.relation);
       setStrValue(detailMbo, "DIRECTIONS", detailData.directions);
       setStrValue(detailMbo, "DIRECTIONS_LONGDESCRIPTION", detailData.directionsLongDescription);
-      setStrValue(detailMbo, "ACTION", detailData.action);
+      if (impMode === IMP_MODE_MIGRATION) {
+        // 迁移模式: 目标环境可能尚未部署该应用菜单项, 跳过 FldWFInteractionAction 的校验/动作
+        // 11 = NOVALIDATION(1) + NOACCESSCHECK(2) + NOACTION(8)
+        if (detailData.action !== undefined && detailData.action !== null && detailData.action !== "") {
+          if (detailMbo.getString("ACTION") !== String(detailData.action)) {
+            detailMbo.setValue("ACTION", String(detailData.action), 11);
+          }
+        }
+      } else {
+        setStrValue(detailMbo, "ACTION", detailData.action);
+      }
       setStrValue(detailMbo, "TABNAME", detailData.tabName);
       setStrValue(detailMbo, "LAUNCHPROCESS", detailData.launchProcess);
       setYornValue(detailMbo, "STAYCURRENTAPP", detailData.stayCurrentApp);

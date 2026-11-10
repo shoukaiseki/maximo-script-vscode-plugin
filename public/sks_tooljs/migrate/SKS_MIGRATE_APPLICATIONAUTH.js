@@ -27,8 +27,8 @@ var logger = sksLogAnsiUtils ? sksLogAnsiUtils.newAnsiLogger({ logger: loggerMX,
 
 var OBJECT_NAME = "APPLICATIONAUTH";
 var APP_FIELD = "APP";
-// 主键候选: 取第一组在数据中全部存在的字段
-var KEY_CANDIDATES = [["APP", "GROUPNAME", "OPTIONNAME"], ["APP", "GROUPNAME"], ["APP"]];
+// 本脚本固定处理 APPLICATIONAUTH: 业务主键就是 APP + GROUPNAME + OPTIONNAME, 三者缺一不可
+var KEY_FIELDS = ["APP", "GROUPNAME", "OPTIONNAME"];
 var SKIP_COLUMNS = ["ROWSTAMP"];
 var DETAIL_FIELDS = ["APP", "GROUPNAME", "OPTIONNAME", "INSGROUP", "PRIMARYGROUP"];
 
@@ -76,41 +76,38 @@ function changeMbo(config, data) {
         out._message = "数据为空";
         return out;
     }
-    var keyFields = resolveKeyFields(data);
-    if (keyFields.length === 0) {
+    // 三个主键字段必须齐全, 否则会命中其它安全组的权限行
+    var missing = missingKeyFields(data);
+    if (missing.length > 0) {
         out._status = "failed";
-        out._message = "缺少主键字段 " + KEY_CANDIDATES.join(" / ");
+        out._message = "缺少主键字段: " + missing.join(", ");
         return out;
     }
-    out._id = data[keyFields[0]];
+    out._id = String(data.APP) + "/" + String(data.GROUPNAME) + "/" + String(data.OPTIONNAME);
     var set = null;
     try {
         set = mxserver.getMboSet(OBJECT_NAME, userInfo);
         if (config.dmDeploySet === true) {
             try { set.setDMDeploySet(true); } catch (ignored) { }
         }
-        var sqlf = new SqlFormat(buildWhere(keyFields));
-        for (var i = 0; i < keyFields.length; i++) {
-            sqlf.setObject(i + 1, OBJECT_NAME, keyFields[i], String(data[keyFields[i]]));
-        }
+        // 用 SqlFormat 处理主键条件, 自动做类型/引号转义
+        var sqlf = new SqlFormat("app = :1 and groupname = :2 and optionname = :3");
+        sqlf.setObject(1, OBJECT_NAME, "APP", String(data.APP));
+        sqlf.setObject(2, OBJECT_NAME, "GROUPNAME", String(data.GROUPNAME));
+        sqlf.setObject(3, OBJECT_NAME, "OPTIONNAME", String(data.OPTIONNAME));
         set.setWhere(sqlf.format());
         set.reset();
 
         if (data._delete === true) {
+            // 按主键删除, 找不到时 deleteAll 为空操作
             set.deleteAll();
             out._operation = "deleted";
+        } else if (set.isEmpty()) {
+            applyFields(set.add(), data);
+            out._operation = "added";
         } else {
-            var mbo;
-            if (set.isEmpty()) {
-                mbo = set.add();
-                out._status = "success";
-                out._operation = "added";
-            } else {
-                mbo = set.getMbo(0);
-                out._status = "success";
-                out._operation = "updated";
-            }
-            applyFields(mbo, data);
+            applyFields(set.getMbo(0), data);
+            out._operation = "updated";
         }
         set.save();
         out._apiAction = config._apiAction;
@@ -138,29 +135,15 @@ function _close(mboSet, config) {
     } catch (ignored) { }
 }
 
-function resolveKeyFields(data) {
-    for (var i = 0; i < KEY_CANDIDATES.length; i++) {
-        var keys = KEY_CANDIDATES[i];
-        var ok = true;
-        for (var j = 0; j < keys.length; j++) {
-            if (data[keys[j]] === undefined || data[keys[j]] === null || String(data[keys[j]]).trim() === "") {
-                ok = false;
-                break;
-            }
-        }
-        if (ok) {
-            return keys;
+function missingKeyFields(data) {
+    var missing = [];
+    for (var i = 0; i < KEY_FIELDS.length; i++) {
+        var v = data[KEY_FIELDS[i]];
+        if (v === undefined || v === null || String(v).trim() === "") {
+            missing.push(KEY_FIELDS[i]);
         }
     }
-    return [];
-}
-
-function buildWhere(keyFields) {
-    var parts = [];
-    for (var i = 0; i < keyFields.length; i++) {
-        parts.push(keyFields[i].toLowerCase() + " = :" + (i + 1));
-    }
-    return parts.join(" and ");
+    return missing;
 }
 
 function applyFields(mbo, data) {

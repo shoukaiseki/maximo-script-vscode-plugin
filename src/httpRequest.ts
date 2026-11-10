@@ -412,6 +412,23 @@ export interface HttpResponse {
 }
 
 /**
+ * 修正 OSLC 响应里的占位地址
+ * Maximo 返回的 href 常见形如 https://api/os/mxapiautoscript/_xxx（主机名只有 api，没有域名），
+ * 直接当绝对地址请求会报 getaddrinfo ENOTFOUND api，这里还原为相对路径，交由 baseUrl 拼接配置的服务器地址。
+ */
+export function normalizeMaximoUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
+  // https://api/os/... 或 https://api/oslc/... → os/... 或 oslc/...
+  const placeholder = /^https?:\/\/api\/((?:os|oslc)\/.*)$/i.exec(url);
+  if (placeholder) {
+    return placeholder[1];
+  }
+  return url;
+}
+
+/**
  * Maximo HTTP 请求方法（带 JSESSIONID 管理和认证）
  * @param options 请求配置
  * @returns Promise<HttpResponse>
@@ -476,19 +493,24 @@ export async function httpRequestToMaximo(options: HttpRequestOptions): Promise<
     
     // 构建完整 URL
     const baseUrl = serverUrl.replace(/\/$/, ''); // 移除末尾斜杠
+    // 修正服务端返回的占位地址（如 https://api/os/...），避免 ENOTFOUND api
+    const requestUrl = normalizeMaximoUrl(url);
+    if (requestUrl !== url && logger) {
+      logger.warn(`[HTTP] 已修正占位地址: ${url} → ${requestUrl}`);
+    }
     
     // 根据 API 类型确定前缀
     let apiUrl: string;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (requestUrl.startsWith('http://') || requestUrl.startsWith('https://')) {
       // 如果已经是完整 URL，直接使用
-      apiUrl = url;
-    } else if (url.startsWith('/')) {
+      apiUrl = requestUrl;
+    } else if (requestUrl.startsWith('/')) {
       // 如果以 / 开头，直接拼接到 baseUrl
-      apiUrl = `${baseUrl}${url}`;
+      apiUrl = `${baseUrl}${requestUrl}`;
     } else {
       // 相对路径，根据 API 类型添加前缀
       const prefix = apiType === 'oslc' ? '/oslc/' : '/api/';
-      apiUrl = `${baseUrl}${prefix}${url}`;
+      apiUrl = `${baseUrl}${prefix}${requestUrl}`;
     }
     
     // 构建请求头

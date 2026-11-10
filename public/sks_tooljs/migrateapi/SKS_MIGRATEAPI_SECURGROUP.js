@@ -702,22 +702,28 @@ function filterGroupByApps(group, appnames, appOnly) {
 /** _action=apps: 查询 MAXAPPS 应用列表(支持 app 模糊匹配) */
 function doApps(config) {
   var app = bodyOrParam(config, ["app", "APP", "keyword"]);
-  var conds = [];
-  if (app !== null) {
-    conds.push("upper(app) like '%" + escapeSql(String(app).toUpperCase()) + "%'");
-  }
-  var sql = "select app, description from maxapps";
-  if (conds.length > 0) {
-    sql += " where " + conds.join(" and ");
-  }
-  sql += " order by app";
-  var conn = null;
+  // 用 MBO 查询: DESCRIPTION 为多语言属性, MBO 会按 userInfo 的 langcode 取 L_MAXAPPS 译文
+  var set = mxserver.getMboSet("MAXAPPS", config._userInfo);
   try {
-    conn = getConnection(config);
-    var rows = queryRows(conn, sql);
-    return { apps: rows, total: rows.length };
+    if (app !== null && String(app).trim() !== "") {
+      set.setWhere("upper(APP) like '%" + escapeSql(String(app).toUpperCase()) + "%'");
+    }
+    set.setOrderBy("APP");
+    var apps = [];
+    var total = set.count();
+    for (var i = 0; i < total; i++) {
+      var mbo = set.getMbo(i);
+      if (mbo == null) {
+        continue;
+      }
+      apps.push({
+        APP: String(mbo.getString("APP") || ""),
+        DESCRIPTION: String(mbo.getString("DESCRIPTION") || "")
+      });
+    }
+    return { apps: apps, total: apps.length };
   } finally {
-    freeConnection(config, conn);
+    set.close();
   }
 }
 
