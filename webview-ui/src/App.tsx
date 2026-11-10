@@ -97,6 +97,8 @@ const App: React.FC = () => {
   const [isScheduledExportRunning, setIsScheduledExportRunning] = useState<boolean>(false);
   const [scheduledExportProgress, setScheduledExportProgress] = useState<{ current: number; total: number; statusText: string }>({ current: 0, total: 0, statusText: '' });
   const [scheduledExportTaskProgress, setScheduledExportTaskProgress] = useState<Record<number, { current: number; total: number; statusText: string }>>({});
+  const [scheduledFilterTest, setScheduledFilterTest] = useState<Record<number, any>>({});
+  const [filterTestDialogIndex, setFilterTestDialogIndex] = useState<number | null>(null);
   const [scheduledExportLog, setScheduledExportLog] = useState<string>('');
   const [deleteJsonPath, setDeleteJsonPath] = useState<string>('');
   const [scriptList, setScriptList] = useState<any[]>([]);
@@ -581,6 +583,29 @@ const App: React.FC = () => {
           if (message.config) {
             setScheduledExportPlan(message.config);
           }
+          break;
+        case 'setScheduledTaskFilterScript':
+          // 设置计划导出任务行的过滤脚本路径
+          setScheduledExportPlan((prev: any) => {
+            const newTasks = [...(prev.tasks || [])];
+            if (newTasks[message.taskIndex]) {
+              newTasks[message.taskIndex] = { ...newTasks[message.taskIndex], filterScript: message.path };
+            }
+            return { ...prev, tasks: newTasks };
+          });
+          setScheduledFilterTest((prev) => {
+            const next = { ...prev };
+            delete next[message.taskIndex];
+            return next;
+          });
+          break;
+        case 'scheduledFilterTestStart':
+          // 过滤脚本测试开始
+          setScheduledFilterTest((prev) => ({ ...prev, [message.taskIndex]: { loading: true } }));
+          break;
+        case 'scheduledFilterTestResult':
+          // 过滤脚本测试结果
+          setScheduledFilterTest((prev) => ({ ...prev, [message.taskIndex]: { loading: false, ...message } }));
           break;
         case 'updateScheduledExportLog':
           // 更新计划导出日志
@@ -3331,13 +3356,20 @@ const App: React.FC = () => {
                   >
                     💾 保存配置
                   </button>
+                  <button 
+                    onClick={() => getVsCodeApi().postMessage({ command: 'openScheduledExportConfigFile' })}
+                    title="在编辑器中打开 scheduledExportConfig.json"
+                    style={{ marginLeft: '8px', padding: '4px 12px', cursor: 'pointer', background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 'none', borderRadius: '4px' }}
+                  >
+                    📄 查看JSON
+                  </button>
                 </div>
               </div>
 
               {/* 表头 */}
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: '40px 150px 1fr 80px 120px 60px 80px 60px 50px',
+                gridTemplateColumns: '40px 150px 1fr 80px 60px 80px 60px 50px',
                 gap: '4px',
                 padding: '8px 4px',
                 background: 'var(--vscode-editor-background)',
@@ -3349,7 +3381,6 @@ const App: React.FC = () => {
                 <span>导出功能</span>
                 <span>目录</span>
                 <span style={{ textAlign: 'center' }}>语言</span>
-                <span style={{ textAlign: 'center' }}>模块配置</span>
                 <span style={{ textAlign: 'center' }}>压缩</span>
                 <span style={{ textAlign: 'center' }}>线程数</span>
                 <span style={{ textAlign: 'center' }}>启用</span>
@@ -3359,11 +3390,12 @@ const App: React.FC = () => {
               {/* 任务行 */}
               {(scheduledExportPlan.tasks || []).map((task: any, index: number) => {
                 const taskProgress = scheduledExportTaskProgress[index];
+                const filterTest = scheduledFilterTest[index];
                 return (
                 <div key={task.id || index}>
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '40px 150px 1fr 80px 120px 60px 80px 60px 50px',
+                  gridTemplateColumns: '40px 150px 1fr 80px 60px 80px 60px 50px',
                   gap: '4px',
                   padding: '6px 4px',
                   borderBottom: '1px solid var(--vscode-panel-border)',
@@ -3416,130 +3448,6 @@ const App: React.FC = () => {
                       <option key={lang.code} value={lang.code}>{lang.code} - {lang.name}</option>
                     ))}
                   </select>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'stretch' }}>
-                    {task.exportFunction === 'extractMaxobject' ? (
-                      <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={task.ignoreDefVal || false}
-                          onChange={(e) => {
-                            const newTasks = [...(scheduledExportPlan.tasks || [])];
-                            newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
-                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                          }}
-                          disabled={isScheduledExportRunning}
-                        />
-                        精简模式
-                      </label>
-                    ) : task.exportFunction === 'extractCondition' ? (
-                      <input
-                        type="text"
-                        value={task.where !== undefined && task.where !== '' ? task.where : '1=1'}
-                        onChange={(e) => {
-                          const newTasks = [...(scheduledExportPlan.tasks || [])];
-                          newTasks[index] = { ...newTasks[index], where: e.target.value };
-                          setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                        }}
-                        placeholder="where，如 1=1"
-                        style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
-                        disabled={isScheduledExportRunning}
-                      />
-                    ) : task.exportFunction === 'extractMessage' || task.exportFunction === 'extractDomain' ? (
-                      <>
-                        {task.exportFunction === 'extractMessage' && (
-                          <>
-                            <span style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>单文件行数</span>
-                            <input
-                              type="number"
-                              min="100"
-                              max="50000"
-                              step="100"
-                              value={task.pageSize !== undefined ? task.pageSize : 5000}
-                              onChange={(e) => {
-                                const newTasks = [...(scheduledExportPlan.tasks || [])];
-                                newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
-                                setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                              }}
-                              style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
-                              disabled={isScheduledExportRunning}
-                            />
-                          </>
-                        )}
-                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', marginTop: '2px' }}>
-                          <input
-                            type="checkbox"
-                            checked={task.ignoreDefVal || false}
-                            onChange={(e) => {
-                              const newTasks = [...(scheduledExportPlan.tasks || [])];
-                              newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
-                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                            }}
-                            disabled={isScheduledExportRunning}
-                          />
-                          精简模式
-                        </label>
-                      </>
-                    ) : task.exportFunction === 'extractIntObject' ? (
-                      <>
-                        <input
-                          type="text"
-                          value={task.where !== undefined && task.where !== '' ? task.where : '1=1'}
-                          onChange={(e) => {
-                            const newTasks = [...(scheduledExportPlan.tasks || [])];
-                            newTasks[index] = { ...newTasks[index], where: e.target.value };
-                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                          }}
-                          placeholder="where，如 1=1"
-                          style={{ width: '100%', fontSize: '0.85em', boxSizing: 'border-box' }}
-                          disabled={isScheduledExportRunning}
-                        />
-                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', marginTop: '2px' }}>
-                          <input
-                            type="checkbox"
-                            checked={task.ignoreDefVal || false}
-                            onChange={(e) => {
-                              const newTasks = [...(scheduledExportPlan.tasks || [])];
-                              newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
-                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                            }}
-                            disabled={isScheduledExportRunning}
-                          />
-                          精简模式
-                        </label>
-                      </>
-                    ) : task.exportFunction === 'extractAppXml' ? (
-                      <>
-                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={task.ignoreMetadata || false}
-                            onChange={(e) => {
-                              const newTasks = [...(scheduledExportPlan.tasks || [])];
-                              newTasks[index] = { ...newTasks[index], ignoreMetadata: e.target.checked };
-                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                            }}
-                            disabled={isScheduledExportRunning}
-                          />
-                          忽略metadata
-                        </label>
-                        <label style={{ fontSize: '0.75em', color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', alignSelf: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={task.exportMafZip || false}
-                            onChange={(e) => {
-                              const newTasks = [...(scheduledExportPlan.tasks || [])];
-                              newTasks[index] = { ...newTasks[index], exportMafZip: e.target.checked };
-                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
-                            }}
-                            disabled={isScheduledExportRunning}
-                          />
-                          导出zip
-                        </label>
-                      </>
-                    ) : (
-                      <span style={{ textAlign: 'center', color: 'var(--vscode-descriptionForeground)', fontSize: '0.85em', alignSelf: 'center' }}>-</span>
-                    )}
-                  </div>
                   <input
                     type="checkbox"
                     checked={task.compress || false}
@@ -3594,6 +3502,184 @@ const App: React.FC = () => {
                     ✕
                   </button>
                 </div>
+                {/* 行详情：模块配置 */}
+                {(task.exportFunction === 'extractMaxobject' || task.exportFunction === 'extractCondition' ||
+                  task.exportFunction === 'extractMessage' || task.exportFunction === 'extractDomain' ||
+                  task.exportFunction === 'extractIntObject' || task.exportFunction === 'extractAppXml' ||
+                  task.exportFunction === 'extractScript') && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '6px 16px',
+                    padding: '6px 8px 8px 44px',
+                    borderBottom: '1px solid var(--vscode-panel-border)',
+                    background: 'var(--vscode-textCodeBlock-background)',
+                    fontSize: '0.8em'
+                  }}>
+                    {(task.exportFunction === 'extractCondition' || task.exportFunction === 'extractIntObject') && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ whiteSpace: 'nowrap', color: 'var(--vscode-descriptionForeground)' }}>where</span>
+                        <input
+                          type="text"
+                          value={task.where !== undefined && task.where !== '' ? task.where : '1=1'}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], where: e.target.value };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          placeholder="where，如 1=1"
+                          style={{ width: '320px', fontSize: '0.95em', boxSizing: 'border-box' }}
+                          disabled={isScheduledExportRunning}
+                        />
+                      </label>
+                    )}
+                    {task.exportFunction === 'extractMessage' && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ whiteSpace: 'nowrap', color: 'var(--vscode-descriptionForeground)' }}>单文件行数</span>
+                        <input
+                          type="number"
+                          min="100"
+                          max="50000"
+                          step="100"
+                          value={task.pageSize !== undefined ? task.pageSize : 5000}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], pageSize: Math.max(100, Math.min(50000, parseInt(e.target.value) || 5000)) };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          style={{ width: '110px', fontSize: '0.95em', boxSizing: 'border-box' }}
+                          disabled={isScheduledExportRunning}
+                        />
+                      </label>
+                    )}
+                    {(task.exportFunction === 'extractMaxobject' || task.exportFunction === 'extractMessage' ||
+                      task.exportFunction === 'extractDomain' || task.exportFunction === 'extractIntObject') && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        <input
+                          type="checkbox"
+                          checked={task.ignoreDefVal || false}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], ignoreDefVal: e.target.checked };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                          }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        精简模式
+                      </label>
+                    )}
+                    {task.exportFunction === 'extractAppXml' && (
+                      <>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.ignoreMetadata || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], ignoreMetadata: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          忽略metadata
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          <input
+                            type="checkbox"
+                            checked={task.exportMafZip || false}
+                            onChange={(e) => {
+                              const newTasks = [...(scheduledExportPlan.tasks || [])];
+                              newTasks[index] = { ...newTasks[index], exportMafZip: e.target.checked };
+                              setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            }}
+                            disabled={isScheduledExportRunning}
+                          />
+                          导出zip
+                        </label>
+                      </>
+                    )}
+                    {(task.exportFunction === 'extractAppXml' || task.exportFunction === 'extractMaxobject' || task.exportFunction === 'extractIntObject' || task.exportFunction === 'extractScript') && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 100%', minWidth: '260px' }}>
+                        <span style={{ whiteSpace: 'nowrap', color: 'var(--vscode-descriptionForeground)' }}>过滤脚本</span>
+                        <button
+                          type="button"
+                          title="查看过滤脚本编写说明"
+                          onClick={() => {
+                            getVsCodeApi().postMessage({ command: 'openScheduledExportHelp', anchor: 'filter-script' });
+                          }}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            padding: '0 2px',
+                            cursor: 'pointer',
+                            color: 'var(--vscode-textLink-foreground)',
+                            fontSize: '1em',
+                            lineHeight: 1
+                          }}
+                        >
+                          ❓
+                        </button>
+                        <input
+                          type="text"
+                          value={task.filterScript || ''}
+                          onChange={(e) => {
+                            const newTasks = [...(scheduledExportPlan.tasks || [])];
+                            newTasks[index] = { ...newTasks[index], filterScript: e.target.value };
+                            setScheduledExportPlan({ ...scheduledExportPlan, tasks: newTasks });
+                            setScheduledFilterTest((prev) => {
+                              const next = { ...prev };
+                              delete next[index];
+                              return next;
+                            });
+                          }}
+                          placeholder="选择或输入本地 .js 脚本路径（可选）"
+                          title="本地脚本路径（相对工作区或绝对路径）。脚本需 module.exports = function(list, ctx){ return list }，返回过滤后的清单，可用 require 引入其他本地脚本"
+                          style={{ flex: 1, minWidth: '200px', fontSize: '0.95em', boxSizing: 'border-box' }}
+                          disabled={isScheduledExportRunning}
+                        />
+                        <button
+                          onClick={() => getVsCodeApi().postMessage({ command: 'selectScheduledFilterScript', taskIndex: index })}
+                          disabled={isScheduledExportRunning}
+                          style={{
+                            padding: '3px 10px',
+                            whiteSpace: 'nowrap',
+                            cursor: isScheduledExportRunning ? 'not-allowed' : 'pointer',
+                            border: '1px solid var(--vscode-panel-border)',
+                            borderRadius: '3px',
+                            background: 'var(--vscode-button-secondaryBackground)',
+                            color: 'var(--vscode-button-secondaryForeground)'
+                          }}
+                        >
+                          选择文件
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFilterTestDialogIndex(index);
+                            getVsCodeApi().postMessage({
+                              command: 'testScheduledFilterScript',
+                              taskIndex: index,
+                              task
+                            });
+                          }}
+                          disabled={isScheduledExportRunning || !!filterTest?.loading}
+                          title="按当前任务参数获取清单并执行过滤脚本，只显示结果，不写入文件"
+                          style={{
+                            padding: '3px 10px',
+                            whiteSpace: 'nowrap',
+                            cursor: (isScheduledExportRunning || filterTest?.loading) ? 'not-allowed' : 'pointer',
+                            border: '1px solid var(--vscode-panel-border)',
+                            borderRadius: '3px',
+                            background: 'var(--vscode-button-background)',
+                            color: 'var(--vscode-button-foreground)'
+                          }}
+                        >
+                          {filterTest?.loading ? '测试中…' : '测试'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* 单个任务进度条 */}
                 {isScheduledExportRunning && taskProgress && taskProgress.total > 0 && (
                   <div style={{ padding: '2px 8px 6px 8px', borderBottom: '1px solid var(--vscode-panel-border)' }}>
@@ -3642,6 +3728,25 @@ const App: React.FC = () => {
               <p style={{ margin: '0 0 3px 0' }}>$&#123;timestamp&#125; - 时间戳（如：1722300000000）</p>
               <p style={{ margin: '0 0 3px 0' }}>$&#123;datetimeEN&#125; - 日期时间格式 yyyyMMdd_HHmmss（如：20260730_001009）</p>
               <p style={{ margin: '0' }}>$&#123;langcode&#125; - 语言代码（如：ZH, EN）</p>
+            </div>
+
+            {/* 任务配置说明（独立页面展示 Markdown 文档） */}
+            <div style={{ marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => getVsCodeApi().postMessage({ command: 'openScheduledExportHelp' })}
+                title="在新页面查看计划导出的任务配置说明"
+                style={{
+                  padding: '4px 14px',
+                  cursor: 'pointer',
+                  border: '1px solid var(--vscode-panel-border)',
+                  borderRadius: '3px',
+                  background: 'var(--vscode-button-secondaryBackground)',
+                  color: 'var(--vscode-button-secondaryForeground)'
+                }}
+              >
+                📖 任务配置说明
+              </button>
             </div>
 
             {/* 开始执行按钮 */}
@@ -4081,6 +4186,162 @@ node demo01.js loc</code></pre>
           </div>
         </div>
       )}
+
+      {/* 过滤脚本测试结果弹窗 */}
+      {filterTestDialogIndex !== null && (() => {
+        const filterTest = scheduledFilterTest[filterTestDialogIndex];
+        const task = (scheduledExportPlan.tasks || [])[filterTestDialogIndex] || {};
+        const funcLabels: Record<string, string> = {
+          extractAppXml: '导出应用XML',
+          extractMaxobject: '导出 MAXOBJECT',
+          extractIntObject: '导出对象结构',
+          extractScript: '导出脚本'
+        };
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1002
+            }}
+            onClick={() => setFilterTestDialogIndex(null)}
+          >
+            <div
+              style={{
+                backgroundColor: 'var(--vscode-editor-background)',
+                border: '1px solid var(--vscode-panel-border)',
+                borderRadius: '6px',
+                padding: '20px',
+                width: '760px',
+                maxWidth: '90vw',
+                maxHeight: '80vh',
+                overflow: 'auto',
+                fontSize: '0.9em'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--vscode-panel-border)', paddingBottom: '8px', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0 }}>
+                  🧩 过滤脚本测试结果 - 任务 {filterTestDialogIndex + 1}（{funcLabels[task.exportFunction] || task.exportFunction || '-'}）
+                </h3>
+                <button
+                  onClick={() => setFilterTestDialogIndex(null)}
+                  title="关闭"
+                  style={{ padding: '2px 10px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {!filterTest || filterTest.loading ? (
+                <div style={{ color: 'var(--vscode-descriptionForeground)' }}>正在获取清单并执行过滤脚本…</div>
+              ) : filterTest.ok ? (
+                <>
+                  <div style={{ marginBottom: '10px', lineHeight: '1.8' }}>
+                    <div><strong>清单总数：</strong>{filterTest.total} 条</div>
+                    <div><strong>保留：</strong><span style={{ color: 'var(--vscode-terminal-ansiGreen)', fontWeight: 'bold' }}>{filterTest.kept} 条</span></div>
+                    <div><strong>被过滤：</strong><span style={{ color: 'var(--vscode-terminal-ansiYellow)', fontWeight: 'bold' }}>{filterTest.removed} 条</span></div>
+                    <div style={{ color: 'var(--vscode-descriptionForeground)', fontSize: '0.9em' }}>
+                      耗时 {filterTest.elapsedMs} ms
+                      {filterTest.hasFilterScript ? '' : '（未配置过滤脚本，仅拉取清单）'}
+                    </div>
+                  </div>
+                  {filterTest.total === 0 && (
+                    <div style={{ marginBottom: '8px', color: 'var(--vscode-errorForeground)' }}>
+                      服务器返回的清单为空，请检查语言或 where 条件
+                    </div>
+                  )}
+                  {(filterTest.keptSample || []).length > 0 && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                        保留清单（{filterTest.kept} 条{filterTest.kept > filterTest.keptSample.length ? `，仅显示前 ${filterTest.keptSample.length} 条` : ''}）
+                      </div>
+                      <pre style={{
+                        margin: 0,
+                        padding: '8px',
+                        maxHeight: '180px',
+                        overflow: 'auto',
+                        background: 'var(--vscode-textCodeBlock-background)',
+                        borderRadius: '3px',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                        fontSize: '0.95em'
+                      }}>{filterTest.keptSample.join(', ')}</pre>
+                    </div>
+                  )}
+                  {(filterTest.removedSample || []).length > 0 && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                        被过滤清单（{filterTest.removed} 条{filterTest.removed > filterTest.removedSample.length ? `，仅显示前 ${filterTest.removedSample.length} 条` : ''}）
+                      </div>
+                      <pre style={{
+                        margin: 0,
+                        padding: '8px',
+                        maxHeight: '180px',
+                        overflow: 'auto',
+                        background: 'var(--vscode-textCodeBlock-background)',
+                        borderRadius: '3px',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                        fontSize: '0.95em'
+                      }}>{filterTest.removedSample.join(', ')}</pre>
+                    </div>
+                  )}
+                  {(filterTest.logs || []).length > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>脚本日志</div>
+                      <pre style={{
+                        margin: 0,
+                        padding: '8px',
+                        maxHeight: '160px',
+                        overflow: 'auto',
+                        background: 'var(--vscode-textCodeBlock-background)',
+                        borderRadius: '3px',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: '0.95em'
+                      }}>{filterTest.logs.join('\n')}</pre>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ color: 'var(--vscode-errorForeground)', marginBottom: '10px', whiteSpace: 'pre-wrap' }}>
+                    ❌ {filterTest.error}
+                  </div>
+                  {(filterTest.logs || []).length > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>脚本日志</div>
+                      <pre style={{
+                        margin: 0,
+                        padding: '8px',
+                        maxHeight: '160px',
+                        overflow: 'auto',
+                        background: 'var(--vscode-textCodeBlock-background)',
+                        borderRadius: '3px',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: '0.95em'
+                      }}>{filterTest.logs.join('\n')}</pre>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div style={{ textAlign: 'right', marginTop: '14px' }}>
+                <button onClick={() => setFilterTestDialogIndex(null)} style={{ padding: '4px 16px', cursor: 'pointer' }}>
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 用户信息弹窗 */}
       {showUserInfoDialog && userInfo && (

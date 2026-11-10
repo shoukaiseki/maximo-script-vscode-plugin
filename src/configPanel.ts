@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRequire } from 'module';
 import { checkResponseHasError, httpRequestToMaximo } from './httpRequest';
 import * as envConfig from './envConfig';
 
@@ -14,6 +15,7 @@ const EXPORT_REQUEST_TIMEOUT_MS = 1800000;
 
 export class ConfigPanel {
   public static currentPanel: ConfigPanel | undefined;
+  private static _scheduledHelpPanel: vscode.WebviewPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
   private readonly _extensionUri: vscode.Uri;
@@ -150,6 +152,12 @@ export class ConfigPanel {
           case 'selectDeleteJson':
             await this._selectDeleteJson();
             return;
+          case 'selectScheduledFilterScript':
+            await this._selectScheduledFilterScript(message.taskIndex);
+            return;
+          case 'testScheduledFilterScript':
+            await this._testScheduledFilterScript(message.task, message.taskIndex);
+            return;
           case 'selectDirectoryForExtract':
             await this._selectDirectoryForExtract();
             return;
@@ -247,6 +255,12 @@ export class ConfigPanel {
             return;
           case 'saveScheduledExportConfig':
             await this._saveScheduledExportConfig(message.config);
+            return;
+          case 'openScheduledExportConfigFile':
+            await this._openScheduledExportConfigFile();
+            return;
+          case 'openScheduledExportHelp':
+            await this._openScheduledExportHelp(message.anchor);
             return;
           case 'loadScheduledExportConfig':
             await this._loadScheduledExportConfig();
@@ -988,6 +1002,29 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     if (result && result.length > 0) {
       this._panel.webview.postMessage({
         command: 'setDeployDirectoryPath',
+        path: result[0].fsPath
+      });
+    }
+  }
+
+  /**
+   * 选择计划导出任务的过滤脚本
+   */
+  private async _selectScheduledFilterScript(taskIndex: number) {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'JavaScript Files': ['js', 'cjs']
+      },
+      openLabel: '选择过滤脚本'
+    });
+
+    if (result && result.length > 0) {
+      this._panel.webview.postMessage({
+        command: 'setScheduledTaskFilterScript',
+        taskIndex,
         path: result[0].fsPath
       });
     }
@@ -4833,6 +4870,232 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 打开计划导出配置 JSON 源文件
+   */
+  private async _openScheduledExportConfigFile() {
+    try {
+      const configPath = this._getScheduledExportConfigPath();
+      if (!fs.existsSync(configPath)) {
+        vscode.window.showWarningMessage('计划导出配置文件不存在，请先点击"保存配置"');
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(configPath);
+      await vscode.window.showTextDocument(doc, { preview: true });
+    } catch (error: any) {
+      logger.error(`[ScheduledExport] 打开配置文件失败: ${error.message}`);
+      vscode.window.showErrorMessage(`打开配置文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 打开"计划导出任务配置说明"页面（Markdown 转 HTML，独立 webview 页面）
+   */
+  private async _openScheduledExportHelp(anchor?: string) {
+    try {
+      const docPath = path.join(this._extensionUri.fsPath, 'docs', 'scheduled-export-guide.md');
+      if (!fs.existsSync(docPath)) {
+        vscode.window.showWarningMessage('找不到说明文档: ' + docPath);
+        return;
+      }
+
+      const bodyHtml = this._markdownToHtml(fs.readFileSync(docPath, 'utf-8'));
+      const html = this._buildScheduledHelpHtml(bodyHtml, anchor);
+
+      if (ConfigPanel._scheduledHelpPanel) {
+        ConfigPanel._scheduledHelpPanel.webview.html = html;
+        ConfigPanel._scheduledHelpPanel.reveal(vscode.ViewColumn.Beside);
+        return;
+      }
+
+      const panel = vscode.window.createWebviewPanel(
+        'scheduledExportHelp',
+        '计划导出任务配置说明',
+        vscode.ViewColumn.Beside,
+        { enableScripts: true, retainContextWhenHidden: true }
+      );
+      panel.webview.html = html;
+      panel.onDidDispose(() => {
+        ConfigPanel._scheduledHelpPanel = undefined;
+      }, null, []);
+      ConfigPanel._scheduledHelpPanel = panel;
+    } catch (error: any) {
+      logger.error(`[ScheduledExport] 打开说明文档失败: ${error.message}`);
+      vscode.window.showErrorMessage(`打开说明文档失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 生成说明文档页面 HTML
+   */
+  private _buildScheduledHelpHtml(bodyHtml: string, anchor?: string): string {
+    const scrollScript = anchor
+      ? `<script>window.addEventListener('load',function(){var el=document.getElementById(${JSON.stringify(anchor)});if(el){el.scrollIntoView();}});</script>`
+      : '';
+    return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>计划导出任务配置说明</title>
+<style>
+  body {
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    padding: 12px 28px 40px 28px;
+    line-height: 1.75;
+    max-width: 980px;
+  }
+  h1 { font-size: 1.6em; border-bottom: 2px solid var(--vscode-panel-border); padding-bottom: 8px; }
+  h2 { font-size: 1.25em; margin-top: 28px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 5px; }
+  h3 { font-size: 1.05em; margin-top: 20px; color: var(--vscode-textLink-foreground); }
+  p { margin: 8px 0; }
+  ul, ol { margin: 6px 0; padding-left: 24px; }
+  li { margin: 3px 0; }
+  code {
+    font-family: var(--vscode-editor-font-family);
+    background: var(--vscode-textCodeBlock-background);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.95em;
+  }
+  pre {
+    background: var(--vscode-textCodeBlock-background);
+    padding: 10px 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: transparent; padding: 0; }
+  table { border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid var(--vscode-panel-border); padding: 4px 10px; text-align: left; }
+  th { background: var(--vscode-textCodeBlock-background); }
+  a { color: var(--vscode-textLink-foreground); }
+</style>
+</head>
+<body>
+${bodyHtml}
+${scrollScript}
+</body>
+</html>`;
+  }
+
+  /**
+   * 极简 Markdown → HTML（支持标题、代码块、列表、表格、段落与常用行内格式）
+   */
+  private _markdownToHtml(md: string): string {
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const out: string[] = [];
+    let i = 0;
+
+    const escapeHtml = (s: string) => s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const inline = (s: string) => {
+      let t = escapeHtml(s);
+      t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+      t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      return t;
+    };
+
+    const isListLine = (s: string) => /^\s*[-*]\s+/.test(s);
+    const isOrderedLine = (s: string) => /^\s*\d+\.\s+/.test(s);
+    const isTableLine = (s: string) => /^\s*\|.*\|\s*$/.test(s);
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      if (/^```/.test(line.trim())) {
+        i++;
+        const code: string[] = [];
+        while (i < lines.length && !/^```/.test(lines[i].trim())) {
+          code.push(lines[i]);
+          i++;
+        }
+        i++;
+        out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+        continue;
+      }
+
+      const heading = line.match(/^(#{1,6})\s+(.*)$/);
+      if (heading) {
+        const level = heading[1].length;
+        let text = heading[2].trim();
+        let id = '';
+        const idMatch = text.match(/\s*\{#([\w-]+)\}\s*$/);
+        if (idMatch) {
+          id = idMatch[1];
+          text = text.slice(0, idMatch.index).trim();
+        }
+        out.push(`<h${level}${id ? ` id="${id}"` : ''}>${inline(text)}</h${level}>`);
+        i++;
+        continue;
+      }
+
+      if (isTableLine(line)) {
+        const rows: string[] = [];
+        while (i < lines.length && isTableLine(lines[i])) {
+          rows.push(lines[i]);
+          i++;
+        }
+        const cells = (r: string) => r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+        const header = cells(rows[0]);
+        const bodyRows = rows.slice(2).map(cells);
+        const thead = `<thead><tr>${header.map((h) => `<th>${inline(h)}</th>`).join('')}</tr></thead>`;
+        const tbody = `<tbody>${bodyRows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+        out.push(`<table>${thead}${tbody}</table>`);
+        continue;
+      }
+
+      if (isListLine(line)) {
+        const items: string[] = [];
+        while (i < lines.length && isListLine(lines[i])) {
+          items.push(lines[i].replace(/^\s*[-*]\s+/, ''));
+          i++;
+        }
+        out.push(`<ul>${items.map((it) => `<li>${inline(it)}</li>`).join('')}</ul>`);
+        continue;
+      }
+
+      if (isOrderedLine(line)) {
+        const items: string[] = [];
+        while (i < lines.length && isOrderedLine(lines[i])) {
+          items.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
+          i++;
+        }
+        out.push(`<ol>${items.map((it) => `<li>${inline(it)}</li>`).join('')}</ol>`);
+        continue;
+      }
+
+      if (line.trim() === '') {
+        i++;
+        continue;
+      }
+
+      const para: string[] = [];
+      while (
+        i < lines.length
+        && lines[i].trim() !== ''
+        && !/^```/.test(lines[i].trim())
+        && !/^#{1,6}\s+/.test(lines[i])
+        && !isListLine(lines[i])
+        && !isOrderedLine(lines[i])
+        && !isTableLine(lines[i])
+      ) {
+        para.push(lines[i]);
+        i++;
+      }
+      out.push(`<p>${para.map(inline).join('<br>')}</p>`);
+    }
+
+    return out.join('\n');
+  }
+
+  /**
    * 加载计划导出配置
    */
   private async _loadScheduledExportConfig() {
@@ -5005,6 +5268,291 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   }
 
   /**
+   * 执行本地过滤脚本，对接口返回的清单做过滤/调整
+   * 脚本约定：module.exports = function (list, ctx) { return 新数组 }
+   * - 支持在脚本内 require 其他本地脚本（相对脚本所在目录解析，可用 ./ 或 ../）
+   * - 返回值必须是数组，否则视为脚本错误
+   */
+  private _runLocalFilterScript(
+    list: any[],
+    scriptPath: string | undefined,
+    ctx: { type: string; language?: string; taskIndex: number },
+    label: string,
+    logFn?: (msg: string) => void
+  ): any[] {
+    const raw = (scriptPath || '').trim();
+    if (!raw) {
+      return list;
+    }
+
+    let resolved = raw;
+    if (!path.isAbsolute(resolved)) {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      const baseDir = workspaceFolders && workspaceFolders.length > 0 ? workspaceFolders[0].uri.fsPath : process.cwd();
+      resolved = path.resolve(baseDir, raw);
+    }
+
+    if (!fs.existsSync(resolved)) {
+      throw new Error(`过滤脚本不存在: ${resolved}`);
+    }
+
+    const scriptDir = path.dirname(resolved);
+
+    // 清掉脚本及其所在目录下依赖的 require 缓存，保证修改脚本后无需重启插件
+    for (const key of Object.keys(require.cache)) {
+      if (key.startsWith(scriptDir)) {
+        delete require.cache[key];
+      }
+    }
+
+    const code = fs.readFileSync(resolved, 'utf-8');
+    const localRequire = createRequire(resolved);
+    const moduleObj: any = { exports: {} };
+    const scriptCtx = {
+      ...ctx,
+      scriptPath: resolved,
+      log: (msg: string) => {
+        const text = `    🧩 [${label}] ${msg}`;
+        if (logFn) {
+          logFn(text);
+        } else {
+          this._sendScheduledLog(text);
+        }
+      }
+    };
+
+    try {
+      const runner = new Function('module', 'exports', 'require', '__filename', '__dirname', code);
+      runner(moduleObj, moduleObj.exports, localRequire, resolved, scriptDir);
+    } catch (error: any) {
+      throw new Error(`过滤脚本执行失败(${path.basename(resolved)}): ${error.message}`);
+    }
+
+    let filterFn: any = moduleObj.exports;
+    if (filterFn && typeof filterFn.default === 'function') {
+      filterFn = filterFn.default;
+    }
+    if (typeof filterFn !== 'function') {
+      throw new Error(`过滤脚本未导出函数，请使用 module.exports = function(list, ctx) {...}: ${resolved}`);
+    }
+
+    let result: any;
+    try {
+      result = filterFn(list, scriptCtx);
+    } catch (error: any) {
+      throw new Error(`过滤脚本运行出错(${path.basename(resolved)}): ${error.message}`);
+    }
+
+    if (!Array.isArray(result)) {
+      throw new Error(`过滤脚本返回值不是数组: ${resolved}`);
+    }
+
+    const summary = `    🧩 过滤脚本 ${path.basename(resolved)}: ${list.length} → ${result.length}`;
+    if (logFn) {
+      logFn(summary);
+    } else {
+      this._sendScheduledLog(summary);
+    }
+    return result;
+  }
+
+  /**
+   * 获取 MAXOBJECT 名称清单（导出与过滤脚本测试共用）
+   */
+  private async _fetchMaxobjectNames(language: string): Promise<any[]> {
+    const maxobjectResult = await httpRequestToMaximo({
+      url: `script/SKS_GET_MAXOBJECTNAMES?_langcode=${language}`,
+      method: 'GET'
+    });
+
+    if (maxobjectResult.status !== 200 || !maxobjectResult.data) {
+      throw new Error(`获取 MAXOBJECT 列表失败: HTTP ${maxobjectResult.status}`);
+    }
+
+    if (Array.isArray(maxobjectResult.data)) {
+      return maxobjectResult.data;
+    }
+    if (maxobjectResult.data.member && Array.isArray(maxobjectResult.data.member)) {
+      return maxobjectResult.data.member;
+    }
+    throw new Error('MAXOBJECT 列表格式不正确');
+  }
+
+  /**
+   * 获取脚本名称清单（导出与过滤脚本测试共用）
+   */
+  private async _fetchAutoscriptNames(language: string): Promise<string[]> {
+    const scriptsResult = await httpRequestToMaximo({
+      url: `script/SKS_GET_AUTOSCRIPTNAMES?_langcode=${language}`,
+      method: 'GET'
+    });
+
+    if (scriptsResult.status !== 200 || !scriptsResult.data) {
+      throw new Error(`获取脚本列表失败: HTTP ${scriptsResult.status}`);
+    }
+
+    let list: any[];
+    if (Array.isArray(scriptsResult.data)) {
+      list = scriptsResult.data;
+    } else if (scriptsResult.data.member && Array.isArray(scriptsResult.data.member)) {
+      list = scriptsResult.data.member;
+    } else {
+      throw new Error('脚本列表格式不正确');
+    }
+
+    // 与工具箱 _extractScripts 保持一致的字段提取方式，统一为脚本名数组
+    return list
+      .map((info) => (typeof info === 'string'
+        ? info
+        : (info.autoScript || info['oslc:autoscript'] || info.autoscript || info.AUTOSCRIPT || '')))
+      .filter((name) => !!name);
+  }
+
+  /**
+   * 获取对象结构导出响应数据（导出与过滤脚本测试共用）
+   */
+  private async _fetchIntObjectsResponse(language: string, where: string, ignoreDefVal: boolean): Promise<any> {
+    const whereClause = (where || '1=1').trim();
+    const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=integrationobjects&_action=export`;
+    const exportResult = await httpRequestToMaximo({
+      url: exportUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { where: whereClause }
+    });
+
+    if (exportResult.status !== 200 || !exportResult.data) {
+      throw new Error(`导出对象结构失败: HTTP ${exportResult.status}`);
+    }
+
+    let responseData = exportResult.data;
+    if (typeof responseData === 'string') {
+      try { responseData = JSON.parse(responseData); } catch (e) { }
+    }
+
+    if (responseData.status === 'error') {
+      throw new Error(`导出对象结构失败: ${responseData.message || '未知错误'}`);
+    }
+
+    return responseData;
+  }
+
+  /**
+   * 获取应用名称清单（导出与过滤脚本测试共用）
+   */
+  private async _fetchAppScreenNames(language: string, ignoreMetadata: boolean): Promise<string[]> {
+    const screensUrl = `script/SKS.AUTOSCRIPT.SCREENS?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
+    const screensResult = await httpRequestToMaximo({
+      url: screensUrl,
+      method: 'GET'
+    });
+
+    if (screensResult.status !== 200 || !screensResult.data) {
+      throw new Error(`获取应用列表失败: HTTP ${screensResult.status}`);
+    }
+
+    if (Array.isArray(screensResult.data.screenNames)) {
+      return screensResult.data.screenNames;
+    }
+    throw new Error('应用列表格式不正确');
+  }
+
+  /**
+   * 测试过滤脚本：按任务参数拉取清单（不写文件）→ 执行本地过滤脚本 → 回传前后结果
+   */
+  private async _testScheduledFilterScript(task: any, taskIndex: number) {
+    const exportFunction = task?.exportFunction || '';
+    const language = task?.language || 'EN';
+    const filterScript = task?.filterScript || '';
+    const labels: Record<string, string> = {
+      extractAppXml: '应用XML',
+      extractMaxobject: 'MAXOBJECT',
+      extractIntObject: '对象结构',
+      extractScript: '脚本'
+    };
+    const label = labels[exportFunction];
+
+    if (!label) {
+      this._panel.webview.postMessage({
+        command: 'scheduledFilterTestResult',
+        taskIndex,
+        ok: false,
+        error: `该任务类型不支持过滤脚本测试: ${exportFunction || '(未选择功能)'}`
+      });
+      return;
+    }
+
+    this._panel.webview.postMessage({ command: 'scheduledFilterTestStart', taskIndex });
+    const startedAt = Date.now();
+    const logs: string[] = [];
+
+    try {
+      let list: any[];
+      if (exportFunction === 'extractAppXml') {
+        list = await this._fetchAppScreenNames(language, task?.ignoreMetadata === true);
+      } else if (exportFunction === 'extractMaxobject') {
+        list = await this._fetchMaxobjectNames(language);
+      } else if (exportFunction === 'extractScript') {
+        list = await this._fetchAutoscriptNames(language);
+      } else {
+        const responseData = await this._fetchIntObjectsResponse(language, task?.where || '1=1', task?.ignoreDefVal === true);
+        list = responseData.integrationobjects || [];
+      }
+
+      const total = list.length;
+      const filtered = this._runLocalFilterScript(
+        list,
+        filterScript,
+        { type: exportFunction, language, taskIndex },
+        label,
+        (msg) => logs.push(msg)
+      );
+
+      const nameOf = (item: any): string => {
+        if (item === null || item === undefined) {
+          return String(item);
+        }
+        if (typeof item === 'string') {
+          return item;
+        }
+        if (typeof item !== 'object') {
+          return String(item);
+        }
+        const name = item.objectName || item.OBJECTNAME || item.intObjectName || item.INTOBJECTNAME
+          || item.name || item.NAME || item.description || item.DESCRIPTION;
+        return name ? String(name) : JSON.stringify(item).slice(0, 200);
+      };
+
+      const keptNames = new Set(filtered.map(nameOf));
+      const removedNames = list.map(nameOf).filter((name) => !keptNames.has(name));
+
+      this._panel.webview.postMessage({
+        command: 'scheduledFilterTestResult',
+        taskIndex,
+        ok: true,
+        hasFilterScript: !!filterScript.trim(),
+        total,
+        kept: filtered.length,
+        removed: Math.max(0, total - filtered.length),
+        keptSample: filtered.slice(0, 200).map(nameOf),
+        removedSample: removedNames.slice(0, 200),
+        removedListed: removedNames.length,
+        logs: logs.slice(-100),
+        elapsedMs: Date.now() - startedAt
+      });
+    } catch (error: any) {
+      this._panel.webview.postMessage({
+        command: 'scheduledFilterTestResult',
+        taskIndex,
+        ok: false,
+        error: error.message || String(error),
+        logs: logs.slice(-100),
+        elapsedMs: Date.now() - startedAt
+      });
+    }
+  }
+
+  /**
    * 执行单个导出任务
    */
   private async _executeSingleExportTask(task: any, taskDir: string, taskNum: number, totalTasks: number, taskIndex: number): Promise<void> {
@@ -5013,7 +5561,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     switch (exportFunction) {
       case 'extractMaxobject':
         this._sendScheduledLog(`  🔄 正在导出 MAXOBJECT 到 ${taskDir}，线程数: ${task.threadCount || 5}`);
-        await this._extractMaxobjectForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, taskIndex);
+        await this._extractMaxobjectForScheduled(taskDir, task.language || 'EN', task.ignoreDefVal || false, task.threadCount || 5, task.compress || false, taskIndex, task.filterScript || '');
         break;
       case 'extractMessage':
         this._sendScheduledLog(`  🔄 正在导出消息到 ${taskDir}，线程数: ${task.threadCount || 5}`);
@@ -5029,15 +5577,15 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
         break;
       case 'extractIntObject':
         this._sendScheduledLog(`  🔄 正在导出对象结构到 ${taskDir}`);
-        await this._extractIntObjectsForScheduled(taskDir, task.language || 'EN', task.where || '1=1', task.ignoreDefVal || false, taskIndex);
+        await this._extractIntObjectsForScheduled(taskDir, task.language || 'EN', task.where || '1=1', task.ignoreDefVal || false, taskIndex, task.filterScript || '');
         break;
       case 'extractScript':
         this._sendScheduledLog(`  🔄 正在导出脚本到 ${taskDir}，线程数: ${task.threadCount || 5}`);
-        await this._extractScriptsForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN');
+        await this._extractScriptsForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.filterScript || '');
         break;
       case 'extractAppXml':
         this._sendScheduledLog(`  🔄 正在导出应用XML到 ${taskDir}，线程数: ${task.threadCount || 5}${task.exportMafZip ? '，含 MAFAPPDATA zip' : ''}`);
-        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.ignoreMetadata || false, task.exportMafZip || false);
+        await this._extractAppXmlForScheduled(taskDir, task.threadCount || 5, task.compress || false, taskIndex, task.language || 'EN', task.ignoreMetadata || false, task.exportMafZip || false, task.filterScript || '');
         break;
       default:
         throw new Error(`未知的导出功能: ${exportFunction}`);
@@ -5047,26 +5595,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的 MAXOBJECT 导出
    */
-  private async _extractMaxobjectForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, taskIndex: number): Promise<void> {
-    const config = vscode.workspace.getConfiguration('maximoScript');
-    
-    const maxobjectResult = await httpRequestToMaximo({
-      url: `script/SKS_GET_MAXOBJECTNAMES?_langcode=${language}`,
-      method: 'GET'
-    });
+  private async _extractMaxobjectForScheduled(taskDir: string, language: string, ignoreDefVal: boolean, threadCount: number, compress: boolean, taskIndex: number, filterScript: string = ''): Promise<void> {
+    let allObjects = await this._fetchMaxobjectNames(language);
 
-    if (maxobjectResult.status !== 200 || !maxobjectResult.data) {
-      throw new Error(`获取 MAXOBJECT 列表失败: HTTP ${maxobjectResult.status}`);
-    }
-
-    let allObjects: any[];
-    if (Array.isArray(maxobjectResult.data)) {
-      allObjects = maxobjectResult.data;
-    } else if (maxobjectResult.data.member && Array.isArray(maxobjectResult.data.member)) {
-      allObjects = maxobjectResult.data.member;
-    } else {
-      throw new Error('MAXOBJECT 列表格式不正确');
-    }
+    allObjects = this._runLocalFilterScript(allObjects, filterScript, { type: 'extractMaxobject', language, taskIndex }, 'MAXOBJECT');
 
     if (allObjects.length === 0) {
       throw new Error('没有需要导出的 MAXOBJECT');
@@ -5324,7 +5856,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的对象结构导出
    */
-  private async _extractIntObjectsForScheduled(taskDir: string, language: string, where: string, ignoreDefVal: boolean, taskIndex: number): Promise<void> {
+  private async _extractIntObjectsForScheduled(taskDir: string, language: string, where: string, ignoreDefVal: boolean, taskIndex: number, filterScript: string = ''): Promise<void> {
     const config = vscode.workspace.getConfiguration('maximoScript');
     const serverUrl = config.get<string>('serverUrl', '');
 
@@ -5339,31 +5871,15 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const whereClause = (where || '1=1').trim();
     this._sendScheduledLog(`  🔍 where: ${whereClause}`);
 
-    const exportUrl = `script/SKS.AUTOSCRIPT.OBJECTS?_langcode=${language}&ignoreDefVal=${ignoreDefVal}&_type=integrationobjects&_action=export`;
-    const exportResult = await httpRequestToMaximo({
-      url: exportUrl,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      data: { where: whereClause }
-    });
+    const responseData = await this._fetchIntObjectsResponse(language, whereClause, ignoreDefVal);
 
-    if (exportResult.status !== 200 || !exportResult.data) {
-      throw new Error(`导出对象结构失败: HTTP ${exportResult.status}`);
-    }
-
-    let responseData = exportResult.data;
-    if (typeof responseData === 'string') {
-      try { responseData = JSON.parse(responseData); } catch (e) { }
-    }
-
-    if (responseData.status === 'error') {
-      throw new Error(`导出对象结构失败: ${responseData.message || '未知错误'}`);
-    }
-
-    const intObjects = responseData.integrationobjects || [];
+    let intObjects = responseData.integrationobjects || [];
     if (intObjects.length === 0) {
       throw new Error('没有符合 where 条件的对象结构记录');
     }
+
+    intObjects = this._runLocalFilterScript(intObjects, filterScript, { type: 'extractIntObject', language, taskIndex }, '对象结构');
+    responseData.integrationobjects = intObjects;
 
     const fileName = 'integrationobjects.json';
     const filePath = path.join(taskDir, fileName);
@@ -5376,7 +5892,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的脚本导出
    */
-  private async _extractScriptsForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string): Promise<void> {
+  private async _extractScriptsForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, filterScript: string = ''): Promise<void> {
     const config = vscode.workspace.getConfiguration('maximoScript');
     const serverUrl = config.get<string>('serverUrl', '');
     
@@ -5389,22 +5905,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     }
 
     // 获取所有脚本名称
-    const scriptsResult = await httpRequestToMaximo({
-      url: `script/SKS_GET_AUTOSCRIPTNAMES?_langcode=${language}`,
-      method: 'GET'
-    });
+    let scriptNames = await this._fetchAutoscriptNames(language);
 
-    if (scriptsResult.status !== 200 || !scriptsResult.data) {
-      throw new Error(`获取脚本列表失败: HTTP ${scriptsResult.status}`);
-    }
+    scriptNames = this._runLocalFilterScript(scriptNames, filterScript, { type: 'extractScript', language, taskIndex }, '脚本');
 
-    let scriptNames: any[];
-    if (Array.isArray(scriptsResult.data)) {
-      scriptNames = scriptsResult.data;
-    } else if (scriptsResult.data.member && Array.isArray(scriptsResult.data.member)) {
-      scriptNames = scriptsResult.data.member;
-    } else {
-      throw new Error('脚本列表格式不正确');
+    if (scriptNames.length === 0) {
+      throw new Error('没有需要导出的脚本');
     }
 
     this._sendScheduledLog(`  📋 共 ${scriptNames.length} 个脚本`);
@@ -5418,12 +5924,10 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     const exportSingleScript = async (): Promise<boolean> => {
       const index = currentIndex++;
       if (index >= total) return false;
-      const scriptInfo = scriptNames[index];
-      // 与工具箱 _extractScripts 保持一致的字段提取方式
-      const scriptName = scriptInfo.autoScript || scriptInfo['oslc:autoscript'] || scriptInfo.autoscript || scriptInfo.AUTOSCRIPT || '';
+      const scriptName = scriptNames[index];
       
       if (!scriptName) {
-        logger.warn(`[_extractScriptsForScheduled] 跳过无效脚本 [${index + 1}]: ${JSON.stringify(scriptInfo)}`);
+        logger.warn(`[_extractScriptsForScheduled] 跳过无效脚本 [${index + 1}]`);
         completedCount++;
         this._updateScheduledTaskProgress(taskIndex, completedCount, total, '(无效)');
         return false;
@@ -5532,7 +6036,7 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
   /**
    * 计划导出中的应用 XML 导出
    */
-  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, ignoreMetadata: boolean = false, exportMafZip: boolean = false): Promise<void> {
+  private async _extractAppXmlForScheduled(taskDir: string, threadCount: number, compress: boolean, taskIndex: number, language: string, ignoreMetadata: boolean = false, exportMafZip: boolean = false, filterScript: string = ''): Promise<void> {
     const config = vscode.workspace.getConfiguration('maximoScript');
     const serverUrl = config.get<string>('serverUrl', '');
     
@@ -5545,21 +6049,12 @@ private _getWebviewContent(extensionUri: vscode.Uri): string {
     }
 
     // 获取所有应用名称
-    const screensUrl = `script/SKS.AUTOSCRIPT.SCREENS?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
-    const screensResult = await httpRequestToMaximo({
-      url: screensUrl,
-      method: 'GET'
-    });
+    let screenNames = await this._fetchAppScreenNames(language, ignoreMetadata);
 
-    if (screensResult.status !== 200 || !screensResult.data) {
-      throw new Error(`获取应用列表失败: HTTP ${screensResult.status}`);
-    }
+    screenNames = this._runLocalFilterScript(screenNames, filterScript, { type: 'extractAppXml', language, taskIndex }, '应用XML');
 
-    let screenNames: string[];
-    if (Array.isArray(screensResult.data.screenNames)) {
-      screenNames = screensResult.data.screenNames;
-    } else {
-      throw new Error('应用列表格式不正确');
+    if (screenNames.length === 0) {
+      throw new Error('过滤后没有需要导出的应用');
     }
 
     this._sendScheduledLog(`  📋 共 ${screenNames.length} 个应用`);
