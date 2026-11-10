@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_MIGRATEAPI_SECURGROUP",
   "description": "安全组迁移API(查询/详情/导出/导入)",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
