@@ -163,7 +163,7 @@ ImportAppScript.prototype.constructor = ImportAppScript;
 ImportAppScript.prototype.importApp = function (app, saveLabels) {
     var xml = this.xml
     //maximo9.1
-    /** @type {psdi.webclient.system.controller.PresentationLoader} */
+    /** @type {psdi.webclient.system.controller.PresentationParser} */
     PresentationParser = sksLogAnsiUtils.autoJavaType("psdi.webclient.system.controller.PresentationParser")
     /** @type {psdi.webclient.system.controller.PresentationParser} */
     var pp = new PresentationParser(xml);
@@ -203,6 +203,7 @@ ImportAppScript.prototype.importApp = function (app, saveLabels) {
     var labels = pp.getLabels();
     this.saveXML(this.currentAppID, pp.getTrimmedXML());
     if (saveLabels) {
+        logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")
         this.saveLabels(this.currentAppID, labels);
     }
 
@@ -330,6 +331,83 @@ function saveOldVersionHistory(pp) {
         _close(historySet);
     }
 }
+/**
+ * 查询系统标签值, 用于跳过与系统默认值相同的标签。
+ * 注意: getSystemLabelCache 需要 WebClientSession, 不能传 MXServer;
+ * API 调用时没有 WebClientSession, 直接返回 null(不跳过, 全部写入 MAXLABELS)。
+ * @param {psdi.webclient.system.controller.IdProperty} l
+ * @returns {java.lang.String}
+ */
+function getSystemLabelValue(l) {
+    try {
+        var wcs = service.webclientsession();
+        if (!wcs) {
+            return null;
+        }
+        var syscache = LabelCacheMgr.getSystemLabelCache(wcs);
+        return syscache.getString(l.getId(), l.getProperty());
+    } catch (ignore) {
+        return null;
+    }
+}
+
+/**
+ * 补写新增标签的基础语言值。
+ * VALUE 是 MLINUSE=1 多语言字段, 在非基础语言会话下 add 只会写 L_MAXLABELS,
+ * 基础列需要切到基础语言会话后用新集合直接 setValue 才能落库。
+ * @param {string} appID
+ * @param {Array} addedLabels [{id, property, value}]
+ */
+function applyBaseLangLabels(appID, addedLabels) {
+    if (!addedLabels || addedLabels.length === 0) {
+        return
+    }
+    var currentLang = ""
+    try { currentLang = String(userInfo.getLangCode()).toUpperCase() } catch (ignored) { }
+    var baseLang = ""
+    try { baseLang = String(MXServer.getMXServer().getBaseLang()).toUpperCase() } catch (ignored) { }
+    if (!baseLang || baseLang === currentLang) {
+        return
+    }
+
+    var labelSet = null
+    try {
+        userInfo.setLangCode(baseLang)
+        labelSet = MXServer.getMXServer().getMboSet("MAXLABELS", userInfo)
+        var sqlFormat = new SqlFormat("app = :1 and id = :2 and property = :3")
+        var changed = 0
+        for (var i = 0; i < addedLabels.length; i++) {
+            var item = addedLabels[i]
+            sqlFormat.setObject(1, "MAXLABELS", "APP", appID)
+            sqlFormat.setObject(2, "MAXLABELS", "ID", item.id)
+            sqlFormat.setObject(3, "MAXLABELS", "PROPERTY", item.property)
+            labelSet.setWhere(sqlFormat.format())
+            labelSet.reset()
+            var target = labelSet.getMbo(0)
+            if (!target) {
+                continue
+            }
+            target.setValue("value", '~null~', MboConstants.NOACCESSCHECK)
+            // 必须逐条保存: 下一次 reset() 会丢弃未保存的修改
+            labelSet.save()
+            changed++
+        }
+        if (changed > 0) {
+            logger.info("[SKS.AUTOSCRIPT.SCREENS] 基础语言(" + baseLang + ")补写标签成功: " + changed)
+        }
+    } catch (e) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] 基础语言补写标签失败", e)
+    } finally {
+        if (labelSet) {
+            try { labelSet.cleanup() } catch (ignored) { }
+            try { labelSet.close() } catch (ignored) { }
+        }
+        if (currentLang) {
+            try { userInfo.setLangCode(currentLang) } catch (ignored) { }
+        }
+    }
+}
+
 ImportAppScript.prototype.saveLabels = function (appID, labels) {
     logger.info("[SKS.AUTOSCRIPT.SCREENS]  ImportAppScript.saveLabels")
     try {
@@ -340,30 +418,40 @@ ImportAppScript.prototype.saveLabels = function (appID, labels) {
         mboset.reset();
         mboset.setLogLargFetchResultDisabled(true);
         var index = 0;
+        var addCount = 0;
+        var updateCount = 0;
+        var deleteCount = 0;
+        var addedLabels = [];
+        logger.info("[SKS.AUTOSCRIPT.SCREENS] saveLabels app=" + appID + ", labels.size=" + labels.size())
 
         while (true) {
             /** @type {psdi.mbo.MboRemote} */
             var mbo = mboset.getMbo(index);
             if (mbo == null) {
-                for (var entry in labels.entrySet()) {
+                // 注意: Nashorn 下 for...in 不会迭代 Java Set 的元素, 必须用 Iterator
+                var labelIter = labels.entrySet().iterator();
+                while (labelIter.hasNext()) {
+                    var entry = labelIter.next();
                     /** @type {psdi.webclient.system.controller.IdProperty} */
-                    var l = (entry.getKey());
+                    var l = entry.getKey();
                     /** @type {java.lang.String} */
-                    var v = (entry.getValue());
-                    var syscache = LabelCacheMgr.getSystemLabelCache(MXServer.getMXServer());
-                    var sysValue = syscache.getString(l.getId(), l.getProperty());
+                    var v = entry.getValue();
+                    var sysValue = getSystemLabelValue(l);
                     if (!v.equals(sysValue)) {
 
-                        var mbo = mboset.add();
-                        mbo.setValue("app", appID, 9);
-                        mbo.setValue("id", l.getId());
-                        mbo.setValue("property", l.getProperty());
-                        mbo.setValue("value", v);
+                        var newLabel = mboset.add();
+                        newLabel.setValue("app", appID, 9);
+                        newLabel.setValue("id", l.getId());
+                        newLabel.setValue("property", l.getProperty());
+                        newLabel.setValue("value", v);
+                        addedLabels.push({ id: String(l.getId()), property: String(l.getProperty()), value: String(v) });
+                        addCount++;
                     }
                 }
 
                 mboset.save();
-                logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS] saveLabels end\x1b[0m")
+                applyBaseLangLabels(appID, addedLabels);
+                logger.info("\x1b[35;40m[SKS.AUTOSCRIPT.SCREENS] saveLabels end, app=" + appID + ", add=" + addCount + ", update=" + updateCount + ", delete=" + deleteCount + "\x1b[0m")
                 return;
             }
 
@@ -371,11 +459,13 @@ ImportAppScript.prototype.saveLabels = function (appID, labels) {
             var newValue = labels.get(existingLabel);
             if (newValue == null) {
                 mbo.delete();
+                deleteCount++;
             } else {
                 mbo.setValue("app", appID, 11);
                 mbo.setValue("id", existingLabel.getId(), 11);
                 mbo.setValue("property", existingLabel.getProperty(), 11);
                 mbo.setValue("value", newValue, 11);
+                updateCount++;
             }
 
             labels.remove(existingLabel);

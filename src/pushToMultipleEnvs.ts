@@ -134,8 +134,9 @@ export class PushToMultipleEnvs {
 
   /**
    * 弹出环境勾选框（多选），返回选中的环境配置
+   * @param showRedeployOption 是否显示"重新部署脚本"勾选项（XML 推送时不需要）
    */
-  static async pickEnvironments(): Promise<EnvironmentConfig[] | undefined> {
+  static async pickEnvironments(showRedeployOption: boolean): Promise<{ envs: EnvironmentConfig[]; redeploy: boolean } | undefined> {
     const envs = loadEnvironments();
     if (!envs || envs.length === 0) {
       vscode.window.showWarningMessage('未找到任何环境配置，请先在配置面板中保存环境');
@@ -144,7 +145,7 @@ export class PushToMultipleEnvs {
 
     const currentEnvnum = vscode.workspace.getConfiguration('maximoScript').get<string>('envnum', '');
 
-    const items = envs.map(env => ({
+    const items: any[] = envs.map(env => ({
       label: env.envnum,
       description: env.serverUrl,
       detail: `认证: ${env.authType}${env.envnum === currentEnvnum ? '（当前环境）' : ''}`,
@@ -152,17 +153,59 @@ export class PushToMultipleEnvs {
       env
     }));
 
+    if (showRedeployOption) {
+      items.push({
+        label: '$(refresh) 重新部署脚本',
+        description: '删除后重新导入',
+        detail: '勾选后先查询服务器脚本是否存在，存在则先删除再推送；适用于脚本启动点/变量变更',
+        picked: false,
+        isRedeployOption: true
+      });
+    }
+
     const picked = await vscode.window.showQuickPick(items, {
       canPickMany: true,
       title: '推送到多个环境 - 选择目标环境',
-      placeHolder: '勾选需要推送的环境（可多选），按回车确认',
+      placeHolder: showRedeployOption
+        ? '勾选需要推送的环境（可多选），按回车确认；如需删除后重新导入，可同时勾选"重新部署脚本"'
+        : '勾选需要推送的环境（可多选），按回车确认',
       ignoreFocusOut: true
     });
 
     if (!picked || picked.length === 0) {
       return undefined;
     }
-    return picked.map(p => p.env);
+
+    const redeploy = picked.some((p: any) => p.isRedeployOption);
+    const pickedEnvs = picked.filter((p: any) => !p.isRedeployOption).map((p: any) => p.env as EnvironmentConfig);
+    if (pickedEnvs.length === 0) {
+      vscode.window.showWarningMessage('请至少选择一个目标环境');
+      return undefined;
+    }
+    return { envs: pickedEnvs, redeploy };
+  }
+
+  /**
+   * 删除指定环境中的脚本（用于"重新部署脚本"）
+   */
+  private static async deleteScriptInEnv(
+    autoscript: string,
+    href: string | undefined,
+    env: EnvironmentConfig,
+    logger: vscode.LogOutputChannel
+  ): Promise<PushResult> {
+    const deleteUrl = href || `os/AUTOSCRIPT/_${Buffer.from(autoscript).toString('base64')}`;
+    const deleteResult = await httpRequestToMaximo({
+      url: deleteUrl,
+      method: 'DELETE',
+      ...overridesOf(env)
+    });
+
+    if (deleteResult.status === 200 || deleteResult.status === 204) {
+      logger.info(`[MultiEnv] 🗑️ 已删除脚本: ${autoscript} @ ${env.envnum}`);
+      return { success: true };
+    }
+    return { success: false, errorMessage: `删除脚本失败: HTTP ${deleteResult.status}` };
   }
 
   /** 版本号比较（复制自 ConfigPanel，避免依赖私有方法） */
@@ -418,7 +461,8 @@ export class PushToMultipleEnvs {
     env: EnvironmentConfig,
     logger: vscode.LogOutputChannel,
     filePath?: string,
-    versionCache?: VersionCache
+    versionCache?: VersionCache,
+    redeploy: boolean = false
   ): Promise<PushResult> {
     logger.debug(`[MultiEnv][pushScript] 开始推送脚本: ${autoscript} @ ${env.envnum}`);
     try {
@@ -542,11 +586,25 @@ export class PushToMultipleEnvs {
       });
 
       let scriptExists = false;
+      let scriptHref: string | undefined;
       if (checkResult.status === 200 && checkResult.data) {
         const memberCount = checkResult.data.member ? checkResult.data.member.length : 0;
         scriptExists = memberCount > 0;
+        if (scriptExists && checkResult.data.member[0]) {
+          scriptHref = checkResult.data.member[0].href;
+        }
       } else {
         return { success: false, errorMessage: `检查脚本失败: ${checkResult.status}` };
+      }
+
+      // 勾选"重新部署脚本"时，先删除已存在的脚本，后续走新增流程
+      if (redeploy && scriptExists) {
+        const deleteResult = await PushToMultipleEnvs.deleteScriptInEnv(autoscript, scriptHref, env, logger);
+        if (!deleteResult.success) {
+          return { success: false, errorMessage: deleteResult.errorMessage || '删除脚本失败' };
+        }
+        scriptExists = false;
+        scriptHref = undefined;
       }
 
       // 读取本地 JSON（新增时复用导入脚本的完整字段逻辑）
@@ -681,7 +739,8 @@ export class PushToMultipleEnvs {
     env: EnvironmentConfig,
     logger: vscode.LogOutputChannel,
     filePath?: string,
-    versionCache?: VersionCache
+    versionCache?: VersionCache,
+    redeploy: boolean = false
   ): Promise<PushResult> {
     try {
       const cfg = vscode.workspace.getConfiguration('maximoScript');
@@ -724,6 +783,16 @@ export class PushToMultipleEnvs {
           scriptExists = true;
           scriptHref = checkResult.data.member[0].href;
         }
+      }
+
+      // 勾选"重新部署脚本"时，先删除已存在的脚本，后续走新增流程
+      if (redeploy && scriptExists) {
+        const deleteResult = await PushToMultipleEnvs.deleteScriptInEnv(scriptName, scriptHref, env, logger);
+        if (!deleteResult.success) {
+          return { success: false, errorMessage: deleteResult.errorMessage || '删除脚本失败' };
+        }
+        scriptExists = false;
+        scriptHref = null;
       }
 
       let deployUrl: string;
@@ -769,15 +838,16 @@ export class PushToMultipleEnvs {
     target: PushTarget,
     env: EnvironmentConfig,
     logger: vscode.LogOutputChannel,
-    versionCache?: VersionCache
+    versionCache?: VersionCache,
+    redeploy: boolean = false
   ): Promise<void> {
     let result: PushResult;
     if (target.kind === 'script') {
-      result = await PushToMultipleEnvs.pushScriptToEnv(target.scriptName, target.source!, env, logger, target.filePath, versionCache);
+      result = await PushToMultipleEnvs.pushScriptToEnv(target.scriptName, target.source!, env, logger, target.filePath, versionCache, redeploy);
     } else if (target.kind === 'xml') {
       result = await PushToMultipleEnvs.pushXmlToEnv(target.xmlContent!, env, logger);
     } else if (target.kind === 'import') {
-      result = await PushToMultipleEnvs.importScriptToEnv(target.scriptName, target.source!, target.scriptConfig, env, logger, target.filePath, versionCache);
+      result = await PushToMultipleEnvs.importScriptToEnv(target.scriptName, target.source!, target.scriptConfig, env, logger, target.filePath, versionCache, redeploy);
     } else {
       throw new Error('未知推送类型');
     }
@@ -797,12 +867,26 @@ export class PushToMultipleEnvs {
     }
     const target = resolved as PushTarget;
 
-    const envs = await PushToMultipleEnvs.pickEnvironments();
-    if (!envs || envs.length === 0) {
+    const selection = await PushToMultipleEnvs.pickEnvironments(target.kind !== 'xml');
+    if (!selection) {
       return;
     }
+    const { envs, redeploy } = selection;
 
-    const kindLabel = target.kind === 'script' ? '推送脚本' : target.kind === 'xml' ? '推送应用 XML' : '导入脚本';
+    if (redeploy) {
+      const confirm = await vscode.window.showWarningMessage(
+        `已勾选"重新部署脚本"：将在 ${envs.map(e => e.envnum).join(', ')} 中删除已存在的脚本后重新导入，是否继续？`,
+        { modal: true },
+        '继续'
+      );
+      if (confirm !== '继续') {
+        return;
+      }
+      logger.info('[PushToMultipleEnvs] 已勾选重新部署：推送前会先删除已存在的脚本');
+    }
+
+    const kindLabel = (target.kind === 'script' ? '推送脚本' : target.kind === 'xml' ? '推送应用 XML' : '导入脚本')
+      + (redeploy ? '（重新部署）' : '');
     logger.info(`[PushToMultipleEnvs] 开始${kindLabel}: ${target.scriptName}，目标环境: ${envs.map(e => e.envnum).join(', ')}`);
 
     const results: PerEnvResult[] = [];
@@ -821,7 +905,7 @@ export class PushToMultipleEnvs {
           const env = envs[i];
           progress.report({ message: `(${i + 1}/${total}) ${env.envnum}`, increment: 100 / total });
           try {
-            await PushToMultipleEnvs.pushToEnv(target, env, logger, versionCache);
+            await PushToMultipleEnvs.pushToEnv(target, env, logger, versionCache, redeploy);
             results.push({ envnum: env.envnum, success: true });
             logger.info(`[PushToMultipleEnvs] ✅ ${env.envnum} 成功`);
           } catch (error: any) {
