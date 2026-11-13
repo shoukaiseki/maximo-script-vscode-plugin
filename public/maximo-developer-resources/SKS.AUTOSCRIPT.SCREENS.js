@@ -387,7 +387,7 @@ function applyBaseLangLabels(appID, addedLabels) {
             if (!target) {
                 continue
             }
-            target.setValue("value", '~null~', MboConstants.NOACCESSCHECK)
+            target.setValue("value", item.value, MboConstants.NOACCESSCHECK)
             // 必须逐条保存: 下一次 reset() 会丢弃未保存的修改
             labelSet.save()
             changed++
@@ -1498,6 +1498,26 @@ function importAppInfo() {
                 }
             }
             var outRows = invokeMigrate(obj.script, "importApp", config, rows, app);
+            // 失败行只返回 _status/_message/sks:currentCacheUseError, 这里用入参行回填 uuid/ref,
+            // 否则报错时无法对应到导出 JSON 里的具体记录
+            if (outRows) {
+                for (var r = 0; r < outRows.length; r++) {
+                    var outRow = outRows[r];
+                    if (!outRow) {
+                        continue;
+                    }
+                    var srcRow = rows[r] || null;
+                    if (!outRow["sks:uuid"] && srcRow && srcRow["sks:uuid"]) {
+                        outRow["sks:uuid"] = srcRow["sks:uuid"];
+                    }
+                    if (srcRow && srcRow["sks:ref"]) {
+                        outRow["sks:ref"] = srcRow["sks:ref"];
+                    }
+                    if (!outRow["sks:objectName"]) {
+                        outRow["sks:objectName"] = obj.objectName;
+                    }
+                }
+            }
             // 当前对象成功/失败总数 + 递归(含 flags 等子级)总数, 写入每行
             var stat = stampImportStats(outRows);
             totalSuccess += stat.successSum;

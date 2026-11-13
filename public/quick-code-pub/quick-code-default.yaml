@@ -983,11 +983,14 @@ maxappxml:
                   value="值"
                   fromdatasrc="原数据标识-主表的数据源标识。mainrecord 主表"
                   fromattribute="来自属性"
-                  defaulttype="缺省类型:INSERT(插入),QUERY(查询)"
+                  defaulttype="缺省类型:insert(插入),query(查询)"
                   sigoption="签名选项"
                   sigoptiondatasrc="签名数据源标识"/>
+
+                  table设置默认过滤,在table 与tablebody之间设置即可,如果同时有insert默认值的,query需要放在insert前面,否则不生效
+                          <defaultvalue dataattribute="ISACTIVE" value="1" defaulttype="query" id="satwrtFtVVnCC1gb"/>
                   -->
-                  <defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="INSERT" id="section_xml_defaultvalue_1"/>
+                  <defaultvalue dataattribute="属性" value="值" fromattribute="来自属性" defaulttype="insert" id="section_xml_defaultvalue_1"/>
       - name: 帮助网格
         childrens:
           - name: helpgrid帮助

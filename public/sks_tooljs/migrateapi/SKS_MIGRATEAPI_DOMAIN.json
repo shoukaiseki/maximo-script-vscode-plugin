@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_MIGRATEAPI_DOMAIN",
   "description": "域迁移API(查询/详情/导出/导入)",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",
