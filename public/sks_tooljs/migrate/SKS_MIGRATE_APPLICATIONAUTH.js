@@ -45,7 +45,6 @@ function getDetail(config, mbo) {
         try { row[DETAIL_FIELDS[i]] = mbo.getString(DETAIL_FIELDS[i]); } catch (ignored) { row[DETAIL_FIELDS[i]] = null; }
     }
     row._id = row.APP + "/" + row.GROUPNAME + "/" + row.OPTIONNAME;
-    row._status = "success";
     return row;
 }
 

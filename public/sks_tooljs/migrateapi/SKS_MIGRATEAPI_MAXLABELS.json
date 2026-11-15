@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS_MIGRATEAPI_MAXLABELS",
+  "description": "应用XML标签(MAXLABELS)多语言迁移API(查询/详情/导出/导入)",
+  "version": "1.0.1",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools.migrateapi"
+}

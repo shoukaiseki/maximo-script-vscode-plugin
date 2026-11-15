@@ -96,8 +96,6 @@ function getDetail(config, mbo) {
         readMboFields(config, mbo, row, fields);
     }
     appendLangData(config, mbo, row, fields);
-    row["sks:ref"] = row.MENUTYPE + "/" + row.MODULEAPP + "/" + row.KEYVALUE;
-    row._status = "success";
     return row;
 }
 

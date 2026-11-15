@@ -89,8 +89,6 @@ function getDetail(config, mbo) {
         readMboFields(config, mbo, row, fields);
     }
     appendLangData(config, mbo, row, fields);
-    row["sks:ref"] = row.APP + "/" + row.ID + "/" + row.PROPERTY;
-    row._status = "success";
     return row;
 }
 

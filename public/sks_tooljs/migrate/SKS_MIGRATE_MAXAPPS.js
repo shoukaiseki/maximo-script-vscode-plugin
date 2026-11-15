@@ -100,8 +100,6 @@ function getDetail(config, mbo) {
         readMboFields(config, mbo, row, fields);
     }
     appendLangData(config, mbo, row, fields);
-    try { row["sks:ref"] = mbo.getString(APP_FIELD); } catch (ignored) { }
-    row._status = "success";
     return row;
 }
 
@@ -313,6 +311,8 @@ function changeMbo(config, data) {
             applyFields(mbo, data, cacheUseError);
         }
         set.save();
+        // 非基础语言会话下, 基础语言(基表列)多语言值 setMLValue 写不进去, 切基础会话补写基列
+        applyBaseLangData(config, data, keyFields);
         out._apiAction = config._apiAction;
         out["sks:objectName"] = OBJECT_NAME;
         out["sks:uuid"] = data["sks:uuid"] || createUuid();
@@ -470,6 +470,75 @@ function applyLangData(mbo, data, cacheUseError) {
                 cacheUseError.ind3 = e.message || String(e);
                 logger.error("[" + scriptName + "] applyLangData setMLValue " + field + "@" + lang + " 失败", e);
             }
+        }
+    }
+}
+
+/**
+ * 基础语言(基表列)多语言值补写
+ * 非基础语言会话下, applyLangData 的 setMLValue 只能写 L_ 表译文, 基础语言对应的基表列写不进去;
+ * 参照 SKS.AUTOSCRIPT.SCREENS.applyBaseLangLabels: 切到基础语言会话后用新 MboSet 直接 setValue 基列落库。
+ * @param {jscustom.SksMigrateParamConfig} config
+ * @param {Object} data 含 sks:langdata 的行数据
+ * @param {Array} keyFields 主键字段
+ */
+function applyBaseLangData(config, data, keyFields) {
+    var langData = data && data["sks:langdata"];
+    if (!langData || typeof langData !== "object" || data._delete === true) {
+        return;
+    }
+    var userInfo = config._userInfo;
+    var currentLang = "";
+    var baseLang = "";
+    try { currentLang = String(userInfo.getLangCode()).toUpperCase(); } catch (ignored) { }
+    try { baseLang = String(mxserver.getBaseLang()).toUpperCase(); } catch (ignored) { }
+    if (!baseLang || baseLang === currentLang) {
+        return;
+    }
+    // 收集基础语言的字段值(基表列), 跳过 ~null~/空占位
+    var baseVals = {};
+    var hasAny = false;
+    for (var field in langData) {
+        if (!langData.hasOwnProperty(field)) { continue; }
+        var vals = langData[field];
+        if (!vals || typeof vals !== "object") { continue; }
+        for (var lang in vals) {
+            if (!vals.hasOwnProperty(lang)) { continue; }
+            if (String(lang).toUpperCase() !== baseLang) { continue; }
+            var v = vals[lang];
+            if (v === undefined || v === null || String(v) === "~null~") { continue; }
+            baseVals[field] = String(v);
+            hasAny = true;
+        }
+    }
+    if (!hasAny) { return; }
+    var set = null;
+    try {
+        userInfo.setLangCode(baseLang);
+        set = mxserver.getMboSet(OBJECT_NAME, userInfo);
+        var sqlf = new SqlFormat(buildWhere(keyFields));
+        for (var i = 0; i < keyFields.length; i++) {
+            sqlf.setObject(i + 1, OBJECT_NAME, keyFields[i], String(data[keyFields[i]]));
+        }
+        set.setWhere(sqlf.format());
+        set.reset();
+        var target = set.getMbo(0);
+        if (!target) { return; }
+        for (var f in baseVals) {
+            if (!baseVals.hasOwnProperty(f)) { continue; }
+            target.setValue(f, baseVals[f], MboConstants.NOACCESSCHECK);
+        }
+        set.save();
+        logger.info("[" + scriptName + "] 基础语言(" + baseLang + ")补写基列成功: " + Object.keys(baseVals).join(","));
+    } catch (e) {
+        logger.warn("[" + scriptName + "] 基础语言补写基列失败", e);
+    } finally {
+        if (set) {
+            try { set.cleanup(); } catch (ignored) { }
+            try { set.close(); } catch (ignored) { }
+        }
+        if (currentLang) {
+            try { userInfo.setLangCode(currentLang); } catch (ignored) { }
         }
     }
 }

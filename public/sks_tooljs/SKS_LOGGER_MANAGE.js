@@ -24,7 +24,7 @@
 //     ]
 //   }
 // ]
-// 主记录不存在时自动新增
+// 主记录按 LOGKEY(唯一键)匹配, 其次按 LOGGER 显示名匹配; 存在时更新, 不存在时自动新增
 // 子记录不存在时自动新增,已存在时更新
 // 更新时只修改 loglevel
 
@@ -130,21 +130,34 @@ function processMainLogger(item) {
 
     var mainSet = null;
     try {
-        // 按 LOGGER 名称查找主记录
-        mainSet = MXServer.getMXServer().getMboSet("MAXLOGGER", userInfo);
-        var sqlFormat = new SqlFormat("LOGGER=:1 and PARENTLOGGERID is null")
-        sqlFormat.setString(1, loggerName)
-        mainSet.setWhere(sqlFormat.format());
+        // LOGKEY 是 MAXLOGGER 的唯一键(MAXLOGGER_NDX1); 前端传的 logger 只是显示名,
+        // 与 LOGGER 字段可能不一致(如 logger=script 对应 LOGGER=autoscript), 必须先按 LOGKEY 匹配
+        var logkey = item.logkey || ("log4j.logger.maximo." + loggerName);
 
-        logger.info('[' + scriptName + '] setWhere: LOGGER.completeWhere=' + mainSet.getCompleteWhere() + '')
+        mainSet = MXServer.getMXServer().getMboSet("MAXLOGGER", userInfo);
+
+        // 1) 先按 LOGKEY 精确匹配(全局唯一), 避免记录已存在却走新增导致 BMXAA4129E
+        var sqlFormat = new SqlFormat("LOGKEY=:1")
+        sqlFormat.setString(1, logkey)
+        mainSet.setWhere(sqlFormat.format());
+        logger.info('[' + scriptName + '] setWhere: LOGKEY.completeWhere=' + mainSet.getCompleteWhere() + '')
         mainSet.reset();
+
+        // 2) LOGKEY 不存在时, 再按显示名匹配主记录(兼容只传 logger 的调用)
+        if (mainSet.isEmpty()) {
+            sqlFormat = new SqlFormat("LOGGER=:1 and PARENTLOGGERID is null")
+            sqlFormat.setString(1, loggerName)
+            mainSet.setWhere(sqlFormat.format());
+            logger.info('[' + scriptName + '] setWhere: LOGGER.completeWhere=' + mainSet.getCompleteWhere() + '')
+            mainSet.reset();
+        }
 
         if (mainSet.isEmpty()) {
             // 主记录不存在,自动新增
             /** @type {psdi.mbo.MboRemote} */
             var mainMbo = mainSet.add();
             mainMbo.setValue("LOGGER", loggerName, MboConstants.NOACCESSCHECK);
-            mainMbo.setValue("LOGKEY", item.logkey || ("log4j.logger.maximo." + loggerName), MboConstants.NOACCESSCHECK);
+            mainMbo.setValue("LOGKEY", logkey, MboConstants.NOACCESSCHECK);
             if (item.loglevel !== null && item.loglevel !== undefined) {
                 mainMbo.setValue("LOGLEVEL", item.loglevel, MboConstants.NOACCESSCHECK);
             }

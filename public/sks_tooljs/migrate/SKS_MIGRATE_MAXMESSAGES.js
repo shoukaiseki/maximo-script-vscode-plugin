@@ -160,8 +160,6 @@ function getDetail(config, mbo) {
     }
 
     appendLangData(config, mbo, row, resolveDetailFields(OBJECT_NAME, DETAIL_FIELDS));
-    row["sks:ref"] = String(row.msgGroup) + "/" + String(row.msgKey);
-    row._status = "success";
     return row;
 }
 

@@ -105,7 +105,6 @@ function getDetail(config, mbo) {
         readMboFields(config, mbo, row, fields);
     }
     appendLangData(config, mbo, row, fields);
-    try { row["sks:ref"] = mbo.getString(APP_FIELD); } catch (ignored) { }
     var appValue = String(row[APP_FIELD] || "").trim().toUpperCase();
     if (config && config._includeZip === true) {
         var zip = exportZip(config, appValue);
@@ -119,7 +118,6 @@ function getDetail(config, mbo) {
             row[SIZE_FIELD] = String(size);
         }
     }
-    row._status = "success";
     return row;
 }
 

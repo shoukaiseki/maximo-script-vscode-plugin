@@ -79,11 +79,11 @@
 	"Maximo mboset for loop": {
 		"prefix": ["mbosetfor", "mboset for", "for mboset"],
 		"body": [
-			"for (var ${2:mbo} = ${1:mboSet}.moveFirst(); ${2:mbo} != null; ${2:mbo} = ${1:mboSet}.moveNext()) {",
+			"for (var ${1:mbo} = ${2:mboSet}.moveFirst(); ${1:mbo} != null; ${1:mbo} = ${2:mboSet}.moveNext()) {",
 			"\t$0",
 			"}"
 		],
-		"description": "Iterate MBO set using moveFirst/moveNext loop"
+		"description": "Iterate MBO set using moveFirst/moveNext loop. Tab 次后同编号占位符联动：\n${1:mbo}（3处） → 改一次全换 | ${2:mboSet}（2处） → 改一次全换"
 	},
 	"Maximo mboset.count": {
 		"prefix": ["mcount", "mboset.count"],

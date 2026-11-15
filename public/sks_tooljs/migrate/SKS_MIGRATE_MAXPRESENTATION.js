@@ -112,8 +112,6 @@ function getDetail(config, mbo) {
             row["PRESENTATION"] = xml;
         }
     }
-    try { row["sks:ref"] = mbo.getString(APP_FIELD); } catch (ignored) { }
-    row._status = "success";
     return row;
 }
 

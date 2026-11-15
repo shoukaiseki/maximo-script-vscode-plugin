@@ -6071,8 +6071,8 @@ ${scrollScript}
       const screenName = screenNames[index];
 
       try {
-        // 步骤1: 导出应用信息 JSON
-        const appInfoUrl = `script/SKS.AUTOSCRIPT.SCREENS?_action=exportAppInfo&app=${encodeURIComponent(screenName)}&_include=presentation&_langcode=${language}`;
+        // 步骤1: 导出应用信息 JSON（不请求 PRESENTATION 大字段）
+        const appInfoUrl = `script/SKS.AUTOSCRIPT.SCREENS?_action=exportAppInfo&app=${encodeURIComponent(screenName)}&_langcode=${language}`;
         const appInfoResult = await httpRequestToMaximo({
           url: appInfoUrl,
           method: 'GET'
@@ -6099,11 +6099,39 @@ ${scrollScript}
 
         const appName = String(appInfo.app || screenName).toUpperCase();
 
-        // 保存应用信息 JSON
+        // 步骤2: 通过应用 XML 接口获取当前语言的 XML（与工具箱 Pull / curl 方式一致）
+        const xmlUrl = `script/SKS.AUTOSCRIPT.SCREENS/${encodeURIComponent(screenName)}?_langcode=${language}${ignoreMetadata ? '&ignoreMetadata=true' : ''}`;
+        let presentationXml: any = undefined;
+        const xmlResult = await httpRequestToMaximo({
+          url: xmlUrl,
+          method: 'GET'
+        });
+        if (xmlResult.status === 200 && xmlResult.data) {
+          let xmlData: any = xmlResult.data;
+          if (typeof xmlData === 'string') {
+            try {
+              xmlData = JSON.parse(xmlData.replace(/^\uFEFF/, '').trim());
+            } catch (ignored) { }
+          }
+          if (xmlData && xmlData.code !== undefined && xmlData.data) {
+            xmlData = xmlData.data;
+          }
+          presentationXml = xmlData && xmlData.presentation;
+        } else {
+          this._sendScheduledLog(`  ⚠️ ${appName}.xml 获取失败: HTTP ${xmlResult.status}`);
+        }
+
+        // 兼容旧版服务端：JSON 中若仍返回 PRESENTATION，一并剔除
+        if (appInfo.presentation) {
+          delete appInfo.presentation.PRESENTATION;
+          if (Object.keys(appInfo.presentation).length === 0) {
+            delete appInfo.presentation;
+          }
+        }
+
+        // 保存应用信息 JSON（不含 XML 内容）
         fs.writeFileSync(path.join(taskDir, `${appName}.json`), JSON.stringify(appInfo, null, 2), 'utf-8');
 
-        // 步骤2: 根据 JSON 判断是否包含应用 XML
-        const presentationXml = appInfo.presentation && appInfo.presentation.PRESENTATION;
         if (typeof presentationXml === 'string' && presentationXml.trim() !== '') {
           fs.writeFileSync(path.join(taskDir, `${appName}.xml`), presentationXml, 'utf-8');
         }

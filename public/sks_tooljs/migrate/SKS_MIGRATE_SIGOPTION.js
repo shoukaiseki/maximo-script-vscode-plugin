@@ -96,8 +96,6 @@ function getDetail(config, mbo) {
     if (flags.length > 0) {
         row.flags = flags;
     }
-    row["sks:ref"] = row.APP + "/" + row.OPTIONNAME;
-    row._status = "success";
     return row;
 }
 
