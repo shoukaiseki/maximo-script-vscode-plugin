@@ -352,9 +352,10 @@ function getSystemLabelValue(l) {
 }
 
 /**
- * 补写新增标签的基础语言值。
- * VALUE 是 MLINUSE=1 多语言字段, 在非基础语言会话下 add 只会写 L_MAXLABELS,
- * 基础列需要切到基础语言会话后用新集合直接 setValue 才能落库。
+ * 处理新增标签的基础语言列。
+ * VALUE 是 MLINUSE=1 多语言字段: 非基础语言会话下导入的 XML 只有当前语言译文,
+ * 基础语言列必须保持空值占位(~null~), 与 Maximo 原生 ImportAppBean 行为一致;
+ * 不能把当前语言(如 ZH)的译文回写到基础语言(如 EN), 否则 EN 会显示中文。
  * @param {string} appID
  * @param {Array} addedLabels [{id, property, value}]
  */
@@ -387,16 +388,16 @@ function applyBaseLangLabels(appID, addedLabels) {
             if (!target) {
                 continue
             }
-            target.setValue("value", item.value, MboConstants.NOACCESSCHECK)
+            target.setValueNull("value", MboConstants.NOACCESSCHECK)
             // 必须逐条保存: 下一次 reset() 会丢弃未保存的修改
             labelSet.save()
             changed++
         }
         if (changed > 0) {
-            logger.info("[SKS.AUTOSCRIPT.SCREENS] 基础语言(" + baseLang + ")补写标签成功: " + changed)
+            logger.info("[SKS.AUTOSCRIPT.SCREENS] 基础语言(" + baseLang + ")标签置空(~null~)成功: " + changed)
         }
     } catch (e) {
-        logger.warn("[SKS.AUTOSCRIPT.SCREENS] 基础语言补写标签失败", e)
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] 基础语言标签置空失败", e)
     } finally {
         if (labelSet) {
             try { labelSet.cleanup() } catch (ignored) { }

@@ -578,6 +578,7 @@ function buildLabelRow(mbo, config) {
     var vals = {};
     var count = 0;
     for (var i = 0; i < codes.length; i++) {
+      // 原始取值: 基础列的空值占位符 ~null~ 也要返回, 便于前端显示 EN 列
       var v = mboMlString(mbo, codes[i]);
       if (v !== null) {
         vals[codes[i]] = v;
@@ -668,7 +669,7 @@ function getEnabledLangcodes(config) {
 function mboStr(mbo, attr) {
   try {
     var v = mbo.getString(attr);
-    return v === null || String(v) === "" || String(v) === "~null~" ? null : String(v);
+    return v === null || String(v) === "" ? null : String(v);
   } catch (ignored) {
     return null;
   }
@@ -697,7 +698,7 @@ function mboMlString(mbo, lang) {
   }
   try {
     var v = mbo.getString(ML_FIELD, String(lang).toUpperCase());
-    return v === null || String(v) === "" || String(v) === "~null~" ? null : String(v);
+    return v === null || String(v) === "" ? null : String(v);
   } catch (ignored) {
     return null;
   }
@@ -886,11 +887,13 @@ function importLabel(config, row, pendingBase) {
     }
 
     var baseLang = getBaseLang();
-    var currentLang = String(config._langcode || "").toUpperCase();
+    // 会话实际语言(_langcode 默认 EN, 与 JSESSIONID/apikey 会话语言可能不一致)
+    var currentLang = String(config._userInfo.getLangCode() || "").toUpperCase();
     var allLang = config._allLangcode === true;
     var langData = row["sks:langdata"];
     var values = (allLang && langData && langData[ML_FIELD] && typeof langData[ML_FIELD] === "object") ? langData[ML_FIELD] : null;
-    var baseProvided = false;
+    var baseValue = null;
+    var baseValueProvided = false;
     var changed = false;
     var mlCount = 0;
     if (values) {
@@ -905,7 +908,15 @@ function importLabel(config, row, pendingBase) {
         }
         var upperLang = String(lang).toUpperCase();
         if (upperLang === baseLang) {
-          baseProvided = true;
+          // 基础语言: setMLValue/setValue 受会话语言影响, 统一交给 applyBaseLangValues 在基础语言会话下写基础列
+          mlCount++;
+          if (!isNew && isLangValueEqual(mbo, baseLang, String(v))) {
+            continue;
+          }
+          baseValue = String(v);
+          baseValueProvided = true;
+          changed = true;
+          continue;
         }
         mlCount++;
         if (!isNew && isLangValueEqual(mbo, upperLang, String(v))) {
@@ -931,9 +942,12 @@ function importLabel(config, row, pendingBase) {
       return "skipped";
     }
     saveSet(set, config);
-    // 非基础语言会话下新增行: VALUE 只写入 L_MAXLABELS, 基础列需要切回基础语言补写
-    if (isNew && !baseProvided && hasFlat && baseLang && currentLang !== baseLang) {
-      pendingBase.push({ app: app, id: id, property: property, value: String(flatValue) });
+    if (baseValueProvided && baseLang) {
+      // langdata 里带基础语言值: 切到基础语言会话后写入基础列
+      pendingBase.push({ app: app, id: id, property: property, value: baseValue });
+    } else if (isNew && !baseValueProvided && hasFlat && baseLang && currentLang !== baseLang) {
+      // 非基础语言会话下新增行且未提供基础语言值: 基础列保持空值占位(~null~)
+      pendingBase.push({ app: app, id: id, property: property, value: null });
     }
     return isNew ? "added" : "updated";
   } finally {
@@ -944,7 +958,10 @@ function importLabel(config, row, pendingBase) {
 }
 
 /**
- * 补写新增标签的基础语言列(必须切到基础语言会话, 且逐条 save)
+ * 在基础语言会话下写入基础列(逐条 save):
+ * - item.value 有值: 写入该值(setMLValue 无法更新基础列, 必须切基础语言会话 setValue)
+ * - item.value 为 null: 置空占位(~null~), 与 Maximo ImportAppBean 一致
+ * 不能把当前语言译文回写到基础语言, 否则基础语言(如 EN)会显示当前语言(如 ZH)的内容
  * @param {Object} config
  * @param {Array} pending
  */
@@ -952,9 +969,10 @@ function applyBaseLangValues(config, pending) {
   if (!pending || pending.length === 0) {
     return;
   }
-  var currentLang = String(config._langcode || "").toUpperCase();
+  // 会话实际语言(不能用 config._langcode, 该值默认 EN 与实际会话语言可能不一致)
+  var currentLang = String(config._userInfo.getLangCode() || "").toUpperCase();
   var baseLang = getBaseLang();
-  if (!baseLang || baseLang === currentLang) {
+  if (!baseLang) {
     return;
   }
   var set = null;
@@ -977,13 +995,17 @@ function applyBaseLangValues(config, pending) {
       if (!mbo) {
         continue;
       }
-      setLabelValue(mbo, item.value);
+      if (item.value === null || item.value === undefined) {
+        mbo.setValueNull(ML_FIELD, MboConstants.NOACCESSCHECK);
+      } else {
+        mbo.setValue(ML_FIELD, String(item.value), MboConstants.NOACCESSCHECK);
+      }
       set.save();
       changed++;
     }
     debugPrint("baseLang(" + baseLang + ") labels updated=" + changed);
   } catch (e) {
-    logger.error("[" + scriptName + "] 基础语言补写标签失败", e);
+    logger.error("[" + scriptName + "] 基础语言标签更新失败", e);
   } finally {
     if (set) {
       try { set.cleanup(); } catch (ignored) { }
