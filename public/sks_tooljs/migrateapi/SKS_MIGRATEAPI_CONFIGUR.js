@@ -27,10 +27,18 @@
 //                              false 全字段导出(字段方式参考 SKS_EXPORT_DBCONFIG)
 //   _allLangcode=true          [export] 对本地化字段附加 "sks:langdata":
 //                              { "<字段名>": { "<LANGCODE>": "<值>" } }
-//                              (对象 DESCRIPTION→MAXOBJECTMLS, 属性 DESCRIPTION/TITLE/REMARKS→
-//                               MAXATTRIBUTEMLS, 关系 REMARKS→MAXRELATIONSHIPMLS;
-//                               MLS 查询失败不影响主导出); sks: 前缀避免与业务字段冲突
+//                              (对象 DESCRIPTION 取 L_MAXOBJECTCFG, 属性 TITLE/REMARKS 取 L_MAXATTRCFG)
+//   _onlyInclude=ml            [export] 仅导出多语言: 只输出 object / attribute / sks:langdata,
+//                              其它结构字段不输出, 可用于单独迁移或维护译文
+//   objectNames/attributeFilters [export] body 过滤: {objectNames:[...], attributeFilters:[{object,attribute}]}
+//   sksQbeWhere:<attr>         [export] QBE 过滤(URL 或 body), 直接 setQbe 过滤后导出:
+//                              选中对象 sksQbeWhere:maxobjectcfgId="=2413"
+//                              选中属性 sksQbeWhere:maxattributecfgId="=48576,=48577"
 //   _langcode=ZH               设置会话语言
+//   _onlyFunctions=a,b         [import] 仅执行指定功能(逗号分隔, 也可传数组):
+//                              configur / mlmaxapps / mlmaxlabels / mlmaxmodules / mlmaxmenu /
+//                              mlsigoption / mlmaxobjectcfg / mlmaxattributecfg
+//                              不传时执行请求体中出现的全部功能(默认全开)
 //   _debug=true                返回 debugMsg
 //
 // MAXTYPE/LENGTH/SCALE 与源逻辑的差异(用户明确要求):
@@ -449,12 +457,683 @@ function stampImportStats(list, ownZero) {
 // 导入
 // ---------------------------------------------------------------------------
 
+// ============================================================================
+// 多语言导入(统一入口)
+// 参数 _onlyFunctions: 仅执行的功能代码, 逗号分隔字符串或数组;
+//   不传时执行请求体中出现的全部功能(默认全开)
+//   功能代码: configur(maxObjects 导入) / mlmaxapps / mlmaxlabels / mlmaxmodules / mlmaxmenu /
+//             mlsigoption / mlmaxobjectcfg / mlmaxattributecfg
+// ============================================================================
+
+var ML_DEFS = {
+  mlmaxapps: {
+    object: "MAXAPPS",
+    listKey: "maxappsList",
+    fields: ["DESCRIPTION"],
+    keys: ["APP"]
+  },
+  mlmaxlabels: {
+    object: "MAXLABELS",
+    listKey: "maxlabelsList",
+    fields: ["VALUE"],
+    keys: ["APP", "ID", "PROPERTY"]
+  },
+  mlmaxmodules: {
+    object: "MAXMODULES",
+    listKey: "maxmodulesList",
+    fields: ["DESCRIPTION"],
+    keys: ["MODULE"]
+  },
+  mlmaxmenu: {
+    object: "MAXMENU",
+    listKey: "maxmenuList",
+    fields: ["HEADERDESCRIPTION"],
+    keys: ["MENUTYPE", "MODULEAPP", "ELEMENTTYPE", "KEYVALUE"]
+  },
+  mlsigoption: {
+    object: "SIGOPTION",
+    listKey: "sigoptionList",
+    fields: ["DESCRIPTION"],
+    keys: ["APP", "OPTIONNAME"]
+  },
+  mlmaxobjectcfg: {
+    object: "MAXOBJECTCFG",
+    listKey: "maxobjectcfgList",
+    fields: ["DESCRIPTION"],
+    keys: ["OBJECTNAME"]
+  },
+  mlmaxattributecfg: {
+    object: "MAXATTRIBUTECFG",
+    listKey: "maxattributecfgList",
+    fields: ["TITLE", "REMARKS"],
+    keys: ["OBJECTNAME", "ATTRIBUTENAME"],
+    // 顶层 MAXATTRIBUTECFG 的语言表不允许 ADD(BMXAA0024E), 必须经 MAXOBJECTCFG 关系进入
+    via: { parentObject: "MAXOBJECTCFG", relation: "MAXATTRIBUTECFG", parentKeys: ["OBJECTNAME"] }
+  }
+};
+
+// 11 = NOVALIDATION(1) | NOACCESSCHECK(2) | NOACTION(8)
+var ML_ACCESS = 11;
+
+/**
+ * 导入入口: _onlyFunctions 有值只执行指定功能, 否则执行请求体中出现的全部功能
+ * @param {Object} config
+ * @returns {Object}
+ */
+function doImport(config) {
+  var funcs = resolveOnlyFunctions(config);
+  if (funcs.length === 0) {
+    return doImportAll(config);
+  }
+  return doImportFunctions(config, funcs);
+}
+
+/**
+ * 解析 _onlyFunctions(URL 参数或 body): 逗号分隔字符串/数组, 统一小写去重
+ * @param {Object} config
+ * @returns {Array<string>}
+ */
+function resolveOnlyFunctions(config) {
+  var raw = config._body ? config._body["_onlyFunctions"] : null;
+  if (raw === undefined || raw === null || raw === "") {
+    raw = qparam("_onlyFunctions");
+  }
+  var list = [];
+  var add = function(code) {
+    var c = String(code || "").trim().toLowerCase();
+    if (c !== "" && list.indexOf(c) === -1) {
+      list.push(c);
+    }
+  };
+  if (raw instanceof Array) {
+    for (var i = 0; i < raw.length; i++) {
+      add(raw[i]);
+    }
+  } else if (raw !== null && raw !== undefined) {
+    var parts = String(raw).split(",");
+    for (var j = 0; j < parts.length; j++) {
+      add(parts[j]);
+    }
+  }
+  return list;
+}
+
+function doImportAll(config) {
+  var funcs = [];
+  var maxObjects = getMaxObjectsFromBody(config._body);
+  // 结构导入: 仅当请求体里确实有结构字段时执行; 纯多语言(maxObjects 只有 object/attribute + sks:langdata)跳过
+  if (maxObjects && maxObjects.length > 0 && !isMlOnlyMaxObjects(maxObjects)) {
+    funcs.push("configur");
+  }
+  for (var code in ML_DEFS) {
+    if (ML_DEFS.hasOwnProperty(code) && getMlRows(config, ML_DEFS[code]) !== null) {
+      funcs.push(code);
+    }
+  }
+  if (funcs.length === 0) {
+    throw new MXApplicationException("#", "请求体必须包含非空 maxObjects 数组, 或任一多语言列表("
+      + Object.keys(ML_DEFS).join("/") + ")");
+  }
+  if (funcs.length === 1) {
+    if (funcs[0] === "configur") {
+      return doImportConfigur(config);
+    }
+    return importMlList(config, ML_DEFS[funcs[0]], funcs[0]);
+  }
+  return doImportFunctions(config, funcs);
+}
+
+/**
+ * 按功能代码依次执行并合并统计
+ * @param {Object} config
+ * @param {Array<string>} funcs
+ * @returns {Object}
+ */
+function doImportFunctions(config, funcs) {
+  var merged = {
+    total: 0, added: 0, updated: 0, deleted: 0, skipped: 0, failed: 0,
+    results: [], functions: {}
+  };
+  var successSum = 0;
+  var failSum = 0;
+  var ignoreSum = 0;
+  var parts = [];
+  for (var i = 0; i < funcs.length; i++) {
+    var code = funcs[i];
+    var r;
+    if (code === "configur" || code === "maxobjects") {
+      r = doImportConfigur(config);
+    } else if (ML_DEFS[code]) {
+      r = importMlList(config, ML_DEFS[code], code);
+    } else {
+      throw new MXApplicationException("#", "未知功能代码 _onlyFunctions=" + code
+        + " (可用: configur," + Object.keys(ML_DEFS).join(",") + ")");
+    }
+    if (funcs.length === 1) {
+      return r;
+    }
+    var added = Number(r.added || 0);
+    var updated = Number(r.updated || 0);
+    var deleted = Number(r.deleted || 0);
+    var skipped = Number(r.skipped || 0);
+    var failed = Number(r.failed || 0);
+    merged.total += Number(r.total || 0);
+    merged.added += added;
+    merged.updated += updated;
+    merged.deleted += deleted;
+    merged.skipped += skipped;
+    merged.failed += failed;
+    successSum += added + updated + deleted;
+    ignoreSum += skipped;
+    failSum += failed;
+    merged.functions[code] = {
+      total: Number(r.total || 0), added: added, updated: updated,
+      deleted: deleted, skipped: skipped, failed: failed
+    };
+    var rows = r.results || [];
+    for (var k = 0; k < rows.length; k++) {
+      if (rows[k] && typeof rows[k] === "object") {
+        rows[k]._function = code;
+      }
+      merged.results.push(rows[k]);
+    }
+    parts.push(code + " 共" + Number(r.total || 0) + " 新增" + added + " 更新" + updated
+      + " 删除" + deleted + " 跳过" + skipped + " 失败" + failed);
+  }
+  merged["sks:successSumTotal"] = successSum;
+  merged["sks:failSumTotal"] = failSum;
+  merged["sks:ignoreSumTotal"] = ignoreSum;
+  responseMessage = "导入完成 " + parts.join("; ");
+  logger.info("[" + scriptName + "] " + responseMessage);
+  return merged;
+}
+
+/**
+ * 判断 maxObjects 是否只是"仅多语言"结构:
+ * 对象只有 object/sks:langdata/attributes, 属性只有 attribute/sks:langdata
+ * @param {Array} maxObjects
+ * @returns {boolean}
+ */
+function isMlOnlyMaxObjects(maxObjects) {
+  var objectKeys = { object: 1, OBJECTNAME: 1, attributes: 1, "sks:langdata": 1 };
+  var attributeKeys = { attribute: 1, ATTRIBUTENAME: 1, "sks:langdata": 1 };
+  var hasAttr = false;
+  for (var i = 0; i < maxObjects.length; i++) {
+    var objDef = maxObjects[i];
+    if (!objDef || typeof objDef !== "object") {
+      return false;
+    }
+    for (var key in objDef) {
+      if (objDef.hasOwnProperty(key) && !objectKeys[key]) {
+        return false;
+      }
+    }
+    var attrs = objDef.attributes;
+    if (attrs instanceof Array) {
+      for (var j = 0; j < attrs.length; j++) {
+        var attrDef = attrs[j];
+        if (!attrDef || typeof attrDef !== "object") {
+          return false;
+        }
+        hasAttr = true;
+        for (var akey in attrDef) {
+          if (attrDef.hasOwnProperty(akey) && !attributeKeys[akey]) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return hasAttr || maxObjects.length > 0;
+}
+
+function getMlRows(config, def) {
+  var body = config._body || {};
+  var list = body[def.listKey];
+  if (!(list instanceof Array)) {
+    var alias = def.object.toLowerCase();
+    if (body[alias] instanceof Array) {
+      list = body[alias];
+    }
+  }
+  if (list instanceof Array) {
+    return list;
+  }
+  // 兼容 maxObjects 结构导入多语言: { maxObjects:[{object, sks:langdata, attributes:[{attribute, sks:langdata}]}] }
+  var maxObjects = getMaxObjectsFromBody(body);
+  if (!maxObjects || maxObjects.length === 0) {
+    return null;
+  }
+  var rows = [];
+  var i;
+  if (def.object === "MAXOBJECTCFG") {
+    for (i = 0; i < maxObjects.length; i++) {
+      var objDef = maxObjects[i];
+      if (objDef && objDef["sks:langdata"] && typeof objDef["sks:langdata"] === "object") {
+        rows.push({
+          OBJECTNAME: objDef.object || objDef.OBJECTNAME,
+          "sks:langdata": objDef["sks:langdata"]
+        });
+      }
+    }
+    return rows.length > 0 ? rows : null;
+  }
+  if (def.object === "MAXATTRIBUTECFG") {
+    for (i = 0; i < maxObjects.length; i++) {
+      var objectDef = maxObjects[i];
+      var attrs = objectDef ? objectDef.attributes : null;
+      if (!(attrs instanceof Array)) {
+        continue;
+      }
+      for (var j = 0; j < attrs.length; j++) {
+        var attrDef = attrs[j];
+        if (attrDef && attrDef["sks:langdata"] && typeof attrDef["sks:langdata"] === "object") {
+          rows.push({
+            OBJECTNAME: objectDef.object || objectDef.OBJECTNAME,
+            ATTRIBUTENAME: attrDef.attribute || attrDef.ATTRIBUTENAME,
+            "sks:langdata": attrDef["sks:langdata"]
+          });
+        }
+      }
+    }
+    return rows.length > 0 ? rows : null;
+  }
+  return null;
+}
+
+/**
+ * 导入单个多语言列表
+ * @param {Object} config
+ * @param {Object} def ML_DEFS 中的定义
+ * @param {string} code 功能代码
+ * @returns {Object}
+ */
+function importMlList(config, def, code) {
+  var list = getMlRows(config, def);
+  if (list === null || list.length === 0) {
+    throw new MXApplicationException("#", def.listKey + " 必须为非空数组");
+  }
+  var merged = {
+    total: list.length,
+    added: 0, updated: 0, deleted: 0, skipped: 0, failed: 0,
+    results: [],
+    "sks:successSumTotal": 0,
+    "sks:failSumTotal": 0,
+    "sks:ignoreSumTotal": 0
+  };
+  var pendingBase = [];
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i];
+    var ref = mlRowRef(def, row);
+    var item = newMlStatItem(def, row, ref);
+    try {
+      var op = importMlRow(config, def, row, pendingBase);
+      item._operation = op;
+      if (op === "skipped") {
+        item._status = "skipped";
+        merged.skipped++;
+        merged["sks:ignoreSumTotal"]++;
+        item["sks:ignoreTotal"] = 1;
+        item["sks:ignoreSumTotal"] = 1;
+      } else {
+        item._status = "success";
+        if (op === "added") {
+          merged.added++;
+        } else if (op === "updated") {
+          merged.updated++;
+        } else if (op === "deleted") {
+          merged.deleted++;
+        }
+        merged["sks:successSumTotal"]++;
+        item["sks:successTotal"] = 1;
+        item["sks:successSumTotal"] = 1;
+      }
+    } catch (e) {
+      item._status = "failed";
+      item._message = getErrorMessage(e);
+      merged.failed++;
+      merged["sks:failSumTotal"]++;
+      item["sks:failTotal"] = 1;
+      item["sks:failSumTotal"] = 1;
+      logger.error("[" + scriptName + "] 多语言导入失败: " + code + " " + ref + " - " + item._message);
+      debugPrint("stack for " + code + " " + ref + ":\n" + getErrorStackTrace(e));
+    }
+    merged.results.push(item);
+    debugPrint("import " + code + " " + ref + " => " + item._status + " " + (item._message || ""));
+  }
+  applyMlBaseValues(config, def, pendingBase);
+  responseMessage = "导入完成 " + code + " 共" + merged.total + "条：新增" + merged.added
+    + " 更新" + merged.updated + " 删除" + merged.deleted + " 跳过" + merged.skipped
+    + " 失败" + merged.failed;
+  return merged;
+}
+
+function newMlStatItem(def, row, ref) {
+  return {
+    "sks:ref": ref,
+    "sks:objectName": def.object,
+    "sks:uuid": (row && row["sks:uuid"]) ? String(row["sks:uuid"]) : mlUuid(),
+    _apiAction: "imp",
+    _status: "failed",
+    _operation: "none",
+    "sks:successTotal": 0,
+    "sks:failTotal": 0,
+    "sks:ignoreTotal": 0,
+    "sks:successSumTotal": 0,
+    "sks:failSumTotal": 0,
+    "sks:ignoreSumTotal": 0
+  };
+}
+
+function mlRowRef(def, row) {
+  if (!row || typeof row !== "object") {
+    return "";
+  }
+  var parts = [];
+  for (var i = 0; i < def.keys.length; i++) {
+    var key = def.keys[i];
+    var v = row[key] !== undefined ? row[key] : row[key.toLowerCase()];
+    parts.push(v === undefined || v === null ? "" : String(v));
+  }
+  return parts.join("/");
+}
+
+function mlUuid() {
+  try {
+    return String(Java.type("java.util.UUID").randomUUID());
+  } catch (ignored) {
+    return "";
+  }
+}
+
+/**
+ * 读取业务主键(大小写兼容), 空值抛异常
+ */
+function readMlKeys(row, def) {
+  var keys = {};
+  for (var i = 0; i < def.keys.length; i++) {
+    var key = def.keys[i];
+    var v = row[key] !== undefined ? row[key] : row[key.toLowerCase()];
+    var text = mlTrim(v);
+    if (text === "") {
+      throw new MXApplicationException("#", key + " 不能为空");
+    }
+    keys[key] = text;
+  }
+  return keys;
+}
+
+function mlBuildWhere(fields, keys) {
+  var conds = [];
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    conds.push("upper(" + f + ") = '" + mlEscapeSql(String(keys[f]).toUpperCase()) + "'");
+  }
+  return conds.join(" and ");
+}
+
+function mlMatchesKeys(mbo, def, keys) {
+  for (var i = 0; i < def.keys.length; i++) {
+    var key = def.keys[i];
+    var v = "";
+    try {
+      v = String(mbo.getString(key) || "").toUpperCase();
+    } catch (ignored) {
+      v = "";
+    }
+    if (v !== String(keys[key]).toUpperCase()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * 打开目标 Mbo: 普通对象直接按主键 where 查询;
+ * 配置了 via 的对象从父对象关系进入并逐行 moveFirst/moveNext 匹配
+ * @returns {Object} { rootSet, set, mbo }
+ */
+function openMlTarget(config, def, keys) {
+  if (def.via) {
+    var rootSet = mxserver.getMboSet(def.via.parentObject, config._userInfo);
+    rootSet.setWhere(mlBuildWhere(def.via.parentKeys, keys));
+    rootSet.reset();
+    var rootMbo = rootSet.isEmpty() ? null : rootSet.getMbo(0);
+    if (!rootMbo) {
+      throw new MXApplicationException("#", def.via.parentObject + " 中不存在 " + mlRowRef(def, keys));
+    }
+    var set = rootMbo.getMboSet(def.via.relation);
+    set.reset();
+    var mbo = null;
+    var current = set.moveFirst();
+    while (current !== null) {
+      if (mlMatchesKeys(current, def, keys)) {
+        mbo = current;
+        break;
+      }
+      current = set.moveNext();
+    }
+    return { rootSet: rootSet, set: set, mbo: mbo };
+  }
+  var plainSet = mxserver.getMboSet(def.object, config._userInfo);
+  plainSet.setWhere(mlBuildWhere(def.keys, keys));
+  plainSet.reset();
+  return { rootSet: null, set: plainSet, mbo: plainSet.isEmpty() ? null : plainSet.getMbo(0) };
+}
+
+function mlSaveCtx(ctx, config) {
+  if (!ctx) {
+    return;
+  }
+  if (config.dmDeploySet === true) {
+    try { ctx.set.setDMDeploySet(true); } catch (ignored) { }
+  }
+  ctx.set.save();
+  if (ctx.rootSet) {
+    try { ctx.rootSet.save(); } catch (ignoredSave) { }
+  }
+}
+
+function mlCloseCtx(ctx) {
+  if (!ctx) {
+    return;
+  }
+  if (ctx.set) {
+    try { ctx.set.close(); } catch (ignored) { }
+  }
+  if (ctx.rootSet) {
+    try { ctx.rootSet.close(); } catch (ignored) { }
+  }
+}
+
+/**
+ * 单行导入: 主键 upsert + 各多语言字段(基础语言切会话补写)
+ * @returns {string} added / updated / deleted / skipped
+ */
+function importMlRow(config, def, row, pendingBase) {
+  if (!row || typeof row !== "object") {
+    throw new MXApplicationException("#", def.object + " 行不合法");
+  }
+  var keys = readMlKeys(row, def);
+  var ctx = openMlTarget(config, def, keys);
+  try {
+    var mbo = ctx.mbo;
+    if (mlIsTrue(row._delete)) {
+      if (!mbo) {
+        return "skipped";
+      }
+      mbo.delete();
+      mlSaveCtx(ctx, config);
+      return "deleted";
+    }
+    var isNew = !mbo;
+    if (isNew) {
+      mbo = ctx.set.add();
+      for (var k = 0; k < def.keys.length; k++) {
+        var keyField = def.keys[k];
+        if (def.via && def.via.parentKeys.indexOf(keyField) >= 0) {
+          continue;
+        }
+        mbo.setValue(keyField, keys[keyField], MboConstants.NOACCESSCHECK);
+      }
+    } else if (mlIsTrue(row._updateIgnored)) {
+      return "skipped";
+    }
+
+    var baseLang = mlBaseLang();
+    var currentLang = String(config._userInfo.getLangCode() || "").toUpperCase();
+    var allLang = config.allLangcode === true || mlIsTrue(config._body ? config._body["_allLangcode"] : null);
+    var langData = row["sks:langdata"];
+    var changed = false;
+    var pendingForRow = [];
+    for (var f = 0; f < def.fields.length; f++) {
+      var field = def.fields[f];
+      var values = (allLang && langData && langData[field] && typeof langData[field] === "object") ? langData[field] : null;
+      var baseValue = null;
+      var baseProvided = false;
+      var mlCount = 0;
+      if (values) {
+        for (var lang in values) {
+          if (!values.hasOwnProperty(lang)) {
+            continue;
+          }
+          var v = values[lang];
+          // 空值与 ~null~ 占位符视为未提供
+          if (v === undefined || v === null || String(v).trim() === "" || String(v) === "~null~") {
+            continue;
+          }
+          var upperLang = String(lang).toUpperCase();
+          mlCount++;
+          if (upperLang === baseLang) {
+            if (!isNew && mlValueEqual(mbo, field, baseLang, String(v))) {
+              continue;
+            }
+            baseValue = String(v);
+            baseProvided = true;
+            changed = true;
+            continue;
+          }
+          if (!isNew && mlValueEqual(mbo, field, upperLang, String(v))) {
+            continue;
+          }
+          mbo.setMLValue(field, upperLang, String(v), ML_ACCESS);
+          changed = true;
+        }
+      }
+      var flat = row[field] !== undefined ? row[field] : row[field.toLowerCase()];
+      var hasFlat = flat !== undefined && flat !== null && String(flat).trim() !== "";
+      if ((!values || mlCount === 0) && hasFlat) {
+        if (isNew || !mlValueEqual(mbo, field, currentLang, String(flat))) {
+          mbo.setValue(field, String(flat), MboConstants.NOACCESSCHECK);
+          changed = true;
+        }
+      }
+      if (baseProvided) {
+        pendingForRow.push({ field: field, value: baseValue });
+      } else if (isNew && !baseProvided && hasFlat && baseLang && currentLang !== baseLang) {
+        pendingForRow.push({ field: field, value: null });
+      }
+    }
+    if (!isNew && !changed) {
+      return "skipped";
+    }
+    mlSaveCtx(ctx, config);
+    for (var p = 0; p < pendingForRow.length; p++) {
+      pendingBase.push({
+        keys: keys,
+        field: pendingForRow[p].field,
+        value: pendingForRow[p].value
+      });
+    }
+    return isNew ? "added" : "updated";
+  } finally {
+    mlCloseCtx(ctx);
+  }
+}
+
+/**
+ * 基础语言列补写: 切到基础语言会话逐条 setValue/setValueNull 后保存
+ * @param {Object} config
+ * @param {Object} def
+ * @param {Array} pending
+ */
+function applyMlBaseValues(config, def, pending) {
+  if (!pending || pending.length === 0) {
+    return;
+  }
+  var baseLang = mlBaseLang();
+  if (!baseLang) {
+    return;
+  }
+  var currentLang = String(config._userInfo.getLangCode() || "").toUpperCase();
+  var changed = 0;
+  try {
+    config._userInfo.setLangCode(baseLang);
+    for (var i = 0; i < pending.length; i++) {
+      var item = pending[i];
+      var ctx = null;
+      try {
+        ctx = openMlTarget(config, def, item.keys);
+        if (!ctx.mbo) {
+          continue;
+        }
+        if (item.value === null || item.value === undefined) {
+          ctx.mbo.setValueNull(item.field, MboConstants.NOACCESSCHECK);
+        } else {
+          ctx.mbo.setValue(item.field, String(item.value), MboConstants.NOACCESSCHECK);
+        }
+        mlSaveCtx(ctx, config);
+        changed++;
+      } finally {
+        mlCloseCtx(ctx);
+      }
+    }
+    debugPrint("baseLang(" + baseLang + ") " + def.object + " updated=" + changed);
+  } catch (e) {
+    logger.error("[" + scriptName + "] 基础语言多语言更新失败: " + def.object, e);
+  } finally {
+    try { config._userInfo.setLangCode(currentLang); } catch (ignored) { }
+  }
+}
+
+function mlValueEqual(mbo, field, lang, value) {
+  try {
+    var old = mbo.getString(field, lang);
+    return String(old === null || old === undefined ? "" : old) === String(value);
+  } catch (ignored) {
+    return false;
+  }
+}
+
+function mlBaseLang() {
+  try {
+    return String(mxserver.getBaseLang() || "").toUpperCase();
+  } catch (ignored) {
+    return "";
+  }
+}
+
+function mlIsTrue(v) {
+  return v === true || String(v).toLowerCase() === "true";
+}
+
+function mlTrim(v) {
+  if (v === null || v === undefined) {
+    return "";
+  }
+  return String(v).trim();
+}
+
+function mlEscapeSql(s) {
+  return String(s).replace(/'/g, "''");
+}
+
 /**
  * 导入 maxObjects 数组, 单个对象失败不中断整体(聚合到 results)
  * @param {Object} config
  * @returns {Object}
  */
-function doImport(config) {
+function doImportConfigur(config) {
   var maxObjects = getMaxObjectsFromBody(config._body);
   if (!maxObjects || maxObjects.length === 0) {
     throw new MXApplicationException("#", "请求体必须包含非空 maxObjects 数组");
@@ -1668,20 +2347,264 @@ function getObjectNamesFromBody(body) {
 
 /**
  * 导出入口: 解析对象名列表并导出
+ * _onlyInclude=ml: 仅导出 MAXOBJECT/ATTRIBUTENAME + 多语言(sks:langdata), 其它字段不输出
  * @param {Object} config
  * @returns {Object} { maxObjects: [...] }
  */
 function doExport(config) {
-  var objectNames = getObjectNamesFromBody(config._body);
+  var filters = resolveExportFilters(config);
+  var objectNames = filters.objectNames;
   if (objectNames.length === 0) {
     throw new MXApplicationException("#", "导出请求体需包含非空 objectNames(或 maxObjects/object 对象定义)");
   }
+  config._attributeFilters = filters.attributeFilters;
+  config._onlyMl = isOnlyMlExport(config);
   logger.info("[" + scriptName + "] 开始导出数据库配置, 对象列表: " + objectNames.join(", ")
-    + ", ignoreDefVal=" + config.ignoreDefVal + ", _allLangcode=" + config.allLangcode);
+    + ", ignoreDefVal=" + config.ignoreDefVal + ", _allLangcode=" + config.allLangcode
+    + ", _onlyInclude=" + (config._onlyMl ? "ml" : "all"));
   var maxObjects = exportDatabaseConfig(objectNames, config);
   responseMessage = "导出完成 共" + maxObjects.length + "个对象";
   logger.info("[" + scriptName + "] " + responseMessage);
   return { maxObjects: maxObjects };
+}
+
+/**
+ * 是否仅导出多语言(_onlyInclude=ml, URL 参数或 body)
+ * @param {Object} config
+ * @returns {boolean}
+ */
+function isOnlyMlExport(config) {
+  var raw = config._body ? config._body["_onlyInclude"] : null;
+  if (raw === undefined || raw === null || raw === "") {
+    raw = qparam("_onlyInclude");
+  }
+  if (raw === null || raw === undefined || raw === "") {
+    return false;
+  }
+  var parts = (raw instanceof Array) ? raw : String(raw).split(",");
+  for (var i = 0; i < parts.length; i++) {
+    if (String(parts[i]).trim().toLowerCase() === "ml") {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 读取 QBE 过滤参数: URL/body 的 "sksQbeWhere:<别名>", 例 "=48576,=48577"
+ * @param {Object} config
+ * @param {Array<string>} aliases 属性别名(不区分大小写的简单变体)
+ * @returns {string|null}
+ */
+function readQbeValue(config, aliases) {
+  var body = config._body || {};
+  for (var i = 0; i < aliases.length; i++) {
+    var alias = aliases[i];
+    var key = "sksQbeWhere:" + alias;
+    var v = body[key];
+    if (v === undefined || v === null || v === "") {
+      v = qparam(key);
+    }
+    if (v !== undefined && v !== null && String(v) !== "") {
+      return String(v);
+    }
+  }
+  return null;
+}
+
+/**
+ * setQbe 过滤, QBE 无效或未命中时回退为 IN 解析("=1,=2" → in (1,2))
+ * @param {psdi.mbo.MboSetRemote} set
+ * @param {string} attrName
+ * @param {string} qbeValue
+ */
+function applyQbeFilter(set, attrName, qbeValue) {
+  var qbeOk = false;
+  try {
+    set.setQbe(attrName, qbeValue);
+    set.reset();
+    qbeOk = !set.isEmpty();
+    if (qbeOk) {
+      return;
+    }
+  } catch (e) {
+    logger.warn("[" + scriptName + "] setQbe(" + attrName + "," + qbeValue + ") 失败: " + e.message);
+  }
+  // QBE 未命中时按 "=1,=2" 回退为 IN
+  var ids = [];
+  var parts = String(qbeValue).split(",");
+  for (var i = 0; i < parts.length; i++) {
+    var token = parts[i].trim().replace(/^=/, "");
+    if (/^\d+$/.test(token)) {
+      ids.push(token);
+    }
+  }
+  if (ids.length === 0) {
+    if (!qbeOk) {
+      set.setWhere("1 = 0");
+      set.reset();
+    }
+    return;
+  }
+  set.setWhere(attrName + " in (" + ids.join(",") + ")");
+  set.reset();
+}
+
+/**
+ * 解析导出过滤: body.objectNames / maxObjects / object, body.attributeFilters,
+ * URL/body 的 sksQbeWhere:maxobjectcfgId、sksQbeWhere:maxattributecfgId
+ * @param {Object} config
+ * @returns {Object} { objectNames: [], attributeFilters: [{object, attribute}] }
+ */
+function resolveExportFilters(config) {
+  var body = config._body || {};
+  var objectNames = [];
+  var attributeFilters = [];
+  var addObject = function(name) {
+    var v = String(name || "").trim();
+    if (v !== "" && objectNames.indexOf(v) === -1) {
+      objectNames.push(v);
+    }
+  };
+  var list = getObjectNamesFromBody(body);
+  for (var i = 0; i < list.length; i++) {
+    addObject(list[i]);
+  }
+  // body.attributeFilters: [{object, attribute}] 或 ["OBJ/ATTR"]
+  var rawFilters = body.attributeFilters;
+  if (rawFilters instanceof Array) {
+    for (var f = 0; f < rawFilters.length; f++) {
+      var item = rawFilters[f];
+      var objName = "";
+      var attrName = "";
+      if (item && typeof item === "object") {
+        objName = item.object || item.OBJECTNAME;
+        attrName = item.attribute || item.ATTRIBUTENAME;
+      } else if (typeof item === "string" && item.indexOf("/") > 0) {
+        objName = item.substring(0, item.indexOf("/"));
+        attrName = item.substring(item.indexOf("/") + 1);
+      }
+      if (objName && attrName) {
+        attributeFilters.push({ object: String(objName), attribute: String(attrName) });
+        addObject(objName);
+      }
+    }
+  }
+  // 选中记录: sksQbeWhere:maxobjectcfgId="=2413" → setQbe("MAXOBJECTID", "=2413")
+  var objectQbe = readQbeValue(config, ["maxobjectcfgId", "maxobjectcfgid", "maxobjectid"]);
+  if (objectQbe !== null) {
+    var objSet = null;
+    try {
+      objSet = mxserver.getMboSet("MAXOBJECTCFG", config._userInfo);
+      applyQbeFilter(objSet, "MAXOBJECTID", objectQbe);
+      var objMbo = objSet.moveFirst();
+      while (objMbo) {
+        addObject(objMbo.getString("OBJECTNAME"));
+        objMbo = objSet.moveNext();
+      }
+    } finally {
+      _close(objSet);
+    }
+  }
+  // 选中记录: sksQbeWhere:maxattributecfgId="=48576,=48577" → setQbe("MAXATTRIBUTEID", ...)
+  var attributeQbe = readQbeValue(config, ["maxattributecfgId", "maxattributecfgid", "maxattributeid"]);
+  if (attributeQbe !== null) {
+    var attrSet = null;
+    try {
+      attrSet = mxserver.getMboSet("MAXATTRIBUTECFG", config._userInfo);
+      applyQbeFilter(attrSet, "MAXATTRIBUTEID", attributeQbe);
+      var attrMbo = attrSet.moveFirst();
+      while (attrMbo) {
+        var attrObj = String(attrMbo.getString("OBJECTNAME"));
+        var attrName2 = String(attrMbo.getString("ATTRIBUTENAME"));
+        attributeFilters.push({ object: attrObj, attribute: attrName2 });
+        addObject(attrObj);
+        attrMbo = attrSet.moveNext();
+      }
+    } finally {
+      _close(attrSet);
+    }
+  }
+  return { objectNames: objectNames, attributeFilters: attributeFilters };
+}
+
+/**
+ * 把父对象 LANGTABLE 关系上的译文挂到行的 sks:langdata:
+ * { "<字段>": { "<LANGCODE>": "<值>" } }, 基础语言取父对象当前列值
+ * @param {Object} row
+ * @param {psdi.mbo.MboRemote} mbo 父对象(MAXOBJECTCFG/MAXATTRIBUTECFG)
+ * @param {Array<string>} fields 多语言字段
+ */
+function attachCfgLangdata(row, mbo, fields) {
+  var langdata = {};
+  var hasValue = false;
+  var mlSet = null;
+  try {
+    mlSet = mbo.getMboSet("LANGTABLE");
+    mlSet.reset();
+    var mlMbo = mlSet.moveFirst();
+    while (mlMbo) {
+      var lang = String(mlMbo.getString("LANGCODE") || "").toUpperCase();
+      if (lang !== "") {
+        for (var i = 0; i < fields.length; i++) {
+          var field = fields[i];
+          var v = null;
+          try { v = mlMbo.getString(field); } catch (ignored) { v = null; }
+          if (v !== null && v !== undefined && String(v).trim() !== "" && String(v) !== "~null~") {
+            if (!langdata[field]) { langdata[field] = {}; }
+            langdata[field][lang] = String(v);
+            hasValue = true;
+          }
+        }
+      }
+      mlMbo = mlSet.moveNext();
+    }
+  } catch (e) {
+    logger.warn("[" + scriptName + "] 读取 " + mbo.getName() + " 多语言失败: " + e.message);
+  } finally {
+    _close(mlSet);
+  }
+  // 基础语言译文(必须显式取基础语言列, 直接 getString 会返回会话语言的值)
+  var baseLang = "";
+  try { baseLang = String(mxserver.getBaseLang() || "").toUpperCase(); } catch (ignoredBase) { baseLang = ""; }
+  if (baseLang !== "") {
+    for (var f = 0; f < fields.length; f++) {
+      var baseField = fields[f];
+      var baseValue = null;
+      try {
+        baseValue = mbo.getString(baseField, baseLang);
+      } catch (ignoredLang) {
+        try { baseValue = mbo.getString(baseField); } catch (ignoredValue) { baseValue = null; }
+      }
+      if (baseValue !== null && baseValue !== undefined && String(baseValue).trim() !== ""
+        && String(baseValue) !== "~null~") {
+        if (!langdata[baseField]) { langdata[baseField] = {}; }
+        langdata[baseField][baseLang] = String(baseValue);
+        hasValue = true;
+      }
+    }
+  }
+  if (hasValue) {
+    row["sks:langdata"] = langdata;
+  }
+}
+
+/**
+ * 属性是否命中导出过滤(过滤为空表示全部)
+ */
+function matchesAttributeFilter(objectName, attributeName, filters) {
+  if (!filters || filters.length === 0) {
+    return true;
+  }
+  var obj = String(objectName).toUpperCase();
+  var attr = String(attributeName).toUpperCase();
+  for (var i = 0; i < filters.length; i++) {
+    if (String(filters[i].object || "").toUpperCase() === obj
+      && String(filters[i].attribute || "").toUpperCase() === attr) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -1743,6 +2666,16 @@ function exportMaxObject(objectName, config) {
     var objectConfig = {};
 
     var objName = mboStr(maxObjectCfg, "OBJECTNAME");
+    // _onlyInclude=ml: 仅导出对象名 + DESCRIPTION 多语言, 其它结构字段都不输出
+    if (config._onlyMl) {
+      var mlObject = { object: objName };
+      attachCfgLangdata(mlObject, maxObjectCfg, ["DESCRIPTION"]);
+      var mlAttributes = exportAttributes(objName, null, maxObjectCfg, config);
+      if (mlAttributes.length > 0) {
+        mlObject.attributes = mlAttributes;
+      }
+      return mlObject;
+    }
     objectConfig.object = objName;
     objectConfig.description = mboStr(maxObjectCfg, "DESCRIPTION");
     // 系统默认必填
@@ -1872,12 +2805,9 @@ function exportMaxObject(objectName, config) {
       objectConfig.automaticallySelect = vAutoSelect;
     }
 
-    // _allLangcode: 对象级 DESCRIPTION 多语言(MAXOBJECTMLS, keycolvalue=objectname)
+    // _allLangcode: 对象级 DESCRIPTION 多语言(取自 L_MAXOBJECTCFG, 附 "sks:langdata")
     if (config.allLangcode) {
-      var objMlsMap = loadMlsMap("MAXOBJECTMLS", "OBJECTNAME", objectName, ["DESCRIPTION"], config);
-      if (objMlsMap) {
-        attachLangdata(objectConfig, objMlsMap[objectName]);
-      }
+      attachCfgLangdata(objectConfig, maxObjectCfg, ["DESCRIPTION"]);
     }
 
     // 导出属性/关系/索引
@@ -1914,10 +2844,6 @@ function exportAttributes(objectName, objectEntity, maxObjectCfg, config) {
   var isView = maxObjectCfg.getBoolean("ISVIEW");
   var maxAttributeCfgSet = null;
   try {
-    // _allLangcode: 一次查出该对象全部属性 MLS(MAXATTRIBUTEMLS, keycolvalue=objectname+attributename)
-    var attrMlsMap = config.allLangcode
-      ? loadMlsMap("MAXATTRIBUTEMLS", "OBJECTNAME", objectName, ["DESCRIPTION", "TITLE", "REMARKS"], config)
-      : null;
     maxAttributeCfgSet = mxserver.getMboSet("MAXATTRIBUTECFG", config._userInfo);
     var sqlf = new SqlFormat("objectname = :1 ");
     sqlf.setObject(1, "MAXATTRIBUTECFG", "OBJECTNAME", objectName);
@@ -1932,6 +2858,20 @@ function exportAttributes(objectName, objectEntity, maxObjectCfg, config) {
       // 跳过系统字段
       if (attributeName === "ROWSTAMP" || attributeName === "HASLD"
         || attributeName === "DESCRIPTION_LONGDESCRIPTION") {
+        attributeCfg = maxAttributeCfgSet.moveNext();
+        continue;
+      }
+      if (!matchesAttributeFilter(objectName, attributeName, config._attributeFilters)) {
+        attributeCfg = maxAttributeCfgSet.moveNext();
+        continue;
+      }
+      // _onlyInclude=ml: 仅属性名 + TITLE/REMARKS 多语言, 无多语言的属性不输出
+      if (config._onlyMl) {
+        var mlAttribute = { attribute: attributeName };
+        attachCfgLangdata(mlAttribute, attributeCfg, ["TITLE", "REMARKS"]);
+        if (mlAttribute["sks:langdata"]) {
+          attributes.push(mlAttribute);
+        }
         attributeCfg = maxAttributeCfgSet.moveNext();
         continue;
       }
@@ -2054,8 +2994,8 @@ function exportAttributes(objectName, objectEntity, maxObjectCfg, config) {
         }
         attribute.persistent = persistent;
       }
-      if (attrMlsMap) {
-        attachLangdata(attribute, attrMlsMap[objectName + attributeName]);
+      if (config.allLangcode) {
+        attachCfgLangdata(attribute, attributeCfg, ["TITLE", "REMARKS"]);
       }
       attributes.push(attribute);
       attributeCfg = maxAttributeCfgSet.moveNext();

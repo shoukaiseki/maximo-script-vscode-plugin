@@ -1134,7 +1134,10 @@ var MIGRATE_OBJECTS = [
     { key: "mafappdata", script: "SKS_MIGRATE_MAFAPPDATA", objectName: "MAFAPPDATA", filterField: "APPID", appField: "APPID", single: true },
     { key: "sigoptions", script: "SKS_MIGRATE_SIGOPTION", objectName: "SIGOPTION", filterField: "APP", appField: "APP" },
     { key: "maxlabels", script: "SKS_MIGRATE_MAXLABELS", objectName: "MAXLABELS", filterField: "APP", appField: "APP" },
-    { key: "menus", script: "SKS_MIGRATE_MAXMENU", objectName: "MAXMENU", filterField: "MODULEAPP", appField: "MODULEAPP" },
+    // 应用根菜单行: MENUTYPE='MODULE' AND ELEMENTTYPE='APP' AND KEYVALUE=应用名
+    // 该行的 MODULEAPP 可能不是应用名(如 SSDR), 需单独查出并放到 menus 最前面, 保证导入时先建立菜单树根
+    // MODULE 类行的 MODULEAPP 是模块名, 导出保留原值(不能替换成应用名)
+    { key: "menus", script: "SKS_MIGRATE_MAXMENU", objectName: "MAXMENU", filterField: "MODULEAPP", appField: "MODULEAPP", prependWhere: "menutype = 'MODULE' and elementtype = 'APP' and keyvalue = :1", keepAppFieldIf: function (row) { return String(row.MENUTYPE || "").toUpperCase() === "MODULE"; } },
     { key: "appdoctype", script: "SKS_MIGRATE_APPDOCTYPE", objectName: "APPDOCTYPE", filterField: "APP", appField: "APP" }
 ];
 // APPLICATIONAUTH(应用授权)不纳入应用信息, 后续由安全组导出功能单独处理
@@ -1344,6 +1347,128 @@ function resolveExportOpts() {
 }
 
 /**
+ * 解析导出排除参数 _exclude(分号分隔), 每项两种写法:
+ *   对象key              -> 排除整个对象(如 maxlabels)
+ *   对象key:行匹配条件   -> 排除该对象中命中条件的行(如 menus:menutype = 'MODULE')
+ * @returns {{objects:Object, conditions:Object, raw:string}}
+ */
+function resolveExcludeRules() {
+    var raw = String(request.getQueryParam("_exclude") || "");
+    var rules = { objects: {}, conditions: {}, raw: raw };
+    var items = raw.split(";");
+    for (var i = 0; i < items.length; i++) {
+        var item = String(items[i]).trim();
+        if (item === "") {
+            continue;
+        }
+        var pos = item.indexOf(":");
+        var key = (pos < 0 ? item : item.substring(0, pos)).trim().toLowerCase();
+        if (key === "") {
+            continue;
+        }
+        var cond = pos < 0 ? "" : item.substring(pos + 1).trim();
+        if (cond === "") {
+            rules.objects[key] = true;
+            continue;
+        }
+        if (!rules.conditions[key]) {
+            rules.conditions[key] = [];
+        }
+        rules.conditions[key].push(cond);
+    }
+    return rules;
+}
+
+/**
+ * 行匹配条件(命中即排除该行), 支持:
+ *   FIELD = value / FIELD != value / FIELD <> value
+ *   FIELD in (a,b) / FIELD not in (a,b)
+ * @param {Object} row getDetail 生成的行
+ * @param {string} cond 条件文本
+ * @returns {boolean}
+ */
+function matchExcludeCondition(row, cond) {
+    var m = /^\s*([A-Za-z0-9_]+)\s*(not\s+in|in|!=|<>|=)\s*(.+)$/i.exec(cond);
+    if (!m) {
+        logger.warn("[SKS.AUTOSCRIPT.SCREENS] 无法解析排除条件: " + cond);
+        return false;
+    }
+    var field = m[1].toUpperCase();
+    var op = m[2].toLowerCase().replace(/\s+/g, " ");
+    var expected = m[3];
+    var value = row[field];
+    var actual = (value === undefined || value === null) ? "" : String(value);
+    if (op === "in" || op === "not in") {
+        var list = String(expected).trim().replace(/^\(/, "").replace(/\)$/, "").split(",");
+        var hit = false;
+        for (var i = 0; i < list.length; i++) {
+            if (sameExcludeValue(actual, list[i])) {
+                hit = true;
+                break;
+            }
+        }
+        return op === "in" ? hit : !hit;
+    }
+    var eq = sameExcludeValue(actual, expected);
+    return op === "=" ? eq : !eq;
+}
+
+/**
+ * 排除条件值比较(忽略引号与大小写)
+ * @param {string} actual 行值
+ * @param {string} expected 条件值
+ * @returns {boolean}
+ */
+function sameExcludeValue(actual, expected) {
+    return String(actual).toUpperCase() === stripExcludeQuotes(expected).toUpperCase();
+}
+
+/**
+ * 去掉条件值两端的单/双引号
+ * @param {string} value
+ * @returns {string}
+ */
+function stripExcludeQuotes(value) {
+    var s = String(value).trim();
+    if (s.length >= 2) {
+        var first = s.charAt(0);
+        var last = s.charAt(s.length - 1);
+        if ((first === "'" && last === "'") || (first === '"' && last === '"')) {
+            return s.substring(1, s.length - 1);
+        }
+    }
+    return s;
+}
+
+/**
+ * 过滤命中排除条件的行(应用根菜单行等 prepend 行同样参与过滤)
+ * @param {Object} obj MIGRATE_OBJECTS 中的对象定义
+ * @param {Array<Object>} rows 导出行
+ * @param {Object} rules resolveExcludeRules() 结果
+ * @returns {Array<Object>}
+ */
+function filterExcludedRows(obj, rows, rules) {
+    var conds = rules && rules.conditions ? rules.conditions[String(obj.key).toLowerCase()] : null;
+    if (!conds || conds.length === 0) {
+        return rows;
+    }
+    var result = [];
+    for (var i = 0; i < rows.length; i++) {
+        var excluded = false;
+        for (var j = 0; j < conds.length; j++) {
+            if (matchExcludeCondition(rows[i], conds[j])) {
+                excluded = true;
+                break;
+            }
+        }
+        if (!excluded) {
+            result.push(rows[i]);
+        }
+    }
+    return result;
+}
+
+/**
  * 使用 MboSet 读取对象数据, 每行调用 SKS_MIGRATE_<对象>.getDetail 转 JSON
  * getDetail 内部会处理字段值与多语言(config._allLangcode=true 时输出 sks:langdata)
  * @param {Object} obj MIGRATE_OBJECTS 中的对象定义
@@ -1379,13 +1504,76 @@ function loadObjectRows(obj, config, app) {
     } finally {
         _close(set);
     }
-    return rows;
+    if (obj.prependWhere) {
+        rows = prependExtraRows(obj, config, app, rows);
+    }
+    return filterExcludedRows(obj, rows, config._excludeRules);
+}
+
+/**
+ * 按 prependWhere 额外查询行并放到最前面(如应用根菜单), 按 MAXMENUID 去重
+ * prependWhere 中的 :1 参数值为应用名
+ */
+function prependExtraRows(obj, config, app, rows) {
+    var extra = [];
+    var set = null;
+    try {
+        set = MXServer.getMXServer().getMboSet(obj.objectName, userInfo);
+        if (config.dmDeploySet === true) {
+            try { set.setDMDeploySet(true); } catch (ignored) { }
+        }
+        var sqlf = new SqlFormat(obj.prependWhere);
+        sqlf.setObject(1, obj.objectName, obj.filterField || "APP", app);
+        set.setWhere(sqlf.format());
+        set.reset();
+        var total = set.count();
+        for (var i = 0; i < total; i++) {
+            var mbo = set.getMbo(i);
+            if (!mbo) {
+                continue;
+            }
+            var row = invokeMigrate(obj.script, "getDetail", config, mbo);
+            row["sks:uuid"] = createUuid();
+            extra.push(row);
+        }
+    } finally {
+        _close(set);
+    }
+    if (extra.length === 0) {
+        return rows;
+    }
+    var seen = {};
+    var result = [];
+    var rowKey = function (row) {
+        if (row.MAXMENUID !== undefined && row.MAXMENUID !== null) {
+            return String(row.MAXMENUID);
+        }
+        return [row.MENUTYPE, row.KEYVALUE, row.POSITION, row.SUBPOSITION].join("|");
+    };
+    for (var j = 0; j < extra.length; j++) {
+        var k = rowKey(extra[j]);
+        if (seen[k] === true) {
+            continue;
+        }
+        seen[k] = true;
+        result.push(extra[j]);
+    }
+    for (var m = 0; m < rows.length; m++) {
+        var mk = rowKey(rows[m]);
+        if (seen[mk] === true) {
+            continue;
+        }
+        seen[mk] = true;
+        result.push(rows[m]);
+    }
+    return result;
 }
 
 /**
  * 导出应用信息: 以 MAXAPPS 为主对象, 子表(签名/标签/菜单/文档类型)删除 APP 字段
  * 附带 MAXPRESENTATION / MAFAPPDATA 的元信息(默认不含 XML 文本与 zip 字节码)
  * 参数: app 必填; _include=presentation,zip 可选; _allLangcode=true 导出所有启用的语言
+ * _exclude: 分号分隔的排除项, 对象key 排除整个对象, 对象key:条件 排除命中条件的行
  */
 function exportAppInfo() {
     var app = request.getQueryParam("app");
@@ -1394,26 +1582,46 @@ function exportAppInfo() {
     }
     app = String(app).trim().toUpperCase();
     var opts = resolveExportOpts();
+    var excludeRules = resolveExcludeRules();
     var config = buildMigrateConfig("export", app);
     config._include = opts._include;
     config._includePresentation = opts.includePresentation;
     config._includeZip = opts.includeZip;
+    config._excludeRules = excludeRules;
     var data = {
         app: app,
         _langcode: config._langcode,
         _allLangcode: config._allLangcode,
         _include: opts._include === "" ? null : opts._include,
+        _exclude: excludeRules.raw === "" ? null : excludeRules.raw,
         status: "success"
     };
     try {
         for (var i = 0; i < MIGRATE_OBJECTS.length; i++) {
             var obj = MIGRATE_OBJECTS[i];
+            if (excludeRules.objects[String(obj.key).toLowerCase()] === true) {
+                data[obj.key] = obj.single ? null : [];
+                continue;
+            }
             var rows = loadObjectRows(obj, config, app);
+            // 导出 JSON 不需要导入结果字段(getDetail 生成), 统一去掉
+            for (var k = 0; k < rows.length; k++) {
+                if (!rows[k]) {
+                    continue;
+                }
+                delete rows[k]["_status"];
+                delete rows[k]["sks:ref"];
+            }
             if (obj.appField) {
                 for (var j = 0; j < rows.length; j++) {
-                    if (rows[j]) {
-                        delete rows[j][obj.appField];
+                    if (!rows[j]) {
+                        continue;
                     }
+                    // keepAppFieldIf 命中的行(如 MODULE 类菜单)保留应用字段原值, 该值不是应用名
+                    if (obj.keepAppFieldIf && obj.keepAppFieldIf(rows[j])) {
+                        continue;
+                    }
+                    delete rows[j][obj.appField];
                 }
             }
             data[obj.key] = obj.single ? (rows.length > 0 ? rows[0] : null) : rows;
@@ -1421,7 +1629,7 @@ function exportAppInfo() {
     } finally {
         closeDeferredSets(config);
     }
-    logger.info("[SKS.AUTOSCRIPT.SCREENS] exportAppInfo 完成: app=" + app + " include=" + opts._include + " allLangcode=" + config._allLangcode);
+    logger.info("[SKS.AUTOSCRIPT.SCREENS] exportAppInfo 完成: app=" + app + " include=" + opts._include + " exclude=" + excludeRules.raw + " allLangcode=" + config._allLangcode);
     return data;
 }
 
@@ -1495,7 +1703,15 @@ function importAppInfo() {
                 if (obj.key === "maxapps") {
                     rows[j].APP = app;
                 } else if (obj.appField) {
-                    rows[j][obj.appField] = app;
+                    // MODULE 类菜单行的 MODULEAPP 是模块名, JSON 中有值时保留, 否则按应用名注入
+                    var keepAppField = false;
+                    if (obj.keepAppFieldIf && obj.keepAppFieldIf(rows[j])) {
+                        var currentAppField = rows[j][obj.appField];
+                        keepAppField = currentAppField !== undefined && currentAppField !== null && String(currentAppField).trim() !== "";
+                    }
+                    if (!keepAppField) {
+                        rows[j][obj.appField] = app;
+                    }
                 }
             }
             var outRows = invokeMigrate(obj.script, "importApp", config, rows, app);

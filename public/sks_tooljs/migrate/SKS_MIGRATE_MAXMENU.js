@@ -278,11 +278,29 @@ function changeMbo(config, data) {
             out._operation = "deleted";
         } else {
             if (set.isEmpty()) {
+                // 应用根菜单行插入前检查位置唯一(MAXMENU_NDX: MENUTYPE+MODULEAPP+POSITION+SUBPOSITION)
+                if (isModuleAppRow(data)) {
+                    var freePosition = resolveFreePosition(data, userInfo, null);
+                    if (freePosition !== null) {
+                        data.POSITION = freePosition;
+                        out._message = "位置冲突, POSITION 已调整为 " + freePosition;
+                    }
+                }
                 mbo = set.add();
                 out._status = "success";
                 out._operation = "added";
             } else {
                 mbo = set.getMbo(0);
+                // 更新时 JSON 中的 POSITION 可能被其它行占用, 同样顺延避免 -803
+                if (isModuleAppRow(data)) {
+                    var selfId = null;
+                    try { selfId = String(mbo.getUniqueIDValue()); } catch (ignored) { }
+                    var updatePosition = resolveFreePosition(data, userInfo, selfId);
+                    if (updatePosition !== null) {
+                        data.POSITION = updatePosition;
+                        out._message = "位置冲突, POSITION 已调整为 " + updatePosition;
+                    }
+                }
                 out._status = "success";
                 out._operation = "updated";
             }
@@ -328,6 +346,69 @@ function _close(mboSet, config) {
         try { mboSet.cleanup(); } catch (ignored) { }
         try { mboSet.close(); } catch (ignored) { }
     } catch (ignored) { }
+}
+
+/**
+ * 应用根菜单行: MENUTYPE='MODULE' AND ELEMENTTYPE='APP'
+ * 这类行插入时需要保证 POSITION/SUBPOSITION 不与同应用其它菜单冲突
+ */
+function isModuleAppRow(data) {
+    return String(data.MENUTYPE || "").toUpperCase() === "MODULE" &&
+        String(data.ELEMENTTYPE || "").toUpperCase() === "APP";
+}
+
+function numberOrDefault(value, def) {
+    var n = parseFloat(value);
+    return isNaN(n) ? def : n;
+}
+
+/**
+ * 从 data.POSITION 开始递增, 找到同 MENUTYPE+MODULEAPP+SUBPOSITION 下未被占用的 POSITION
+ * @param {Object} data 行数据
+ * @param {Object} userInfo Maximo 用户
+ * @param {string|null} excludeId 排除的 MAXMENUID(更新时排除自身)
+ * @returns {number|null} 未冲突返回 null, 冲突后调整过则返回新 POSITION
+ */
+function resolveFreePosition(data, userInfo, excludeId) {
+    var position = numberOrDefault(data.POSITION, 0);
+    var subPosition = numberOrDefault(data.SUBPOSITION, 0);
+    var changed = false;
+    for (var guard = 0; guard < 1000; guard++) {
+        if (!positionExists(data, position, subPosition, userInfo, excludeId)) {
+            break;
+        }
+        position = position + 1;
+        changed = true;
+    }
+    return changed ? position : null;
+}
+
+function positionExists(data, position, subPosition, userInfo, excludeId) {
+    var set = null;
+    try {
+        set = mxserver.getMboSet(OBJECT_NAME, userInfo);
+        var sqlf = new SqlFormat("menutype = :1 and moduleapp = :2 and position = :3");
+        sqlf.setObject(1, OBJECT_NAME, "MENUTYPE", String(data.MENUTYPE));
+        sqlf.setObject(2, OBJECT_NAME, "MODULEAPP", String(data.MODULEAPP));
+        sqlf.setObject(3, OBJECT_NAME, "POSITION", position);
+        set.setWhere(sqlf.format());
+        set.reset();
+        for (var i = 0; i < set.count(); i++) {
+            var mbo = set.getMbo(i);
+            if (!mbo || mbo.getInt("SUBPOSITION") !== subPosition) {
+                continue;
+            }
+            var id = null;
+            try { id = String(mbo.getUniqueIDValue()); } catch (ignored) { }
+            if (excludeId !== null && excludeId !== undefined && id === String(excludeId)) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    } finally {
+        _close(set, null);
+    }
 }
 
 function resolveKeyFields(data) {
