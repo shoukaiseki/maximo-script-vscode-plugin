@@ -49,8 +49,8 @@ const scriptTypes: ScriptTypeItem[] = [
   { value: 'FLD_LOOKUP', label: '字段查找', description: '字段查找功能', category: 'attribute' },
   { value: 'WF_ACTION', label: '工作流动作', description: '工作流步骤动作', category: 'other' },
   { value: 'RELATIONSHIP', label: '关系脚本', description: '关系验证', category: 'other' },
-  { value: 'OBJECT.NEW_FIXED', label: 'NEW_FIXED(隐藏字段)', description: '新建时隐藏字段(系统固定名称)', category: 'fixed' },
-  { value: 'OBJECT.SAVE_FIXED', label: 'SAVE_FIXED(隐藏字段)', description: '保存时隐藏字段(系统固定名称)', category: 'fixed' },
+  { value: 'OBJECT.NEW_FIXED', label: 'NEW_FIXED(新建时触发)', description: '新建时触发(系统固定名称)', category: 'fixed' },
+  { value: 'OBJECT.SAVE_FIXED', label: 'SAVE_FIXED(保存时触发)', description: '保存时触发(系统固定名称)', category: 'fixed' },
   { value: 'NEW', label: 'MBO脚本-新增时触发', description: '在对象新增时触发，系统固定名称 <对象名>.NEW', category: 'fixed' }
 ];
 
