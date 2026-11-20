@@ -500,13 +500,17 @@ var ML_DEFS = {
     object: "MAXOBJECTCFG",
     listKey: "maxobjectcfgList",
     fields: ["DESCRIPTION"],
-    keys: ["OBJECTNAME"]
+    keys: ["OBJECTNAME"],
+    // 多语言只更新结构导入已存在的行, 不允许凭空新增对象配置
+    requireExisting: true
   },
   mlmaxattributecfg: {
     object: "MAXATTRIBUTECFG",
     listKey: "maxattributecfgList",
     fields: ["TITLE", "REMARKS"],
     keys: ["OBJECTNAME", "ATTRIBUTENAME"],
+    // 多语言只更新已存在的属性, 避免生成缺失 type/length 的空属性行
+    requireExisting: true,
     // 顶层 MAXATTRIBUTECFG 的语言表不允许 ADD(BMXAA0024E), 必须经 MAXOBJECTCFG 关系进入
     via: { parentObject: "MAXOBJECTCFG", relation: "MAXATTRIBUTECFG", parentKeys: ["OBJECTNAME"] }
   }
@@ -967,6 +971,9 @@ function importMlRow(config, def, row, pendingBase) {
       return "deleted";
     }
     var isNew = !mbo;
+    if (isNew && def.requireExisting) {
+      throw new MXApplicationException("#", def.object + " 中不存在 " + mlRowRef(def, row) + ", 多语言只更新已存在的记录");
+    }
     if (isNew) {
       mbo = ctx.set.add();
       for (var k = 0; k < def.keys.length; k++) {
@@ -1460,7 +1467,9 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
     return false;
   }
 
-  if (ignoreObjectMain) {
+  // 忽略主表信息只对已存在对象生效; 新增对象必须写主表关键字段(DESCRIPTION/SERVICENAME 等),
+  // 否则会出现 BMXAA4195E(描述必填) 或数据库 -407 错误
+  if (ignoreObjectMain || mbo.toBeAdded()) {
     logger.info("[" + scriptName + "] objectName= " + this.object + " change maxobject");
     if (!this.description) {
       throw new MXApplicationException("#", "objectName=" + this.object + " 的描述不能为空");
@@ -1508,11 +1517,11 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
 
   if (!this.view) {
     if (mbo.toBeAdded()) {
-      if (!mbo.getMboValueData("PERSISTENT").isReadOnly()) {
+      if (typeof this.persistent !== "undefined" && this.persistent !== null && !mbo.getMboValueData("PERSISTENT").isReadOnly()) {
         mbo.setValue("PERSISTENT", this.persistent);
       }
 
-      if (!mbo.getMboValueData("ADDROWSTAMP").isReadOnly()) {
+      if (typeof this.addRowstamp !== "undefined" && this.addRowstamp !== null && !mbo.getMboValueData("ADDROWSTAMP").isReadOnly()) {
         mbo.setValue("ADDROWSTAMP", this.addRowstamp);
       }
       // UNIQUECOLUMNNAME: 新对象在属性循环前设置(与 v1 LIBRARY 一致).
@@ -1633,6 +1642,18 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
           resAttr.push(attrRow);
         } else {
           var attrIsNew = !attribute;
+          // MAXATTRIBUTECFG 的 MAXTYPE/LENGTH 为 NOT NULL: 新增属性缺少 type/length 时
+          // 直接保存会报数据库 -407 并回滚整个对象, 这里逐行跳过并记录失败原因
+          if (attrIsNew
+            && typeof attributeConfig.sameAsObject === "undefined"
+            && typeof attributeConfig.sameAsAttribute === "undefined"
+            && (typeof attributeConfig.type === "undefined" || attributeConfig.type === null || attributeConfig.type === ""
+              || typeof attributeConfig.length === "undefined" || attributeConfig.length === null)) {
+            attrRow._status = "failed";
+            attrRow._message = "新增属性缺少 type/length, 已跳过(该属性未导入)";
+            resAttr.push(attrRow);
+            continue;
+          }
           if (!attribute) {
             attribute = attributeSet.add();
             cacheUseError.ind3 = " setValue ATTRIBUTENAME";
@@ -1676,12 +1697,12 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
                 attributeConfig.type == null ? attribute.setValueNull("MAXTYPE", 2) : attribute.setValue("MAXTYPE", attributeConfig.type, 2);
               }
 
-              if (typeof attributeConfig.length !== "undefined" && attributeConfig.length && !attribute.getMboValueData("LENGTH").isReadOnly()) {
+              if (typeof attributeConfig.length !== "undefined" && attributeConfig.length !== null && !attribute.getMboValueData("LENGTH").isReadOnly()) {
                 cacheUseError.ind3 = " setValue LENGTH";
                 attribute.setValue("LENGTH", attributeConfig.length, 2);
               }
 
-              if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale && !attribute.getMboValueData("SCALE").isReadOnly()) {
+              if (typeof attributeConfig.scale !== "undefined" && attributeConfig.scale !== null && !attribute.getMboValueData("SCALE").isReadOnly()) {
                 attribute.setValue("SCALE", attributeConfig.scale, 2);
               }
             }
