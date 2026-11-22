@@ -2178,9 +2178,11 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
           relationship = relationshipSet.moveNext();
         }
         if (relationshipConfig.delete) {
-          // 安全第一: 不删除, 跳过并记录
+          //删除,一般只有手动设置该标识,导出时候基本不会附带
+          relationship.delete()
           skipDeleteCount++;
-          relRow._status = "skipped";
+          // relRow._status = "skipped";
+          relRow._status = "success";
           relRow._operation = "deleted";
           logger.warn("[" + scriptName + "] relationship " + relationshipConfig.relationship + " delete 标记已跳过(安全策略)");
         } else if (!relationshipConfig.delete) {
