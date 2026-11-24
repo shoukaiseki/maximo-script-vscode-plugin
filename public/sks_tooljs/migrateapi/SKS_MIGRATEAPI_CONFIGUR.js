@@ -1146,6 +1146,33 @@ function doImportConfigur(config) {
     throw new MXApplicationException("#", "请求体必须包含非空 maxObjects 数组");
   }
 
+  // 自动检测 langdata: maxObjects 里任何一项带 sks:langdata, 就强制 allLangcode=true,
+  // 这样本函数末尾的 applyLangdataToConfigObject 就能正常写入多语言
+  if (!config.allLangcode) {
+    var hasAnyLangdata = false;
+    for (var hi = 0; hi < maxObjects.length; hi++) {
+      var hdef = maxObjects[hi];
+      if (hdef && typeof hdef === "object") {
+        if (hdef["sks:langdata"] && typeof hdef["sks:langdata"] === "object") {
+          hasAnyLangdata = true; break;
+        }
+        if (hdef.attributes instanceof Array) {
+          for (var ha = 0; ha < hdef.attributes.length; ha++) {
+            var ha2 = hdef.attributes[ha];
+            if (ha2 && ha2["sks:langdata"] && typeof ha2["sks:langdata"] === "object") {
+              hasAnyLangdata = true; break;
+            }
+          }
+        }
+      }
+      if (hasAnyLangdata) break;
+    }
+    if (hasAnyLangdata) {
+      config.allLangcode = true;
+      logger.info("[" + scriptName + "] 检测到请求体包含 sks:langdata, 强制 allLangcode=true");
+    }
+  }
+
   var merged = {
     total: maxObjects.length,
     added: 0,
@@ -1204,6 +1231,15 @@ function doImportConfigur(config) {
       debugPrint("stack for " + objectName + ":\n" + getErrorStackTrace(e));
       logger.error("[" + scriptName + "] 导入对象失败: " + objectName, e);
     }
+    // 结构导入成功后补写对象级/属性级多语言(skipped/failed 跳过)
+    if (item._status !== "failed" && !(r && r.operation === "skipped")) {
+      try {
+        applyLangdataToConfigObject(config, def, objectName);
+      } catch (le) {
+        logger.error("[" + scriptName + "] 多语言补写失败(对象级/属性级): " + objectName
+          + " - " + getErrorMessage(le));
+      }
+    }
     // 子行盖章(own 清零, sum=该行自身), 再对对象行盖章(own=该行自身, sum=自身+子数组递归)
     stampImportStats(item.attributes, true);
     stampImportStats(item.indexes, true);
@@ -1226,6 +1262,105 @@ function doImportConfigur(config) {
     + "；总计 成功" + grand.successSum + " 忽略" + grand.ignoreSum + " 失败" + grand.failSum;
   logger.info("[" + scriptName + "] " + responseMessage);
   return merged;
+}
+
+/**
+ * 结构导入完成后补写对象/属性多语言: 从 def["sks:langdata"] 和 def.attributes[].sks:langdata"] 中
+ * 取出各语言翻译, 直接对 MAXOBJECTCFG.DESCRIPTION / MAXATTRIBUTECFG.TITLE,REMARKS 调 setMLValue 保存。
+ * 每个对象/属性独立 try-catch, 单个失败不影响其它。对象已不存在时静默跳过(理论上结构导入刚完不可能)。
+ * @param {Object} config doImport 配置
+ * @param {Object} def 当前对象定义(maxObjects 数组中的一项)
+ * @param {string} objectName 对象名
+ */
+function applyLangdataToConfigObject(config, def, objectName) {
+  var mlAccess = 11; // ML_ACCESS 常量(1=NOVALIDATION|2=NOACCESSCHECK|8=NOACTION)
+
+  // --- 对象级 DESCRIPTION ---
+  var objLangdata = def && def["sks:langdata"];
+  if (objLangdata && typeof objLangdata === "object") {
+    var descVals = objLangdata["DESCRIPTION"];
+    if (descVals && typeof descVals === "object") {
+      var objSet = null;
+      try {
+        objSet = mxserver.getMboSet("MAXOBJECTCFG", config._userInfo);
+        var sqlf = new SqlFormat("objectname = :1");
+        sqlf.setObject(1, "MAXOBJECTCFG", "OBJECTNAME", objectName);
+        objSet.setWhere(sqlf.format());
+        if (!objSet.isEmpty()) {
+          var objMbo = objSet.moveFirst();
+          var objChanged = false;
+          for (var lang in descVals) {
+            if (!descVals.hasOwnProperty(lang)) continue;
+            var v = descVals[lang];
+            if (v === undefined || v === null || String(v).trim() === "" || String(v) === "~null~") continue;
+            objMbo.setMLValue("DESCRIPTION", String(lang).toUpperCase(), String(v), mlAccess);
+            objChanged = true;
+          }
+          if (objChanged) {
+            objSet.save();
+            logger.info("[" + scriptName + "] 对象级多语言已写入: " + objectName + " DESCRIPTION");
+          }
+        } else {
+          logger.warn("[" + scriptName + "] 对象不存在, 跳过对象级多语言: " + objectName);
+        }
+      } catch (e) {
+        logger.error("[" + scriptName + "] 对象级多语言写入失败: " + objectName + " - " + getErrorMessage(e));
+        try { if (objSet) objSet.rollback(); } catch (ignored) {}
+      } finally {
+        _close(objSet);
+      }
+    }
+  }
+
+  // --- 属性级 TITLE / REMARKS ---
+  var attrs = def && def.attributes;
+  if (attrs instanceof Array) {
+    for (var j = 0; j < attrs.length; j++) {
+      var attrDef = attrs[j];
+      if (!attrDef || typeof attrDef !== "object") continue;
+      var attrLangdata = attrDef["sks:langdata"];
+      if (!attrLangdata || typeof attrLangdata !== "object") continue;
+      var attrName = attrDef.attribute || attrDef.ATTRIBUTENAME;
+      if (!attrName) continue;
+
+      var attrSet = null;
+      try {
+        attrSet = mxserver.getMboSet("MAXATTRIBUTECFG", config._userInfo);
+        var asqlf = new SqlFormat("objectname = :1 and attributename = :2");
+        asqlf.setObject(1, "MAXATTRIBUTECFG", "OBJECTNAME", objectName);
+        asqlf.setObject(2, "MAXATTRIBUTECFG", "ATTRIBUTENAME", attrName);
+        attrSet.setWhere(asqlf.format());
+        if (!attrSet.isEmpty()) {
+          var attrMbo = attrSet.moveFirst();
+          var attrChanged = false;
+          var fields = ["TITLE", "REMARKS"];
+          for (var fi = 0; fi < fields.length; fi++) {
+            var field = fields[fi];
+            var fieldVals = attrLangdata[field];
+            if (!fieldVals || typeof fieldVals !== "object") continue;
+            for (var alang in fieldVals) {
+              if (!fieldVals.hasOwnProperty(alang)) continue;
+              var av = fieldVals[alang];
+              if (av === undefined || av === null || String(av).trim() === "" || String(av) === "~null~") continue;
+              attrMbo.setMLValue(field, String(alang).toUpperCase(), String(av), mlAccess);
+              attrChanged = true;
+            }
+          }
+          if (attrChanged) {
+            attrSet.save();
+            debugPrint("属性级多语言已写入: " + objectName + "." + attrName + " TITLE/REMARKS");
+          }
+        }
+        // 属性不存在静默跳过 — 结构导入刚完成, 理论上不应该出现
+      } catch (e) {
+        logger.error("[" + scriptName + "] 属性级多语言写入失败: " + objectName + "." + attrName
+          + " - " + getErrorMessage(e));
+        try { if (attrSet) attrSet.rollback(); } catch (ignored) {}
+      } finally {
+        _close(attrSet);
+      }
+    }
+  }
 }
 
 /**
@@ -1747,7 +1882,10 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
             }
 
             if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
-              attribute.setValue("CANAUTONUM", typeof attributeConfig.canAutonumber === "undefined" ? false : attributeConfig.canAutonumber);
+              if(typeof attributeConfig.canAutonumber !== "undefined"){
+                logger.info("attrName=" + attributeConfig.attribute+",attributeConfig.canAutonumber=" + attributeConfig.canAutonumber);
+                attribute.setValue("CANAUTONUM",  attributeConfig.canAutonumber);
+              }
             }
 
             if (!attribute.getMboValueData("AUTOKEYNAME").isReadOnly()) {

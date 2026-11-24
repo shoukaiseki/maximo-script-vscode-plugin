@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_MIGRATEAPI_CONFIGUR",
   "description": "对象配置(DBCONFIG/maxObjects)导入API",
-  "version": "1.0.8",
+  "version": "1.0.14",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

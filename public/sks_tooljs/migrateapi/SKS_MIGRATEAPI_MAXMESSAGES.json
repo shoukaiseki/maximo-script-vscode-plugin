@@ -1,7 +1,7 @@
 {
   "autoscript": "SKS_MIGRATEAPI_MAXMESSAGES",
   "description": "MAX消息",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "active": 1,
   "loglevel": "INFO",
   "scriptlanguage": "JavaScript",

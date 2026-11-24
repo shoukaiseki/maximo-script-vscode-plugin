@@ -156,9 +156,9 @@ var _ignoreDefValGlobal = false;
 main();
 function main() {
   try {
-    if (Java.type("psdi.iface.mic.MicUtil").getAdminModeState()) {
-      throw new MXApplicationException("ibm_system", "AdminOnThis");
-    }
+    // if (Java.type("psdi.iface.mic.MicUtil").getAdminModeState()) {
+    //   throw new MXApplicationException("ibm_system", "AdminOnThis");
+    // }
     successData = process();
     var resData = { status: "success", data: successData, message: "Script executed successfully" };
     if (paramDebug) {

@@ -585,6 +585,7 @@ maxappxml:
                       desclookup="查找部件2"
                       descinputmode="部件2的输入方式:DEFAULT(缺省),PASSWORD(密码),PASSWORDREADONLY(只读密码),PASSWORDREQUIRED(需要密码),QUERY(查询),READONLY(只读),REQUIRED(必需)"
                       longdescreadonly="只读详细描述:false,true" 
+                      longdesc="true/false;隐藏详细描述图标,false:隐藏详细描述图标"
                       datasrc="数据源标识"
                       sigoption="签名选项" 
                       size="宽度,只能两个部分同时调整,因为只有一个参数"

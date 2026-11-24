@@ -1,0 +1,16 @@
+{
+  "autoscript": "SKS_MIGRATEAPI_MAXVARS",
+  "description": "系统变量(MAXVARS)迁移/维护API(查询/详情/导出/更新/导入)",
+  "version": "1.0.1",
+  "active": 1,
+  "loglevel": "INFO",
+  "scriptlanguage": "JavaScript",
+  "interface": 0,
+  "variables": [],
+  "launchPoints": [],
+  "status": "Draft",
+  "langcode": "ZH",
+  "userdefined": 1,
+  "autoscriptid": 0,
+  "ibm_packagepath": "cn.shoukaiseki.tools.migrateapi"
+}
