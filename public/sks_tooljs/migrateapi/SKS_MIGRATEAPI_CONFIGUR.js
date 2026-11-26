@@ -39,6 +39,8 @@
 //                              configur / mlmaxapps / mlmaxlabels / mlmaxmodules / mlmaxmenu /
 //                              mlsigoption / mlmaxobjectcfg / mlmaxattributecfg
 //                              不传时执行请求体中出现的全部功能(默认全开)
+//   _enableDelete=true         [import] 默认 false; true 时属性行 delete:true 执行实际删除,
+//                              false 时只跳过并计数(安全策略)。delete:true 的行不写多语言。
 //   _debug=true                返回 debugMsg
 //
 // MAXTYPE/LENGTH/SCALE 与源逻辑的差异(用户明确要求):
@@ -56,9 +58,9 @@
 //   CHANGED 为单字符编码(N=无变更, I=新增, A=修改, D=删除), 因此存在新增/更新子行
 //   (或本身为新增对象)且当前为 N/空时显式置为 I(新增)或 A(修改)。
 //
-// 安全策略: 源脚本 deployMaxObjects 中 delete:true 的删除已被注释掉(安全第一),
-//           本脚本同样不执行任何删除: 对象级 delete:true 记为 skipped;
-//           属性/索引/关系行内 delete:true 跳过该行并计数, 不删除。
+// 安全策略: 默认不执行删除(安全第一): delete:true 记为 skipped 并计数;
+//           属性/字段行 delete:true 仅在 URL 参数 _enableDelete=true 时执行实际删除;
+//           delete:true 的行不写入多语言(避免删除后又补写译文)。
 //
 // 返回 responseBody(JSON 字符串, UTF-8) —— 对齐 SKS.AUTOSCRIPT.SCREENS 导入返回规范:
 //   子级(属性/索引/关系)同样以行数组返回, 每行盖相同 sks: 前缀统计字段,
@@ -194,7 +196,8 @@ function process() {
   logger.info("[" + scriptName + "] _action=" + action + ", _langcode=" + _langcode
     + ", dmDeploySet=" + config.dmDeploySet
     + ", ignoreAttributes=" + config.ignoreAttributes
-    + ", ignoreRelationships=" + config.ignoreRelationships);
+    + ", ignoreRelationships=" + config.ignoreRelationships
+    + ", enableDelete=" + config.enableDelete);
   if (action === "import") {
     return doImport(config);
   }
@@ -216,7 +219,8 @@ function buildConfig(action) {
     ignoreAttributes: (qparam("ignoreAttributes") === "true"),
     ignoreRelationships: (qparam("ignoreRelationships") === "true"),
     ignoreDefVal: (qparam("ignoreDefVal") === "true"),
-    allLangcode: (qparam("_allLangcode") === "true")
+    allLangcode: (qparam("_allLangcode") === "true"),
+    enableDelete: (qparam("_enableDelete") === "true" || qparam("enableDelete") === "true")
   };
 }
 
@@ -543,7 +547,7 @@ function resolveOnlyFunctions(config) {
     raw = qparam("_onlyFunctions");
   }
   var list = [];
-  var add = function(code) {
+  var add = function (code) {
     var c = String(code || "").trim().toLowerCase();
     if (c !== "" && list.indexOf(c) === -1) {
       list.push(c);
@@ -714,10 +718,14 @@ function getMlRows(config, def) {
     for (i = 0; i < maxObjects.length; i++) {
       var objDef = maxObjects[i];
       if (objDef && objDef["sks:langdata"] && typeof objDef["sks:langdata"] === "object") {
-        rows.push({
+        var objRow = {
           OBJECTNAME: objDef.object || objDef.OBJECTNAME,
           "sks:langdata": objDef["sks:langdata"]
-        });
+        };
+        if (isDeleteMarked(objDef)) {
+          objRow.delete = true;
+        }
+        rows.push(objRow);
       }
     }
     return rows.length > 0 ? rows : null;
@@ -732,11 +740,15 @@ function getMlRows(config, def) {
       for (var j = 0; j < attrs.length; j++) {
         var attrDef = attrs[j];
         if (attrDef && attrDef["sks:langdata"] && typeof attrDef["sks:langdata"] === "object") {
-          rows.push({
+          var attrRow = {
             OBJECTNAME: objectDef.object || objectDef.OBJECTNAME,
             ATTRIBUTENAME: attrDef.attribute || attrDef.ATTRIBUTENAME,
             "sks:langdata": attrDef["sks:langdata"]
-          });
+          };
+          if (isDeleteMarked(objectDef) || isDeleteMarked(attrDef)) {
+            attrRow.delete = true;
+          }
+          rows.push(attrRow);
         }
       }
     }
@@ -969,6 +981,10 @@ function importMlRow(config, def, row, pendingBase) {
       mbo.delete();
       mlSaveCtx(ctx, config);
       return "deleted";
+    }
+    if (isDeleteMarked(row)) {
+      // 字段含 delete=true: 不设置多语言信息
+      return "skipped";
     }
     var isNew = !mbo;
     if (isNew && def.requireExisting) {
@@ -1265,15 +1281,35 @@ function doImportConfigur(config) {
 }
 
 /**
+ * 行内删除标记: delete / _delete 为 true 或 "true"
+ * @param {Object} row
+ * @returns {boolean}
+ */
+function isDeleteMarked(row) {
+  if (!row || typeof row !== "object") {
+    return false;
+  }
+  return row.delete === true || row.delete === "true"
+    || row._delete === true || row._delete === "true";
+}
+
+/**
  * 结构导入完成后补写对象/属性多语言: 从 def["sks:langdata"] 和 def.attributes[].sks:langdata"] 中
  * 取出各语言翻译, 直接对 MAXOBJECTCFG.DESCRIPTION / MAXATTRIBUTECFG.TITLE,REMARKS 调 setMLValue 保存。
  * 每个对象/属性独立 try-catch, 单个失败不影响其它。对象已不存在时静默跳过(理论上结构导入刚完不可能)。
+ * delete:true 的对象/属性行不写多语言。
  * @param {Object} config doImport 配置
  * @param {Object} def 当前对象定义(maxObjects 数组中的一项)
  * @param {string} objectName 对象名
  */
 function applyLangdataToConfigObject(config, def, objectName) {
   var mlAccess = 11; // ML_ACCESS 常量(1=NOVALIDATION|2=NOACCESSCHECK|8=NOACTION)
+
+  // delete:true 的对象行不写多语言(已删除或删除标记, 无需补写译文)
+  if (isDeleteMarked(def)) {
+    logger.info("[" + scriptName + "] delete 标记, 跳过对象级多语言: " + objectName);
+    return;
+  }
 
   // --- 对象级 DESCRIPTION ---
   var objLangdata = def && def["sks:langdata"];
@@ -1305,7 +1341,7 @@ function applyLangdataToConfigObject(config, def, objectName) {
         }
       } catch (e) {
         logger.error("[" + scriptName + "] 对象级多语言写入失败: " + objectName + " - " + getErrorMessage(e));
-        try { if (objSet) objSet.rollback(); } catch (ignored) {}
+        try { if (objSet) objSet.rollback(); } catch (ignored) { }
       } finally {
         _close(objSet);
       }
@@ -1318,6 +1354,8 @@ function applyLangdataToConfigObject(config, def, objectName) {
     for (var j = 0; j < attrs.length; j++) {
       var attrDef = attrs[j];
       if (!attrDef || typeof attrDef !== "object") continue;
+      // delete:true 的属性行不写多语言
+      if (isDeleteMarked(attrDef)) continue;
       var attrLangdata = attrDef["sks:langdata"];
       if (!attrLangdata || typeof attrLangdata !== "object") continue;
       var attrName = attrDef.attribute || attrDef.ATTRIBUTENAME;
@@ -1355,7 +1393,7 @@ function applyLangdataToConfigObject(config, def, objectName) {
       } catch (e) {
         logger.error("[" + scriptName + "] 属性级多语言写入失败: " + objectName + "." + attrName
           + " - " + getErrorMessage(e));
-        try { if (attrSet) attrSet.rollback(); } catch (ignored) {}
+        try { if (attrSet) attrSet.rollback(); } catch (ignored) { }
       } finally {
         _close(attrSet);
       }
@@ -1379,8 +1417,10 @@ function importMaxObject(config, maxObjectDef, cacheUseError, statsOut) {
   }
   // 安全第一: 与源脚本 deployMaxObjects 一致, delete 标记不执行删除, 记为 skipped
   if (maxObjectDef.delete === true || maxObjectDef.delete === "true") {
-    return { operation: "skipped", message: "delete 标记, 未执行删除(安全策略)",
-      attributes: null, indexes: null, relationships: null };
+    return {
+      operation: "skipped", message: "delete 标记, 未执行删除(安全策略)",
+      attributes: null, indexes: null, relationships: null
+    };
   }
 
   logger.info("[" + scriptName + "] Setting up the " + maxObjectDef.object + " Maximo object.");
@@ -1421,10 +1461,12 @@ function importMaxObject(config, maxObjectDef, cacheUseError, statsOut) {
     } finally { _close(chkSet); }
     logger.info("[" + scriptName + "] Set up the " + maxObjectDef.object + " Maximo object. (" + operation + ")");
     // save 成功后读取子级结果行数组
-    return { operation: operation, message: subMessage,
+    return {
+      operation: operation, message: subMessage,
       attributes: maxObjectConfig.resultAttributes,
       indexes: maxObjectConfig.resultIndexes,
-      relationships: maxObjectConfig.resultRelationships };
+      relationships: maxObjectConfig.resultRelationships
+    };
   } catch (e) {
     // 对象失败时也把已处理的部分子级行带出(数组引用, 由 doImport 盖章)
     try {
@@ -1752,12 +1794,36 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
         }
 
         if (attributeConfig.delete) {
-          // 安全第一: 不删除, 跳过并记录
-          skipDeleteCount++;
-          attrRow._status = "skipped";
-          attrRow._operation = "deleted";
-          resAttr.push(attrRow);
-          logger.warn("[" + scriptName + "] attribute " + attributeConfig.attribute + " delete 标记已跳过(安全策略)");
+          if (attribute) {
+            // 是否允许删除字段: 由 URL 参数 _enableDelete=true 控制(默认 false 安全跳过)
+            if (config.enableDelete) {
+
+              // 已启用删除(_enableDelete=true): 实际删除字段
+              attribute.delete()
+              skipDeleteCount++;
+              attrRow._status = "deleted";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted 标记删除";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] attribute " + attributeConfig.attribute + " delete 标记成功");
+            } else {
+              // 安全第一: 不删除, 跳过并记录
+              skipDeleteCount++;
+              attrRow._status = "skipped";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted (不删除, 跳过并记录)";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] view attribute " + attributeConfig.attribute + " delete 标记已跳过(安全策略)");
+            }
+          }else{
+              // 配置中字段不存在, 跳过并记录
+              skipDeleteCount++;
+              attrRow._status = "skipped";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted (配置中字段不存在, 忽略)";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] view attribute " + attributeConfig.attribute + " delete 标记已跳过(配置中字段不存在, 跳过并记录)");
+          }
         } else if (attribute && attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))) {
           if (attributeConfig.description) {
             // 原表中会有空格, 设置为无空格的会有变更, 所以需要去前尾空之后判断是否相同, 避免无意义的变更
@@ -1882,9 +1948,9 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
             }
 
             if (!attribute.getMboValueData("CANAUTONUM").isReadOnly()) {
-              if(typeof attributeConfig.canAutonumber !== "undefined"){
-                logger.info("attrName=" + attributeConfig.attribute+",attributeConfig.canAutonumber=" + attributeConfig.canAutonumber);
-                attribute.setValue("CANAUTONUM",  attributeConfig.canAutonumber);
+              if (typeof attributeConfig.canAutonumber !== "undefined") {
+                logger.info("attrName=" + attributeConfig.attribute + ",attributeConfig.canAutonumber=" + attributeConfig.canAutonumber);
+                attribute.setValue("CANAUTONUM", attributeConfig.canAutonumber);
               }
             }
 
@@ -1993,12 +2059,36 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
           attribute = attributeSet.moveNext();
         }
         if (attributeConfig.delete) {
-          // 安全第一: 不删除, 跳过并记录
-          skipDeleteCount++;
-          attrRow._status = "skipped";
-          attrRow._operation = "deleted";
-          resAttr.push(attrRow);
-          logger.warn("[" + scriptName + "] view attribute " + attributeConfig.attribute + " delete 标记已跳过(安全策略)");
+          if (attribute) {
+            // 是否允许删除字段: 由 URL 参数 _enableDelete=true 控制(默认 false 安全跳过)
+            if (config.enableDelete) {
+
+              // 已启用删除(_enableDelete=true): 实际删除字段
+              attribute.delete()
+              skipDeleteCount++;
+              attrRow._status = "deleted";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted 标记删除";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] attribute " + attributeConfig.attribute + " delete 标记成功");
+            } else {
+              // 安全第一: 不删除, 跳过并记录
+              skipDeleteCount++;
+              attrRow._status = "skipped";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted (不删除, 跳过并记录)";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] view attribute " + attributeConfig.attribute + " delete 标记已跳过(安全策略)");
+            }
+          }else{
+              // 配置中字段不存在, 跳过并记录
+              skipDeleteCount++;
+              attrRow._status = "skipped";
+              attrRow._operation = "deleted";
+              attrRow._message = "deleted (配置中字段不存在, 忽略)";
+              resAttr.push(attrRow);
+              logger.warn("[" + scriptName + "] view attribute " + attributeConfig.attribute + " delete 标记已跳过(配置中字段不存在, 跳过并记录)");
+          }
         } else if (attribute && (attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(mbo.getString("UNIQUECOLUMNNAME"))
           || attribute.getString("ATTRIBUTENAME").equalsIgnoreCase(extendsObjectTmp + "ID")
         )) {
@@ -2387,7 +2477,9 @@ MaxObject.prototype.setMboValues = function (config, mbo, cacheUseError) {
 
   var msgs = [];
   if (skipDeleteCount > 0) {
-    msgs.push("delete标记行已跳过 " + skipDeleteCount + " 条(不执行删除)");
+    msgs.push(config.enableDelete
+      ? "delete标记行 " + skipDeleteCount + " 条(_enableDelete=true, 已执行删除)"
+      : "delete标记行已跳过 " + skipDeleteCount + " 条(不执行删除)");
   }
   if (relFailCount > 0) {
     msgs.push("关系处理失败 " + relFailCount + " 条");
@@ -2621,7 +2713,7 @@ function resolveExportFilters(config) {
   var body = config._body || {};
   var objectNames = [];
   var attributeFilters = [];
-  var addObject = function(name) {
+  var addObject = function (name) {
     var v = String(name || "").trim();
     if (v !== "" && objectNames.indexOf(v) === -1) {
       objectNames.push(v);
