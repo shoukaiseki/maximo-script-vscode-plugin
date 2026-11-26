@@ -32,7 +32,8 @@ module.exports = {
         { from: 'src/LocalReflectHelper.class', to: 'LocalReflectHelper.class' },
         { from: 'dist/webview/index.js', to: 'webview/index.js' },
         { from: 'dist/webview/style.css', to: 'webview/style.css' },
-        { from: 'dist/webview/index.html', to: 'webview/index.html' }
+        { from: 'dist/webview/index.html', to: 'webview/index.html' },
+        { from: 'resources/vendor', to: 'vendor' }
       ]
     })
   ],

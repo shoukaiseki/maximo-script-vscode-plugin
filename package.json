@@ -2,7 +2,7 @@
   "name": "maximo-script-helper",
   "displayName": "Maximo Script Helper",
   "description": "Maximo自动化脚本开发助手，提供智能代码补全、语法提示等功能",
-  "version": "1.8.57",
+  "version": "1.8.58",
   "publisher": "shoukaiseki",
   "icon": "images/icon.png",
   "repository": {
@@ -117,6 +117,10 @@
       {
         "command": "maximoScript.pushToMultipleEnvs",
         "title": "Maximo Script: 推送到多个环境"
+      },
+      {
+        "command": "maximoScript.importJsonToEnvs",
+        "title": "Maximo Script: 导入到多个环境"
       }
     ],
     "menus": {
@@ -170,6 +174,11 @@
           "command": "maximoScript.pushToMultipleEnvs",
           "when": "editorLangId == xml",
           "group": "navigation@9"
+        },
+        {
+          "command": "maximoScript.importJsonToEnvs",
+          "when": "editorLangId == json",
+          "group": "navigation@9"
         }
       ],
       "explorer/context": [
@@ -207,6 +216,11 @@
           "command": "maximoScript.pushToMultipleEnvs",
           "when": "resourceLangId == json",
           "group": "navigation@9"
+        },
+        {
+          "command": "maximoScript.importJsonToEnvs",
+          "when": "resourceLangId == json",
+          "group": "navigation@10"
         }
       ]
     },

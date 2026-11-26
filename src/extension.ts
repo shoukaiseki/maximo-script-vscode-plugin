@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CompletionProvider } from './completionProvider';
 import { ConfigPanel } from './configPanel';
 import { CreateScriptPanel } from './createScriptPanel';
@@ -7,6 +9,7 @@ import { QuickCodeManager } from './quickCodeManager';
 import { registerSksDebugger } from './debug';
 import { isMaximoScriptProject } from './reflectionDataManager';
 import { PushToMultipleEnvs } from './pushToMultipleEnvs';
+import { ImportJsonPanel } from './importJsonToMultipleEnvs';
 
 // 导出 HTTP 请求方法和初始化函数，供其他模块使用
 export { httpRequestToMaximo, initializeAxiosInterceptors, clearJSESSIONID };
@@ -614,6 +617,31 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   context.subscriptions.push(pushToMultipleEnvsCommand);
+
+  // 注册 JSON 右键"导入到多个环境"命令：打开 Web 导入面板
+  const importJsonToEnvsCommand = vscode.commands.registerCommand('maximoScript.importJsonToEnvs', async (uri?: vscode.Uri) => {
+    try {
+      let filePath: string | undefined;
+      if (uri && uri.scheme === 'file' && fs.existsSync(uri.fsPath) && fs.statSync(uri.fsPath).isFile()) {
+        filePath = uri.fsPath;
+      } else if (vscode.window.activeTextEditor) {
+        filePath = vscode.window.activeTextEditor.document.fileName;
+      }
+      if (!filePath) {
+        vscode.window.showErrorMessage('请选择要导入的 JSON 文件');
+        return;
+      }
+      if (path.extname(filePath).toLowerCase() !== '.json') {
+        vscode.window.showErrorMessage(`请选择 .json 文件: ${path.basename(filePath)}`);
+        return;
+      }
+      ImportJsonPanel.createOrShow(context.extensionUri, filePath, logger);
+    } catch (error: any) {
+      logger.error(`[ImportJsonToEnvs] ❌ 打开导入面板失败: ${error.message}`);
+      vscode.window.showErrorMessage(`打开导入面板失败: ${error.message}`);
+    }
+  });
+  context.subscriptions.push(importJsonToEnvsCommand);
 
   // 注册手动获取反射信息命令
   const fetchReflectionCommand = vscode.commands.registerCommand('maximoScript.fetchReflection', async () => {
