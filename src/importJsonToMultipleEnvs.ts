@@ -19,7 +19,8 @@ export type JsonImportKind =
   | 'maxmenu'
   | 'sigoption'
   | 'maxobjectcfg'
-  | 'maxattributecfg';
+  | 'maxattributecfg'
+  | 'domain';
 
 /** 导入参数勾选项 */
 interface KindOption {
@@ -236,6 +237,47 @@ const SPECS: Record<JsonImportKind, ImportSpec> = {
     outKey: 'maxattributecfgList',
     options: ML_OPTIONS,
     buildQuery(selected, env) { return mlQuery('mlmaxattributecfg', selected, env); }
+  },
+  domain: {
+    kind: 'domain',
+    label: '域定义 MAXDOMAIN',
+    script: 'SKS_MIGRATEAPI_DOMAIN',
+    wrapperKeys: ['domainList'],
+    singleKeys: [],
+    outKey: 'domainList',
+    options: [
+      { key: 'allLangcode', label: '导入多语言数据（sks:langdata）', picked: true },
+      { key: 'dmDeploySet', label: '启用迁移模式(dmDeploySet)', picked: false },
+      { key: 'errorAssert', label: '遇到错误时中断导入(_errorAssert)', picked: false },
+      { key: 'keepAln', label: '保留(不删除)不存在的 ALN 值', picked: false },
+      { key: 'keepSynonym', label: '保留(不删除)不存在的同义词', picked: false },
+      { key: 'keepNumeric', label: '保留(不删除)不存在的数值', picked: false },
+      { key: 'keepNumRange', label: '保留(不删除)不存在的数值范围', picked: false },
+      { key: 'keepTable', label: '保留(不删除)不存在的表域', picked: false }
+    ],
+    buildQuery(selected, env) {
+      const q: Record<string, string> = {
+        _action: 'import',
+        _langcode: langOf(env),
+        _allLangcode: selected.indexOf('allLangcode') >= 0 ? 'true' : 'false'
+      };
+      if (selected.indexOf('dmDeploySet') >= 0) {
+        q.dmDeploySet = 'true';
+      }
+      if (selected.indexOf('errorAssert') >= 0) {
+        q._errorAssert = 'true';
+      }
+      const keep: string[] = [];
+      if (selected.indexOf('keepAln') >= 0) { keep.push('alndomain'); }
+      if (selected.indexOf('keepSynonym') >= 0) { keep.push('synonymdomain'); }
+      if (selected.indexOf('keepNumeric') >= 0) { keep.push('numericdomain'); }
+      if (selected.indexOf('keepNumRange') >= 0) { keep.push('numrangedomain'); }
+      if (selected.indexOf('keepTable') >= 0) { keep.push('tabledomain'); }
+      if (keep.length) {
+        q._deleteNotExists = keep.map(k => `domainList:_skschild_${k}:${k}`).join(',');
+      }
+      return q;
+    }
   }
 };
 
@@ -534,6 +576,7 @@ export class ImportJsonPanel {
     const vueUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'vendor', 'vue.global.prod.js'));
     const epJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'vendor', 'element-plus.full.min.js'));
     const epCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'vendor', 'element-plus.css'));
+    const epDarkCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'vendor', 'element-plus-dark.css'));
     const csp = [
       "default-src 'none'",
       `style-src ${cspSource} vscode-resource: 'unsafe-inline'`,
@@ -550,15 +593,29 @@ export class ImportJsonPanel {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>导入到多个环境</title>
 <link rel="stylesheet" href="${epCssUri}">
+<link rel="stylesheet" href="${epDarkCssUri}">
 <style>
-  :root {
+  :root, html.dark {
     --el-color-primary: var(--vscode-button-background, #409eff);
     --el-border-color: var(--vscode-panel-border, #dcdfe6);
+    --el-border-color-lighter: var(--vscode-panel-border, #e4e7ed);
     --el-fill-color-blank: var(--vscode-editor-background, #fff);
     --el-bg-color: var(--vscode-editor-background, #fff);
+    --el-bg-color-overlay: var(--vscode-editorWidget-background, var(--vscode-editor-background, #fff));
     --el-text-color-primary: var(--vscode-foreground, #303133);
     --el-text-color-regular: var(--vscode-foreground, #606266);
+    --el-text-color-secondary: var(--vscode-descriptionForeground, #909399);
     --el-fill-color-light: var(--vscode-textCodeBlock-background, #f5f7fa);
+    /* 斑马纹 / 表头：半透明灰，深浅主题下都不会出现刺眼的白条 */
+    --el-fill-color-lighter: rgba(128, 128, 128, 0.12);
+    --el-table-bg-color: transparent;
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: rgba(128, 128, 128, 0.14);
+    --el-table-header-text-color: var(--vscode-foreground, #303133);
+    --el-table-text-color: var(--vscode-foreground, #303133);
+    --el-table-row-hover-bg-color: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+    --el-table-border-color: var(--vscode-panel-border, #ebeef5);
+    --el-table-current-row-bg-color: var(--vscode-list-inactiveSelectionBackground, rgba(128, 128, 128, 0.16));
   }
   html, body { height: 100%; margin: 0; padding: 0; }
   body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
@@ -611,6 +668,22 @@ export class ImportJsonPanel {
 </style>
 </head>
 <body>
+<script>
+// 根据 VS Code 当前主题自动启用/关闭 Element Plus 暗色变量（html.dark）
+(function () {
+  function applyTheme() {
+    var root = document.documentElement;
+    var body = document.body;
+    if (!root || !body) { return; }
+    var dark = body.classList.contains('vscode-dark') || body.classList.contains('vscode-high-contrast');
+    root.classList.toggle('dark', dark);
+  }
+  applyTheme();
+  if (document.body) {
+    new MutationObserver(applyTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+})();
+</script>
 <div id="app">
   <el-container style="height:100vh">
     <el-aside width="230px" class="aside">
@@ -685,14 +758,14 @@ export class ImportJsonPanel {
         </div>
         <el-table ref="listTable" :data="listRows" border stripe size="small" max-height="520"
           row-key="rowKey" :default-expand-all="expandAll" :tree-props="{ children: 'children' }">
-          <el-table-column prop="label" label="对象 / 记录" min-width="320" show-overflow-tooltip />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="label" label="对象 / 记录" min-width="300" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="status" label="状态" width="90">
             <template #default="scope">
-              <el-tag v-if="scope.row.status" :type="scope.row.status === 'success' ? 'success' : 'danger'" size="small">{{ scope.row.status }}</el-tag>
+              <el-tag v-if="scope.row.status" :type="scope.row.statusType || 'info'" size="small">{{ scope.row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="operation" label="操作" width="100" />
-          <el-table-column prop="message" label="消息" min-width="260" show-overflow-tooltip />
+          <el-table-column prop="operation" label="操作" width="90"></el-table-column>
+          <el-table-column prop="message" label="消息" min-width="260" show-overflow-tooltip></el-table-column>
         </el-table>
         <el-empty v-if="listRows.length === 0" description="无明细返回" :image-size="60"></el-empty>
       </el-tab-pane>
@@ -736,6 +809,31 @@ export class ImportJsonPanel {
 (function () {
   var vscode = acquireVsCodeApi();
 
+  // 明细主键取值：优先 sks:ref，其次常见主键字段，再退化为行内第一个非控制字段
+  function pickLabel(item, i) {
+    if (item === null || item === undefined) { return '#' + (i + 1); }
+    if (typeof item !== 'object') { return String(item); }
+    var candidates = ['sks:ref', 'object', 'label', 'name', 'key', 'OBJECTNAME', 'objectname'];
+    for (var c = 0; c < candidates.length; c++) {
+      var v = item[candidates[c]];
+      if (v !== undefined && v !== null && typeof v !== 'object' && String(v).trim() !== '') {
+        return String(v);
+      }
+    }
+    var keys = Object.keys(item);
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k];
+      if (key.charAt(0) === '_' || key.indexOf('sks:') === 0) { continue; }
+      var val = item[key];
+      if ((typeof val === 'string' && val.trim() !== '') || typeof val === 'number' || typeof val === 'boolean') {
+        return String(val);
+      }
+    }
+    return '#' + (i + 1);
+  }
+
+  var STATUS_TAG = { success: 'success', failed: 'danger', error: 'danger', skipped: 'info' };
+
   try {
     var app = Vue.createApp({
     data: function () {
@@ -778,11 +876,13 @@ export class ImportJsonPanel {
           var isError = body.status === 'error';
           var children = results.map(function (it, i) {
             it = it || {};
+            var st = String(it._status || '');
             return {
               rowKey: 'b' + idx + '-i' + i,
-              label: it['sks:ref'] || it.object || it.key || ('#' + (i + 1)),
-              status: it._status || '',
-              operation: it._operation || '',
+              label: pickLabel(it, i),
+              status: st,
+              statusType: STATUS_TAG[st.toLowerCase()] || 'info',
+              operation: (it._operation && it._operation !== 'none') ? it._operation : '',
               message: it._message || ''
             };
           });
